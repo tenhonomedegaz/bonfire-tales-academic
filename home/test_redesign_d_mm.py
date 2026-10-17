@@ -142,6 +142,44 @@ class ThemeMMTests(TestCase):
         demo = self.client.get(reverse('theme_studio'))
         self.assertNotContains(demo, reverse('buy_theme_with_mm'))
 
+    def test_studio_wallet_preview_and_owned_theme_lead_to_active_editors(self):
+        active = TbPersonagem.objects.create(dono=self.user, nome='Aventureira')
+        archived = TbPersonagem.objects.create(
+            dono=self.user, nome='No cofre', arquivado=True)
+        self.client.force_login(self.user)
+        studio_url = reverse('theme_studio')
+        affordable = self.client.get(studio_url)
+        self.assertContains(affordable, 'Seu saldo: 120 MM. Custo: 50 MM.')
+        self.assertContains(affordable, reverse('buy_theme_with_mm'))
+
+        self.profile.moedas_mestragem = 49
+        self.profile.save(update_fields=['moedas_mestragem'])
+        shortage = self.client.get(studio_url)
+        self.assertContains(shortage, 'Faltam 1 MM para resgatar este tema.')
+        self.assertNotContains(shortage, reverse('buy_theme_with_mm'))
+        rejected = self.client.post(reverse('buy_theme_with_mm'), {
+            'slug': self.theme.slug, 'request_key': str(uuid.uuid4()),
+        })
+        self.assertEqual(rejected.status_code, 400)
+        self.assertFalse(CosmeticMMRedemption.objects.exists())
+
+        self.profile.moedas_mestragem = 120
+        self.profile.save(update_fields=['moedas_mestragem'])
+        purchase = self.client.post(reverse('buy_theme_with_mm'), {
+            'slug': self.theme.slug, 'request_key': str(uuid.uuid4()),
+        })
+        self.assertEqual(purchase.status_code, 200)
+        owned = self.client.get(studio_url)
+        self.assertContains(owned, reverse('profile') + '#perfil-aparencia')
+        self.assertContains(owned, reverse('ficha_detail', args=[active.pk]) +
+                            '?aba=info#ficha-theme-group')
+        self.assertNotContains(owned, reverse('ficha_detail', args=[archived.pk]) +
+                               '?aba=info#ficha-theme-group')
+        self.assertNotContains(owned, reverse('buy_theme_with_mm'))
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.moedas_mestragem, 70)
+        self.assertEqual(CosmeticMMRedemption.objects.count(), 1)
+
     def test_live_mm_theme_cannot_create_cash_checkout(self):
         self.client.force_login(self.user)
         listing = self.client.get(reverse('cosmetic_checkout'))

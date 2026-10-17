@@ -8,7 +8,7 @@ from django.shortcuts import render
 from django.views.decorators.http import require_GET, require_POST
 
 from .cosmetics import cosmetic_allowed
-from .models import CosmeticCheckoutOffer
+from .models import CosmeticCheckoutOffer, UserProfile
 from .theme_mm import redeem_theme_mm
 
 
@@ -24,6 +24,14 @@ PILOT_CASH_DISABLED_SLUGS = frozenset('tema-' + key for key in COLLECTIONS)
 
 @require_GET
 def theme_studio(request):
+    wallet_mm = None
+    characters = []
+    if request.user.is_authenticated:
+        wallet_mm = UserProfile.objects.filter(user=request.user).values_list(
+            'moedas_mestragem', flat=True).first()
+        wallet_mm = int(wallet_mm or 0)
+        characters = list(request.user.personagens.filter(arquivado=False)
+                          .order_by('nome', 'pk').only('id_personagem', 'nome')[:10])
     offers = {offer.cosmetico.slug: offer for offer in
               CosmeticCheckoutOffer.objects.select_related('cosmetico').filter(
                   active=True, cosmetico__ativo=True, cosmetico__tipo='tema')}
@@ -33,10 +41,13 @@ def theme_studio(request):
         if offer is None:
             continue
         item = offer.cosmetico
+        price_mm = item.preco if item.origem == 'loja_mm' else None
         cards.append({
             'key': key, 'sample': sample, 'subtitle': subtitle, 'affinity': affinity,
             'name': item.nome, 'description': item.descricao,
-            'price_brl': offer.amount, 'price_mm': item.preco if item.origem == 'loja_mm' else None,
+            'price_brl': offer.amount, 'price_mm': price_mm,
+            'mm_shortfall': max(0, int(price_mm) - wallet_mm)
+            if price_mm and wallet_mm is not None else 0,
             'mm_only': item.origem == 'loja_mm',
             'cash_disabled': (item.slug in PILOT_CASH_DISABLED_SLUGS
                               and item.css_class == 'theme-data' and item.origem != 'loja_mm'),
@@ -51,6 +62,7 @@ def theme_studio(request):
         'cards': cards, 'selected': selected,
         'studio_demo': any(card['demonstration'] or card['cash_disabled'] for card in cards),
         'commerce_enabled': bool(getattr(settings, 'BONFIRE_COMMERCE_ENABLED', False)),
+        'wallet_mm': wallet_mm, 'characters': characters,
     })
 
 
