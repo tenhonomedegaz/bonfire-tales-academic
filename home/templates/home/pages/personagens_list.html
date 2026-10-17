@@ -22,12 +22,12 @@
     {% if pode_criar %}
       <a href="{% url 'criacao_ficha' %}" class="rounded bg-bonfire-gradient px-3 py-1.5 text-sm font-bold text-white hover:opacity-90">+ Criar Personagem</a>
     {% else %}
-      <a href="{% url 'character_slots' %}" class="rounded border border-[var(--stroke)] bg-[var(--bg1)] px-3 py-1.5 text-sm font-semibold text-[var(--ember)]">Gerenciar meus slots →</a>
+      <a href="#slots-g01" class="rounded border border-[var(--stroke)] bg-[var(--bg1)] px-3 py-1.5 text-sm font-semibold text-[var(--ember)]">Gerenciar meus slots →</a>
     {% endif %}
   </header>
 
-  <p class="cw-slots-note">{{ slot_status.total }} fichas preservadas. Marcos dos níveis 13 e 20 liberam um slot cada, uma vez por conta. <a href="{% url 'character_slots' %}">Ver capacidade e escolher fichas ativas →</a></p>
-  {% if slot_status.precisa_escolher %}<p class="cw-slots-warning" role="status">Sua capacidade mudou. Nenhuma ficha foi excluída: escolha quais ficam ativas para continuar jogando. <a href="{% url 'character_slots' %}">Escolher agora →</a></p>{% endif %}
+  <p class="cw-slots-note">{{ slot_status.total }} fichas preservadas. Marcos dos níveis 13 e 20 liberam um slot cada, uma vez por conta. <a href="#slots-g01">Ver capacidade e escolher fichas ativas →</a></p>
+  {% if slot_status.precisa_escolher %}<p class="cw-slots-warning" role="status">Sua capacidade mudou. Nenhuma ficha foi excluída: escolha quais ficam ativas para continuar jogando. <a href="#slots-g01">Escolher agora →</a></p>{% endif %}
   <div class="cw-search-tools" hidden data-cw-controls><label for="cw-search">Encontrar uma ficha<input type="search" id="cw-search" maxlength="160" placeholder="Nome, raça ou classe…" autocomplete="off"></label><label for="cw-group">Mostrar<select id="cw-group"><option value="">Todas as fichas</option><option value="ativo">Somente ativas</option><option value="inativo">Somente inativas</option></select></label><button type="button" data-cw-clear>Limpar filtros</button><p role="status" aria-live="polite" data-cw-count></p></div>
   <section class="cw-card-group" data-cw-group="ativo" aria-labelledby="cw-active-title">
   <h2 id="cw-active-title" class="mb-2 font-serif text-lg font-bold text-[var(--text)]">Ativos <span class="cw-section-note">Prontos para continuar a aventura</span></h2>
