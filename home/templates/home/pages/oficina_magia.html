@@ -2,16 +2,29 @@
 {% load static %}
 
 {% block title %}Oficina de Magia - Bonfire Tales RPG{% endblock %}
+{% block body_class %}bft-workshop{% endblock %}
+{% block main_class %}flex-1 w-full workshop-main{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/mercado_loja.css' %}?v=2">
 <link rel="stylesheet" href="{% static 'css/pages/oficina_magia.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'css/pages/oficina-arcana.css' %}?v=2">
 <script defer src="{% static 'js/oficina-magia.js' %}?v=1"></script>
 {% endblock %}
 
 {% block content %}
 <div class="workshop-shell">
   {% include 'home/partials/workshop_symbols.html' %}
+  <header class="workshop-masthead">
+    <div class="workshop-masthead-copy">
+      <nav class="workshop-breadcrumb" aria-label="Localização"><a href="{% url 'home' %}">Bonfire Tales</a><span aria-hidden="true">/</span><span>Mercado</span></nav>
+      <p class="workshop-eyebrow">Tinta, intenção e poder</p>
+      <h1>Oficina de Magia</h1>
+      <p class="workshop-intro">Inscreva seus feitiços. Dê forma ao extraordinário.</p>
+    </div>
+    <div class="workshop-seal" aria-hidden="true"></div>
+    <a class="workshop-library-link" href="{% url 'magias_listas' %}">Consultar magias <span aria-hidden="true">↗</span></a>
+  </header>
   {% include 'home/partials/_mercado_balcao.html' with balcao_titulo='Oficina de Magia' %}
 
   {% if oficina_resultado %}<div class="workshop-alert is-ok">{{ oficina_resultado }}</div>{% endif %}
@@ -53,7 +66,7 @@
 
   <section class="workshop-panel is-active" data-workshop-panel="scrolls">
     <header class="workshop-heading">
-      <div><h1>Pergaminhos de Magia</h1><p>O catálogo mostra somente magias que pertencem às listas efetivas do personagem, incluindo expansões concedidas por features.</p></div>
+      <div><h2>Pergaminhos de Magia</h2><p>O catálogo mostra somente magias que pertencem às listas efetivas do personagem, incluindo expansões concedidas por features.</p></div>
       <div class="workshop-filters">
         <input type="search" placeholder="Buscar magia..." data-workshop-search="scrolls" aria-label="Buscar pergaminhos por magia">
         <select data-workshop-level="scrolls" aria-label="Filtrar pergaminhos por círculo"><option value="">Todos os círculos</option>{% for n in '123456789' %}<option value="{{ n }}">{{ n }}º círculo</option>{% endfor %}</select>
@@ -99,7 +112,7 @@
   </section>
 
   <section class="workshop-panel" data-workshop-panel="transcription" hidden>
-    <header class="workshop-heading"><div><h1>Grimório</h1><p>Copie uma magia de um pergaminho próprio ou solicite acesso ao grimório de outro jogador.</p></div></header>
+    <header class="workshop-heading"><div><h2>Grimório</h2><p>Copie uma magia de um pergaminho próprio ou solicite acesso ao grimório de outro jogador.</p></div></header>
     {% if mercado_ativo %}
     <div class="workshop-columns" data-spell-picker="Buscar magia para transcrição" data-spell-row=".workshop-row, .workshop-book-spell">
       <div class="workshop-subsection">
@@ -141,7 +154,7 @@
   </section>
 
   <section class="workshop-panel" data-workshop-panel="casting" hidden>
-    <header class="workshop-heading"><div><h1>Conjuração fora de combate</h1><p>Registre efeitos que duram até serem dissipados ou que podem se tornar permanentes.</p></div><input type="search" placeholder="Buscar magia..." data-workshop-search="casting" aria-label="Buscar magia para conjuração"></header>
+    <header class="workshop-heading"><div><h2>Conjuração fora de combate</h2><p>Registre efeitos que duram até serem dissipados ou que podem se tornar permanentes.</p></div><input type="search" placeholder="Buscar magia..." data-workshop-search="casting" aria-label="Buscar magia para conjuração"></header>
     {% if mercado_ativo and efeitos_persistentes %}
     <div class="workshop-subsection">
       <h2>Efeitos ativos</h2>
@@ -175,7 +188,7 @@
   <section class="workshop-panel" data-workshop-panel="signature" hidden>
     <header class="workshop-heading">
       <div>
-        <h1>Criador de Magia Assinatura</h1>
+        <h2>Criador de Magia Assinatura</h2>
         <p>Crie ou remodele as assinaturas liberadas pelas habilidades do personagem. Limites, fonte e marcos vêm das tags dessas habilidades.</p>
       </div>
     </header>
@@ -274,7 +287,7 @@
   {% endif %}
 
   <section class="workshop-panel" data-workshop-panel="components" hidden>
-    <header class="workshop-heading"><div><h1>Componentes materiais</h1><p>Componentes consumíveis e focos reutilizáveis são tratados separadamente.</p></div><input type="search" placeholder="Buscar componente..." data-workshop-search="components" aria-label="Buscar componente por magia"></header>
+    <header class="workshop-heading"><div><h2>Componentes materiais</h2><p>Componentes consumíveis e focos reutilizáveis são tratados separadamente.</p></div><input type="search" placeholder="Buscar componente..." data-workshop-search="components" aria-label="Buscar componente por magia"></header>
     {% if mercado_ativo %}<div class="workshop-list" data-workshop-list="components" data-spell-picker="Buscar componente" data-spell-row=".workshop-row" data-spell-input="[data-workshop-search='components']">
       {% for offer in componentes_ofertas %}<article class="workshop-row" data-search="{{ offer.name|lower }} {{ offer.spell.nome_ingles|default:''|lower }}" data-spell-name="{{ offer.name }} {{ offer.spell.nome }} {{ offer.spell.nome_ingles|default:'' }}" data-spell-level="{{ offer.spell.nivel }}">
         <div class="workshop-row-main"><strong>{{ offer.name }}</strong><span>{% if offer.consumed %}Consumido na conjuração{% else %}Reutilizável{% endif %}</span><small>{{ offer.description }}</small></div><div class="workshop-price"><strong>{{ offer.price_display }}</strong></div>

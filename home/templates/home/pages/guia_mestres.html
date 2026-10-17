@@ -1,6 +1,12 @@
 {% extends 'home/base.html' %}
+{% load static %}
+{% block body_class %}bft-masters{% endblock %}
+{% block main_class %}mh-main{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/master-hub.css' %}?v=2">{% endblock %}
 
 {% block content %}
+<div class="master-area mh-guide">
+{% include 'home/components/master_nav.html' %}
 <div class="-mx-4 md:-mx-8 -mt-8 mb-4">
 
   <section class="relative py-14 bg-gradient-to-b from-[var(--bg1)] to-[var(--bg0)] border-b border-[var(--stroke)] overflow-hidden">
@@ -408,5 +414,6 @@ Duração: 7/14/30 dias.</pre>
     </section>
 
   </article>
+</div>
 </div>
 {% endblock %}
