@@ -1,73 +1,27 @@
 {% extends 'home/base.html' %}
 {% load static %}
-
-{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/negotiations.css' %}?v=1">{% endblock %}
-
+{% block body_class %}bft-negotiations{% endblock %}
+{% block main_class %}flex-1 w-full min-w-0{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/negotiations.css' %}?v=2"><script src="{% static 'js/negotiations.js' %}?v=3" defer></script>{% endblock %}
 {% block content %}
-<section class="animate-fade-in max-w-4xl">
-  <div class="market-community-mark" aria-hidden="true">{% include 'home/partials/shop_visual.html' %}</div>
-  <header class="mb-3 border-b border-[var(--stroke)] pb-2.5">
-    <h1 class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">Mercado da Comunidade</h1>
-    <p class="mt-1 text-sm text-[var(--muted)]">Itens mágicos anunciados por jogadores, vendidos pelo preço de venda do mercado. Anuncie um item que não usa mais na <strong>edição da ficha</strong>.</p>
-  </header>
-
-  {% if msg == 'comprado' %}<p class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-1.5 text-sm text-[var(--spark)]">Item comprado e adicionado ao inventário!</p>
-  {% elif msg == 'cancelado' %}<p class="mb-2.5 rounded border border-[var(--stroke)] bg-[var(--bg1)] px-3 py-1.5 text-sm text-[var(--muted)]">Anúncio cancelado — o item voltou ao inventário.</p>
-  {% elif msg == 'saldo' %}<p class="mb-2.5 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-1.5 text-sm text-[var(--flame)]">Saldo insuficiente nesse personagem.</p>
-  {% elif msg == 'sem_personagem' %}<p class="mb-2.5 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-1.5 text-sm text-[var(--flame)]">Escolha um personagem para comprar.</p>
-  {% elif msg == 'proprio' %}<p class="mb-2.5 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-1.5 text-sm text-[var(--flame)]">Você não pode comprar o próprio anúncio.</p>
-  {% elif msg == 'indisponivel' %}<p class="mb-2.5 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-1.5 text-sm text-[var(--flame)]">Esse anúncio não está mais disponível.</p>{% endif %}
-
-  {% if meus_anuncios %}
-  <h2 class="mb-2 font-serif text-lg font-bold text-[var(--text)]">Meus anúncios</h2>
-  <div class="mb-4 space-y-1.5">
-    {% for a in meus_anuncios %}
-      <div class="flex flex-wrap items-center justify-between gap-1.5 rounded-lg border border-[var(--ember)]/30 bg-[var(--bg1)] px-3 py-2.5">
-        <div class="text-sm">
-          <span class="font-semibold text-[var(--text)]">{{ a.nome }}</span>
-          {% if a.raridade %}<span class="ml-1 rounded bg-[var(--ember)]/15 px-1.5 py-0.5 text-xs text-[var(--ember)]">{{ a.raridade }}</span>{% endif %}
-          {% if a.requer_sintonizacao %}<span class="ml-1 text-xs text-[var(--muted)]">⟡ sintonização</span>{% endif %}
-          <span class="ml-2 text-[var(--flame)]">{{ a.preco_display }}</span>
-        </div>
-        <form method="post" action="{% url 'cancelar_anuncio' a.id %}">
-          {% csrf_token %}
-          <button type="submit" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1 text-xs text-[var(--muted)] hover:border-[var(--flame)] hover:text-[var(--flame)]">Cancelar</button>
-        </form>
-      </div>
-    {% endfor %}
-  </div>
-  {% endif %}
-
-  <h2 class="mb-2 font-serif text-lg font-bold text-[var(--text)]">À venda na comunidade</h2>
-  {% if anuncios %}
-    {% if not meus_personagens %}
-      <p class="mb-2 rounded border border-dashed border-[var(--stroke)] px-3 py-1.5 text-sm text-[var(--muted)]">Crie um personagem para poder comprar.</p>
-    {% endif %}
-    <div class="grid gap-2 sm:grid-cols-2">
-      {% for a in anuncios %}
-        <div class="flex flex-col justify-between rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
-          <div>
-            <div class="flex items-start justify-between gap-1.5">
-              <h3 class="font-serif font-bold text-[var(--text)]">{{ a.nome }}</h3>
-              {% if a.raridade %}<span class="shrink-0 rounded bg-[var(--ember)]/15 px-1.5 py-0.5 text-xs text-[var(--ember)]">{{ a.raridade }}</span>{% endif %}
-            </div>
-            <p class="mt-1 text-xs text-[var(--muted)]">Vendedor: {{ a.vendedor }}{% if a.requer_sintonizacao %} · ⟡ exige sintonização{% endif %}</p>
-            <p class="mt-2 text-sm font-semibold text-[var(--flame)]">{{ a.preco_display }}</p>
-          </div>
-          {% if meus_personagens %}
-          <form method="post" action="{% url 'comprar_anuncio' a.id %}" class="mt-3 flex flex-wrap items-center gap-2">
-            {% csrf_token %}
-            <select name="comprador" required class="flex-1 rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
-              {% for pj in meus_personagens %}<option value="{{ pj.id }}">{{ pj.nome }} ({{ pj.carteira }})</option>{% endfor %}
-            </select>
-            <button type="submit" class="rounded bg-bonfire-gradient px-3 py-1.5 text-sm font-bold text-white hover:opacity-90">Comprar</button>
-          </form>
-          {% endif %}
-        </div>
-      {% endfor %}
-    </div>
-  {% else %}
-    <p class="rounded-lg border border-dashed border-[var(--stroke)] px-3 py-4 text-center text-sm text-[var(--muted)]">Nenhum item à venda no momento. Que tal anunciar um?</p>
-  {% endif %}
+<section class="nt-page" aria-labelledby="nt-title" data-area="venda">
+  <header class="nt-hero"><span class="nt-hero-mark">{% include 'home/partials/negotiation_symbol.html' %}</span><div><p class="nt-eyebrow">Bonfire Tales RPG · Mercado da Comunidade</p><h1 id="nt-title">Negociações entre jogadores</h1><p>De uma aventura para outra.</p><span class="nt-hero-description">Encontre itens mágicos anunciados pela comunidade ou acompanhe os seus anúncios ativos.</span></div><a class="nt-button is-secondary" href="#nt-guide">Como anunciar <span aria-hidden="true">↗</span></a></header>
+  {% if msg == 'comprado' %}<p class="nt-message is-success" role="status">Item comprado e adicionado ao inventário!</p>
+  {% elif msg == 'cancelado' %}<p class="nt-message is-success" role="status">Anúncio cancelado — o item voltou ao inventário.</p>
+  {% elif msg == 'saldo' %}<p class="nt-message" role="alert">Saldo insuficiente nesse personagem.</p>
+  {% elif msg == 'sem_personagem' %}<p class="nt-message" role="alert">Escolha um personagem para comprar.</p>
+  {% elif msg == 'proprio' %}<p class="nt-message" role="alert">Você não pode comprar o próprio anúncio.</p>
+  {% elif msg == 'indisponivel' %}<p class="nt-message" role="alert">Esse anúncio não está mais disponível.</p>
+  {% elif msg == 'invalido' %}<p class="nt-message" role="alert">Não foi possível cancelar esse anúncio.</p>{% endif %}
+  <nav class="nt-tabs" aria-label="Seções das negociações"><button type="button" data-nt-area="venda" aria-current="page">À venda <span>{{ anuncios|length }}</span></button><button type="button" data-nt-area="meus">Meus anúncios <span>{{ meus_anuncios|length }}</span></button><span class="nt-tabs-note">Anúncios ativos · preço definido ao anunciar</span></nav>
+  <div class="nt-workspace"><aside class="nt-catalog" aria-label="Encontrar anúncio"><form class="nt-filter" action="{{ request.path }}" method="get"><label for="nt-search">Buscar item ou vendedor</label><div class="nt-search-box"><input id="nt-search" type="search" name="q" maxlength="160" placeholder="Nome do item ou personagem…" autocomplete="off"><button type="submit" aria-label="Buscar anúncio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg></button></div><label for="nt-rarity">Raridade</label><select id="nt-rarity" name="raridade"><option value="">Todas as raridades</option></select></form><div class="nt-list-heading"><span><strong id="nt-count">{{ anuncios|length }}</strong> <span id="nt-count-label">anúncios encontrados</span></span><button type="button" class="nt-clear" hidden>Limpar</button></div><nav class="nt-list" aria-label="Selecionar anúncio">
+    {% for a in anuncios %}<button type="button" class="nt-item" data-key="{{ a.id }}" data-area="venda" data-rarity="{{ a.raridade }}" data-search="{{ a.nome }} {{ a.vendedor }}" aria-current="true"><span class="nt-item-glyph" aria-hidden="true">◇</span><span class="nt-item-name"><strong>{{ a.nome }}</strong><small>{{ a.vendedor }} · {{ a.raridade|default:'Raridade não informada' }}</small><span class="nt-item-price">{{ a.preco_display }}</span></span><span class="nt-item-arrow" aria-hidden="true">›</span></button>{% endfor %}
+    {% for a in meus_anuncios %}<button type="button" class="nt-item" data-key="{{ a.id }}" data-area="meus" data-rarity="{{ a.raridade }}" data-search="{{ a.nome }} {{ a.vendedor }}" hidden><span class="nt-item-glyph" aria-hidden="true">◇</span><span class="nt-item-name"><strong>{{ a.nome }}</strong><small>{{ a.vendedor }} · {{ a.raridade|default:'Raridade não informada' }}</small><span class="nt-item-price">{{ a.preco_display }}</span></span><span class="nt-item-arrow" aria-hidden="true">›</span></button>{% endfor %}<p id="nt-list-empty"{% if anuncios %} hidden{% endif %}>Nenhum anúncio nesta seleção.</p></nav><p class="nt-catalog-note">Selecione um nome para conferir o item, o vendedor e o preço.</p></aside>
+    <div class="nt-reader" id="nt-reader" tabindex="-1">
+      {% for a in anuncios %}<article class="nt-offer" id="nt-offer-{{ a.id }}" aria-labelledby="nt-name-{{ a.id }}"><header class="nt-offer-head"><div><p class="nt-eyebrow">Anúncio da comunidade · ativo</p><div class="nt-badges">{% if a.raridade %}<span>{{ a.raridade }}</span>{% endif %}<span>{% if a.requer_sintonizacao %}Exige sintonização{% else %}Sem sintonização{% endif %}</span></div><h2 id="nt-name-{{ a.id }}">{{ a.nome }}</h2><p class="nt-vendor">Vendedor <strong>{{ a.vendedor }}</strong></p></div><span class="nt-offer-mark">{% include 'home/partials/negotiation_symbol.html' %}</span></header><div class="nt-offer-summary"><div><span>Preço do anúncio</span><strong>{{ a.preco_display }}</strong></div><div><span>Quantidade</span><strong class="nt-quantity">1 <small>unidade</small></strong></div></div><footer class="nt-transaction">{% if meus_personagens %}<form method="post" action="{% url 'comprar_anuncio' a.id %}" class="nt-buy-form">{% csrf_token %}<label for="nt-buyer-{{ a.id }}">Quem recebe o item?</label><select id="nt-buyer-{{ a.id }}" name="comprador" required>{% for pj in meus_personagens %}<option value="{{ pj.id }}">{{ pj.nome }} ({{ pj.carteira }})</option>{% endfor %}</select><p>Ao comprar, {{ a.preco_display }} serão debitados do personagem escolhido e o item entrará na mochila dele.</p><button type="submit" class="nt-button">Comprar item <span aria-hidden="true">→</span></button></form>{% else %}<div class="nt-action-explanation"><h3>Você precisa de um personagem</h3><p>Crie um personagem para escolher quem recebe o item e qual carteira será usada.</p></div>{% endif %}</footer></article>{% endfor %}
+      {% for a in meus_anuncios %}<article class="nt-offer is-own" id="nt-offer-{{ a.id }}" aria-labelledby="nt-name-{{ a.id }}" hidden><header class="nt-offer-head"><div><p class="nt-eyebrow">Meu anúncio · ativo</p><div class="nt-badges">{% if a.raridade %}<span>{{ a.raridade }}</span>{% endif %}<span>{% if a.requer_sintonizacao %}Exige sintonização{% else %}Sem sintonização{% endif %}</span></div><h2 id="nt-name-{{ a.id }}">{{ a.nome }}</h2><p class="nt-vendor">Vendedor <strong>{{ a.vendedor }}</strong></p></div><span class="nt-offer-mark">{% include 'home/partials/negotiation_symbol.html' %}</span></header><div class="nt-offer-summary"><div><span>Preço do anúncio</span><strong>{{ a.preco_display }}</strong></div><div><span>Quantidade</span><strong class="nt-quantity">1 <small>unidade</small></strong></div></div><footer class="nt-transaction"><div class="nt-action-explanation"><h3>Este anúncio é seu</h3><p>O item fica fora da mochila enquanto estiver anunciado. Ao cancelar, ele retorna ao seu inventário.</p></div><form method="post" action="{% url 'cancelar_anuncio' a.id %}" class="nt-cancel-form">{% csrf_token %}<button class="nt-button is-secondary" type="submit">Cancelar anúncio</button></form></footer></article>{% endfor %}
+      <div class="nt-empty" id="nt-reader-empty"{% if anuncios %} hidden{% endif %}><span>{% include 'home/partials/negotiation_symbol.html' %}</span><p class="nt-eyebrow" id="nt-empty-scope">Vitrine da comunidade</p><h2>Nenhum anúncio encontrado</h2><p>Tente outro nome ou raridade. Novos anúncios aparecerão aqui quando forem publicados pela mochila.</p></div>
+    </div></div>
+  <details id="nt-guide" class="nt-guide"><summary><span class="nt-guide-symbol">{% include 'home/partials/negotiation_symbol.html' %}</span><span><strong>Quer anunciar um item?</strong><small>Entenda a reserva, a compra e o cancelamento.</small></span><span class="nt-guide-toggle" aria-hidden="true">+</span></summary><div class="nt-guide-content"><ol><li><span>01</span><div><h3>Abra a mochila do seu personagem</h3><p>Na ficha, procure o item mágico e clique em <strong>Anunciar</strong>.</p></div></li><li><span>02</span><div><h3>O item fica reservado</h3><p>Uma unidade sai do inventário e o anúncio usa o preço de venda registrado nesse momento.</p></div></li><li><span>03</span><div><h3>Acompanhe em Meus anúncios</h3><p>Se cancelar antes da compra, o item volta à mochila.</p></div></li></ol></div></details><p class="nt-sr-only" role="status" aria-live="polite" id="nt-announcement"></p>
 </section>
 {% endblock %}
