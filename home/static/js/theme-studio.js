@@ -5,9 +5,9 @@
   const choices = [...root.querySelectorAll('[data-theme-choice]')];
   const products = [...root.querySelectorAll('[data-theme-product]')];
   const note = root.querySelector('[data-preview-note]');
-  choices.forEach(choice => choice.addEventListener('click', event => {
-    if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
-    event.preventDefault();
+  const showTheme = (key) => {
+    const choice = choices.find(item => item.dataset.themeChoice === key) || choices[0];
+    if (!choice) return;
     choices.forEach(other => {
       const selected = other === choice;
       other.classList.toggle('is-selected', selected);
@@ -15,11 +15,20 @@
       else other.removeAttribute('aria-current');
     });
     products.forEach(product => product.hidden = product.dataset.themeProduct !== choice.dataset.themeChoice);
+    note.textContent = `${choice.querySelector('strong').textContent} em prévia. Nenhuma aparência foi salva.`;
+  };
+  choices.forEach(choice => choice.addEventListener('click', event => {
+    if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    if (choice.classList.contains('is-selected')) return;
     const url = new URL(window.location.href);
     url.searchParams.set('tema', choice.dataset.themeChoice);
-    history.replaceState(null, '', url);
-    note.textContent = 'Coleção em prévia. Nenhuma aparência foi salva.';
+    history.pushState(history.state, '', url);
+    showTheme(choice.dataset.themeChoice);
   }));
+  window.addEventListener('popstate', () => {
+    showTheme(new URL(window.location.href).searchParams.get('tema'));
+  });
   const buttons = [...root.querySelectorAll('[data-preview-context]')];
   buttons.forEach(button => button.addEventListener('click', () => {
     const context = button.dataset.previewContext;

@@ -1,7 +1,7 @@
 {% extends 'home/base.html' %}{% load static %}
 {% block body_class %}bft-theme-studio{% endblock %}
 {% block main_class %}flex-1 w-full min-w-0{% endblock %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/home-platform.css' %}?v=1"><link rel="stylesheet" href="{% static 'css/pages/theme-studio.css' %}?v=1"><script src="{% static 'js/theme-studio.js' %}?v=1" defer></script>{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/home-platform.css' %}?v=1"><link rel="stylesheet" href="{% static 'css/pages/theme-studio.css' %}?v=1"><script src="{% static 'js/theme-studio.js' %}?v=2" defer></script>{% endblock %}
 {% block content %}
 <section class="ts-page" aria-labelledby="ts-title">
   <nav class="ts-nav" aria-label="Ateliê e conta"><a href="{% url 'cosmetic_checkout' %}">Todos os cosméticos</a><a href="{% url 'character_slots' %}">Slots de personagem</a><a href="{% url 'colaborador' %}">Colaborador</a></nav>
