@@ -1,0 +1,23 @@
+<article class="spell-card spell-card-full" data-school="{{ school.key }}" data-full-spell="{{ magia.slug }}">
+  <header class="spell-card-header">
+    <div class="spell-card-school">{% include 'home/components/spell_school_icon.html' with school=school only %}<span>{{ school.label }}</span></div>
+    <div class="spell-circle"><span>{{ magia.nivel }}</span><small>{% if magia.nivel == 0 %}Truque{% else %}Círculo{% endif %}</small></div>
+    <h2 id="magia-{{ magia.slug }}" tabindex="-1">{{ magia.nome }}</h2>
+    {% if magia.nome_ingles %}<p class="spell-english">{{ magia.nome_ingles }}</p>{% endif %}
+    <div class="spell-traits"><span>{{ magia.nivel_label }}</span>{% if magia.concentracao %}<span>Concentração</span>{% endif %}{% if magia.ritual %}<span>Ritual</span>{% endif %}</div>
+  </header>
+  <div class="spell-card-body">
+    <dl class="spell-meta">
+      <div><dt>Tempo de conjuração</dt><dd>{{ facts.casting_time|default:magia.casting_time|default:'Não informado' }}</dd></div>
+      <div><dt>Alcance</dt><dd>{{ facts.range|default:magia.alcance|default:'Não informado' }}</dd></div>
+      <div><dt>Duração</dt><dd>{{ facts.duracao|default:magia.duracao|default:'Não informada' }}</dd></div>
+      <div class="spell-meta-area"><dt>Área de efeito</dt><dd>{{ facts.area|default:'Consulte o efeito da magia' }}</dd></div>
+      <div><dt>Concentração / Ritual</dt><dd>{{ magia.concentracao|yesno:'Sim,Não' }} / {{ magia.ritual|yesno:'Sim,Não' }}</dd></div>
+      <div class="spell-meta-components"><dt>Componentes</dt><dd>{{ facts.componentes|default:magia.componentes|default:'Não informado' }}</dd></div>
+    </dl>
+    {% if magia.classes %}<p class="spell-classes"><span>Classes</span>{{ magia.classes }}</p>{% endif %}
+    <section class="spell-effect" aria-labelledby="mg-description-title"><h3 id="mg-description-title">Efeito da magia</h3><div class="spell-copy bonfire-markdown" data-spell-description>{{ facts.descricao|default:magia.descricao|linebreaks }}</div></section>
+    {% if magia.em_niveis %}<section class="spell-upcast"><h3>Em níveis superiores</h3><div class="spell-copy bonfire-markdown" data-spell-upcast>{{ facts.em_niveis|default:magia.em_niveis|linebreaks }}</div></section>{% endif %}
+  </div>
+  <footer class="spell-card-footer"><span>Bonfire Tales <small>RPG</small></span><span>{{ school.label }}</span></footer>
+</article>

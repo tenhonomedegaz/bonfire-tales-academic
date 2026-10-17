@@ -1,0 +1,6 @@
+<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+{% if kind == 'mecanica' %}<path d="m7 17 5 17h24l5-17-7 6-3-9-7 7-7-7-3 9Z"/><path d="m10 34 4 6h20l4-6M8 10l32 28M16 31l2-5m12 5-2-5"/><circle cx="24" cy="31" r="3"/>
+{% elif kind == 'magica' %}<path d="m24 4 17 20-17 20L7 24ZM24 13l9 11-9 11-9-11Z"/><path d="M24 4v9m17 11h-8m-9 11v9M7 24h8M4 4l5 5m30 30 5 5M44 4l-5 5M4 44l5-5"/>
+{% elif kind == 'natural' %}<path d="M12 38C-1 15 23 6 39 7c0 19-6 31-27 31ZM9 42l23-28M16 33l-2-10m9 2 10 1"/>
+{% else %}<path d="M24 5 44 40H4Z"/><path d="M24 17v11"/><circle cx="24" cy="34" r="1"/>{% endif %}
+</svg>
