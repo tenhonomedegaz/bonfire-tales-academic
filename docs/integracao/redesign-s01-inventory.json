@@ -100,8 +100,8 @@
     {
       "source": "MERCADO-MAGICO-CLASSIFICACAO.md",
       "destination": "MERCADO-MAGICO-CLASSIFICACAO.md",
-      "stage": "S06",
-      "category": "commerce_community_visual",
+      "stage": "S11",
+      "category": "documentation_or_reference",
       "gate": "none",
       "status": "source_only",
       "source_sha256": "ee2be5eaa484df0ec95ab7bf24c9470bf5c7774e5837ab781b3ba8780a8c5692",
@@ -15170,8 +15170,8 @@
     {
       "source": "home/templates/home/partials/shop_visual.html",
       "destination": "home/templates/home/partials/shop_visual.html",
-      "stage": "S04",
-      "category": "public_visual",
+      "stage": "S06",
+      "category": "commerce_community_visual",
       "gate": "none",
       "status": "source_only",
       "source_sha256": "60a5b6e78b89f8629298687a5fe0c8d5a742e464c658e86e0cf9b082aafd8bbc",
@@ -15214,8 +15214,8 @@
     {
       "source": "home/templates/home/partials/training_symbols.html",
       "destination": "home/templates/home/partials/training_symbols.html",
-      "stage": "S04",
-      "category": "public_visual",
+      "stage": "S06",
+      "category": "commerce_community_visual",
       "gate": "none",
       "status": "source_only",
       "source_sha256": "23d14a56d7deac04740ee14fa768a3a5fdc35d310e27164bfc82b56851ccb449",
@@ -15280,8 +15280,8 @@
     {
       "source": "home/templates/home/partials/workshop_symbols.html",
       "destination": "home/templates/home/partials/workshop_symbols.html",
-      "stage": "S04",
-      "category": "public_visual",
+      "stage": "S06",
+      "category": "commerce_community_visual",
       "gate": "none",
       "status": "source_only",
       "source_sha256": "eec50c0d13c5fb4eabb27addf15ec24f87160bf12cc989b1c059042f9a6eff52",
@@ -23411,11 +23411,11 @@
     "target_files": 1076,
     "by_stage": {
       "S02": 506,
-      "S11": 83,
-      "S06": 114,
+      "S11": 84,
       "S10": 472,
+      "S06": 116,
       "S03": 501,
-      "S04": 133,
+      "S04": 130,
       "S07": 36,
       "S05": 72
     },

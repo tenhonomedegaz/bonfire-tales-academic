@@ -27,6 +27,8 @@ def digest(path):
 def stage(path):
   lower = path.lower()
   name = Path(path).name.lower()
+  if lower == "mercado-magico-classificacao.md":
+    return "S11", "documentation_or_reference", "none"
   if lower.startswith(("tests/", "home/js_tests/")) or name.startswith("test_"):
     return "S10", "validation", "none"
   if lower.startswith(("docs/", "design-review/", "ref/", ".github/")):
@@ -45,6 +47,12 @@ def stage(path):
     return "S04", "public_asset", "none"
   if lower == "home/templates/home/partials/recovery_story.html":
     return "S05", "account_visual", "none"
+  if lower in {
+    "home/templates/home/partials/shop_visual.html",
+    "home/templates/home/partials/training_symbols.html",
+    "home/templates/home/partials/workshop_symbols.html",
+  }:
+    return "S06", "commerce_community_visual", "none"
   if lower.startswith("home/templates/home/partials/battle_familiar_"):
     return "S05", "account_visual", "none"
   if any(key in name for key in SHARED) or lower.startswith("home/templates/home/components/"):
