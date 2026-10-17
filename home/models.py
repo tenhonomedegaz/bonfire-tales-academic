@@ -2088,6 +2088,41 @@ class TbRecompensaMestre(models.Model):
         return f'{self.nome} ({self.preco_mm} MM)'
 
 
+class TbPerfilMestre(models.Model):
+    """Site participation; Discord roles and existing mission rights stay separate."""
+
+    user = models.OneToOneField('auth.User', on_delete=models.CASCADE, related_name='participacao')
+    modo = models.CharField(max_length=10, default='jogador', choices=[
+        ('jogador', 'Jogador'), ('mestre', 'Mestre'), ('ambos', 'Jogador e mestre')])
+    apresentacao = models.TextField(blank=True, default='', max_length=3000)
+    estilo = models.CharField(max_length=160, blank=True, default='')
+    disponibilidade = models.CharField(max_length=160, blank=True, default='')
+    experiencia = models.TextField(max_length=3000, blank=True, default='')
+    combinados = models.TextField(max_length=2000, blank=True, default='')
+    status_mestre = models.CharField(max_length=12, default='nenhum', choices=[
+        ('nenhum', 'Não solicitado'), ('pendente', 'Aguardando administração'),
+        ('aprovado', 'Mestre autorizado'), ('recusado', 'Solicitação não aprovada'),
+        ('suspenso', 'Permissão suspensa')])
+    solicitado_em = models.DateTimeField(null=True, blank=True)
+    avaliado_em = models.DateTimeField(null=True, blank=True)
+    avaliador = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True,
+                                  blank=True, related_name='mestres_autorizados')
+    nota_avaliacao = models.CharField(max_length=500, blank=True, default='')
+    versao = models.PositiveIntegerField(default=0)
+    contato_url = models.URLField(max_length=500, blank=True, default='')
+    portfolio_url = models.URLField(max_length=500, blank=True, default='')
+    listado = models.BooleanField(default=False)
+    tema_portfolio = models.CharField(max_length=40, default='bonfire')
+    banner_portfolio_url = models.CharField(max_length=500, blank=True, default='')
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'TB_PerfilMestre'
+        verbose_name = 'Perfil de participação'
+        verbose_name_plural = 'Perfis de participação'
+        permissions = [('autorizar_mestres', 'Pode autorizar ou suspender mestres')]
+
+
 class TbAventuraMestre(models.Model):
     """Mesa/aventura CONDUZIDA por um mestre. Ao registrar, credita `recompensa_mm` MM
     na carteira do mestre (ganho automático ao registrar a mesa)."""

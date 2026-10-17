@@ -1,16 +1,26 @@
 # G01 — proposta estrutural do redesign Bonfire
 
-## Decisão pedida
+## Decisão do PO em 17/10/2026
 
-Autorizar, por lotes independentes, a implementação serial de backend que o pacote
+- **A:** sem aprovação integral. A `0152` da fonte cria calendário, visita e estoque; estrutura da caravana continua pendente. A `0153` altera três itens por slug e não está autorizada. Tags e dados devem usar o fluxo genérico existente, mediante decisão específica sobre esses itens.
+- **B:** aprovado apenas em DEV isolado. Reconciliar com a implementação em `../bonfire-bot-main`: cargo de Mestre/Mestre em Teste e propriedade da missão continuam sob política do bot; perfil, moderação e anúncio no site não devem conceder cargo ou modificar missões do bot.
+- **C:** adaptar direitos e marcos já existentes. A compra de slot por 5.000 MM substitui o antigo Mestre Ouro como assinatura; marcos 5, 9 e 13 explicitados pelo PO, demais marcos exigem conferência. Não cobrar retroativamente nem duplicar direitos.
+- **D:** aprovado apenas em DEV isolado, inclusive o conceito da `0158`; adaptar a migration ao histórico real. Antes de tocar o banco, inventariar registros afetados e preparar reversão de dados. Preservar direitos adquiridos, recibos, saldo e personagens. Oferta demonstrativa não cobra.
+- **E:** somente adaptações necessárias a B/D, mantendo API, autenticação, CSRF e configuração atuais.
+- **F:** adiado; sem importação de regras, fixtures ou mecânicas.
+
+As migrations da fonte são uma cadeia, não uma autorização por dependência. B/D devem partir da `0151` real em migrations próprias e não aplicar A/F implicitamente, usar `--fake` ou editar migrations já aplicadas. G00 e G02 permanecem. A produção atualizada com o último commit enviado ainda não inclui automaticamente este redesign.
+
+## Proposta original (histórico)
+
+O texto abaixo registra a proposta anterior; a decisão do PO acima prevalece. A proposta solicitava, por lotes independentes, a implementação serial de backend que o pacote
 fixado em `7289711136e340afe5a13ba397ecce978071896d` requer. Esta proposta foi
 conferida contra a base limpa `f3e34469cc00306131af9511b758d5e050cad769` e o
 manifesto S01: são 506 caminhos G01 (451 de Python/estrutura, 41 de conteúdo
 mecânico e 14 de revisão), com 22 rotas novas. Não há aplicação aprovada por este
 documento, inclusive de migrations, dados ou segredos.
 
-As migrations `0152` a `0160` formam uma cadeia única a partir de `0151`; devem
-ser revisadas e executadas apenas em banco isolado, nessa ordem. PKs existentes,
+As migrations `0152` a `0160` da fonte formam uma cadeia única a partir de `0151`; essa cadeia não será executada em bloco. Novas migrations aprovadas serão reconciliadas sobre a `0151` real e aplicadas somente em DEV isolado após inventário e reversão adequados. PKs existentes,
 usuários, fichas, compras, uploads e escolhas legadas permanecem a fonte de
 verdade. Não copiar `.env`, dumps, contas ou chaves da fonte.
 

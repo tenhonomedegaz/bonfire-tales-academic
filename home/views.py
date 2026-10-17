@@ -1420,7 +1420,13 @@ def profile_view(request):
     frame_options = _appearance_options(user, 'frame')
     effect_options = _appearance_options(user, 'effect')
     from django.conf import settings as _settings
+    from .master_participation import can_authorize, participation
+    from .models import TbPerfilMestre
+    master_profile = TbPerfilMestre.objects.filter(user=user).first()
     return render(request, 'home/pages/perfil.html', {
+        'community': participation(master_profile),
+        'participation_form': True,
+        'can_authorize': can_authorize(user),
         'profile': profile,
         'social_credit_balance': credit_wallet.balance if credit_wallet else 0,
         'social_credit_entries': credit_entries,

@@ -1,2 +1,10 @@
-{% extends 'home/pages/master_shell.html' %}{% block master_content %}<header class="mh-compact-head"><h1>Meu portfÃ³lio de mestre</h1><p>Revise os campos indicados antes de salvar.</p></header>{% include 'home/partials/master_profile_editor.html' %}{% endblock %}
-
+{% extends 'home/pages/master_shell.html' %}
+{% block master_content %}
+<header class="mh-compact-head"><h1>Minha apresentação de mestre</h1><p>Escolha o que será mostrado na vitrine pública do site.</p></header>
+<form method="post" class="mh-profile-form" action="{% url 'participation_edit' %}">
+  {% csrf_token %}
+  {% if participation_form.non_field_errors %}<div role="alert">{{ participation_form.non_field_errors }}</div>{% endif %}
+  {% for field in participation_form %}<div class="mh-form-field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% endfor %}
+  <p class="mh-actions"><button class="mh-button" type="submit">Salvar apresentação</button><a class="mh-text-link" href="{% url 'profile' %}?aba=mestre">Cancelar</a></p>
+</form>
+{% endblock %}

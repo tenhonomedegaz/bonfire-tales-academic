@@ -1,0 +1,67 @@
+"""Focused contract checks for the authorized site participation flow."""
+
+from django.contrib.auth import get_user_model
+from django.test import Client
+from django.test import TestCase
+from django.urls import reverse
+
+from .models import TbPerfilMestre
+
+
+class MasterParticipationFlowTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.player = user_model.objects.create_user('player_participation', password='test-pass')
+        self.other = user_model.objects.create_user('other_participation', password='test-pass')
+        self.staff = user_model.objects.create_superuser('staff_participation', 'staff@example.test', 'test-pass')
+
+    def test_request_review_edit_and_directory_are_distinct_from_discord(self):
+        self.client.force_login(self.player)
+        response = self.client.post(reverse('master_request'))
+        self.assertEqual(response.status_code, 302)
+        profile = TbPerfilMestre.objects.get(user=self.player)
+        self.assertEqual(profile.status_mestre, 'pendente')
+        self.assertEqual(profile.versao, 1)
+        self.client.post(reverse('master_request'))
+        profile.refresh_from_db()
+        self.assertEqual(profile.versao, 1)
+        self.assertEqual(self.client.get(reverse('participation_edit')).status_code, 403)
+        self.assertEqual(self.client.get(reverse('masters_directory')).context['masters'], [])
+
+        self.client.force_login(self.other)
+        self.assertEqual(self.client.post(reverse('master_authorize', args=[self.player.pk]), {
+            'acao': 'autorizar', 'confirmar': 'sim', 'versao': '1',
+        }).status_code, 403)
+        self.client.force_login(self.staff)
+        self.assertEqual(self.client.post(reverse('master_authorize', args=[self.player.pk]), {
+            'acao': 'autorizar', 'confirmar': 'sim', 'versao': '0',
+        }).status_code, 409)
+        self.assertEqual(self.client.post(reverse('master_authorize', args=[self.player.pk]), {
+            'acao': 'autorizar', 'confirmar': 'sim', 'versao': '1',
+        }).status_code, 302)
+        profile.refresh_from_db()
+        self.assertEqual(profile.status_mestre, 'aprovado')
+        self.assertFalse(profile.listado)
+
+        self.client.force_login(self.player)
+        self.assertEqual(self.client.post(reverse('participation_edit'), {
+            'modo': 'mestre', 'apresentacao': 'Histórias de Cinéria', 'estilo': 'Investigação',
+            'disponibilidade': 'Sábado', 'experiencia': '', 'combinados': '', 'listado': 'on',
+        }).status_code, 302)
+        self.assertEqual(len(self.client.get(reverse('masters_directory')).context['masters']), 1)
+        self.client.force_login(self.staff)
+        profile.refresh_from_db()
+        self.assertEqual(self.client.post(reverse('master_authorize', args=[self.player.pk]), {
+            'acao': 'suspender', 'confirmar': 'sim', 'versao': str(profile.versao),
+        }).status_code, 302)
+        self.assertEqual(self.client.get(reverse('masters_directory')).context['masters'], [])
+
+    def test_sensitive_posts_keep_csrf_protection(self):
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(self.player)
+        self.assertEqual(client.post(reverse('master_request')).status_code, 403)
+        self.assertFalse(TbPerfilMestre.objects.filter(user=self.player).exists())
+        client.force_login(self.staff)
+        self.assertEqual(client.post(reverse('master_authorize', args=[self.player.pk]), {
+            'acao': 'autorizar', 'confirmar': 'sim', 'versao': '0',
+        }).status_code, 403)
