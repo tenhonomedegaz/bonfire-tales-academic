@@ -1,5 +1,7 @@
 {% extends 'home/base.html' %}
 {% load static %}
+{% block body_class %}bft-chronicles bft-chronicles-archive{% endblock %}
+{% block main_class %}flex-1 w-full min-w-0{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/cronicas_list.css' %}?v=4">
@@ -8,30 +10,39 @@
 {% endblock %}
 
 {% block content %}
-<div class="chronicles-page">
-<div class="cronicas-hero">
-  <h1 class="cronicas-hero-title">Crônicas de Cinéria</h1>
+<section class="chronicles-shell" aria-labelledby="chroniclesTitle">
+{% include 'home/partials/chronicles_preview_notice.html' %}
+<header class="cronicas-hero">
+  <div class="chronicles-hero-copy"><p class="chronicles-kicker">Bonfire Tales RPG · Memórias de um mundo vivo</p>
+  <h1 class="cronicas-hero-title" id="chroniclesTitle">Crônicas de Cinéria</h1>
   <p class="cronicas-hero-sub">Relatos escritos pelos aventureiros que moldam o mundo.</p>
-</div>
+  <p class="chronicles-hero-intro">Cada jornada deixa uma história. Encontre a próxima leitura ou registre as marcas que seu personagem deixou em Cinéria.</p>
+  <div class="chronicles-hero-actions"><a href="#chroniclesArchive" class="cronicas-btn-outline">Explorar crônicas <span aria-hidden="true">↓</span></a>{% if not is_authenticated %}<a href="{% url 'login' %}?next={% url 'cronica_create' %}" class="cronicas-btn">Entrar para escrever <span aria-hidden="true">↗</span></a>{% endif %}</div></div>
+  <div class="chronicles-hero-emblem" aria-hidden="true">{% include 'home/partials/chronicles_mark.html' %}<span>Onde as aventuras<br>se tornam memória.</span></div>
+</header>
 
-<div class="cronicas-toolbar">
-  <form method="get" style="display: contents;">
-    <select name="feed" class="cronicas-filter" aria-label="Feed" onchange="this.form.submit()">
+<details class="chronicles-guide"><summary><span>Quer contar sua história?</span> Como publicar uma crônica <span aria-hidden="true">⌄</span></summary><div><p><strong>01 · Escreva o relato.</strong> Dê um título, escolha os locais e conte a jornada do seu personagem. Capa, resumo e nome do narrador ajudam a apresentar a história.</p><p><strong>02 · Envie para revisão.</strong> A equipe avalia o texto antes da publicação. Você pode acompanhar o retorno em Minhas Crônicas e nas notificações.</p><p><strong>03 · Continue a história.</strong> Leitores podem curtir e comentar. Ao editar uma crônica aprovada, a versão publicada permanece visível enquanto a nova edição é revisada.</p></div></details>
+
+<div class="cronicas-toolbar" id="chroniclesArchive">
+  <form method="get" class="chronicles-filters">
+    {% if chronicles_demo %}<input type="hidden" name="demo" value="1">{% endif %}
+    <label>Exibir<select name="feed" class="cronicas-filter" aria-label="Feed" onchange="this.form.submit()">
       <option value="recentes" {% if feed == 'recentes' %}selected{% endif %}>Publicações recentes</option>
       {% if is_authenticated %}<option value="seguindo" {% if feed == 'seguindo' %}selected{% endif %}>Autores que sigo</option>{% endif %}
-    </select>
-    <select name="territorio" class="cronicas-filter" onchange="this.form.submit()">
+    </select></label>
+    <label>Território<select name="territorio" class="cronicas-filter" aria-label="Território" onchange="this.form.submit()">
       <option value="">Todos os Territórios</option>
       {% for t in territorios %}
       <option value="{{ t }}" {% if territorio_filter == t %}selected{% endif %}>{{ t }}</option>
       {% endfor %}
-    </select>
-    <select name="regiao" class="cronicas-filter" onchange="this.form.submit()">
+    </select></label>
+    <label>Região<select name="regiao" class="cronicas-filter" aria-label="Região" onchange="this.form.submit()">
       <option value="">Todas as Regiões</option>
       {% for r in regioes %}
       <option value="{{ r }}" {% if regiao_filter == r %}selected{% endif %}>{{ r }}</option>
       {% endfor %}
-    </select>
+    </select></label>
+    <button class="cronicas-btn-outline" type="submit">Filtrar</button>
   </form>
 
   {% if is_authenticated %}
@@ -57,15 +68,18 @@
 <section class="cronicas-featured" aria-labelledby="cronicas-featured-heading">
   <h2 id="cronicas-featured-heading">Destaques editoriais</h2>
   <div class="cronicas-featured-links">
-    {% for c in destaques %}<a href="{% url 'cronica_detail' slug=c.slug %}">{{ c.titulo }} <small>por {{ c.autor.username }}</small></a>{% endfor %}
+    {% for c in destaques %}<a href="{% url 'cronica_detail' slug=c.slug %}{% if chronicles_demo %}?demo=1{% endif %}"><span class="chronicles-featured-mark" aria-hidden="true">{% include 'home/partials/chronicles_mark.html' %}</span><span><span class="chronicles-kicker">Escolha editorial</span><strong>{{ c.titulo }}</strong><small>por {{ c.autor.username }}</small></span><span aria-hidden="true">→</span></a>{% endfor %}
   </div>
 </section>
 {% endif %}
 
+<div class="chronicles-archive-heading"><h2>{% if feed == 'seguindo' %}Dos autores que você segue{% else %}O arquivo de histórias{% endif %}</h2><p>{{ page_obj.paginator.count }} crônica{{ page_obj.paginator.count|pluralize:"s" }}{% if page_obj.paginator.count %} · {{ page_obj.start_index }}–{{ page_obj.end_index }} nesta página{% endif %}</p></div>
+{% if territorio_filter or regiao_filter %}<p class="chronicles-current-filters">{% if territorio_filter %}{{ territorio_filter }}{% endif %}{% if regiao_filter %} · {{ regiao_filter }}{% endif %}<a href="?feed={{ feed|urlencode }}{% if chronicles_demo %}&demo=1{% endif %}">Limpar locais ×</a></p>{% endif %}
 <div class="cronicas-grid">
   {% for c in cronicas %}
-  <a href="{% url 'cronica_detail' slug=c.slug %}" class="cronica-card">
-    {% if c.safe_image_url %}<img class="cronica-card-cover" src="{{ c.safe_image_url }}" alt="" loading="lazy">{% endif %}
+  <a href="{% url 'cronica_detail' slug=c.slug %}{% if chronicles_demo %}?demo=1{% endif %}" class="cronica-card">
+    <div class="chronicles-card-art">{% if c.safe_image_url %}<img class="cronica-card-cover" src="{{ c.safe_image_url }}" alt="" loading="lazy">{% else %}<span class="chronicles-card-seal" aria-hidden="true">{% include 'home/partials/chronicles_mark.html' %}</span>{% endif %}<span class="chronicles-bookmark">{% if c.destaque_editorial %}Destaque{% else %}Crônica{% endif %}</span>{% if chronicles_demo %}<span class="chronicles-example-label">Exemplo visual</span>{% endif %}</div>
+    <div class="chronicles-card-copy">
     <span class="cronica-card-eyebrow">{{ c.territorio_label }}{% if c.regiao_label %} &middot; {{ c.regiao_label }}{% endif %}</span>
     <h2 class="cronica-card-title">{{ c.titulo }}</h2>
     {% if c.resumo %}<p class="cronica-card-summary">{{ c.resumo }}</p>{% endif %}
@@ -75,20 +89,24 @@
       <span>&middot;</span>
       <span>{{ c.data_publicacao|default:c.data_submissao|date:"d M Y" }}</span>
     </div>
+    <span class="chronicles-read-link">Abrir crônica <span aria-hidden="true">→</span></span>
+    </div>
   </a>
   {% empty %}
   <div class="cronicas-empty">
+    <span class="chronicles-empty-mark" aria-hidden="true">{% include 'home/partials/chronicles_mark.html' %}</span><h3>Há histórias esperando para serem contadas.</h3>
     {% if feed == 'seguindo' %}<p>Nenhuma crônica publicada pelos autores que você segue.</p>
     {% else %}<p>Nenhuma crônica publicada para estes filtros.</p>{% endif %}
+    <div class="chronicles-empty-actions">{% if territorio_filter or regiao_filter or feed == 'seguindo' %}<a class="cronicas-btn-outline" href="{% url 'mundo_cronicas' %}{% if chronicles_demo %}?demo=1{% endif %}">Ver todas as crônicas →</a>{% endif %}<a class="cronicas-btn-outline" href="{% url 'mundo_regioes' %}">Conhecer Cinéria ↗</a></div>
   </div>
   {% endfor %}
 </div>
 
 {% if page_obj.has_other_pages %}
 <nav class="cronicas-pagination" aria-label="Páginas das crônicas">
-  {% if page_obj.has_previous %}<a href="?feed={{ feed|urlencode }}&territorio={{ territorio_filter|urlencode }}&regiao={{ regiao_filter|urlencode }}&page={{ page_obj.previous_page_number }}">Anterior</a>{% endif %}
+  {% if page_obj.has_previous %}<a href="?feed={{ feed|urlencode }}&territorio={{ territorio_filter|urlencode }}&regiao={{ regiao_filter|urlencode }}{% if chronicles_demo %}&demo=1{% endif %}&page={{ page_obj.previous_page_number }}" rel="prev">Anterior</a>{% endif %}
   <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
-  {% if page_obj.has_next %}<a href="?feed={{ feed|urlencode }}&territorio={{ territorio_filter|urlencode }}&regiao={{ regiao_filter|urlencode }}&page={{ page_obj.next_page_number }}">Próxima</a>{% endif %}
+  {% if page_obj.has_next %}<a href="?feed={{ feed|urlencode }}&territorio={{ territorio_filter|urlencode }}&regiao={{ regiao_filter|urlencode }}{% if chronicles_demo %}&demo=1{% endif %}&page={{ page_obj.next_page_number }}" rel="next">Próxima</a>{% endif %}
 </nav>
 {% endif %}
 
@@ -109,5 +127,5 @@
   </div>
 </div>
 {% endif %}
-</div>
+</section>
 {% endblock %}
