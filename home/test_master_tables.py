@@ -140,6 +140,37 @@ class MasterTableFlowTests(TestCase):
         self.assertEqual(client.post(reverse('master_table_create'), self.payload()).status_code, 403)
         self.assertFalse(TbMesaAnuncio.objects.exists())
 
+    def test_profile_actions_open_existing_routes_and_owner_can_close(self):
+        self.client.force_login(self.master)
+        self.assertContains(self.client.get(reverse('profile') + '?aba=mestre'),
+                            reverse('master_table_create'))
+        self.assertEqual(self.client.post(reverse('master_table_create'), self.payload()).status_code, 302)
+        table = TbMesaAnuncio.objects.get(mestre=self.master)
+        profile = self.client.get(reverse('profile') + '?aba=mestre')
+        self.assertContains(profile, reverse('master_table_edit', args=[table.pk]))
+        self.assertContains(profile, reverse('master_table_detail', args=[table.pk]))
+        action_url = reverse('master_table_action', args=[table.pk])
+        self.assertContains(profile, action_url)
+        self.assertContains(profile, 'name="revisao" value="1"', html=False)
+
+        self.client.force_login(self.other)
+        self.assertEqual(self.client.post(action_url, {
+            'acao': 'encerrar', 'revisao': table.revisao,
+        }).status_code, 404)
+        self.client.force_login(self.master)
+        self.assertEqual(self.client.post(action_url, {
+            'acao': 'encerrar', 'revisao': 0,
+        }).status_code, 409)
+        self.assertEqual(self.client.post(action_url, {
+            'acao': 'encerrar', 'revisao': table.revisao,
+        }).status_code, 302)
+        table.refresh_from_db()
+        self.assertEqual(table.estado, 'encerrado')
+        page = self.client.get(reverse('profile') + '?aba=mestre')
+        self.assertContains(page, table.titulo)
+        self.assertNotContains(page, 'Encerrar anúncio')
+        self.assertEqual(self.client.get(reverse('master_table_detail', args=[table.pk])).status_code, 200)
+
     def test_staff_reviewer_can_verify_and_revoke_without_changing_rewards(self):
         reviewer = get_user_model().objects.create_user(
             'table_reviewer', password='test-pass', is_staff=True)
