@@ -65,3 +65,21 @@ class MasterParticipationFlowTests(TestCase):
         self.assertEqual(client.post(reverse('master_authorize', args=[self.player.pk]), {
             'acao': 'autorizar', 'confirmar': 'sim', 'versao': '0',
         }).status_code, 403)
+
+    def test_visitor_can_return_from_master_profile_and_find_empty_announcements(self):
+        TbPerfilMestre.objects.create(
+            user=self.player, modo='mestre', status_mestre='aprovado',
+            listado=True, apresentacao='Histórias da comunidade')
+        directory_url = reverse('masters_directory')
+        profile_url = reverse('public_profile', args=[self.player.username])
+        missions_url = reverse('sistemas_missoes')
+
+        directory = self.client.get(directory_url)
+        self.assertContains(directory, profile_url + '?aba=mestre')
+        self.assertContains(directory, missions_url + '#anuncios')
+        profile = self.client.get(profile_url + '?aba=mestre')
+        self.assertContains(profile, f'href="{directory_url}" class="public-profile-back"')
+        self.assertNotContains(profile, '#g01-masters-directory')
+        missions = self.client.get(missions_url)
+        self.assertContains(missions, 'id="anuncios"')
+        self.assertContains(missions, 'Nenhuma mesa anunciada no site no momento.')

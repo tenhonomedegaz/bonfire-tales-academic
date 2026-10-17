@@ -36,7 +36,7 @@ no servidor, então o cliente sobrepõe .public-profile-banner-media,
   {% if preview_mode %}
   <div class="perfil-preview-bg"{% if appearance.background_url|safe_profile_image %} style="background-image:url('{{ appearance.background_url|safe_profile_image }}');"{% else %} style="display:none"{% endif %}></div>
   {% else %}
-  {% if community.is_master %}<a href="#g01-masters-directory{% if master_demo %}?demo=1{% endif %}" class="public-profile-back">← Mestres</a>{% else %}<a href="{% url 'jogadores' %}{% if players_demo %}?demo=1{% endif %}" class="public-profile-back">← Jogadores</a>{% endif %}
+  {% if community.is_master %}<a href="{% url 'masters_directory' %}" class="public-profile-back">← Mestres</a>{% else %}<a href="{% url 'jogadores' %}{% if players_demo %}?demo=1{% endif %}" class="public-profile-back">← Jogadores</a>{% endif %}
   {% endif %}
   <div class="public-profile-card">
     <div class="public-profile-banner">
