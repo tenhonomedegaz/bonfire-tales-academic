@@ -20,6 +20,11 @@ def _rows(query, *fields):
     return list(query.order_by('pk').values(*fields))
 
 
+def database_identity():
+    settings = connection.settings_dict
+    return {key: str(settings.get(key) or '') for key in ('ENGINE', 'NAME', 'HOST', 'PORT', 'USER')}
+
+
 def snapshot():
     """Capture original values and immutable references before any D migration."""
     themes = TbCosmetico.objects.filter(tipo='tema')
@@ -80,6 +85,7 @@ class Command(BaseCommand):
             'kind': 'G01-D-prechange', 'created_at': timezone.now(),
             'database_vendor': connection.vendor,
             'database_name': connection.settings_dict['NAME'],
+            'database_identity': database_identity(),
             'recent_home_migrations': [name for (name,) in migrations],
             'counts': {key: len(value) for key, value in rows.items()},
             'restore_policy': ('Restore only explicitly changed catalog/reward fields by primary key '

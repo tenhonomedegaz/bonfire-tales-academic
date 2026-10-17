@@ -12,6 +12,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import connection, transaction
 
 from home.models import TbRecompensaMestre
+from home.management.commands.preview_redesign_d import database_identity
 
 
 def _read_json(path, digest):
@@ -41,8 +42,8 @@ class Command(BaseCommand):
             raise CommandError(f'Invalid snapshot: {exc}') from exc
         if saved.get('kind') != 'G01-D-prechange':
             raise CommandError('Not a G01-D prechange snapshot.')
-        if saved.get('database_name') != connection.settings_dict['NAME']:
-            raise CommandError('Snapshot belongs to a different database.')
+        if saved.get('database_identity') != database_identity():
+            raise CommandError('Snapshot belongs to a different database connection.')
         originals = saved.get('rows', {}).get('subscription_rewards')
         if not isinstance(originals, list):
             raise CommandError('Snapshot lacks subscription rewards.')

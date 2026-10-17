@@ -35,7 +35,7 @@ class RedesignDRewardsTests(TransactionTestCase):
             path = Path(directory) / 'before.json'
             output = StringIO()
             call_command('preview_redesign_d', output=str(path),
-                         expected_home_head='0155_redesign_theme_pilot', stdout=output)
+                         expected_home_head='0157_merge_redesign_b_d', stdout=output)
             digest = hashlib.sha256(path.read_bytes()).hexdigest()
 
             def run(action, sha=digest, confirm=''):

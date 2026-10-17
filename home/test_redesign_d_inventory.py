@@ -33,7 +33,7 @@ class RedesignDInventoryTests(TransactionTestCase):
             path = Path(directory) / 'prechange.json'
             output = StringIO()
             call_command('preview_redesign_d', output=str(path),
-                         expected_home_head='0155_redesign_theme_pilot', stdout=output)
+                         expected_home_head='0157_merge_redesign_b_d', stdout=output)
             report = json.loads(output.getvalue())
             raw = path.read_bytes()
             saved = json.loads(raw)

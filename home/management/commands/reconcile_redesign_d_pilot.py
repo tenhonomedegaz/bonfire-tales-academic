@@ -7,6 +7,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import connection, transaction
 
 from home.management.commands.reconcile_redesign_d_rewards import _read_json
+from home.management.commands.preview_redesign_d import database_identity
 from home.models import (CosmeticCheckoutOffer, CosmeticCheckoutPurchase,
                          EventCosmeticRedemption, TbCosmetico, TbUsuarioCosmetico)
 
@@ -52,8 +53,8 @@ class Command(BaseCommand):
         except (OSError, ValueError) as exc:
             raise CommandError(f'Invalid snapshot: {exc}') from exc
         if (saved.get('kind') != 'G01-D-prechange'
-                or saved.get('database_name') != connection.settings_dict['NAME']):
-            raise CommandError('Snapshot kind or database differs.')
+                or saved.get('database_identity') != database_identity()):
+            raise CommandError('Snapshot kind or database connection differs.')
         original_slugs = {row['slug'] for row in saved.get('rows', {}).get('themes', [])}
         pilot_slugs = {'tema-' + key for key in PILOT}
         if original_slugs & pilot_slugs:

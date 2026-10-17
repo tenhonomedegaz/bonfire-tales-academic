@@ -22,7 +22,7 @@ class RedesignDPilotTests(TransactionTestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'before.json'
             call_command('preview_redesign_d', output=str(path),
-                         expected_home_head='0155_redesign_theme_pilot', stdout=StringIO())
+                         expected_home_head='0157_merge_redesign_b_d', stdout=StringIO())
             digest = hashlib.sha256(path.read_bytes()).hexdigest()
 
             def run(action, confirm=''):
@@ -61,7 +61,7 @@ class RedesignDPilotTests(TransactionTestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'before.json'
             call_command('preview_redesign_d', output=str(path),
-                         expected_home_head='0155_redesign_theme_pilot', stdout=StringIO())
+                         expected_home_head='0157_merge_redesign_b_d', stdout=StringIO())
             digest = hashlib.sha256(path.read_bytes()).hexdigest()
             call_command('reconcile_redesign_d_pilot', snapshot=str(path), sha256=digest,
                          action='seed', confirm='G01-D-PILOT', stdout=StringIO())
