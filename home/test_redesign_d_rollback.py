@@ -11,6 +11,7 @@ from django.core.management.base import CommandError
 from django.test import TransactionTestCase
 
 from .models import CosmeticCheckoutOffer, TbCosmetico, TbRecompensaMestre
+from .test_redesign_d_support import capture_pre_d_snapshot
 
 
 class RedesignDPilotRollbackTests(TransactionTestCase):
@@ -21,9 +22,7 @@ class RedesignDPilotRollbackTests(TransactionTestCase):
             slug='rollback-inactive', nome='Assinatura inativa', tipo='assinatura', ativo=False)
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'before.json'
-            call_command('preview_redesign_d', output=str(path),
-                         expected_home_head='0157_merge_redesign_b_d', stdout=StringIO())
-            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            digest = capture_pre_d_snapshot(path)
             different = json.loads(path.read_text(encoding='utf-8'))
             different['database_identity']['HOST'] = 'different-host.example'
             wrong_path = Path(directory) / 'other-database.json'
@@ -66,9 +65,11 @@ class RedesignDPilotRollbackTests(TransactionTestCase):
 
             result = run()
             self.assertEqual(len(result['archived_slugs']), 3)
+            self.assertEqual(result['retained_owned_slugs'], [])
             self.assertEqual(result['restored_reward_ids'], [active.pk])
             active.refresh_from_db()
             inactive.refresh_from_db()
             self.assertTrue(active.ativo)
             self.assertFalse(inactive.ativo)
-            self.assertEqual(run(), {'archived_slugs': [], 'restored_reward_ids': []})
+            self.assertEqual(run(), {'archived_slugs': [], 'retained_owned_slugs': [],
+                                     'restored_reward_ids': []})

@@ -1,7 +1,7 @@
 """Atomically reverse the approved G01-D pilot catalog changes.
 
-This handles only demonstration themes and retired subscription rewards. It
-does not reverse future MM redemptions or alter acquired rights.
+This closes pilot offers and restores retired subscription rewards. It keeps
+acquired themes active and does not reverse MM redemptions or alter rights.
 """
 
 import json
@@ -13,7 +13,7 @@ from django.db import transaction
 
 
 class Command(BaseCommand):
-    help = 'Archive unused pilot themes and restore original subscription reward states atomically.'
+    help = 'Close pilot offers, retain acquired themes, and restore original reward states atomically.'
 
     def add_arguments(self, parser):
         parser.add_argument('--snapshot', required=True)
@@ -32,8 +32,12 @@ class Command(BaseCommand):
             call_command('reconcile_redesign_d_rewards', snapshot=options['snapshot'],
                          sha256=options['sha256'], action='restore', confirm='G01-D-REWARDS',
                          stdout=rewards)
+            pilot_result = json.loads(pilot.getvalue())
+            retained = pilot_result['retained_owned_slugs']
             result = {
-                'archived_slugs': json.loads(pilot.getvalue())['changed_slugs'],
+                'archived_slugs': [slug for slug in pilot_result['changed_slugs']
+                                   if slug not in retained],
+                'retained_owned_slugs': retained,
                 'restored_reward_ids': json.loads(rewards.getvalue())['changed_reward_ids'],
             }
         self.stdout.write(json.dumps(result, ensure_ascii=False))

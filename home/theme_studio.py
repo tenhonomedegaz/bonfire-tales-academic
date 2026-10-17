@@ -34,13 +34,16 @@ def theme_studio(request):
                           .order_by('nome', 'pk').only('id_personagem', 'nome')[:10])
     offers = {offer.cosmetico.slug: offer for offer in
               CosmeticCheckoutOffer.objects.select_related('cosmetico').filter(
-                  active=True, cosmetico__ativo=True, cosmetico__tipo='tema')}
+                  cosmetico__ativo=True, cosmetico__tipo='tema')}
     cards = []
     for key, (sample, subtitle, affinity) in COLLECTIONS.items():
         offer = offers.get('tema-' + key)
         if offer is None:
             continue
         item = offer.cosmetico
+        owned = cosmetic_allowed(request.user, 'tema', key, 'ficha')
+        if not offer.active and not owned:
+            continue
         price_mm = item.preco if item.origem == 'loja_mm' else None
         cards.append({
             'key': key, 'sample': sample, 'subtitle': subtitle, 'affinity': affinity,
@@ -52,7 +55,7 @@ def theme_studio(request):
             'cash_disabled': (item.slug in PILOT_CASH_DISABLED_SLUGS
                               and item.css_class == 'theme-data' and item.origem != 'loja_mm'),
             'demonstration': offer.demonstration, 'offer': offer,
-            'owned': cosmetic_allowed(request.user, 'tema', key, 'ficha'),
+            'owned': owned,
             'request_key': uuid.uuid4(),
         })
     selected = next((card for card in cards if card['key'] == request.GET.get('tema')),

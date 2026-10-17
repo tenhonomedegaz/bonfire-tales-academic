@@ -1,4 +1,4 @@
-"""Seed or archive the pinned G01-D pilot only after a verified DEV snapshot."""
+"""Seed or close the pinned G01-D pilot only after a verified snapshot."""
 
 import json
 from decimal import Decimal
@@ -67,6 +67,7 @@ class Command(BaseCommand):
             if existing and set(existing) != pilot_slugs:
                 raise CommandError('Partial pilot catalog; reconcile manually.')
             changed = []
+            retained_owned = []
             for key, values in PILOT.items():
                 expected, amount = _expected(key, values)
                 slug = expected['slug']
@@ -76,27 +77,36 @@ class Command(BaseCommand):
                         if field != 'ativo' and getattr(item, field) != value:
                             raise CommandError(f'{slug} changed; reconcile manually ({field}).')
                     offer = CosmeticCheckoutOffer.objects.select_for_update().filter(cosmetico=item).first()
-                    if not offer or offer.amount != amount or not offer.demonstration:
+                    if (not offer or offer.amount != amount
+                            or (action != 'archive' and not offer.demonstration)):
                         raise CommandError(f'{slug} offer changed; reconcile manually.')
                     if action == 'seed' and (not item.ativo or not offer.active):
                         raise CommandError(f'{slug} is archived; reconcile manually.')
-                    if action == 'archive' and (
-                            TbUsuarioCosmetico.objects.filter(cosmetico=item).exists()
-                            or CosmeticCheckoutPurchase.objects.filter(cosmetico=item).exists()
-                            or CosmeticMMRedemption.objects.filter(cosmetico=item).exists()
-                            or EventCosmeticRedemption.objects.filter(cosmetico=item).exists()):
-                        raise CommandError(f'{slug} has usage; preserve acquired rights.')
+                    has_usage = action == 'archive' and (
+                        TbUsuarioCosmetico.objects.filter(cosmetico=item).exists()
+                        or CosmeticCheckoutPurchase.objects.filter(cosmetico=item).exists()
+                        or CosmeticMMRedemption.objects.filter(cosmetico=item).exists()
+                        or EventCosmeticRedemption.objects.filter(cosmetico=item).exists())
+                    if has_usage and not item.ativo:
+                        raise CommandError(f'{slug} has acquired rights but is inactive.')
                 if action == 'seed' and item is None:
                     item = TbCosmetico.objects.create(**expected)
                     CosmeticCheckoutOffer.objects.create(cosmetico=item, amount=amount,
                                                          active=True, demonstration=True)
                     changed.append(slug)
-                elif action == 'archive' and item and (item.ativo or offer.active):
-                    item.ativo = False
-                    item.save(update_fields=['ativo'])
-                    offer.active = False
-                    offer.save(update_fields=['active'])
-                    changed.append(slug)
+                elif action == 'archive' and item:
+                    if has_usage:
+                        retained_owned.append(slug)
+                    elif item.ativo:
+                        item.ativo = False
+                        item.save(update_fields=['ativo'])
+                        changed.append(slug)
+                    if offer.active:
+                        offer.active = False
+                        offer.save(update_fields=['active'])
+                        if slug not in changed:
+                            changed.append(slug)
                 elif action == 'preview' and item is None:
                     changed.append(slug)
-        self.stdout.write(json.dumps({'action': action, 'changed_slugs': changed}, ensure_ascii=False))
+        self.stdout.write(json.dumps({'action': action, 'changed_slugs': changed,
+                                      'retained_owned_slugs': retained_owned}, ensure_ascii=False))

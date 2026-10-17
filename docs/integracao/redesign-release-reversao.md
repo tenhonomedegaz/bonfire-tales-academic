@@ -49,6 +49,13 @@ G01 aprovados e resultados de S09/S10 antes do aceite de S11 ou do push S12.
 | 0158 | Desativar ofertas, resgates e rotas. | Fazer operação compensatória auditável e migração corretiva específica; o `RunPython.noop` não restaura recompensas de assinatura. |
 | Catálogo/conteúdo | Suspender merge e comparar prévia com produção. | Usar chaves naturais, preservando PKs de produção e memória de usuários, fichas, missões e transações. |
 
+Na implementação local do lote D, `rollback_redesign_d_pilot` exige o inventário
+pré-D e seu SHA-256. Ele fecha todas as ofertas piloto, arquiva temas sem uso e
+mantém ativos os temas já adquiridos para preservar a equipagem. O resultado
+separa `archived_slugs` de `retained_owned_slugs`; recibos, MM e direitos não
+são apagados. A reversão de resgates MM, quando necessária, usa compensação
+auditável por recibo, separada da desativação do catálogo.
+
 Produção só é reavaliada depois da ação do PO em G02: conferir SHA servido,
 respostas do site/API, login, ficha/charbuilder, mercado, anúncios e logs.
 Registrar resultado de S13 separado do push e do deploy.

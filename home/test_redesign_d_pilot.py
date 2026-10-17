@@ -2,6 +2,7 @@
 
 import json
 import tempfile
+from uuid import uuid4
 from io import StringIO
 from pathlib import Path
 
@@ -12,7 +13,8 @@ from django.test import TransactionTestCase, override_settings
 from django.urls import reverse
 
 from .models import (AsaasCheckoutOrder, CosmeticCheckoutOffer, TbCosmetico,
-                     TbUsuarioCosmetico)
+                     TbTransacaoMestre, TbUsuarioCosmetico, UserProfile)
+from .theme_mm import redeem_theme_mm
 from .test_redesign_d_support import capture_pre_d_snapshot
 
 
@@ -81,7 +83,7 @@ class RedesignDPilotTests(TransactionTestCase):
             self.assertFalse(TbCosmetico.objects.filter(slug='tema-forja-de-brasas').first().ativo)
             self.assertEqual(run('archive', 'G01-D-PILOT')['changed_slugs'], [])
 
-    def test_archive_refuses_to_hide_an_acquired_theme(self):
+    def test_rollback_closes_offers_but_preserves_an_acquired_theme(self):
         user = get_user_model().objects.create_user('pilot_owner')
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'before.json'
@@ -90,9 +92,47 @@ class RedesignDPilotTests(TransactionTestCase):
                          action='seed', confirm='G01-D-PILOT', stdout=StringIO())
             owned = TbCosmetico.objects.get(slug='tema-aurora-glacial')
             TbUsuarioCosmetico.objects.create(user=user, cosmetico=owned, origem='staff')
-            with self.assertRaises(CommandError):
-                call_command('reconcile_redesign_d_pilot', snapshot=str(path), sha256=digest,
-                             action='archive', confirm='G01-D-PILOT', stdout=StringIO())
+            mm_theme = TbCosmetico.objects.get(slug='tema-forja-de-brasas')
+            CosmeticCheckoutOffer.objects.filter(cosmetico=mm_theme).update(demonstration=False)
+            profile = UserProfile.objects.get(user=user)
+            profile.moedas_mestragem = 2000
+            profile.save(update_fields=['moedas_mestragem'])
+            receipt, created = redeem_theme_mm(user.pk, mm_theme.slug, uuid4())
+            self.assertTrue(created)
+            self.assertEqual(receipt.cost_mm, 1500)
+            profile.refresh_from_db()
+            self.assertEqual(profile.moedas_mestragem, 500)
+            output = StringIO()
+            call_command('rollback_redesign_d_pilot', snapshot=str(path), sha256=digest,
+                         confirm='G01-D-ROLLBACK-PILOT', stdout=output)
+            result = json.loads(output.getvalue())
+            self.assertEqual(set(result['retained_owned_slugs']),
+                             {'tema-forja-de-brasas', 'tema-aurora-glacial'})
+            self.assertEqual(result['archived_slugs'], ['tema-circulo-arcano'])
             self.assertEqual(TbCosmetico.objects.filter(slug__in=(
                 'tema-forja-de-brasas', 'tema-aurora-glacial', 'tema-circulo-arcano'),
-                ativo=True).count(), 3)
+                ativo=True).count(), 2)
+            self.assertFalse(CosmeticCheckoutOffer.objects.filter(
+                cosmetico__slug__startswith='tema-', active=True).exists())
+            self.client.force_login(user)
+            self.assertContains(self.client.get(reverse('theme_studio')), 'Aurora Glacial')
+            self.assertContains(self.client.get(reverse('theme_studio')), 'Forja de Brasas')
+            self.client.logout()
+            self.assertNotContains(self.client.get(reverse('theme_studio')), 'Aurora Glacial')
+            self.assertNotContains(self.client.get(reverse('theme_studio')), 'Forja de Brasas')
+            other = get_user_model().objects.create_user('pilot_other')
+            for slug in (owned.slug, mm_theme.slug):
+                with self.assertRaisesMessage(ValueError, 'indisponível'):
+                    redeem_theme_mm(other.pk, slug, uuid4())
+            self.assertEqual(TbTransacaoMestre.objects.count(), 1)
+            self.assertTrue(TbTransacaoMestre.objects.filter(pk=receipt.transaction_id,
+                                                             valor_mm=-1500).exists())
+            self.assertTrue(TbUsuarioCosmetico.objects.filter(user=user, cosmetico=mm_theme,
+                                                             suspenso_em__isnull=True).exists())
+            profile.refresh_from_db()
+            self.assertEqual(profile.moedas_mestragem, 500)
+            again = StringIO()
+            call_command('rollback_redesign_d_pilot', snapshot=str(path), sha256=digest,
+                         confirm='G01-D-ROLLBACK-PILOT', stdout=again)
+            self.assertEqual(json.loads(again.getvalue())['archived_slugs'], [])
+            self.assertEqual(TbTransacaoMestre.objects.count(), 1)
