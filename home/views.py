@@ -14870,7 +14870,7 @@ def mercado_mestre_view(request):
         'page_title': 'Mercado de Mestre',
         'saldo': perfil.moedas_mestragem or 0,
         'moedas_evento': perfil.moedas_evento or 0,
-        'recompensas': list(TbRecompensaMestre.objects.filter(ativo=True)),
+        'recompensas': list(TbRecompensaMestre.objects.filter(ativo=True).exclude(tipo='assinatura')),
         'aventuras': list(request.user.aventuras_mestradas.all()[:20]),
         'transacoes': list(request.user.transacoes_mm.all()[:30]),
         'rei_colina': rdc,
@@ -14942,8 +14942,7 @@ def mestre_registrar_aventura(request):
 @login_required(login_url='/login/')
 @require_POST
 def mestre_resgatar(request):
-    """Resgata uma recompensa do catálogo. Dispatch por tipo: normal (debita+log),
-    leilao (Rei da Colina), assinatura legada (Mestre Ouro: compra vitalícia)."""
+    """Resgata recompensas atuais; ofertas legadas de assinatura vão à página de slots."""
     from .models import TbRecompensaMestre, TbReiDaColina
     from . import permissions as perms
     if not perms.is_mestre(request.user):
@@ -14952,6 +14951,8 @@ def mestre_resgatar(request):
     dest = reverse('mestre_mercado')
     if not r:
         return redirect(dest + '?m=invalido')
+    if r.tipo == 'assinatura':
+        return redirect('character_slots')
     perfil = _perfil_mestre(request.user)
     saldo = perfil.moedas_mestragem or 0
 
@@ -14967,16 +14968,6 @@ def mestre_resgatar(request):
             rdc.holder, rdc.preco_atual, rdc.desde = request.user, preco + 100, timezone.now()
             rdc.save(update_fields=['holder', 'preco_atual', 'desde'])
         return redirect(dest + '?m=rei')
-
-    if r.tipo == 'assinatura':
-        from .mestre_ouro import buy_mestre_ouro_lifetime
-        try:
-            _, created = buy_mestre_ouro_lifetime(request.user.pk, r.pk)
-        except ValueError as exc:
-            if str(exc) == 'insufficient MM balance':
-                return redirect(dest + '?m=saldo')
-            return redirect(dest + '?m=ouro_indisponivel')
-        return redirect(dest + ('?m=ouro' if created else '?m=ouro_existente'))
 
     # normal: resgate simples (debita MM; a staff cumpre o efeito pelo histórico)
     if saldo < r.preco_mm:

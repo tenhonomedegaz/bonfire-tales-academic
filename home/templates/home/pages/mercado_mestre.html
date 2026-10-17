@@ -14,7 +14,7 @@
       <span class="mm-heading-symbol" aria-hidden="true">{% include 'home/partials/master_market_symbol.html' %}</span>
       <div><p class="mm-eyebrow">Bonfire Tales · Para quem conduz histórias</p><h1 id="mm-title">Mercado de Mestre</h1><p>Suas mesas deixam marcas. Suas moedas abrem possibilidades.</p></div>
     </div>
-    <a class="mm-text-link" href="{% url 'guia_mestres' %}">Guia do Mestre <span aria-hidden="true">↗</span></a>
+    <div><a class="mm-text-link" href="{% url 'character_slots' %}">Meus slots de personagem →</a> · <a class="mm-text-link" href="{% url 'guia_mestres' %}">Guia do Mestre <span aria-hidden="true">↗</span></a></div>
   </header>
   <div class="mm-wallet" aria-label="Sua carteira de mestre">
     <div class="mm-balance"><span class="mm-wallet-icon" aria-hidden="true">{% include 'home/partials/master_market_symbol.html' %}</span><div><p>Moedas de Mestragem</p><strong>{{ saldo }} <small>MM</small></strong><span>Disponíveis para recompensas</span></div></div>
@@ -25,9 +25,6 @@
   {% if msg == 'aventura' %}<p class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Aventura registrada — MM creditadas!</p>
   {% elif msg == 'resgatado' %}<p class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Recompensa resgatada! A staff cumpre o efeito pelo seu histórico.</p>
   {% elif msg == 'rei' %}<p class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Você é o novo Rei da Colina! 👑</p>
-  {% elif msg == 'ouro' %}<p class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Mestre Ouro vitalício concedido — 5º espaço de personagem liberado.</p>
-  {% elif msg == 'ouro_existente' %}<p class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Seu Mestre Ouro vitalício já está concedido. Nenhuma nova cobrança foi feita.</p>
-  {% elif msg == 'ouro_indisponivel' %}<p class="mb-2.5 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-2 text-sm text-[var(--flame)]">A compra vitalícia ainda não está disponível ou seu histórico requer revisão.</p>
   {% elif msg == 'braseiros' %}<p class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Braseiros creditados no personagem! 🔥</p>
   {% elif msg == 'sem_evento' %}<p class="mb-2.5 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-2 text-sm text-[var(--flame)]">Você não tem Moedas de Evento.</p>
   {% elif msg == 'sem_personagem' %}<p class="mb-2.5 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-2 text-sm text-[var(--flame)]">Selecione um personagem seu.</p>
@@ -99,7 +96,7 @@
           <label class="mm-eyebrow" for="mm-search">Encontrar recompensa</label>
           <div class="mm-search-field"><input id="mm-search" type="search" name="q" value="{{ request.GET.q }}" maxlength="160" placeholder="Nome ou benefício…"><button type="submit" aria-label="Buscar recompensa">⌕</button></div>
           <label class="mm-filter-label" for="mm-kind">Tipo de benefício</label>
-          <select id="mm-kind" name="tipo"><option value="">Todas as recompensas</option><option value="normal"{% if request.GET.tipo == 'normal' %} selected{% endif %}>Outros benefícios</option><option value="leilao"{% if request.GET.tipo == 'leilao' %} selected{% endif %}>Leilão</option><option value="assinatura"{% if request.GET.tipo == 'assinatura' %} selected{% endif %}>Mestre Ouro</option></select>
+          <select id="mm-kind" name="tipo"><option value="">Todas as recompensas</option><option value="normal"{% if request.GET.tipo == 'normal' %} selected{% endif %}>Outros benefícios</option><option value="leilao"{% if request.GET.tipo == 'leilao' %} selected{% endif %}>Leilão</option></select>
         </form>
         <div class="mm-list-head"><span><strong id="mm-count">{{ recompensas|length }}</strong> recompensas</span><a class="mm-clear" href="?area=recompensas" hidden>Limpar</a></div>
         <nav id="mm-list" class="mm-list" aria-label="Escolher recompensa">
@@ -115,21 +112,14 @@
         <article id="mm-reward-{{ r.id_recompensa }}" class="mm-reward" aria-labelledby="mm-name-{{ r.id_recompensa }}"{% if not forloop.first %} hidden{% endif %}>
           <header class="mm-reward-heading"><div><p class="mm-eyebrow">Recompensa de mestre</p><h2 id="mm-name-{{ r.id_recompensa }}">{{ r.nome }}</h2></div><span class="mm-reward-symbol" aria-hidden="true">{% include 'home/partials/master_market_symbol.html' with symbol=r.tipo %}</span></header>
           <div class="mm-reward-body"><h3>O que você recebe</h3>
-            {% if r.tipo == 'assinatura' %}<p class="mm-description">Uma compra concede Mestre Ouro e o 5º espaço de personagem permanentemente.</p>
-            {% elif r.descricao %}<p class="mm-description">{{ r.descricao|linebreaksbr }}</p>{% else %}<p class="mm-description">Confira o custo e as condições antes de resgatar.</p>{% endif %}
+            {% if r.descricao %}<p class="mm-description">{{ r.descricao|linebreaksbr }}</p>{% else %}<p class="mm-description">Confira o custo e as condições antes de resgatar.</p>{% endif %}
           </div>
           <footer class="mm-purchase">
-            <div><p class="mm-eyebrow">{% if r.tipo == 'leilao' %}Lance atual{% elif r.tipo == 'assinatura' %}Pagamento único{% else %}Custo do resgate{% endif %}</p><strong class="mm-price">{% if r.tipo == 'leilao' %}{{ rei_colina.preco_atual }}{% else %}{{ r.preco_mm }}{% endif %} <small>MM</small></strong></div>
+            <div><p class="mm-eyebrow">{% if r.tipo == 'leilao' %}Lance atual{% else %}Custo do resgate{% endif %}</p><strong class="mm-price">{% if r.tipo == 'leilao' %}{{ rei_colina.preco_atual }}{% else %}{{ r.preco_mm }}{% endif %} <small>MM</small></strong></div>
             <form method="post" action="{% url 'mestre_resgatar' %}">
           {% csrf_token %}<input type="hidden" name="recompensa" value="{{ r.id_recompensa }}">
           {% if r.tipo == 'leilao' %}
             <button type="submit" {% if sou_rei %}disabled{% endif %} class="mm-button">{% if sou_rei %}Você é o Rei{% else %}Dar lance{% endif %}</button>
-          {% elif r.tipo == 'assinatura' %}
-            {% if mestre_ouro_ativo %}<span class="text-xs text-[var(--spark)]">Adquirido permanentemente</span>
-            {% elif mestre_ouro_legado_pendente %}<span class="text-xs text-[var(--muted)]">Histórico em revisão</span>
-            {% elif r.preco_vitalicio_aprovado_mm and r.preco_vitalicio_aprovado_mm == r.preco_mm %}
-            <button type="submit" class="mm-button">Comprar</button>
-            {% else %}<span class="text-xs text-[var(--muted)]">Preço vitalício a definir</span>{% endif %}
           {% else %}
             <button type="submit" {% if saldo < r.preco_mm %}disabled{% endif %} class="mm-button">Resgatar</button>
           {% endif %}

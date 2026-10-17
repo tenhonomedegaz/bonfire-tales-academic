@@ -197,33 +197,41 @@ class MestreOuroLifetimeTests(TestCase):
         self.assertNotContains(response, 'Próxima mensalidade')
         self.assertNotContains(response, 'Pagar mensalidade')
         self.assertNotContains(response, '500 Moedas por Mês')
+        self.assertNotContains(response, f'data-key="{self.offer.pk}"')
+        self.assertContains(response, reverse('character_slots'))
 
-    def test_post_offer_without_approved_price_does_not_debit(self):
+    def test_legacy_offer_redirects_to_slots_without_debit(self):
         self.profile.moedas_mestragem = 900
         self.profile.save(update_fields=['moedas_mestragem'])
         self.client.force_login(self.user)
         with patch('home.permissions.is_mestre', return_value=True):
             response = self.client.post(reverse('mestre_resgatar'),
                                         {'recompensa': self.offer.pk})
-        self.assertEqual(response.status_code, 302)
-        self.assertIn('ouro_indisponivel', response['Location'])
+        self.assertRedirects(response, reverse('character_slots'))
         self.assertFalse(TbTransacaoMestre.objects.exists())
 
-    def test_post_approved_offer_delivers_once_and_shows_lifetime_status(self):
+    def test_approved_legacy_offer_stays_inactive_and_normal_rewards_still_work(self):
         self.profile.moedas_mestragem = 900
         self.profile.save(update_fields=['moedas_mestragem'])
         self.offer.preco_vitalicio_aprovado_mm = 700
         self.offer.save(update_fields=['preco_vitalicio_aprovado_mm'])
+        normal = TbRecompensaMestre.objects.create(
+            slug='normal-reward-test', nome='Recompensa comum', tipo='normal',
+            preco_mm=100, ativo=True,
+        )
         self.client.force_login(self.user)
         with patch('home.permissions.is_mestre', return_value=True):
-            first = self.client.post(reverse('mestre_resgatar'),
-                                     {'recompensa': self.offer.pk})
-            replay = self.client.post(reverse('mestre_resgatar'),
-                                      {'recompensa': self.offer.pk})
             page = self.client.get(reverse('mestre_mercado'))
-        self.assertIn('?m=ouro', first['Location'])
-        self.assertIn('?m=ouro_existente', replay['Location'])
-        self.assertEqual(UserProfile.objects.get(user=self.user).moedas_mestragem, 200)
+            legacy = self.client.post(reverse('mestre_resgatar'),
+                                      {'recompensa': self.offer.pk})
+            normal_response = self.client.post(reverse('mestre_resgatar'),
+                                               {'recompensa': normal.pk})
+        self.assertNotContains(page, f'data-key="{self.offer.pk}"')
+        self.assertContains(page, f'data-key="{normal.pk}"')
+        self.assertRedirects(legacy, reverse('character_slots'))
+        self.assertIn('?m=resgatado', normal_response['Location'])
+        self.assertEqual(UserProfile.objects.get(user=self.user).moedas_mestragem, 800)
         self.assertEqual(TbTransacaoMestre.objects.count(), 1)
-        self.assertContains(page, 'Adquirido permanentemente')
+        self.assertEqual(TbTransacaoMestre.objects.get().valor_mm, -100)
+        self.assertFalse(MestreOuroDireito.objects.filter(user=self.user).exists())
         self.assertNotContains(page, 'Pagar mensalidade')

@@ -81,6 +81,7 @@ no servidor, então o cliente sobrepõe .public-profile-banner-media,
           {% endfor %}
         </ul>
         {% endif %}
+        {% if mestre_ouro_direito %}<p class="public-profile-handle">Mestre Ouro vitalício desde {{ mestre_ouro_direito.adquirido_em|date:"d/m/Y" }}</p>{% endif %}
         {% if profile.bio %}<p class="public-profile-bio">{{ profile.bio }}</p>{% endif %}
 
         {% comment %}

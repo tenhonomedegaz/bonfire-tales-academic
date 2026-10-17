@@ -141,6 +141,9 @@ class CharacterSlotRedemptionTests(TestCase):
     def test_legacy_or_insufficient_balance_never_debits(self, _is_mestre):
         self.profile.moedas_mestragem = 4999
         self.profile.save(update_fields=['moedas_mestragem'])
+        page = self.client.get(reverse('character_slots'))
+        self.assertContains(page, reverse('mestre_mercado'))
+        self.assertContains(page, 'Seu saldo ainda não cobre este resgate.')
         self.client.post(self.url)
         self.assertFalse(MestreOuroDireito.objects.exists())
         self.assertFalse(TbTransacaoMestre.objects.exists())
