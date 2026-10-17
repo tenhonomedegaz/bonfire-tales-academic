@@ -24,6 +24,7 @@
 
   var busca = root.querySelector('[data-shop-search]');
   var selGrupo = root.querySelector('[data-shop-group]');
+  var selEstoque = root.querySelector('[data-shop-stock]');
   var selRaridade = root.querySelector('[data-shop-rarity]');
   var selSintonizacao = root.querySelector('[data-shop-attunement]');
   var selOrdem = root.querySelector('[data-shop-sort]');
@@ -39,6 +40,7 @@
   var buscaEmEdicao = false;
   var filtrosUrl = [
     ['busca', busca, ''], ['grupo', selGrupo, 'todas'],
+    ['estoque', selEstoque, 'disponivel'],
     ['raridade', selRaridade, 'todas'], ['sintonizacao', selSintonizacao, 'todas'],
     ['ordem', selOrdem, 'nome-asc']
   ];
@@ -160,7 +162,11 @@
     var total = 0;
     linhasDe(pane).forEach(function (row) {
       var ok = true;
-      if (grupo !== 'todas') ok = row.getAttribute('data-group') === grupo;
+      if (grupo !== 'todas') ok = (row.getAttribute('data-shop-memberships') || row.getAttribute('data-group') || '').split('|').includes(grupo);
+      if (ok && selEstoque && selEstoque.value !== 'catalogo') {
+        ok = row.getAttribute('data-available') === 'true' &&
+          (selEstoque.value === 'disponivel' || row.getAttribute('data-stock') === selEstoque.value);
+      }
       if (ok && raridade !== 'todas') ok = row.getAttribute('data-rarity') === raridade;
       if (ok && sintonizacao !== 'todas') ok = row.getAttribute('data-attunement') === sintonizacao;
       if (ok && q) ok = norm(row.getAttribute('data-search')).indexOf(q) !== -1;
@@ -203,7 +209,7 @@
     });
     busca.addEventListener('blur', function () { buscaEmEdicao = false; });
   }
-  [selGrupo, selRaridade, selSintonizacao, selOrdem, soFavoritos].forEach(function (campo) {
+  [selGrupo, selEstoque, selRaridade, selSintonizacao, selOrdem, soFavoritos].forEach(function (campo) {
     if (campo) campo.addEventListener('change', function () { mudouFiltro(true); });
   });
   window.addEventListener('popstate', function () {
