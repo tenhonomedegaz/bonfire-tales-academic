@@ -118,6 +118,12 @@ class AdLayoutBrowserTests(StaticLiveServerTestCase):
                                                  width < 1340, True])
                         self.assertLessEqual(js('document.documentElement.scrollWidth'), width)
                         self.assertEqual(js('document.querySelectorAll("ins.adsbygoogle").length'), 4)
+                        js('document.querySelectorAll("ins.adsbygoogle").forEach('
+                           'slot => slot.setAttribute("data-ad-status", "unfilled"))')
+                        self.assertEqual(js('''[...document.querySelectorAll('aside')]
+                            .filter(aside => aside.getAttribute('aria-label')?.startsWith('Publicidade'))
+                            .map(aside => getComputedStyle(aside).display !== 'none')'''),
+                            [False, False, False, False])
 
                 call('Page.navigate', {'url': self.live_server_url + reverse('login')})
                 wait_for('!!document.querySelector("main")')
