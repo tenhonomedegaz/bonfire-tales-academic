@@ -17,6 +17,33 @@ from .test_redesign_d_support import capture_pre_d_snapshot
 
 
 class RedesignDPilotTests(TransactionTestCase):
+    def test_cash_checkout_stays_closed_if_pilot_offer_is_misconfigured(self):
+        user = get_user_model().objects.create_user('pilot_cash_guard', email='cash@example.test')
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'before.json'
+            digest = capture_pre_d_snapshot(path)
+            call_command('reconcile_redesign_d_pilot', snapshot=str(path), sha256=digest,
+                         action='seed', confirm='G01-D-PILOT', stdout=StringIO())
+            CosmeticCheckoutOffer.objects.filter(
+                cosmetico__slug__in=('tema-aurora-glacial', 'tema-forja-de-brasas'),
+            ).update(demonstration=False)
+
+            self.client.force_login(user)
+            with override_settings(BONFIRE_COMMERCE_ENABLED=True):
+                studio = self.client.get(reverse('theme_studio'), {'tema': 'aurora-glacial'})
+                self.assertEqual(studio.status_code, 200)
+                self.assertTrue(studio.context['selected']['cash_disabled'])
+                self.assertNotContains(studio, 'Conferir compra por R$')
+                self.assertContains(studio, 'Preço ilustrativo')
+                self.assertFalse(studio.context['cards'][0]['cash_disabled'])
+                self.assertContains(studio, 'Confirmar aquisição por 1500 MM')
+                checkout = self.client.get(reverse('cosmetic_checkout'))
+                self.assertNotContains(checkout, 'tema-aurora-glacial')
+                for slug in ('tema-aurora-glacial', 'tema-forja-de-brasas'):
+                    self.assertEqual(self.client.post(reverse('cosmetic_checkout'),
+                                                      {'slug': slug}).status_code, 400)
+            self.assertFalse(AsaasCheckoutOrder.objects.exists())
+
     def test_pilot_studio_checkout_guard_and_reversible_archive(self):
         user = get_user_model().objects.create_user('pilot_user', email='pilot@example.test')
         with tempfile.TemporaryDirectory() as directory:

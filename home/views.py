@@ -3606,10 +3606,12 @@ def cosmetic_checkout(request):
     """Oferta configurada e pedido único por janela, mesmo se a API der timeout."""
     from .models import AsaasCheckoutOrder, CosmeticCheckoutOffer, CosmeticCheckoutPurchase
     from .cosmetic_entitlements import has_permanent_cosmetic
+    from .theme_studio import PILOT_CASH_DISABLED_SLUGS
 
     offers = CosmeticCheckoutOffer.objects.select_related('cosmetico').filter(
         active=True, demonstration=False, cosmetico__ativo=True, amount__gt=0,
-    ).exclude(cosmetico__tipo='tema', cosmetico__origem='loja_mm')
+    ).exclude(cosmetico__tipo='tema', cosmetico__origem='loja_mm').exclude(
+        cosmetico__slug__in=PILOT_CASH_DISABLED_SLUGS, cosmetico__css_class='theme-data')
     if request.method == 'GET':
         return render(request, 'home/pages/cosmetic_checkout.html', {'offers': offers})
     offer = offers.filter(cosmetico__slug=(request.POST.get('slug') or '').strip()).first()

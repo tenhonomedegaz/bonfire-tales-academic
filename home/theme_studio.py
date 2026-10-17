@@ -19,6 +19,7 @@ COLLECTIONS = {
     'aurora-glacial': ('glacial', 'O silêncio antes da próxima descoberta.', 'gelo'),
     'circulo-arcano': ('arcano', 'Toda magia deixa uma assinatura.', 'arcano'),
 }
+PILOT_CASH_DISABLED_SLUGS = frozenset('tema-' + key for key in COLLECTIONS)
 
 
 @require_GET
@@ -37,6 +38,8 @@ def theme_studio(request):
             'name': item.nome, 'description': item.descricao,
             'price_brl': offer.amount, 'price_mm': item.preco if item.origem == 'loja_mm' else None,
             'mm_only': item.origem == 'loja_mm',
+            'cash_disabled': (item.slug in PILOT_CASH_DISABLED_SLUGS
+                              and item.css_class == 'theme-data' and item.origem != 'loja_mm'),
             'demonstration': offer.demonstration, 'offer': offer,
             'owned': cosmetic_allowed(request.user, 'tema', key, 'ficha'),
             'request_key': uuid.uuid4(),
@@ -46,7 +49,7 @@ def theme_studio(request):
     return render(request, 'home/pages/theme_studio.html', {
         'page_title': 'Ateliê de identidades', 'ads_enabled': False,
         'cards': cards, 'selected': selected,
-        'studio_demo': any(card['demonstration'] for card in cards),
+        'studio_demo': any(card['demonstration'] or card['cash_disabled'] for card in cards),
         'commerce_enabled': bool(getattr(settings, 'BONFIRE_COMMERCE_ENABLED', False)),
     })
 
