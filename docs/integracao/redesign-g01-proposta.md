@@ -26,10 +26,22 @@ filtro depende também de `home/distance_presentation.py` e
 para revisão explícita antes de ativar a consulta de mercado. Até lá, o
 mercado existente continua acessível; a consulta nova fica sem integração.
 
+O template completo `itens_mundanos_content.html` também carrega
+`home/templatetags/market_display.py` (`copper_price`, `market_symbol`,
+`market_lookup` e `mastery_labels`). A base atual não tem essa biblioteca.
+`home/mundane_market_reference.py`, já incluído neste lote, fornece as linhas
+`guide-sobre`/`guide-economia` e o mapa `market_legacy_navigation`; sem ele,
+os dois botões de guia do cabeçalho não têm destino. Aprovar explicitamente a
+biblioteca e a ligação dessas linhas ao contexto antes de ativar o template
+completo. Não substituir preços ou guias por valores inventados no frontend.
+
 **Arquivos.** `home/migrations/0152_magic_market_caravan.py`,
 `home/migrations/0153_fate_deck_server_attunement.py`, `home/models.py`,
 `home/magic_market.py`, `home/magic_market_views.py`,
 `home/magic_market_classification.py`, `home/mundane_market_reference.py`,
+`home/templatetags/market_display.py`,
+`home/templatetags/distance_display.py`, `home/distance_presentation.py`,
+`home/rules_terminology.py`,
 `home/urls.py`, `home/views.py`, `home/data/mundane-market-reference.txt`,
 `home/data/itens_magicos_nomes_ingles.csv`,
 `home/data/magias_nomes_ingles.csv` e `scripts/audit_magic_market_shops.py`.
@@ -116,11 +128,17 @@ ou preço acionável.
 `0157_character_slot_rights.py`, `home/models.py`, `home/character_slots.py`,
 `home/slot_views.py`, `home/slots.py`, `home/permissions.py`,
 `home/legend_views.py`, `home/character_engine.py`, `home/views.py`,
-`home/urls.py` e `home/admin.py`.
+`home/urls.py`, `home/admin.py`, `home/ranks.py`,
+`home/templatetags/rank_icons.py` e
+`home/templatetags/background_icons.py`.
 
 **Motivo.** Sustenta a página pública de Lenda e a política de capacidade de
 personagens. Rotas novas: `personagens/<int:pk>/lenda/` (`personagem_lenda`) e
 `jogador/personagens/slots/` (`character_slots`).
+Os templates completos de fichas, perfis, missões e antecedentes carregam
+`rank_icons` ou `background_icons`; `rank_icons` depende de `home/ranks.py`.
+Essas bibliotecas ausentes precisam de revisão G01 antes de reativar as
+apresentações correspondentes.
 
 **Impacto em PK/FK/dados.** 0156 cria `TbFeitoLenda` com FK em cascata para
 `TbPersonagem`. 0157 cria `TbSlotDireito`: FK `PROTECT` para usuário, pedido Asaas
@@ -147,13 +165,17 @@ dados já existentes.
 `home/theme_studio.py`, `home/theme_collections.py`, `home/cosmetic_entitlements.py`,
 `home/cosmetic_packages.py`, `home/cosmetics.py`, `home/event_cosmetics.py`,
 `home/subscriptions.py`, `home/subscription_views.py`, `home/urls.py`,
-`home/views.py`, `home/permissions.py`, `home/static/cosmetics/*.json` e
+`home/views.py`, `home/permissions.py`,
+`home/templatetags/commerce_presentation.py`, `home/static/cosmetics/*.json` e
 `home/static/brand/*.txt`.
 
 **Motivo.** Introduz o ateliê e resgate de tema por MM, além da página de
 assinatura. Rotas novas: `atelie/` (`theme_studio`),
 `atelie/adquirir-mm/` (`theme_acquire_mm`) e
 `colaborador/assinatura/` (`subscription_management`).
+As telas completas de checkout e loja de evento carregam
+`commerce_presentation`, ausente na base. Sua aprovação neste lote cobre
+somente apresentação de ofertas; não concede direitos nem autoriza cobrança.
 
 **Impacto em PK/FK/dados.** A **0158 requer aceite individual**. Ela adiciona
 `demonstration` em oferta de checkout, cria `CosmeticMMRedemption` com FKs
