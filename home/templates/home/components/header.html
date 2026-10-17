@@ -28,15 +28,15 @@
                 <h3 class="font-rpg font-bold text-[var(--ember)] text-sm uppercase tracking-widest border-b border-[var(--stroke)] pb-2 mb-1.5">Fundamentos</h3>
                 <ul class="space-y-1.5">
                   <li><a href="/sistemas/regras-e-punicoes" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Regras e Punições</a></li>
-                  <li><a href="/sistemas/glossario" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Glossário</a></li>
+                  <li><a href="{% url 'sistemas_glossario' %}" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Glossário</a></li>
                 </ul>
               </div>
               <div class="space-y-2.5">
                 <h3 class="font-rpg font-bold text-[var(--ember)] text-sm uppercase tracking-widest border-b border-[var(--stroke)] pb-2 mb-1.5">Aventurando-se</h3>
                 <ul class="space-y-1.5">
-                  <li><a href="/sistemas/criacao-de-ficha" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Criação de Ficha</a></li>
+                  <li><a href="{% url 'criacao_ficha' %}" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Criação de Ficha</a></li>
                   <li><a href="{% url 'pathbuilder' %}" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Pathbuilder</a></li>
-                  <li><a href="/sistemas/missoes" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Missões e Ranks</a></li>
+                  <li><a href="{% url 'sistemas_missoes' %}" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Missões e Ranks</a></li>
                 </ul>
               </div>
               <div class="col-span-2"></div>
@@ -65,14 +65,14 @@
                 <h3 class="font-rpg font-bold text-[var(--ember)] text-sm uppercase tracking-widest border-b border-[var(--stroke)] pb-2 mb-1.5">Detalhes</h3>
                 <ul class="space-y-1.5">
                   <li><a href="/jogador/talentos" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Talentos</a></li>
-                  <li><a href="/jogador/idiomas" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Idiomas</a></li>
+                  <li><a href="{% url 'jogador_idiomas' %}" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Idiomas</a></li>
                 </ul>
               </div>
               <div class="space-y-2.5">
                 <h3 class="font-rpg font-bold text-[var(--ember)] text-sm uppercase tracking-widest border-b border-[var(--stroke)] pb-2 mb-1.5">Recursos</h3>
                 <ul class="space-y-1.5">
-                  <li><a href="/jogador/opcoes-adicionais" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Opções Adicionais</a></li>
-                  <li><a href="/magias/listas" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Magias</a></li>
+                  <li><a href="{% url 'jogador_opcoes' %}" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Opções Adicionais</a></li>
+                  <li><a href="{% url 'magias_listas' %}" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Magias</a></li>
                   <li><a href="{% url 'jogadores' %}" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Jogadores</a></li>
                 </ul>
               </div>
@@ -94,20 +94,20 @@
                 <h3 class="font-rpg font-bold text-[var(--ember)] text-sm uppercase tracking-widest border-b border-[var(--stroke)] pb-2 mb-1.5">Guia</h3>
                 <ul class="space-y-1.5">
                   <li><a href="/mestre/se-tornando-mestre" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Se tornando mestre</a></li>
-                  <li><a href="/mestre/bestiario" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Bestiario</a></li>
+                  <li><a href="{% url 'bestiario' %}" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Bestiario</a></li>
                 </ul>
               </div>
               <div class="space-y-2.5">
                 <h3 class="font-rpg font-bold text-[var(--ember)] text-sm uppercase tracking-widest border-b border-[var(--stroke)] pb-2 mb-1.5">Desafios</h3>
                 <ul class="space-y-1.5">
-                  <li><a href="/mestre/armadilhas-e-perigos" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Armadilhas e Perigos</a></li>
-                  <li><a href="/mestre/condicoes" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Condições</a></li>
+                  <li><a href="{% url 'mestre_armadilhas' %}" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Armadilhas e Perigos</a></li>
+                  <li><a href="{% url 'mestre_condicoes' %}" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Condições</a></li>
                 </ul>
               </div>
               <div class="space-y-2.5">
                 <h3 class="font-rpg font-bold text-[var(--ember)] text-sm uppercase tracking-widest border-b border-[var(--stroke)] pb-2 mb-1.5">Gestão</h3>
                 <ul class="space-y-1.5">
-                  <li><a href="/mestre/mercado-de-mestre" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Mercado de Mestre</a></li>
+                  <li><a href="{% url 'mestre_mercado' %}" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Mercado de Mestre</a></li>
                 </ul>
               </div>
             </div>
@@ -126,8 +126,8 @@
               <div class="space-y-2.5">
                 <h3 class="font-rpg font-bold text-[var(--ember)] text-sm uppercase tracking-widest border-b border-[var(--stroke)] pb-2 mb-1.5">Equipamento</h3>
                 <ul class="space-y-1.5">
-                  <li><a href="/mercado/itens-mundanos" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Itens Mundanos</a></li>
-                  <li><a href="/mercado/itens-magicos" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Itens Mágicos</a></li>
+                  <li><a href="{% url 'mercado_itens_mundanos' %}" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Itens Mundanos</a></li>
+                  <li><a href="{% url 'mercado_itens_magicos' %}" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Itens Mágicos</a></li>
                   <li><a href="{% url 'oficina_magia' %}" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Oficina de Magia</a></li>
                   <li><a href="{% url 'mercado_servicos' %}" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Treinamentos</a></li>
                 </ul>
@@ -135,7 +135,7 @@
               <div class="space-y-2.5">
                 <h3 class="font-rpg font-bold text-[var(--ember)] text-sm uppercase tracking-widest border-b border-[var(--stroke)] pb-2 mb-1.5">Comércio</h3>
                 <ul class="space-y-1.5">
-                  <li><a href="/mercado/negociacoes" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Negociações</a></li>
+                  <li><a href="{% url 'mercado_negociacoes' %}" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Negociações</a></li>
                   <li><a href="{% url 'mercado_servicos' %}#emprestimos" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Empréstimos</a></li>
                 </ul>
               </div>
@@ -168,15 +168,15 @@
                 <h3 class="font-rpg font-bold text-[var(--ember)] text-sm uppercase tracking-widest border-b border-[var(--stroke)] pb-2 mb-1.5">Atlas</h3>
                 <ul class="space-y-1.5">
                   <li><a href="/mapa" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Mapa</a></li>
-                  <li><a href="/mundo/regioes" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Regiões</a></li>
-                  <li><a href="/mundo/organizacoes" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Organizações</a></li>
+                  <li><a href="{% url 'mundo_regioes' %}" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Regiões</a></li>
+                  <li><a href="{% url 'mundo_organizacoes' %}" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Organizações</a></li>
                 </ul>
               </div>
               <div class="space-y-2.5">
                 <h3 class="font-rpg font-bold text-[var(--ember)] text-sm uppercase tracking-widest border-b border-[var(--stroke)] pb-2 mb-1.5">Publicações</h3>
                 <ul class="space-y-1.5">
-                  <li><a href="/mundo/jornal" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Jornal</a></li>
-                  <li><a href="/mundo/cronicas" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Crônicas</a></li>
+                  <li><a href="{% url 'mundo_jornal' %}" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Jornal</a></li>
+                  <li><a href="{% url 'mundo_cronicas' %}" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Crônicas</a></li>
                 </ul>
               </div>
               <div class="col-span-1 overflow-hidden rounded bg-[var(--bg0)] border border-[var(--stroke)] flex flex-col">
