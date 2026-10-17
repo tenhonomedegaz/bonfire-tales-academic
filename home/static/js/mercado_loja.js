@@ -32,6 +32,11 @@
   var countEl = root.querySelector('[data-shop-count]');
   var noResult = root.querySelector('[data-shop-noresult]');
   var detalhe = root.querySelector('[data-shop-detail]');
+  var folha = root.querySelector('[data-shop-preview]');
+  var fecharFolha = folha && folha.querySelector('[data-shop-sheet-close]');
+  var focoAnterior = null;
+  var overflowAnterior = '';
+  var folhaAberta = false;
   var carteira = root.querySelector('[data-shop-carteira]');
   var feedback = root.querySelector('[data-shop-feedback]');
   var vendaBox = root.querySelector('[data-shop-venda]');
@@ -108,7 +113,48 @@
     });
   }
 
-  function abrirFolha(on) { root.classList.toggle('is-sheet-open', !!on); }
+  /* No mobile, a prévia ocupa a tela: mantém o foco nela e devolve ao item ao fechar. */
+  function abrirFolha(on, origem) {
+    var abrir = !!on && mobile() && !!folha;
+    if (abrir === folhaAberta) return;
+    folhaAberta = abrir;
+    root.classList.toggle('is-sheet-open', abrir);
+    if (abrir) {
+      focoAnterior = origem || document.activeElement;
+      overflowAnterior = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      folha.setAttribute('role', 'dialog');
+      folha.setAttribute('aria-modal', 'true');
+      if (!folha.hasAttribute('aria-label')) folha.setAttribute('aria-label', 'Detalhes do item');
+      if (fecharFolha) fecharFolha.focus({ preventScroll: true });
+    } else {
+      document.body.style.overflow = overflowAnterior;
+      folha.removeAttribute('role');
+      folha.removeAttribute('aria-modal');
+      if (focoAnterior && document.contains(focoAnterior)) focoAnterior.focus({ preventScroll: true });
+      focoAnterior = null;
+    }
+  }
+
+  if (folha) folha.addEventListener('keydown', function (ev) {
+    if (!folhaAberta || ev.key !== 'Tab') return;
+    var focaveis = toArr(folha.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'))
+      .filter(function (el) { return el.getClientRects().length > 0; });
+    if (!focaveis.length) return;
+    var primeiro = focaveis[0];
+    var ultimo = focaveis[focaveis.length - 1];
+    if (ev.shiftKey && document.activeElement === primeiro) {
+      ev.preventDefault();
+      ultimo.focus();
+    } else if (!ev.shiftKey && document.activeElement === ultimo) {
+      ev.preventDefault();
+      primeiro.focus();
+    }
+  });
+
+  window.matchMedia('(max-width: 1023px)').addEventListener('change', function (ev) {
+    if (!ev.matches) abrirFolha(false);
+  });
 
   /* Seleciona uma linha e mostra a prévia. `silencioso` = seleção automática (primeiro
      item, ou o item que sobrou depois de um filtro/venda): não rouba foco nem abre a
@@ -127,8 +173,8 @@
     renderMarkdown(detalhe);
     detalhe.scrollTop = 0;
     if (!silencioso) {
-      if (mobile()) abrirFolha(true);
-      row.focus({ preventScroll: true });
+      if (mobile()) abrirFolha(true, row);
+      else row.focus({ preventScroll: true });
       if (aba === 'comprar') salvarNavegacao(true);
     }
   }
@@ -270,6 +316,7 @@
       return;
     }
     if (ev.key === 'Escape') { abrirFolha(false); return; }
+    if (folhaAberta && folha.contains(ev.target)) return;
     var passo = ev.key === 'ArrowDown' ? 1 : ev.key === 'ArrowUp' ? -1 : 0;
     var extremo = ev.key === 'Home' ? 'first' : ev.key === 'End' ? 'last' : '';
     if (!passo && !extremo) return;
