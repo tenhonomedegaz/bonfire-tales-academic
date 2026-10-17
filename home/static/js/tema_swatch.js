@@ -21,6 +21,11 @@
     'use strict';
 
     var PREFIXO_TEMA = 'theme-';
+    var PILOT_COMPOSITIONS = {
+        'forja-de-brasas': 'collection-forja-de-brasas',
+        'aurora-glacial': 'collection-aurora-glacial',
+        'circulo-arcano': 'collection-circulo-arcano'
+    };
 
     /* Lê o cartão-prévia dono de um elemento (o próprio radio serve).
        Devolve null quando não há cartão (defensivo: seletor antigo/ausente). */
@@ -66,7 +71,7 @@
        (effect-*, ficha-has-bg, profile-has-bg, utilitárias do Tailwind...). */
     function trocaClasseTema(alvo, classe) {
         var mantidas = String(alvo.className).split(/\s+/).filter(function (c) {
-            return c && c.indexOf(PREFIXO_TEMA) !== 0;
+            return c && c.indexOf(PREFIXO_TEMA) !== 0 && c.indexOf('collection-') !== 0;
         });
         if (classe) mantidas.push(classe);
         alvo.className = mantidas.join(' ');
@@ -77,8 +82,13 @@
        + vars; legado (sem definição) → classe legada e NENHUMA var inline. */
     function aplica(alvo, t) {
         if (!alvo || !t) return;
-        trocaClasseTema(alvo, t.accent ? (t.chave === 'custom' ? 'theme-custom' : 'theme-data')
-                                       : t.classe);
+        var classe = t.accent ? (t.chave === 'custom' ? 'theme-custom' : 'theme-data')
+                              : t.classe;
+        if (t.accent && classe === 'theme-data' &&
+                Object.prototype.hasOwnProperty.call(PILOT_COMPOSITIONS, t.chave)) {
+            classe += ' ' + PILOT_COMPOSITIONS[t.chave];
+        }
+        trocaClasseTema(alvo, classe);
         var v = varsDe(t);
         Object.keys(v).forEach(function (k) {
             if (t.accent) alvo.style.setProperty(k, v[k]);

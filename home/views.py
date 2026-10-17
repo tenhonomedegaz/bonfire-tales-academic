@@ -1137,7 +1137,13 @@ def _appearance_context(theme='bonfire', frame='none', effect='none',
     elif definicao:
         # Tema-dado: classe neutra (não colide com as legadas) + vars via builder
         # único (mesmo do custom, com gradiente quando pedido) + fx por atributo.
-        theme_class = 'theme-data'
+        pilot_compositions = {
+            'tema-forja-de-brasas': 'collection-forja-de-brasas',
+            'tema-aurora-glacial': 'collection-aurora-glacial',
+            'tema-circulo-arcano': 'collection-circulo-arcano',
+        }
+        composition = pilot_compositions.get(theme_item.get('slug'), '')
+        theme_class = 'theme-data' + (' ' + composition if composition else '')
         custom_style = _theme_vars_style(definicao)
         fx_particula = definicao['particula']
         fx_vel = definicao['vel']

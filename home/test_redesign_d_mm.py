@@ -70,6 +70,53 @@ class ThemeMMTests(TestCase):
         self.assertIn('forja-de-brasas', [item['key'] for item in
                       editor.context['appearance_themes'] if not item['locked']])
 
+    def test_redeemed_pilot_composition_renders_after_equipping_profile_and_sheet(self):
+        self.theme.css_class = 'theme-data'
+        self.theme.escopo = 'ambos'
+        self.theme.definicao_json = {
+            'accent': '#ff833b', 'accent2': '#b31515',
+            'surface': '#1b120f', 'deep': '#0d0908', 'gradiente': True,
+        }
+        self.theme.save(update_fields=['css_class', 'escopo', 'definicao_json'])
+        character = TbPersonagem.objects.create(
+            dono=self.user, nome='Aventureira', publico=True)
+        self.client.force_login(self.user)
+        redeemed = self.client.post(reverse('buy_theme_with_mm'), {
+            'slug': self.theme.slug, 'request_key': str(uuid.uuid4()),
+        })
+        self.assertEqual(redeemed.status_code, 200)
+
+        saved_profile = self.client.post(reverse('profile'), {
+            'action': 'update_profile', 'username': self.user.username,
+            'profile_theme': 'forja-de-brasas', 'avatar_frame': 'none',
+            'profile_effect': 'none',
+        })
+        saved_sheet = self.client.post(reverse('personagem_info_salvar', args=[character.pk]), {
+            'ficha_theme': 'forja-de-brasas', 'foto_frame': 'none',
+            'ficha_effect': 'none',
+        })
+        self.assertEqual((saved_profile.status_code, saved_sheet.status_code), (200, 302))
+        self.profile.refresh_from_db()
+        character.refresh_from_db()
+        self.assertEqual(self.profile.profile_theme, 'forja-de-brasas')
+        self.assertEqual(character.ficha_theme, 'forja-de-brasas')
+
+        for url in (reverse('profile'),
+                    reverse('public_profile', args=[self.user.username]),
+                    reverse('ficha_detail', args=[character.pk]),
+                    reverse('ficha_publica', args=[character.pk])):
+            page = self.client.get(url)
+            self.assertEqual(page.status_code, 200, url)
+            self.assertEqual(page.context['appearance']['theme_class'],
+                             'theme-data collection-forja-de-brasas', url)
+            self.assertContains(page, '#ff833b')
+
+        self.client.force_login(get_user_model().objects.create_user('theme_viewer'))
+        self.assertContains(self.client.get(reverse('public_profile', args=[self.user.username])),
+                            'collection-forja-de-brasas')
+        self.assertContains(self.client.get(reverse('ficha_publica', args=[character.pk])),
+                            'collection-forja-de-brasas')
+
     def test_demo_or_insufficient_balance_never_debits(self):
         self.offer.demonstration = True
         self.offer.save(update_fields=['demonstration'])
