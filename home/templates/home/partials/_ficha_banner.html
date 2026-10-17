@@ -46,7 +46,7 @@ progressao de aventuras e atalhos para outras abas.{% endcomment %}
         {% if not folha_readonly %}
         <div class="banner-field banner-rank-field">
           {% if ficha.progressao.rank_icone_url %}<img class="banner-rank-icon" src="{{ ficha.progressao.rank_icone_url }}" alt="Patente {{ ficha.progressao.rank }}" loading="lazy">{% endif %}
-          <span><span class="lbl">Rank / Patente</span><span class="val">{{ ficha.progressao.rank|default:"—" }}</span></span>
+          <span><span class="lbl">Patente</span><span class="val">{{ ficha.progressao.rank|default:"—" }}</span></span>
         </div>
         <div class="banner-field banner-progress-field">
           <span><span class="lbl">Aventuras</span><span class="val">{{ ficha.progressao.aventuras|default:"0" }}</span></span>
