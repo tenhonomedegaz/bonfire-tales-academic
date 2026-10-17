@@ -1421,12 +1421,15 @@ def profile_view(request):
     effect_options = _appearance_options(user, 'effect')
     from django.conf import settings as _settings
     from .master_participation import can_authorize, participation
-    from .models import TbPerfilMestre
+    from .master_hub import can_review
+    from .models import TbMesaAnuncio, TbPerfilMestre
     master_profile = TbPerfilMestre.objects.filter(user=user).first()
     return render(request, 'home/pages/perfil.html', {
         'community': participation(master_profile),
         'participation_form': True,
         'can_authorize': can_authorize(user),
+        'can_review': can_review(user),
+        'my_tables': list(TbMesaAnuncio.objects.filter(mestre=user).order_by('-atualizado_em')[:20]) if master_profile else [],
         'profile': profile,
         'social_credit_balance': credit_wallet.balance if credit_wallet else 0,
         'social_credit_entries': credit_entries,
@@ -3013,7 +3016,7 @@ def _quest_user_ids(entries):
 
 
 def sistemas_missoes_view(request):
-    from .models import BotQuest
+    from .models import BotQuest, TbMesaAnuncio
 
     search = request.GET.get('q', '').strip()
     status = request.GET.get('status', '').strip()
@@ -3046,7 +3049,11 @@ def sistemas_missoes_view(request):
                 | Q(type__icontains=search)
             )
 
-        for quest in queryset.order_by('-questDate')[:100]:
+        # A falha de leitura do bot deve liberar o savepoint antes de consultar
+        # anúncios nativos no mesmo request (inclusive sob ATOMIC_REQUESTS).
+        with transaction.atomic():
+            bot_rows = list(queryset.order_by('-questDate')[:100])
+        for quest in bot_rows:
             quest_players = _quest_list(quest.questPlayers)
             requests = _quest_list(quest.participationRequests)
             subscribed = _quest_list(quest.subscribedPlayers)
@@ -3094,8 +3101,24 @@ def sistemas_missoes_view(request):
         logger.exception('Falha ao listar missões do bot: %s', exc)
         db_error = 'As missões estão temporariamente indisponíveis. Tente novamente em instantes.'
 
+    public_tables = TbMesaAnuncio.objects.none()
+    if status in ('', 'idle'):
+        public_tables = TbMesaAnuncio.objects.filter(
+            Q(data__gte=timezone.now()) | Q(agenda_combinar=True),
+            estado='publicado', mestre__is_active=True,
+            mestre__participacao__status_mestre='aprovado',
+        ).select_related('mestre')
+        if search:
+            public_tables = public_tables.filter(
+                Q(titulo__icontains=search) | Q(descricao__icontains=search) |
+                Q(mestre__username__icontains=search))
+        bot_urls = {item['discord_url'] for item in quests if item['discord_url']}
+        if bot_urls:
+            public_tables = public_tables.exclude(discord_url__in=bot_urls)
+
     context = {
         'quests': quests,
+        'public_tables': list(public_tables.order_by('data', 'pk')[:100]),
         'search': search,
         'status': status,
         'db_error': db_error,

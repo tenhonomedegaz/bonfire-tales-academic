@@ -11,7 +11,8 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST, require_http_methods
 
-from .models import TbPerfilMestre
+from .models import TbMesaAnuncio, TbPerfilMestre
+from .master_hub import can_review
 
 
 def can_authorize(user):
@@ -67,12 +68,17 @@ def masters_directory(request):
 
 @login_required(login_url='/login/')
 def master_dashboard(request):
-    if not can_authorize(request.user):
+    authorizer = can_authorize(request.user)
+    reviewer = can_review(request.user)
+    if not authorizer and not reviewer:
         raise PermissionDenied
-    requests = TbPerfilMestre.objects.exclude(status_mestre='nenhum').select_related(
-        'user').order_by('-solicitado_em')[:100]
+    requests = (TbPerfilMestre.objects.exclude(status_mestre='nenhum').select_related(
+        'user').order_by('-solicitado_em')[:100] if authorizer else [])
+    review_queue = (TbMesaAnuncio.objects.filter(estado='pendente').select_related(
+        'mestre').order_by('-atualizado_em')[:100] if reviewer else [])
     return render(request, 'home/pages/master_dashboard.html', {
-        'can_authorize': True, 'master_requests': requests,
+        'can_authorize': authorizer, 'can_review': reviewer,
+        'master_requests': requests, 'review_queue': review_queue,
         'page_title': 'Permissões de mestre', 'notice': request.GET.get('salvo')})
 
 

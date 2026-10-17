@@ -2123,6 +2123,65 @@ class TbPerfilMestre(models.Model):
         permissions = [('autorizar_mestres', 'Pode autorizar ou suspender mestres')]
 
 
+class TbMesaAnuncio(models.Model):
+    """Reviewed site listing, independent from Discord quests and completed MM adventures."""
+
+    mestre = models.ForeignKey('auth.User', on_delete=models.CASCADE, related_name='mesas_anunciadas')
+    titulo = models.CharField(max_length=120)
+    descricao = models.TextField(max_length=6000)
+    data = models.DateTimeField(null=True, blank=True)
+    agenda_combinar = models.BooleanField(default=False)
+    modalidade = models.CharField(max_length=10, default='gratuita', choices=[
+        ('gratuita', 'Mesa gratuita'), ('paga', 'Mesa particular paga')])
+    cobranca = models.CharField(max_length=12, default='sessao', choices=[
+        ('sessao', 'Por sessão'), ('hora', 'Por hora'), ('missao', 'Por missão'),
+        ('campanha', 'Por campanha'), ('pacote', 'Pacote de sessões'), ('outro', 'Outro modelo')])
+    preco = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    preco_unidade = models.CharField(max_length=10, default='pessoa', choices=[
+        ('pessoa', 'Por jogador'), ('grupo', 'Pelo grupo inteiro')])
+    sessoes = models.PositiveSmallIntegerField(default=1)
+    cortesias = models.PositiveSmallIntegerField(default=0)
+    preco_avulso = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    inclusoes = models.TextField(max_length=3000, blank=True, default='')
+    condicoes = models.TextField(max_length=4000, blank=True, default='')
+    preco_demonstrativo = models.BooleanField(default=True)
+    regulamento_versao = models.CharField(max_length=40, default='vitrine-2026-10-v1')
+    duracao_minutos = models.PositiveIntegerField(default=180)
+    vagas = models.PositiveSmallIntegerField(default=5)
+    rank = models.CharField(max_length=30)
+    ranks = models.JSONField(default=list, blank=True)
+    tags = models.JSONField(default=list, blank=True)
+    regras_url = models.URLField(max_length=500, blank=True, default='')
+    jogadores_prioritarios = models.JSONField(default=list, blank=True)
+    jogadores_obrigatorios = models.JSONField(default=list, blank=True)
+    banner_url = models.CharField(max_length=500, blank=True, default='')
+    formato = models.CharField(max_length=12, default='oneshot', choices=[
+        ('oneshot', 'Sessão única'), ('multipla', 'Missão múltipla'), ('campanha', 'Campanha')])
+    plataforma = models.CharField(max_length=60, default='Roll20')
+    discord_url = models.URLField(max_length=500, blank=True, default='')
+    mesa_url = models.URLField(max_length=500, blank=True, default='')
+    estado = models.CharField(max_length=12, default='rascunho', choices=[
+        ('rascunho', 'Rascunho'), ('pendente', 'Em revisão'), ('publicado', 'Publicado'),
+        ('encerrado', 'Encerrado'), ('ajustes', 'Ajustes solicitados')])
+    revisao = models.PositiveIntegerField(default=0)
+    nota_revisao = models.CharField(max_length=500, blank=True, default='')
+    revisor = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True,
+                                blank=True, related_name='anuncios_revisados')
+    revisado_em = models.DateTimeField(null=True, blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'TB_MesaAnuncio'
+        ordering = ['data', 'pk']
+        permissions = [('revisar_mesa_anuncio', 'Pode revisar e publicar anúncios de mesas')]
+        indexes = [models.Index(fields=['estado', 'data'], name='mesa_estado_data_idx')]
+
+    @property
+    def ranks_display(self):
+        return ' · '.join(self.ranks or [self.rank])
+
+
 class TbAventuraMestre(models.Model):
     """Mesa/aventura CONDUZIDA por um mestre. Ao registrar, credita `recompensa_mm` MM
     na carteira do mestre (ganho automático ao registrar a mesa)."""

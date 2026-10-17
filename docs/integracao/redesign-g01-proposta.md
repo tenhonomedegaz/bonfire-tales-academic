@@ -11,6 +11,8 @@
 
 As migrations da fonte são uma cadeia, não uma autorização por dependência. B/D devem partir da `0151` real em migrations próprias e não aplicar A/F implicitamente, usar `--fake` ou editar migrations já aplicadas. G00 e G02 permanecem. A produção atualizada com o último commit enviado ainda não inclui automaticamente este redesign.
 
+Na branch isolada, `0152_redesign_master_participation` e `0153_redesign_master_announcements` são migrations **locais do lote B**. Seus números não autorizam nem executam `0152_magic_market_caravan` ou `0153_fate_deck_server_attunement` da fonte. O anúncio no site é uma vitrine moderada; missões, fila e cargo no Discord continuam no bot. Ofertas pagas podem ser rascunhadas com preço demonstrativo, mas a publicação exige a autorização comercial e as verificações de mesa ainda não integradas.
+
 ## Proposta original (histórico)
 
 O texto abaixo registra a proposta anterior; a decisão do PO acima prevalece. A proposta solicitava, por lotes independentes, a implementação serial de backend que o pacote

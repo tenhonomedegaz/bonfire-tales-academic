@@ -3,6 +3,7 @@ from django.contrib.auth import views as auth_views
 from . import views
 from . import hunter_views
 from . import master_participation
+from . import master_tables
 
 urlpatterns = [
     path('mestre/mestres/', master_participation.masters_directory, name='masters_directory'),
@@ -10,6 +11,10 @@ urlpatterns = [
     path('mestre/solicitar/', master_participation.master_request, name='master_request'),
     path('mestre/autorizacoes/<int:pk>/', master_participation.master_authorize, name='master_authorize'),
     path('mestre/participacao/', master_participation.participation_edit, name='participation_edit'),
+    path('mestre/mesas/nova/', master_tables.table_edit, name='master_table_create'),
+    path('mestre/mesas/<int:pk>/editar/', master_tables.table_edit, name='master_table_edit'),
+    path('mestre/mesas/<int:pk>/acao/', master_tables.table_action, name='master_table_action'),
+    path('mestre/mesas/<int:pk>/', master_tables.table_detail, name='master_table_detail'),
     path('personagem/<int:pk>/regularizacao-cacador/', hunter_views.regularization_preview, name='hunter_regularization_preview'),
     path('personagem/<int:pk>/ficha-vinculada/', hunter_views.character_sheet, name='hunter_sheet'),
     path('personagem/<int:pk>/segredos/', hunter_views.character_preparation, name='hunter_preparation'),
