@@ -14,17 +14,17 @@
   {% include 'home/partials/players_preview_notice.html' %}
   <header class="players-head">
     <div>
-      <p class="players-kicker">Bonfire Tales RPG Â· Comunidade</p>
+      <p class="players-kicker">Bonfire Tales RPG · Comunidade</p>
       <h1 id="playersTitle">Jogadores</h1>
-      <p class="players-intro">Uma fogueira. Muitas histÃ³rias.</p>
-      <p class="players-description">ConheÃ§a a comunidade, explore perfis e descubra os personagens compartilhados.</p>
+      <p class="players-intro">Uma fogueira. Muitas histórias.</p>
+      <p class="players-description">Conheça a comunidade, explore perfis e descubra os personagens compartilhados.</p>
     </div>
     <form action="{% url 'jogadores' %}" method="get" class="players-search">
       {% if players_demo %}<input type="hidden" name="demo" value="1">{% endif %}
       {% if filtro != 'todos' %}<input type="hidden" name="filtro" value="{{ filtro }}">{% endif %}
       {% if ordem != 'popular' %}<input type="hidden" name="ordem" value="{{ ordem }}">{% endif %}
       <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-      <input type="search" name="q" value="{{ q }}" aria-label="Buscar jogador ou personagem pÃºblico" placeholder="Jogador ou personagem pÃºblicoâ€¦">
+      <input type="search" name="q" value="{{ q }}" aria-label="Buscar jogador ou personagem público" placeholder="Jogador ou personagem público…">
       <button type="submit">Buscar</button>
     </form>
   </header>
@@ -49,11 +49,11 @@
   </div>
 
   <div class="players-meta" tabindex="-1">
-    <span role="status" aria-live="polite"><strong>{{ total_encontrados }}</strong> {% if total_encontrados == 1 %}perfil encontrado{% else %}perfis encontrados{% endif %}{% if total_encontrados %}<span class="players-range"> Â· {{ page_obj.start_index }}â€“{{ page_obj.end_index }} nesta pÃ¡gina</span>{% endif %}</span>
+    <span role="status" aria-live="polite"><strong>{{ total_encontrados }}</strong> {% if total_encontrados == 1 %}perfil encontrado{% else %}perfis encontrados{% endif %}{% if total_encontrados %}<span class="players-range"> · {{ page_obj.start_index }}–{{ page_obj.end_index }} nesta página</span>{% endif %}</span>
     <span class="players-meta-actions">
       {% if q or filtro != 'todos' or ordem != 'popular' %}<a href="{% url 'jogadores' %}{% if players_demo %}?demo=1{% endif %}">Limpar filtros</a>{% endif %}
       {% if user.is_authenticated %}
-      <a href="{% url 'public_profile' user.username %}">Meu perfil pÃºblico</a>
+      <a href="{% url 'public_profile' user.username %}">Meu perfil público</a>
       {% endif %}
     </span>
   </div>
@@ -84,7 +84,7 @@
           </h2>
           {% if card.titulo %}<p class="profile-title-mini {{ card.titulo.classe }}" title="{{ card.titulo.descricao }}">{{ card.titulo.nome }}</p>{% endif %}
           {% if card.badges %}
-          <ul class="profile-badges profile-badges-mini" aria-label="InsÃ­gnias de {{ card.user.username }}">
+          <ul class="profile-badges profile-badges-mini" aria-label="Insígnias de {{ card.user.username }}">
             {% for b in card.badges %}
             <li class="profile-badge {{ b.classe }}" title="{{ b.tooltip }}">
               {% if b.icone_asset %}<img class="profile-badge-icon" src="{{ b.icone_asset }}" alt="" loading="lazy">{% elif b.icone %}<span class="profile-badge-emoji" aria-hidden="true">{{ b.icone }}</span>{% endif %}
@@ -97,7 +97,7 @@
       </div>
       {% if card.profile.bio %}<p class="player-card-bio">{{ card.profile.bio|truncatechars:150 }}</p>{% endif %}
       <div class="player-card-stats">
-          <span class="player-card-count"><strong>{{ card.character_count }}</strong><span>{% if card.character_count == 1 %}personagem pÃºblico{% else %}personagens pÃºblicos{% endif %}</span>
+          <span class="player-card-count"><strong>{{ card.character_count }}</strong><span>{% if card.character_count == 1 %}personagem público{% else %}personagens públicos{% endif %}</span>
           </span>
           {# Social discreto: contagens vindas do batch (2 queries pra pagina toda). #}
           <span class="player-card-social">
@@ -108,18 +108,18 @@
 
       {% if card.characters %}
       <div class="player-card-characters">
-        <p class="player-card-section-label">Personagens pÃºblicos</p>
+        <p class="player-card-section-label">Personagens públicos</p>
         {% for c in card.characters %}
         <a href="{% url 'ficha_publica' c.obj.id_personagem %}">
           <strong>{{ c.obj.nome }}</strong>
-          <span>{{ c.raca }} Â· NÃ­vel {{ c.nivel }}</span>
+          <span>{{ c.raca }} · Nível {{ c.nivel }}</span>
         </a>
         {% endfor %}
       </div>
-      {% else %}<p class="player-card-no-public">Nenhuma ficha pÃºblica exibida.</p>{% endif %}
+      {% else %}<p class="player-card-no-public">Nenhuma ficha pública exibida.</p>{% endif %}
 
       <div class="player-card-footer">
-        <a href="{% url 'public_profile' card.user.username %}{% if players_demo %}?demo=1{% endif %}">Ver perfil <span aria-hidden="true">â†’</span></a>
+        <a href="{% url 'public_profile' card.user.username %}{% if players_demo %}?demo=1{% endif %}">Ver perfil <span aria-hidden="true">→</span></a>
       </div>
     </article>
     {% endfor %}
@@ -128,19 +128,19 @@
   <div class="players-empty">
     <span class="players-empty-mark" aria-hidden="true">{% include 'home/partials/journal_mark.html' %}</span>
     <h2>Nenhum perfil encontrado</h2>
-    <p>Tente buscar por outro nome ou personagem pÃºblico, ou volte Ã  lista completa.</p>
-    {% if q or filtro != 'todos' or ordem != 'popular' %}<a class="players-reset" href="{% url 'jogadores' %}{% if players_demo %}?demo=1{% endif %}">Ver todos os perfis â†’</a>{% endif %}
+    <p>Tente buscar por outro nome ou personagem público, ou volte à lista completa.</p>
+    {% if q or filtro != 'todos' or ordem != 'popular' %}<a class="players-reset" href="{% url 'jogadores' %}{% if players_demo %}?demo=1{% endif %}">Ver todos os perfis →</a>{% endif %}
   </div>
   {% endif %}
 
   {% if page_obj.paginator.num_pages > 1 %}
-  <nav class="players-pagination" aria-label="PaginaÃ§Ã£o de jogadores">
+  <nav class="players-pagination" aria-label="Paginação de jogadores">
     {% if page_obj.has_previous %}
     <a href="{{ page_query_prefix }}page={{ page_obj.previous_page_number }}">Anterior</a>
     {% endif %}
-    <span>PÃ¡gina {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
     {% if page_obj.has_next %}
-    <a href="{{ page_query_prefix }}page={{ page_obj.next_page_number }}">PrÃ³xima</a>
+    <a href="{{ page_query_prefix }}page={{ page_obj.next_page_number }}">Próxima</a>
     {% endif %}
   </nav>
   {% endif %}

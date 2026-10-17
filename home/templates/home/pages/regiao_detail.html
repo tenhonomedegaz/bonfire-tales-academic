@@ -667,18 +667,18 @@
 
 {% block content %}
 <div class="region-layout">
-  <button type="button" class="region-mobile-menu-button" id="regionMobileMenuButton" aria-label="Abrir menu de regiÃµes" aria-controls="regionMobileDrawer" aria-expanded="false">
+  <button type="button" class="region-mobile-menu-button" id="regionMobileMenuButton" aria-label="Abrir menu de regiões" aria-controls="regionMobileDrawer" aria-expanded="false">
     <svg xmlns="http://www.w3.org/2000/svg" class="open-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 5 7 7-7 7"/></svg>
     <svg xmlns="http://www.w3.org/2000/svg" class="close-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 19-7-7 7-7"/></svg>
-    <span>Explorar regiÃµes</span>
+    <span>Explorar regiões</span>
   </button>
   <button type="button" class="region-mobile-backdrop" id="regionMobileBackdrop" aria-label="Fechar menu" aria-hidden="true" tabindex="-1"></button>
-  <aside class="region-mobile-drawer" id="regionMobileDrawer" aria-label="Menu de regiÃµes">
+  <aside class="region-mobile-drawer" id="regionMobileDrawer" aria-label="Menu de regiões">
     <div class="region-mobile-drawer-header">
-      <div class="region-mobile-drawer-title">RegiÃµes</div>
+      <div class="region-mobile-drawer-title">Regiões</div>
       <button type="button" class="region-mobile-close" id="regionMobileClose">Fechar</button>
     </div>
-    <div class="world-reader-index-head"><a href="{% url 'mundo_regioes' %}">â† Todos os territÃ³rios</a><label for="worldIndexMobile">Encontrar localidade</label><input id="worldIndexMobile" data-world-index-search type="search" placeholder="Nome do lugarâ€¦" autocomplete="off"><p data-world-index-status role="status" aria-live="polite"></p></div>
+    <div class="world-reader-index-head"><a href="{% url 'mundo_regioes' %}">← Todos os territórios</a><label for="worldIndexMobile">Encontrar localidade</label><input id="worldIndexMobile" data-world-index-search type="search" placeholder="Nome do lugar…" autocomplete="off"><p data-world-index-status role="status" aria-live="polite"></p></div>
     <form class="region-layer-filter" data-layer-filter-form>
       <label for="regionLayerFilterMobile">Camada</label>
       <select id="regionLayerFilterMobile" data-layer-filter>
@@ -689,7 +689,7 @@
     </form>
     <div class="region-mobile-actions">
       <a href="{% url 'mapa' %}?region={{ regiao.slug }}" data-world-mobile-map class="topic-btn" {% if is_territory %}hidden{% endif %} style="display:flex;justify-content:center;text-decoration:none;">Ver no mapa</a>
-      <a href="{% url 'mundo_cronicas' %}?territorio={% if is_territory %}{{ regiao.nome|urlencode }}{% else %}{{ regiao.territorio|urlencode }}&amp;regiao={{ regiao.nome|urlencode }}{% endif %}" data-world-mobile-chronicles class="topic-btn" style="display:flex;justify-content:center;text-decoration:none;">CrÃ´nicas</a>
+      <a href="{% url 'mundo_cronicas' %}?territorio={% if is_territory %}{{ regiao.nome|urlencode }}{% else %}{{ regiao.territorio|urlencode }}&amp;regiao={{ regiao.nome|urlencode }}{% endif %}" data-world-mobile-chronicles class="topic-btn" style="display:flex;justify-content:center;text-decoration:none;">Crônicas</a>
     </div>
     {% for group in territory_groups %}
     <details class="territory-nav" data-nav-layer="{{ group.camada|default_if_none:'' }}" data-current-article="{{ group.is_current|yesno:'true,false' }}" style="--territory-color: {{ group.color }}; --territory-accent: {{ group.display_color }}; --territory-contrast: {{ group.contrast }};" {% if group.is_current %}open{% endif %}>
@@ -705,8 +705,8 @@
     {% endfor %}
   </aside>
 
-  <aside class="region-left" aria-label="Ãndice de territÃ³rios e localidades">
-    <div class="world-reader-index-head"><a href="{% url 'mundo_regioes' %}">â† Todos os territÃ³rios</a><label for="worldIndexDesktop">Encontrar localidade</label><input id="worldIndexDesktop" data-world-index-search type="search" placeholder="Nome do lugarâ€¦" autocomplete="off"><p data-world-index-status role="status" aria-live="polite"></p></div>
+  <aside class="region-left" aria-label="Índice de territórios e localidades">
+    <div class="world-reader-index-head"><a href="{% url 'mundo_regioes' %}">← Todos os territórios</a><label for="worldIndexDesktop">Encontrar localidade</label><input id="worldIndexDesktop" data-world-index-search type="search" placeholder="Nome do lugar…" autocomplete="off"><p data-world-index-status role="status" aria-live="polite"></p></div>
     <form class="region-layer-filter" data-layer-filter-form>
       <label for="regionLayerFilterDesktop">Camada</label>
       <select id="regionLayerFilterDesktop" data-layer-filter>
@@ -737,24 +737,24 @@
           <a href="{% url 'mapa' %}?region={{ regiao.slug }}" class="map-pin-link" title="Ver no mapa" {% if is_territory %}style="display:none;"{% endif %}>
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
           </a>
-          <div class="region-eyebrow">{% if is_territory %}TerritÃ³rios{% else %}RegiÃµes / {{ display_territory }}{% endif %}</div>
+          <div class="region-eyebrow">{% if is_territory %}Territórios{% else %}Regiões / {{ display_territory }}{% endif %}</div>
         </div>
         <h1 class="region-title" id="articleTitle" tabindex="-1">{{ regiao.nome }}</h1>
         
       </div>
-      <div class="region-category-icon" id="heroCategoryIcon" title="Categoria da regiÃ£o" {% if is_territory %}style="display:none;"{% endif %}>
+      <div class="region-category-icon" id="heroCategoryIcon" title="Categoria da região" {% if is_territory %}style="display:none;"{% endif %}>
         
       </div>
     </section>
 
-    <nav class="topic-nav" aria-label="TÃ³picos da regiÃ£o" {% if lore_topics|length <= 1 %}hidden{% endif %}>
+    <nav class="topic-nav" aria-label="Tópicos da região" {% if lore_topics|length <= 1 %}hidden{% endif %}>
       {% for topic in lore_topics %}
       <button type="button" class="topic-btn {% if forloop.first %}is-active{% endif %}" data-topic-toggle="{{ topic.slug }}" data-topic-title="{{ topic.title }}">{{ topic.title }}</button>
       {% endfor %}
     </nav>
 
     <div class="region-content" id="articleContent">
-      <h2 class="topic-heading" id="currentTopicTitle">HistÃ³ria</h2>
+      <h2 class="topic-heading" id="currentTopicTitle">História</h2>
       {% if lore_topics %}
         {% for topic in lore_topics %}
         <section class="topic-section {% if forloop.first %}is-visible{% endif %}" data-topic-slug="{{ topic.slug }}">
@@ -764,7 +764,7 @@
       {% elif regiao.lore_markdown %}
         <div class="bonfire-markdown" data-markdown-source data-markdown-manual="true">{{ regiao.lore_markdown|escape }}</div>
       {% else %}
-        <p class="bonfire-markdown">{% if is_territory %}{% if can_edit_wiki %}Use "Editar territÃ³rio" para adicionar a lore deste territÃ³rio.{% else %}A lore deste territÃ³rio ainda nÃ£o foi escrita.{% endif %}{% else %}{% if can_edit_wiki %}Use "Editar regiÃ£o" para adicionar a lore desta regiÃ£o.{% else %}A lore desta regiÃ£o ainda nÃ£o foi escrita.{% endif %}{% endif %}</p>
+        <p class="bonfire-markdown">{% if is_territory %}{% if can_edit_wiki %}Use "Editar território" para adicionar a lore deste território.{% else %}A lore deste território ainda não foi escrita.{% endif %}{% else %}{% if can_edit_wiki %}Use "Editar região" para adicionar a lore desta região.{% else %}A lore desta região ainda não foi escrita.{% endif %}{% endif %}</p>
       {% endif %}
     </div>
   </article>
@@ -772,7 +772,7 @@
   <aside class="region-right">
     
     <div class="region-stats-card" id="regionStats">
-      <h3 class="stats-title">Atributos Â· <span id="statsTypeName">RegiÃ£o</span></h3>
+      <h3 class="stats-title">Atributos · <span id="statsTypeName">Região</span></h3>
       <div class="stats-grid" id="statsGrid">
         
       </div>
@@ -780,7 +780,7 @@
 
     {% if organizations %}
     <div class="region-org-card">
-      <h3 class="stats-title" style="margin-bottom:1rem;">OrganizaÃ§Ãµes</h3>
+      <h3 class="stats-title" style="margin-bottom:1rem;">Organizações</h3>
       <div class="region-org-list">
         {% for org in organizations %}
           <article class="region-org-item">
@@ -792,7 +792,7 @@
           </article>
         {% endfor %}
       </div>
-      <a href="{% url 'mundo_organizacoes' %}" class="topic-btn" style="display:flex;justify-content:center;margin-top:1rem;text-decoration:none;width:100%;">Ver organizaÃ§Ãµes</a>
+      <a href="{% url 'mundo_organizacoes' %}" class="topic-btn" style="display:flex;justify-content:center;margin-top:1rem;text-decoration:none;width:100%;">Ver organizações</a>
     </div>
     {% endif %}
 
@@ -801,7 +801,7 @@
         <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
           <path d="M4 19h16v2H4v-2zm16-4H4v2h16v-2zm0-4H4v2h16v-2zm0-4H4v2h16V7zm0-4H4v2h16V3z"/>
         </svg>
-        <span id="cronicasBtnText">Ler crÃ´nicas {% if is_territory %}do territÃ³rio{% else %}da regiÃ£o{% endif %} {{ regiao.nome }}</span>
+        <span id="cronicasBtnText">Ler crônicas {% if is_territory %}do território{% else %}da região{% endif %} {{ regiao.nome }}</span>
       </a>
     </div>
 
@@ -867,7 +867,7 @@
   window.confirmInlineCreateTerritoryDetail = async function(camada) {
     const nome = document.getElementById('detail-ntr-nome').value.trim();
     const cor = document.getElementById('detail-ntr-cor').value;
-    if (!nome) return alert('O nome do territÃ³rio Ã© obrigatÃ³rio.');
+    if (!nome) return alert('O nome do território é obrigatório.');
 
     const btn = document.getElementById('btnConfirmCreateTerritoryDetail');
     btn.disabled = true;
@@ -895,7 +895,7 @@
 
       document.getElementById('inlineCreateTerritorySectionDetail').style.display = 'none';
     } catch (err) {
-      alert('Erro ao criar territÃ³rio: ' + err.message);
+      alert('Erro ao criar território: ' + err.message);
     } finally {
       btn.disabled = false;
       btn.innerText = 'Criar';
@@ -995,57 +995,57 @@
     const cat = data.categoria || '';
 
     if (data.type === 'territory') {
-      typeName.textContent = 'TerritÃ³rio';
+      typeName.textContent = 'Território';
       attributes = [
         { label: 'Riqueza Natural', val: stats.riqueza_natural },
-        { label: 'Riqueza MonetÃ¡ria', val: stats.riqueza_monetaria },
+        { label: 'Riqueza Monetária', val: stats.riqueza_monetaria },
         { label: 'Poder Militar', val: stats.poder_militar },
-        { label: 'Desenv. TecnolÃ³gico', val: stats.desenvolvimento_tecnologico },
-        { label: 'Estabilidade PolÃ­tica', val: stats.estabilidade_politica_interna },
-        { label: 'AmeaÃ§as Externas', val: stats.ameacas_externas },
+        { label: 'Desenv. Tecnológico', val: stats.desenvolvimento_tecnologico },
+        { label: 'Estabilidade Política', val: stats.estabilidade_politica_interna },
+        { label: 'Ameaças Externas', val: stats.ameacas_externas },
         { label: 'Diplomacia', val: stats.diplomacia },
-        { label: 'ManipulaÃ§Ã£o da Trama', val: stats.manipulacao_trama },
+        { label: 'Manipulação da Trama', val: stats.manipulacao_trama },
       ];
     } else if (cat === 'area_selvagem' || cat === 'area_perigosa') {
-      typeName.textContent = 'Ãrea Selvagem';
+      typeName.textContent = 'Área Selvagem';
       attributes = [
-        { label: 'AmeaÃ§as Internas', val: stats.ameacas_internas },
+        { label: 'Ameaças Internas', val: stats.ameacas_internas },
         { label: 'Densidade Populacional', val: stats.densidade_populacional },
-        { label: 'NÃ­vel de Periculosidade', val: stats.nivel_periculosidade },
-        { label: 'ManipulaÃ§Ã£o da Trama', val: stats.manipulacao_trama },
+        { label: 'Nível de Periculosidade', val: stats.nivel_periculosidade },
+        { label: 'Manipulação da Trama', val: stats.manipulacao_trama },
         { label: 'Recursos Naturais', val: stats.recursos_naturais },
-        { label: 'Recursos MÃ¡gicos', val: stats.recursos_magicos },
+        { label: 'Recursos Mágicos', val: stats.recursos_magicos },
         { label: 'Diversidade de Criaturas', val: stats.diversidade_criaturas },
       ];
     } else {
-      typeName.textContent = 'RegiÃ£o';
+      typeName.textContent = 'Região';
       attributes = [
-        { label: 'MovimentaÃ§Ãµes EconÃ´micas', val: stats.movimentacoes_economicas },
+        { label: 'Movimentações Econômicas', val: stats.movimentacoes_economicas },
         { label: 'Poder Militar', val: stats.poder_militar },
-        { label: 'Desenv. TecnolÃ³gico', val: stats.desenvolvimento_tecnologico },
-        { label: 'Estabilidade PolÃ­tica', val: stats.estabilidade_politica_interna },
-        { label: 'AmeaÃ§as Externas', val: stats.ameacas_externas },
+        { label: 'Desenv. Tecnológico', val: stats.desenvolvimento_tecnologico },
+        { label: 'Estabilidade Política', val: stats.estabilidade_politica_interna },
+        { label: 'Ameaças Externas', val: stats.ameacas_externas },
         { label: 'Densidade Populacional', val: stats.densidade_populacional },
-        { label: 'TolerÃ¢ncia a Estrangeiros', val: stats.tolerancia_estrangeiros },
-        { label: 'ManipulaÃ§Ã£o da Trama', val: stats.manipulacao_trama },
+        { label: 'Tolerância a Estrangeiros', val: stats.tolerancia_estrangeiros },
+        { label: 'Manipulação da Trama', val: stats.manipulacao_trama },
       ];
     }
 
     const statColors = {
-      'MovimentaÃ§Ãµes EconÃ´micas': '#f2994a',
-      'Riqueza MonetÃ¡ria': '#f2994a',
+      'Movimentações Econômicas': '#f2994a',
+      'Riqueza Monetária': '#f2994a',
       'Poder Militar': '#eb5757',
-      'Desenv. TecnolÃ³gico': '#56ccf2',
-      'Estabilidade PolÃ­tica': '#27ae60',
-      'AmeaÃ§as Externas': '#eb5757',
-      'AmeaÃ§as Internas': '#eb5757',
+      'Desenv. Tecnológico': '#56ccf2',
+      'Estabilidade Política': '#27ae60',
+      'Ameaças Externas': '#eb5757',
+      'Ameaças Internas': '#eb5757',
       'Perigo Local': '#eb5757',
-      'NÃ­vel de Periculosidade': '#eb5757',
+      'Nível de Periculosidade': '#eb5757',
       'Densidade Populacional': '#bb6bd9',
-      'TolerÃ¢ncia a Estrangeiros': '#f2c94c',
-      'ManipulaÃ§Ã£o da Trama': '#bb6bd9',
-      'InfluÃªncia MÃ¡gica': '#bb6bd9',
-      'Recursos MÃ¡gicos': '#bb6bd9',
+      'Tolerância a Estrangeiros': '#f2c94c',
+      'Manipulação da Trama': '#bb6bd9',
+      'Influência Mágica': '#bb6bd9',
+      'Recursos Mágicos': '#bb6bd9',
       'Riqueza Natural': '#27ae60',
       'Recursos Naturais': '#27ae60',
       'Diversidade de Criaturas': '#f2994a',
@@ -1151,23 +1151,23 @@
     if (data.type === 'territory' && !canEditTerritory) return '';
     if (data.type === 'region') {
       return `
-        <div class="wiki-tools mt-8 pt-8 border-t border-[var(--stroke)]"><button type="button" class="wiki-edit-button" id="btnEditRegion">Editar regiÃ£o</button></div>
+        <div class="wiki-tools mt-8 pt-8 border-t border-[var(--stroke)]"><button type="button" class="wiki-edit-button" id="btnEditRegion">Editar região</button></div>
         <form id="regionForm" class="wiki-inline-editor" data-region-id="${data.id}">
           <label>Nome <input name="nome" value="${escapeHtml(data.nome)}"></label>
           <div class="wiki-territory-field">
-            <label for="edit-nr-territorio">TerritÃ³rio</label>
+            <label for="edit-nr-territorio">Território</label>
             <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem;">
               <select id="edit-nr-territorio" name="territorio" style="flex: 1; min-width: 0; background: var(--bg2); border: 1px solid var(--stroke); color: var(--text); padding: .3rem; font-size: .75rem; border-radius: 4px; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right .7rem top 50%; background-size: .65rem auto;">
-                <option value="">Sem territÃ³rio</option>
+                <option value="">Sem território</option>
                 ${allTerritories.map(name => `<option value="${escapeHtml(name)}" ${data.territorio === name ? 'selected' : ''} style="background: var(--bg1); color: var(--text);">${escapeHtml(name)}</option>`).join('')}
               </select>
-              <button type="button" aria-label="Criar novo territÃ³rio" onclick="showInlineCreateTerritoryDetail()" ${canCreateTerritory ? '' : 'hidden'} style="padding: 0.3rem 0.6rem; background: var(--bg2); border: 1px solid var(--stroke); color: var(--ember); font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">+</button>
+              <button type="button" aria-label="Criar novo território" onclick="showInlineCreateTerritoryDetail()" ${canCreateTerritory ? '' : 'hidden'} style="padding: 0.3rem 0.6rem; background: var(--bg2); border: 1px solid var(--stroke); color: var(--ember); font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">+</button>
             </div>
           </div>
 
-          <!-- SeÃ§Ã£o oculta de criaÃ§Ã£o de territÃ³rio no detalhe da regiÃ£o -->
+          <!-- Seção oculta de criação de território no detalhe da região -->
           <div id="inlineCreateTerritorySectionDetail" style="display: none; border: 1px dashed var(--stroke); padding: 0.75rem; border-radius: 4px; margin-top: 0.5rem; background: var(--bg0);">
-            <div style="font-size: 0.7rem; font-weight: bold; color: var(--ember); margin-bottom: 0.5rem; text-transform: uppercase;">Criar Novo TerritÃ³rio</div>
+            <div style="font-size: 0.7rem; font-weight: bold; color: var(--ember); margin-bottom: 0.5rem; text-transform: uppercase;">Criar Novo Território</div>
             <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
               <label style="font-size: 0.65rem; margin: 0;">Nome
                 <input type="text" id="detail-ntr-nome" placeholder="Nome" style="width:100%; background: var(--bg2); border:1px solid var(--stroke); color:var(--text); padding:0.25rem; font-size:0.7rem; border-radius:4px; margin-top:0.15rem;">
@@ -1183,19 +1183,19 @@
           </div>
           <label>URL da imagem de fundo <input name="brasao_url" value="${escapeHtml(data.raw_imagem_url || '')}"></label>
           <label>URL do mapa lateral <input name="mapa_url" value="${escapeHtml(data.raw_mapa_url || '')}"></label>
-          <label>Tags adicionais <input name="etiquetas_adicionais" value="${escapeHtml(data.etiquetas_adicionais || '')}" placeholder="Separadas por vÃ­rgula"></label>
+          <label>Tags adicionais <input name="etiquetas_adicionais" value="${escapeHtml(data.etiquetas_adicionais || '')}" placeholder="Separadas por vírgula"></label>
           <label>Lore markdown <textarea name="lore_markdown" rows="12">${escapeHtml(data.lore_markdown || '')}</textarea></label>
           <div class="wiki-stats-grid">
-            <label>Mov. EconÃ´micas <input type="number" name="movimentacoes_economicas" value="${data.stats?.movimentacoes_economicas || 0}"></label>
+            <label>Mov. Econômicas <input type="number" name="movimentacoes_economicas" value="${data.stats?.movimentacoes_economicas || 0}"></label>
             <label>Poder Militar <input type="number" name="poder_militar" value="${data.stats?.poder_militar || 0}"></label>
-            <label>Desenv. TecnolÃ³gico <input type="number" name="desenvolvimento_tecnologico" value="${data.stats?.desenvolvimento_tecnologico || 0}"></label>
-            <label>Estabilidade PolÃ­tica <input type="number" name="estabilidade_politica_interna" value="${data.stats?.estabilidade_politica_interna || 0}"></label>
-            <label>AmeaÃ§as Externas <input type="number" name="ameacas_externas" value="${data.stats?.ameacas_externas || 0}"></label>
+            <label>Desenv. Tecnológico <input type="number" name="desenvolvimento_tecnologico" value="${data.stats?.desenvolvimento_tecnologico || 0}"></label>
+            <label>Estabilidade Política <input type="number" name="estabilidade_politica_interna" value="${data.stats?.estabilidade_politica_interna || 0}"></label>
+            <label>Ameaças Externas <input type="number" name="ameacas_externas" value="${data.stats?.ameacas_externas || 0}"></label>
             <label>Densidade Pop. <input type="number" name="densidade_populacional" value="${data.stats?.densidade_populacional || 0}"></label>
             <label>Tol. Estrangeiros <input type="number" name="tolerancia_estrangeiros" value="${data.stats?.tolerancia_estrangeiros || 0}"></label>
-            <label>ManipulaÃ§Ã£o Trama <input type="number" name="manipulacao_trama" value="${data.stats?.manipulacao_trama || 0}"></label>
-            <label>AmeaÃ§as Internas <input type="number" name="ameacas_internas" value="${data.stats?.ameacas_internas || 0}"></label>
-            <label>NÃ­vel Periculosidade <input type="number" name="nivel_periculosidade" value="${data.stats?.nivel_periculosidade || 0}"></label>
+            <label>Manipulação Trama <input type="number" name="manipulacao_trama" value="${data.stats?.manipulacao_trama || 0}"></label>
+            <label>Ameaças Internas <input type="number" name="ameacas_internas" value="${data.stats?.ameacas_internas || 0}"></label>
+            <label>Nível Periculosidade <input type="number" name="nivel_periculosidade" value="${data.stats?.nivel_periculosidade || 0}"></label>
           </div>
           <div class="wiki-inline-actions mt-4">
             <button type="button" class="wiki-inline-cancel" id="btnCancelRegion">Cancelar</button>
@@ -1204,21 +1204,21 @@
         </form>`;
     } else {
       return `
-        <div class="wiki-tools mt-8 pt-8 border-t border-[var(--stroke)]"><button type="button" class="wiki-edit-button" id="btnEditTerritory">Editar territÃ³rio</button></div>
+        <div class="wiki-tools mt-8 pt-8 border-t border-[var(--stroke)]"><button type="button" class="wiki-edit-button" id="btnEditTerritory">Editar território</button></div>
         <form id="territoryForm" class="wiki-inline-editor" data-territory-id="${data.id}">
           <label>Nome <input name="nome" value="${escapeHtml(data.nome)}"></label>
           <label>URL da imagem <input name="imagem_url" value="${escapeHtml(data.raw_imagem_url || '')}"></label>
-          <label>DescriÃ§Ã£o breve <textarea name="descricao_breve" rows="2">${escapeHtml(data.descricao_breve || '')}</textarea></label>
+          <label>Descrição breve <textarea name="descricao_breve" rows="2">${escapeHtml(data.descricao_breve || '')}</textarea></label>
           <label>Lore markdown <textarea name="lore_markdown" rows="12">${escapeHtml(data.lore_markdown || '')}</textarea></label>
           <div class="wiki-stats-grid">
             <label>Riqueza Natural <input type="number" name="riqueza_natural" value="${data.stats?.riqueza_natural || 0}"></label>
-            <label>Riqueza MonetÃ¡ria <input type="number" name="riqueza_monetaria" value="${data.stats?.riqueza_monetaria || 0}"></label>
+            <label>Riqueza Monetária <input type="number" name="riqueza_monetaria" value="${data.stats?.riqueza_monetaria || 0}"></label>
             <label>Poder Militar <input type="number" name="poder_militar" value="${data.stats?.poder_militar || 0}"></label>
-            <label>Desenv. TecnolÃ³gico <input type="number" name="desenvolvimento_tecnologico" value="${data.stats?.desenvolvimento_tecnologico || 0}"></label>
-            <label>Estabilidade PolÃ­tica <input type="number" name="estabilidade_politica_interna" value="${data.stats?.estabilidade_politica_interna || 0}"></label>
-            <label>AmeaÃ§as Externas <input type="number" name="ameacas_externas" value="${data.stats?.ameacas_externas || 0}"></label>
+            <label>Desenv. Tecnológico <input type="number" name="desenvolvimento_tecnologico" value="${data.stats?.desenvolvimento_tecnologico || 0}"></label>
+            <label>Estabilidade Política <input type="number" name="estabilidade_politica_interna" value="${data.stats?.estabilidade_politica_interna || 0}"></label>
+            <label>Ameaças Externas <input type="number" name="ameacas_externas" value="${data.stats?.ameacas_externas || 0}"></label>
             <label>Diplomacia <input type="number" name="diplomacia" value="${data.stats?.diplomacia || 0}"></label>
-            <label>ManipulaÃ§Ã£o Trama <input type="number" name="manipulacao_trama" value="${data.stats?.manipulacao_trama || 0}"></label>
+            <label>Manipulação Trama <input type="number" name="manipulacao_trama" value="${data.stats?.manipulacao_trama || 0}"></label>
           </div>
           <div class="wiki-inline-actions mt-4">
             <button type="button" class="wiki-inline-cancel" id="btnCancelTerritory">Cancelar</button>
@@ -1282,7 +1282,7 @@
       hero.style.setProperty('--hero-fallback-bg', `url('${data.territory_image_url || data.imagem_url}')`);
       if (sideCard) sideCard.style.setProperty('--map-image', `url('${data.side_image_url || data.territory_image_url || data.imagem_url}')`);
       titleEl.textContent = data.nome;
-      eyebrowEl.textContent = data.type === 'region' ? `RegiÃµes / ${data.display_territory}` : 'TerritÃ³rios';
+      eyebrowEl.textContent = data.type === 'region' ? `Regiões / ${data.display_territory}` : 'Territórios';
       layout.style.setProperty('--territory-color', data.color);
       layout.style.setProperty('--territory-accent', getDisplayColor(data.color));
       layout.style.setProperty('--territory-contrast', getContrastColor(data.color));
@@ -1301,7 +1301,7 @@
       if (sideCronicasBtn && cronicasBtnText) {
           const typeParam = data.type === 'territory' ? 'territorio' : 'regiao';
           sideCronicasBtn.href = `{% url 'mundo_cronicas' %}?${typeParam}=${encodeURIComponent(data.nome)}`;
-          cronicasBtnText.textContent = `Ler crÃ´nicas ${data.type === 'territory' ? 'do territÃ³rio' : 'da regiÃ£o'} ${data.nome}`;
+          cronicasBtnText.textContent = `Ler crônicas ${data.type === 'territory' ? 'do território' : 'da região'} ${data.nome}`;
           sideCronicasBtn.style.backgroundColor = data.color || '#f27007';
           sideCronicasBtn.style.color = getContrastColor(data.color);
       }

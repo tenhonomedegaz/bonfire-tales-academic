@@ -1,20 +1,20 @@
 {% load %}
 <table class="market-reference-table">
-  <caption class="sr-only">{{ section.title }} â€” preÃ§os e descriÃ§Ãµes</caption>
-  <thead><tr><th scope="col">Item / serviÃ§o</th><th scope="col">PreÃ§o</th><th scope="col">DescriÃ§Ã£o e regras</th><th scope="col"><span class="sr-only">BalcÃ£o</span></th></tr></thead>
+  <caption class="sr-only">{{ section.title }} — preços e descrições</caption>
+  <thead><tr><th scope="col">Item / serviço</th><th scope="col">Preço</th><th scope="col">Descrição e regras</th><th scope="col"><span class="sr-only">Balcão</span></th></tr></thead>
   <tbody>
   {% for row in section.rows %}
   <tr id="guia-{{ row.id }}" data-market-reference-row data-reference-search="{{ row.search }}">
     <th scope="row">{{ row.name }}</th>
-    <td class="market-reference-price">{% if row.current_price %}<strong>{{ row.current_price }}</strong><small>PreÃ§o atual</small>{% else %}<strong>{{ row.reference_price }}</strong><small>ReferÃªncia</small>{% endif %}</td>
+    <td class="market-reference-price">{% if row.current_price %}<strong>{{ row.current_price }}</strong><small>Preço atual</small>{% else %}<strong>{{ row.reference_price }}</strong><small>Referência</small>{% endif %}</td>
     <td class="market-reference-description">
-      {% if row.long %}<details><summary><span class="market-reference-excerpt">{{ row.excerpt|default:"ProficiÃªncia, usos e regras deste item"|truncatechars:155 }}</span><span class="market-reference-read">Ler descriÃ§Ã£o ï¼‹</span><span class="market-reference-hide">Recolher descriÃ§Ã£o âˆ’</span></summary><div>{% endif %}
+      {% if row.long %}<details><summary><span class="market-reference-excerpt">{{ row.excerpt|default:"Proficiência, usos e regras deste item"|truncatechars:155 }}</span><span class="market-reference-read">Ler descrição ＋</span><span class="market-reference-hide">Recolher descrição −</span></summary><div>{% endif %}
       {% for part in row.description %}<p>{% if part.label %}<strong>{{ part.label }}:</strong> {% endif %}{{ part.text }}</p>{% endfor %}
       {% for paragraph in row.continuation %}<p>{{ paragraph }}</p>{% endfor %}
-      {% if row.different_price %}<p class="market-reference-old-price">PreÃ§o na referÃªncia enviada: {{ row.reference_price }}. A compra usa o preÃ§o atual exibido ao lado.</p>{% endif %}
+      {% if row.different_price %}<p class="market-reference-old-price">Preço na referência enviada: {{ row.reference_price }}. A compra usa o preço atual exibido ao lado.</p>{% endif %}
       {% if row.long %}</div></details>{% endif %}
     </td>
-    <td class="market-reference-action">{% if row.item %}<a href="#balcao-compra" data-market-catalog-jump="{{ row.catalog_target }}" aria-label="{% if row.current_price %}Comprar{% else %}Consultar{% endif %} {{ row.name }} no balcÃ£o">{% if row.current_price %}Comprar{% else %}Consultar{% endif %}<span aria-hidden="true"> â†—</span></a>{% else %}<span>Consulta</span>{% endif %}</td>
+    <td class="market-reference-action">{% if row.item %}<a href="#balcao-compra" data-market-catalog-jump="{{ row.catalog_target }}" aria-label="{% if row.current_price %}Comprar{% else %}Consultar{% endif %} {{ row.name }} no balcão">{% if row.current_price %}Comprar{% else %}Consultar{% endif %}<span aria-hidden="true"> ↗</span></a>{% else %}<span>Consulta</span>{% endif %}</td>
   </tr>
   {% endfor %}
   </tbody>

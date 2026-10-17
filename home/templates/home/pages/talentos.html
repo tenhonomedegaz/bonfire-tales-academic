@@ -16,9 +16,9 @@
 <section class="talent-page" aria-labelledby="talentsTitle">
     <header class="talent-masthead">
         <div class="talent-masthead-copy">
-            <nav class="talent-breadcrumb" aria-label="LocalizaÃ§Ã£o"><a href="{% url 'home' %}">Bonfire Tales</a><span aria-hidden="true">/</span><span>Personagens</span></nav>
+            <nav class="talent-breadcrumb" aria-label="Localização"><a href="{% url 'home' %}">Bonfire Tales</a><span aria-hidden="true">/</span><span>Personagens</span></nav>
             <h1 id="talentsTitle">Talentos</h1>
-            <p>O que torna seu aventureiro Ãºnico? <span>Explore habilidades, marcas e dons para a sua jornada.</span></p>
+            <p>O que torna seu aventureiro único? <span>Explore habilidades, marcas e dons para a sua jornada.</span></p>
         </div>
         <div class="talent-masthead-art" aria-hidden="true"></div>
     </header>
@@ -60,7 +60,7 @@
                         <div id="tagFilterOptions" class="mt-3 flex flex-wrap gap-2"></div>
                     </section>
 
-                    <p id="talentFiltersHint" class="text-xs text-bonfire-muted">Combine uma opÃ§Ã£o de cada grupo. Para procurar um prÃ©-requisito especÃ­fico, use a busca do catÃ¡logo.</p>
+                    <p id="talentFiltersHint" class="text-xs text-bonfire-muted">Combine uma opção de cada grupo. Para procurar um pré-requisito específico, use a busca do catálogo.</p>
                 </div>
 
                 <div class="flex flex-col gap-2 border-t border-bonfire-stroke p-4 sm:flex-row">
@@ -85,12 +85,12 @@
             <div class="talent-index-heading"><h2 id="talentIndexTitle">Encontre seu talento</h2><button type="button" id="talentCloseMenu" aria-label="Fechar lista de talentos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div>
             <div id="talentSearchBar" class="talent-tools">
                 <label for="searchInput">Buscar talento</label>
-                <div class="talent-search-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg><input type="search" id="searchInput" placeholder="Nome, etiqueta ou requisitoâ€¦" autocomplete="off"></div>
+                <div class="talent-search-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg><input type="search" id="searchInput" placeholder="Nome, etiqueta ou requisito…" autocomplete="off"></div>
                 <div class="talent-tool-buttons">
                     <button id="filterToggle" type="button" aria-haspopup="dialog" aria-controls="filterModal" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Filtros<span id="filterCount" class="hidden">0</span></button>
-                    <button type="button" id="talentSort" onclick="toggleSort()" aria-label="Ordem alfabÃ©tica: A a Z. Inverter ordem."><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 5v14m-4-4 4 4 4-4M16 5h4m-4 7h3m-3 7h2"/></svg><span id="talentSortLabel">Aâ€“Z</span></button>
+                    <button type="button" id="talentSort" onclick="toggleSort()" aria-label="Ordem alfabética: A a Z. Inverter ordem."><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 5v14m-4-4 4 4 4-4M16 5h4m-4 7h3m-3 7h2"/></svg><span id="talentSortLabel">A–Z</span></button>
                 </div>
-                <div class="talent-quick-types" role="group" aria-label="Categoria do talento"><button type="button" data-talent-type="" aria-pressed="true">Todos</button>{% for key,label in talent_catalog_tipo_choices|default:talent_tipo_choices %}<button type="button" data-talent-type="{{ label }}" aria-pressed="false">{% if key == 'epico' %}Ã‰picos{% else %}{{ label }}{% endif %}</button>{% endfor %}</div>
+                <div class="talent-quick-types" role="group" aria-label="Categoria do talento"><button type="button" data-talent-type="" aria-pressed="true">Todos</button>{% for key,label in talent_catalog_tipo_choices|default:talent_tipo_choices %}<button type="button" data-talent-type="{{ label }}" aria-pressed="false">{% if key == 'epico' %}Épicos{% else %}{{ label }}{% endif %}</button>{% endfor %}</div>
                 <div class="talent-index-status"><span id="talentResultCount" role="status" aria-live="polite">{{ json_talentos|length }} talentos</span><button type="button" id="talentReset" hidden>Limpar</button></div>
                 <p id="talentActiveFilters" class="talent-active-filters" hidden></p>
             </div>
@@ -108,7 +108,7 @@
             {% if not json_talentos %}
             <p class="text-bonfire-muted">Nenhum talento cadastrado.</p>
             {% endif %}
-            <noscript><p>Ative o JavaScript para usar a busca e os filtros. Consulte os talentos abaixo.</p>{% if talent_epic_rules %}<details class="talent-epic-guide"><summary>Regras dos talentos Ã©picos</summary><div>{% for paragraph in talent_epic_rules %}<p>{{ paragraph }}</p>{% endfor %}</div></details>{% endif %}{% for talento in json_talentos %}<section><h2 id="talento-{{ talento.slug }}">{{ talento.nome }}</h2><p>{{ talento.tipo }} Â· {{ talento.etiqueta }}</p><p>PrÃ©-requisitos: {{ talento.pre_requisito }}</p><p>Aumento de atributo: {{ talento.aumento_atributo|default:talento.atributos_str }}</p><div>{{ talento.descricao|linebreaks }}</div></section>{% endfor %}</noscript>
+            <noscript><p>Ative o JavaScript para usar a busca e os filtros. Consulte os talentos abaixo.</p>{% if talent_epic_rules %}<details class="talent-epic-guide"><summary>Regras dos talentos épicos</summary><div>{% for paragraph in talent_epic_rules %}<p>{{ paragraph }}</p>{% endfor %}</div></details>{% endif %}{% for talento in json_talentos %}<section><h2 id="talento-{{ talento.slug }}">{{ talento.nome }}</h2><p>{{ talento.tipo }} · {{ talento.etiqueta }}</p><p>Pré-requisitos: {{ talento.pre_requisito }}</p><p>Aumento de atributo: {{ talento.aumento_atributo|default:talento.atributos_str }}</p><div>{{ talento.descricao|linebreaks }}</div></section>{% endfor %}</noscript>
         </article>
     </div>
 </section>
@@ -461,7 +461,7 @@
         document.getElementById('talentReset').hidden = !query && !activeFilterCount;
         const activeSummary = document.getElementById('talentActiveFilters');
         activeSummary.hidden = !activeFilterCount;
-        activeSummary.textContent = Object.values(activeFilters).filter(Boolean).map(displayTalentLabel).join(' Â· ');
+        activeSummary.textContent = Object.values(activeFilters).filter(Boolean).map(displayTalentLabel).join(' · ');
         document.querySelectorAll('.talent-quick-types button[data-talent-type]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.talentType === typeValue)));
         syncTalentCategoryUrl();
         // Filtering a long catalogue should update immediately, without collapsing every row.
@@ -540,7 +540,7 @@
     }
 
     function displayTalentLabel(value) {
-        return String(value || '').replace(/\bForca\b/g, 'ForÃ§a').replace(/\bConstituicao\b/g, 'ConstituiÃ§Ã£o').replace(/\bInteligencia\b/g, 'InteligÃªncia');
+        return String(value || '').replace(/\bForca\b/g, 'Força').replace(/\bConstituicao\b/g, 'Constituição').replace(/\bInteligencia\b/g, 'Inteligência');
     }
 
     function formatTalentBenefits(html) {
@@ -551,7 +551,7 @@
             if (siblings.slice(0, siblings.indexOf(label)).some(node => node.textContent.trim())) return;
             label.classList.add('talent-benefit-label');
             const text = label.nextSibling;
-            const punctuation = text?.nodeType === Node.TEXT_NODE && text.textContent.match(/^\s*[:ï¼š]\s*/);
+            const punctuation = text?.nodeType === Node.TEXT_NODE && text.textContent.match(/^\s*[:：]\s*/);
             if (punctuation) {
                 label.appendChild(document.createTextNode(punctuation[0].trimEnd()));
                 text.textContent = ' ' + text.textContent.slice(punctuation[0].length);
@@ -569,28 +569,28 @@
         if (closeMenu) closeTalentMenu();
 
         // Renderizar detalhes
-        // Mostrar em telas pequenas tambÃ©m
+        // Mostrar em telas pequenas também
         detailContainer.classList.remove('hidden');
         detailContainer.classList.add('flex', 'flex-col');
         detailContainer.classList.toggle('talent-is-epic', talento.tipo_key === 'epico');
 
-        // Converter markdown. Usa marked.js quando disponÃ­vel e fallback local se o CDN falhar.
+        // Converter markdown. Usa marked.js quando disponível e fallback local se o CDN falhar.
         const renderedHtml = formatTalentBenefits(renderMarkdown(talento.descricao));
 
         detailContainer.innerHTML = `
             <header class="talent-detail-header">
                 <div class="talent-detail-emblem" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.1"><path d="m16 2 12 7v14l-12 7L4 23V9Z"/><path d="m16 8 3 6 6 2-6 2-3 6-3-6-6-2 6-2Z"/><path d="M16 2v6m0 16v6M4 9l7 4m10 6 7 4M4 23l7-4m10-6 7-4"/></svg></div>
-                <div class="talent-detail-heading"><p class="talent-eyebrow">${escapeHtml(talento.tipo === 'Origem' ? 'Talento de origem' : talento.tipo_key === 'epico' ? 'Talento Ã©pico' : 'Talento geral')} <span aria-hidden="true">/</span> ${escapeHtml(talento.etiqueta)}</p><h2 id="talento-${escapeHtml(talento.slug)}" data-talent-title tabindex="-1">${escapeHtml(talento.nome)}</h2></div>
+                <div class="talent-detail-heading"><p class="talent-eyebrow">${escapeHtml(talento.tipo === 'Origem' ? 'Talento de origem' : talento.tipo_key === 'epico' ? 'Talento épico' : 'Talento geral')} <span aria-hidden="true">/</span> ${escapeHtml(talento.etiqueta)}</p><h2 id="talento-${escapeHtml(talento.slug)}" data-talent-title tabindex="-1">${escapeHtml(talento.nome)}</h2></div>
                 ${canEditWiki && !talento.catalogo_editorial ? `<button type="button" class="wiki-edit-button" aria-expanded="false" aria-controls="talento-editor" onclick="openTalentEditor(${talento.id})">Editar wiki</button>` : ''}
             </header>
             <div class="talent-detail-body">
             ${getExtraTags(talento).length ? `<div class="talent-detail-tags" aria-label="Etiquetas adicionais">${getExtraTags(talento).map(tag => `<span>${escapeHtml(tag)}</span>`).join('')}</div>` : ''}
             <div id="talento-editor" data-talent-editor></div>
             <dl class="talent-meta">
-                <div><dt>PrÃ©-requisitos</dt><dd>${escapeHtml(talento.pre_requisito || 'Nenhum')}</dd></div>
+                <div><dt>Pré-requisitos</dt><dd>${escapeHtml(talento.pre_requisito || 'Nenhum')}</dd></div>
                 <div><dt>Aumento de atributo</dt><dd>${escapeHtml(talento.aumento_atributo || displayTalentLabel(talento.atributos_str) || 'Nenhum')}</dd></div>
             </dl>
-            ${talento.tipo_key === 'epico' && Array.isArray(epicTalentRules) ? `<details class="talent-epic-guide"><summary><span>Regras dos talentos Ã©picos</span><span class="talent-epic-guide-action" aria-hidden="true">+</span></summary><div>${epicTalentRules.map(paragraph => `<p>${escapeHtml(paragraph)}</p>`).join('')}</div></details>` : ''}
+            ${talento.tipo_key === 'epico' && Array.isArray(epicTalentRules) ? `<details class="talent-epic-guide"><summary><span>Regras dos talentos épicos</span><span class="talent-epic-guide-action" aria-hidden="true">+</span></summary><div>${epicTalentRules.map(paragraph => `<p>${escapeHtml(paragraph)}</p>`).join('')}</div></details>` : ''}
             <div data-talent-preview class="bonfire-markdown talent-copy">
                 ${renderedHtml}
             </div>
@@ -640,16 +640,16 @@
                     <label>Etiquetas adicionais
                         <input name="etiquetas_adicionais" value="${escapeHtml(talento.etiquetas_adicionais || '')}">
                     </label>
-                    <label class="wide">PrÃ©-requisito
+                    <label class="wide">Pré-requisito
                         <input name="pre_requisito" value="${escapeHtml(talento.pre_requisito === 'Nenhum' ? '' : talento.pre_requisito)}">
                     </label>
                     <label class="wide">Atributos
                         <div class="wiki-attr-grid">
                             ${[
-                                ['atrib_forca', 'ForÃ§a'],
+                                ['atrib_forca', 'Força'],
                                 ['atrib_destreza', 'Destreza'],
-                                ['atrib_constituicao', 'ConstituiÃ§Ã£o'],
-                                ['atrib_inteligencia', 'InteligÃªncia'],
+                                ['atrib_constituicao', 'Constituição'],
+                                ['atrib_inteligencia', 'Inteligência'],
                                 ['atrib_sabedoria', 'Sabedoria'],
                                 ['atrib_carisma', 'Carisma']
                             ].map(([field, label]) => `
@@ -727,7 +727,7 @@
             });
             const result = await response.json().catch(() => ({}));
             if (!response.ok || !result.ok || !result.talent) {
-                throw new Error(result.error || 'NÃ£o foi possÃ­vel salvar este talento.');
+                throw new Error(result.error || 'Não foi possível salvar este talento.');
             }
             const index = talentosData.findIndex(t => t.id === id);
             if (index >= 0) talentosData[index] = result.talent;
@@ -736,7 +736,7 @@
             selectTalento(id);
             detailContainer.querySelector('.wiki-edit-button')?.focus();
         } catch (failure) {
-            error.textContent = failure.message || 'NÃ£o foi possÃ­vel salvar este talento.';
+            error.textContent = failure.message || 'Não foi possível salvar este talento.';
             error.hidden = false;
             error.focus();
         } finally {
@@ -829,7 +829,7 @@
         (listContainer.inert ? talentMobileMenuButton : filterToggle).focus();
     }
 
-    // Busca DinÃ¢mica
+    // Busca Dinâmica
     searchInput.addEventListener('input', () => {
         applyFilters();
     });
@@ -888,15 +888,15 @@
         }
     });
 
-    // OrdenaÃ§Ã£o Simples A-Z / Z-A
+    // Ordenação Simples A-Z / Z-A
     function toggleSort() {
         isAscending = !isAscending;
-        document.getElementById('talentSortLabel').textContent = isAscending ? 'Aâ€“Z' : 'Zâ€“A';
-        document.getElementById('talentSort').setAttribute('aria-label', `Ordem alfabÃ©tica: ${isAscending ? 'A a Z' : 'Z a A'}. Inverter ordem.`);
+        document.getElementById('talentSortLabel').textContent = isAscending ? 'A–Z' : 'Z–A';
+        document.getElementById('talentSort').setAttribute('aria-label', `Ordem alfabética: ${isAscending ? 'A a Z' : 'Z a A'}. Inverter ordem.`);
         applyFilters();
     }
 
-    // InicializaÃ§Ã£o
+    // Inicialização
     populateFilters();
     applyFilters(false, false);
     function restoreTalentFromHash() {
@@ -910,7 +910,7 @@
         try {
             slug = decodeURIComponent(window.location.hash.replace(/^#(?:talento-)?/, ''));
         } catch (error) {
-            // Um fragmento invÃ¡lido nÃ£o deve interromper o catÃ¡logo.
+            // Um fragmento inválido não deve interromper o catálogo.
         }
         const talent = talentosData.find(item => item.slug === slug);
         if (talent && !filteredTalentos.some(item => item.id === talent.id)) {

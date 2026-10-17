@@ -19,22 +19,22 @@
 {% block content %}
 <div class="mundane-market">
   {% include 'home/partials/magic_market_symbols.html' %}
-  <div class="market-breadcrumb"><a href="{% url 'home' %}">Bonfire Tales</a><span>/</span><span>Itens MÃƒÂ¡gicos</span></div>
-  <header class="market-game-header"><div><h1>Itens MÃƒÂ¡gicos</h1><p>Cinco lojas. Escolha seu prÃƒÂ³ximo achado e leve-o para sua ficha.</p></div><a class="magic-mundane-link" href="{% url 'mercado_itens_mundanos' %}">Mercado Mundano Ã¢â€ â€”</a></header>
-  {% if market_preview %}<p class="market-game-local">PrÃƒÂ©via local Ã‚Â· compras e vendas afetam somente as fichas de demonstraÃƒÂ§ÃƒÂ£o.</p>{% endif %}
+  <div class="market-breadcrumb"><a href="{% url 'home' %}">Bonfire Tales</a><span>/</span><span>Itens Mágicos</span></div>
+  <header class="market-game-header"><div><h1>Itens Mágicos</h1><p>Cinco lojas. Escolha seu próximo achado e leve-o para sua ficha.</p></div><a class="magic-mundane-link" href="{% url 'mercado_itens_mundanos' %}">Mercado Mundano ↗</a></header>
+  {% if market_preview %}<p class="market-game-local">Prévia local · compras e vendas afetam somente as fichas de demonstração.</p>{% endif %}
   <nav class="magic-shops" aria-label="Escolher loja">
-    {% for shop in magic_shops %}<button type="button" data-magic-shop="{{ shop.value }}" aria-pressed="false"><svg aria-hidden="true"><use href="#magic-{{ shop.icon }}"></use></svg><span><strong>{{ shop.label }}</strong><small>{{ shop.description }}</small></span><em>{{ shop.total }} disponÃƒÂ­veis</em></button>{% endfor %}
+    {% for shop in magic_shops %}<button type="button" data-magic-shop="{{ shop.value }}" aria-pressed="false"><svg aria-hidden="true"><use href="#magic-{{ shop.icon }}"></use></svg><span><strong>{{ shop.label }}</strong><small>{{ shop.description }}</small></span><em>{{ shop.total }} disponíveis</em></button>{% endfor %}
   </nav>
   <section class="magic-caravan {% if caravan.active %}is-present{% endif %}" aria-label="Caravana mercante">
     <svg aria-hidden="true"><use href="#magic-caravan"></use></svg>
-    <div><h2>Caravana mercante <span>{% if caravan.active %}Presente{% elif caravan.configured %}Na estrada{% else %}CalendÃƒÂ¡rio a definir{% endif %}</span></h2><p>{% if caravan.active %}{{ caravan_count }} achados desta visita Ã‚Â· parte em {{ caravan.next_change|date:'d/m, H:i' }} (BrasÃƒÂ­lia).{% elif caravan.configured %}PrÃƒÂ³xima chegada: {{ caravan.next_change|date:'d/m, H:i' }} (BrasÃƒÂ­lia). O estoque permanente continua disponÃƒÂ­vel.{% else %}A administraÃƒÂ§ÃƒÂ£o ainda precisa definir a sexta-feira de referÃƒÂªncia. O estoque permanente estÃƒÂ¡ aberto.{% endif %}</p></div>
+    <div><h2>Caravana mercante <span>{% if caravan.active %}Presente{% elif caravan.configured %}Na estrada{% else %}Calendário a definir{% endif %}</span></h2><p>{% if caravan.active %}{{ caravan_count }} achados desta visita · parte em {{ caravan.next_change|date:'d/m, H:i' }} (Brasília).{% elif caravan.configured %}Próxima chegada: {{ caravan.next_change|date:'d/m, H:i' }} (Brasília). O estoque permanente continua disponível.{% else %}A administração ainda precisa definir a sexta-feira de referência. O estoque permanente está aberto.{% endif %}</p></div>
     {% if caravan.active %}<button type="button" data-magic-caravan>Ver estoque</button>{% endif %}
-    <details><summary>Como funciona?</summary><div><p>Uma semana presente, uma semana na estrada. Chegadas e partidas acontecem ÃƒÂ s sextas-feiras, no horÃƒÂ¡rio configurado.</p><p>A visita abastece Forja, Joalheria e Itens MÃƒÂ¡gicos com 2 incomuns menores, 4 incomuns maiores, 2 raros menores, 1 raro maior e 1 muito raro menor{% if caravan.calendar.per_shop %} em cada loja{% else %} no total{% endif %}.</p><p>{% if caravan.calendar.units_per_item %}Cada oferta possui {{ caravan.calendar.units_per_item }} unidade(s) compartilhada(s) pelo servidor.{% else %}Os itens da visita podem ser comprados por vÃƒÂ¡rios jogadores enquanto a caravana estÃƒÂ¡ presente.{% endif %} Atualizar a pÃƒÂ¡gina nÃƒÂ£o refaz o sorteio.</p></div></details>
+    <details><summary>Como funciona?</summary><div><p>Uma semana presente, uma semana na estrada. Chegadas e partidas acontecem às sextas-feiras, no horário configurado.</p><p>A visita abastece Forja, Joalheria e Itens Mágicos com 2 incomuns menores, 4 incomuns maiores, 2 raros menores, 1 raro maior e 1 muito raro menor{% if caravan.calendar.per_shop %} em cada loja{% else %} no total{% endif %}.</p><p>{% if caravan.calendar.units_per_item %}Cada oferta possui {{ caravan.calendar.units_per_item }} unidade(s) compartilhada(s) pelo servidor.{% else %}Os itens da visita podem ser comprados por vários jogadores enquanto a caravana está presente.{% endif %} Atualizar a página não refaz o sorteio.</p></div></details>
     {% if user.is_superuser %}<a href="#" aria-disabled="true">Configurar</a>{% endif %}
   </section>
   <div id="content-container">
     {% include 'home/partials/itens_magicos_content.html' %}
   </div>
-  <p class="market-game-footer-note">Estoque permanente e caravana seguem as regras do servidor. O catÃƒÂ¡logo completo tambÃƒÂ©m pode ser consultado; um preÃƒÂ§o de referÃƒÂªncia nÃƒÂ£o garante disponibilidade. Pergaminhos de nÃƒÂ­veis 1Ã¢â‚¬â€œ9 usam os preÃƒÂ§os da Oficina; pergaminhos de truques aguardam um preÃƒÂ§o definido pelo servidor.</p>
+  <p class="market-game-footer-note">Estoque permanente e caravana seguem as regras do servidor. O catálogo completo também pode ser consultado; um preço de referência não garante disponibilidade. Pergaminhos de níveis 1–9 usam os preços da Oficina; pergaminhos de truques aguardam um preço definido pelo servidor.</p>
 </div>
 {% endblock %}

@@ -15148,8 +15148,8 @@
     {
       "source": "home/templates/home/partials/recovery_story.html",
       "destination": "home/templates/home/partials/recovery_story.html",
-      "stage": "S04",
-      "category": "public_visual",
+      "stage": "S05",
+      "category": "account_visual",
       "gate": "none",
       "status": "source_only",
       "source_sha256": "5323233390aab292a45021da1f170756da7b92a270310035e0840daa29f99dcc",
@@ -23415,9 +23415,9 @@
       "S06": 114,
       "S10": 472,
       "S03": 501,
-      "S04": 134,
+      "S04": 133,
       "S07": 36,
-      "S05": 71
+      "S05": 72
     },
     "by_status": {
       "source_only": 913,

@@ -15,18 +15,18 @@
     <p class="catalog-subtitle">{{ subtitle }}</p>
     {% if kind == 'antecedentes' %}
       <details class="catalog-intro-box">
-        <summary>Regras bÃ¡sicas dos antecedentes <span class="catalog-intro-hint">Atributos, perÃ­cias e escolhas iniciais</span></summary>
+        <summary>Regras básicas dos antecedentes <span class="catalog-intro-hint">Atributos, perícias e escolhas iniciais</span></summary>
         <div class="catalog-intro-content">
-        <p style="margin-bottom: 0.5rem;">Todo <b>Antecedente</b> concede benefÃ­cios bÃ¡sicos ao seu personagem, alÃ©m de ajudar a definir sua histÃ³ria e o jeito que ele encara o mundo. Ao escolher um antecedente, vocÃª recebe:</p>
+        <p style="margin-bottom: 0.5rem;">Todo <b>Antecedente</b> concede benefícios básicos ao seu personagem, além de ajudar a definir sua história e o jeito que ele encara o mundo. Ao escolher um antecedente, você recebe:</p>
         <ul style="margin-bottom: 0.6rem; padding-left: 1.25rem; list-style-type: disc; display: flex; flex-direction: column; gap: 0.4rem;">
-          <li><b>Atributos:</b> VocÃª pode alocar <b>+2</b> em um atributo e <b>+1</b> em outro (Ã  sua escolha).</li>
-          <li><b>PerÃ­cias:</b> Escolha <b>2 perÃ­cias</b> Ã  sua escolha.</li>
-          <li><b>Idiomas ou Ferramentas:</b> Seu personagem <b>sempre sabe falar Comum</b>. AlÃ©m disso, escolha <b>2</b> entre <b>Idiomas</b> e/ou <b>ProficiÃªncias com Ferramentas</b> (pode ser 2 idiomas, 2 ferramentas, ou 1 de cada).</li>
-          <li><b>Equipamentos (PO iniciais):</b> VocÃª recebe <b>100 PO</b> para comprar itens. Pelo menos <b>50 PO</b> devem ser gastos em <b>itens mundanos</b> (equipamentos comuns, ferramentas, roupas, suprimentos, etc.). O restante fica a seu critÃ©rio.</li>
-          <li><b>Habilidade do Antecedente:</b> VocÃª recebe <b>1 habilidade</b> ligada ao seu antecedente, pensada para te ajudar durante as aventuras.</li>
-          <li><b>Talento de Origem:</b> VocÃª escolhe <b>1 Talento de Origem</b>.</li>
+          <li><b>Atributos:</b> Você pode alocar <b>+2</b> em um atributo e <b>+1</b> em outro (à sua escolha).</li>
+          <li><b>Perícias:</b> Escolha <b>2 perícias</b> à sua escolha.</li>
+          <li><b>Idiomas ou Ferramentas:</b> Seu personagem <b>sempre sabe falar Comum</b>. Além disso, escolha <b>2</b> entre <b>Idiomas</b> e/ou <b>Proficiências com Ferramentas</b> (pode ser 2 idiomas, 2 ferramentas, ou 1 de cada).</li>
+          <li><b>Equipamentos (PO iniciais):</b> Você recebe <b>100 PO</b> para comprar itens. Pelo menos <b>50 PO</b> devem ser gastos em <b>itens mundanos</b> (equipamentos comuns, ferramentas, roupas, suprimentos, etc.). O restante fica a seu critério.</li>
+          <li><b>Habilidade do Antecedente:</b> Você recebe <b>1 habilidade</b> ligada ao seu antecedente, pensada para te ajudar durante as aventuras.</li>
+          <li><b>Talento de Origem:</b> Você escolhe <b>1 Talento de Origem</b>.</li>
         </ul>
-        <p style="font-style: italic; color: var(--muted); border-left: 2px solid var(--ember); padding-left: 0.5rem;"><b>Origem de Nascimento (Reino) e Deus:</b> Alguns antecedentes tambÃ©m pedem que vocÃª escolha uma <b>Origem de Nascimento</b> (Reino) ou um <b>deus</b> para definir detalhes do seu Talento de Origem. Se esse for o seu caso, selecione-os apropriadamente.</p>
+        <p style="font-style: italic; color: var(--muted); border-left: 2px solid var(--ember); padding-left: 0.5rem;"><b>Origem de Nascimento (Reino) e Deus:</b> Alguns antecedentes também pedem que você escolha uma <b>Origem de Nascimento</b> (Reino) ou um <b>deus</b> para definir detalhes do seu Talento de Origem. Se esse for o seu caso, selecione-os apropriadamente.</p>
         </div>
       </details>
     {% endif %}
@@ -35,19 +35,19 @@
     {% endif %}
 
     {% if can_edit_wiki and kind == 'organizacoes' %}
-      <button type="button" class="catalog-action" id="toggleOrgForm" aria-controls="orgForm" aria-expanded="false" style="margin-top:0.6rem;">Nova organizaÃ§Ã£o</button>
-      <form class="org-form" id="orgForm" aria-label="Nova organizaÃ§Ã£o">
+      <button type="button" class="catalog-action" id="toggleOrgForm" aria-controls="orgForm" aria-expanded="false" style="margin-top:0.6rem;">Nova organização</button>
+      <form class="org-form" id="orgForm" aria-label="Nova organização">
         {% csrf_token %}
         <label class="org-field"><span>Nome</span><input name="nome" required></label>
         <label class="org-field"><span>Tipo</span><input name="tipo" placeholder="Ex.: Guilda, Ordem, Reino"></label>
         <label class="org-field"><span>Sede</span><input name="sede"></label>
-        <label class="org-field"><span>RegiÃµes</span><input name="regioes" placeholder="Separe por vÃ­rgula"></label>
-        <label class="org-field"><span>TerritÃ³rios</span><input name="territorios" placeholder="Separe por vÃ­rgula"></label>
-        <label class="org-field"><span>LideranÃ§a</span><input name="lideranca"></label>
-        <label class="org-field"><span>Aliados</span><input name="aliados" placeholder="Separe por vÃ­rgula"></label>
-        <label class="org-field"><span>Inimigos</span><input name="inimigos" placeholder="Separe por vÃ­rgula"></label>
-        <label class="org-field wide"><span>Tags</span><input name="tags" placeholder="Separe por vÃ­rgula"></label>
-        <label class="org-field wide"><span>DescriÃ§Ã£o em Markdown</span><textarea name="descricao" rows="5"></textarea></label>
+        <label class="org-field"><span>Regiões</span><input name="regioes" placeholder="Separe por vírgula"></label>
+        <label class="org-field"><span>Territórios</span><input name="territorios" placeholder="Separe por vírgula"></label>
+        <label class="org-field"><span>Liderança</span><input name="lideranca"></label>
+        <label class="org-field"><span>Aliados</span><input name="aliados" placeholder="Separe por vírgula"></label>
+        <label class="org-field"><span>Inimigos</span><input name="inimigos" placeholder="Separe por vírgula"></label>
+        <label class="org-field wide"><span>Tags</span><input name="tags" placeholder="Separe por vírgula"></label>
+        <label class="org-field wide"><span>Descrição em Markdown</span><textarea name="descricao" rows="5"></textarea></label>
         <p class="org-form-error wide" id="orgFormError" role="alert" tabindex="-1" hidden></p>
         <div class="org-form-actions wide">
           <button class="org-form-cancel" id="cancelOrgForm" type="button">Cancelar</button>
@@ -65,7 +65,7 @@
     <button type="button" class="catalog-mobile-backdrop" id="catalogMobileBackdrop" aria-label="Fechar lista" tabindex="-1" aria-hidden="true"></button>
     <aside class="catalog-sidebar" id="catalogSidebar">
       <div class="catalog-tools">
-        <input class="catalog-input" id="catalogSearch" type="search" aria-label="Buscar no catÃ¡logo" placeholder="Buscar por nome, tag ou texto..." autocomplete="off">
+        <input class="catalog-input" id="catalogSearch" type="search" aria-label="Buscar no catálogo" placeholder="Buscar por nome, tag ou texto..." autocomplete="off">
         <select class="catalog-select" id="catalogType" aria-label="Filtrar por tipo">
           <option value="">Todos os tipos</option>
         </select>
@@ -77,7 +77,7 @@
           <div class="catalog-card-meta">{{ item.tipo }}</div>
         </a>
         {% empty %}
-        <div class="catalog-empty">Nenhum conteÃºdo cadastrado.</div>
+        <div class="catalog-empty">Nenhum conteúdo cadastrado.</div>
         {% endfor %}
       </div>
     </aside>
@@ -89,7 +89,7 @@
       {% if first.resumo %}<p class="catalog-subtitle">{{ first.resumo }}</p>{% endif %}
       <div class="bonfire-markdown prose prose-invert max-w-none" style="margin-top:0.75rem;">{{ first.descricao|linebreaks }}</div>
       {% else %}
-      <p class="catalog-empty">Nenhum conteÃºdo cadastrado.</p>
+      <p class="catalog-empty">Nenhum conteúdo cadastrado.</p>
       {% endif %}
       {% endwith %}
     </article>
@@ -280,11 +280,11 @@
         body: JSON.stringify(data),
       });
       const result = await response.json().catch(() => ({}));
-      if (!response.ok || !result.ok) throw new Error(result.error || 'NÃ£o foi possÃ­vel salvar a organizaÃ§Ã£o.');
+      if (!response.ok || !result.ok) throw new Error(result.error || 'Não foi possível salvar a organização.');
       saved = true;
       window.location.reload();
     } catch (err) {
-      error.textContent = err.message || 'NÃ£o foi possÃ­vel salvar a organizaÃ§Ã£o.';
+      error.textContent = err.message || 'Não foi possível salvar a organização.';
       error.hidden = false;
       error.focus();
     } finally {

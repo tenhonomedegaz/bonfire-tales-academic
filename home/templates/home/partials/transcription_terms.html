@@ -1,7 +1,7 @@
 {% if terms %}
 <span class="block" data-transcription-terms>
-  <span class="block">Base: {{ terms.base_cost_po }} PO Â· {{ terms.base_time_hours }} hora(s) Â· Regra de transcriÃ§Ã£o: {{ terms.rule_class }}</span>
-  {% if terms.focus_discount %}<span class="block">Escola de Foco: {{ terms.focus_school }} Â· reduÃ§Ã£o de {{ terms.discount_percent }}% no custo e no tempo</span>{% endif %}
-  <strong class="block">Total: {{ terms.cost_po }} PO Â· {{ terms.time_hours }} hora(s)</strong>
+  <span class="block">Base: {{ terms.base_cost_po }} PO · {{ terms.base_time_hours }} hora(s) · Regra de transcrição: {{ terms.rule_class }}</span>
+  {% if terms.focus_discount %}<span class="block">Escola de Foco: {{ terms.focus_school }} · redução de {{ terms.discount_percent }}% no custo e no tempo</span>{% endif %}
+  <strong class="block">Total: {{ terms.cost_po }} PO · {{ terms.time_hours }} hora(s)</strong>
 </span>
 {% endif %}

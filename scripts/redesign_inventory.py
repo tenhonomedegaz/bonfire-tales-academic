@@ -43,6 +43,8 @@ def stage(path):
     return "S03", "shared_vendor", "none"
   if lower.startswith("home/static/img/"):
     return "S04", "public_asset", "none"
+  if lower == "home/templates/home/partials/recovery_story.html":
+    return "S05", "account_visual", "none"
   if lower.startswith("home/templates/home/partials/battle_familiar_"):
     return "S05", "account_visual", "none"
   if any(key in name for key in SHARED) or lower.startswith("home/templates/home/components/"):

@@ -14,14 +14,14 @@
   <header class="background-header">
     <div class="background-masthead">
       <div class="background-masthead-copy">
-        <nav class="background-breadcrumb" aria-label="LocalizaÃ§Ã£o"><a href="{% url 'home' %}">Bonfire Tales</a><span aria-hidden="true">/</span><span>Personagens</span></nav>
+        <nav class="background-breadcrumb" aria-label="Localização"><a href="{% url 'home' %}">Bonfire Tales</a><span aria-hidden="true">/</span><span>Personagens</span></nav>
         <h1 class="catalog-title--backgrounds" id="backgroundsTitle">Antecedentes</h1>
-        <p>Todo aventureiro tem um antes. <span>Encontre a histÃ³ria que acendeu a sua jornada.</span></p>
+        <p>Todo aventureiro tem um antes. <span>Encontre a história que acendeu a sua jornada.</span></p>
       </div>
       <div class="background-masthead-art" aria-hidden="true"></div>
     </div>
     {% include 'home/partials/background_rules.html' %}
-    {% if db_error %}<p class="background-notice" role="status">NÃ£o foi possÃ­vel carregar os antecedentes agora. Tente novamente em instantes.</p>{% endif %}
+    {% if db_error %}<p class="background-notice" role="status">Não foi possível carregar os antecedentes agora. Tente novamente em instantes.</p>{% endif %}
   </header>
 
   <div class="background-mobile-bar">
@@ -42,7 +42,7 @@
         <label class="background-search-label" for="catalogSearch">Buscar antecedente</label>
         <div class="background-search-wrap">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg>
-          <input id="catalogSearch" type="search" placeholder="Nome, histÃ³ria ou habilidadeâ€¦" autocomplete="off">
+          <input id="catalogSearch" type="search" placeholder="Nome, história ou habilidade…" autocomplete="off">
         </div>
         <label class="background-search-label" for="catalogType">Filtrar por tipo</label>
         <select id="catalogType"><option value="">Todos os tipos</option></select>
@@ -71,14 +71,14 @@
             {% for label, value in item.meta.items %}{% if value %}<div><dt>{{ label }}</dt><dd>{{ value }}</dd></div>{% endif %}{% endfor %}
           </dl>
           {% endif %}
-          <div class="bonfire-markdown background-copy">{% if item.descricao %}{{ item.descricao|linebreaks }}{% else %}<p>DescriÃ§Ã£o ainda nÃ£o cadastrada.</p>{% endif %}</div>
+          <div class="bonfire-markdown background-copy">{% if item.descricao %}{{ item.descricao|linebreaks }}{% else %}<p>Descrição ainda não cadastrada.</p>{% endif %}</div>
         </div>
       </article>
       {% empty %}<p class="background-notice">Nenhum antecedente cadastrado.</p>{% endfor %}
       <div class="background-empty" id="backgroundDetailEmpty" hidden>
         <p class="background-eyebrow">Uma nova busca</p>
-        <h2>Nenhuma histÃ³ria por aqui.</h2>
-        <p>Tente outro nome ou uma palavra da histÃ³ria ou habilidade do antecedente.</p>
+        <h2>Nenhuma história por aqui.</h2>
+        <p>Tente outro nome ou uma palavra da história ou habilidade do antecedente.</p>
         <button type="button" id="backgroundResetSearch">Limpar filtros</button>
       </div>
     </div>

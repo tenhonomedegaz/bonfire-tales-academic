@@ -12,7 +12,7 @@ O [manifesto](redesign-s01-inventory.json) relaciona **cada arquivo rastreado** 
 | Idênticos / diferentes / só na fonte | 71 / 933 / 913 | Mesclar por página ou componente; não copiar o pacote inteiro |
 | S02, estrutura e conteúdo em G01 | 506 | Somente análise/proposta agora |
 | S03, fundação compartilhada | 501 | 477 ativos, 22 visuais, 2 vendor |
-| S04 / S05 / S06 / S07 | 134 / 71 / 114 / 36 | Donos visuais exclusivos por caminho |
+| S04 / S05 / S06 / S07 | 133 / 72 / 114 / 36 | Donos visuais exclusivos por caminho |
 | S10, validação | 472 | Não substituir testes atuais; selecionar cobertura no aceite |
 | S11, documentação/referências | 83 | Consultar no release; não substituir documentação operacional |
 | Rotas da fonte / base | 248 / 226 | 22 novas exigem G01; nenhuma rota só da base |
@@ -25,6 +25,7 @@ O [manifesto](redesign-s01-inventory.json) relaciona **cada arquivo rastreado** 
 - **S10/S11:** testes e documentação têm donos próprios. O manifesto registra diferenças, mas não autoriza importar testes que dependam de backend ainda não aprovado. Arquivos apenas da base permanecem preservados.
 
 Correção de ownership após S03: `home/templates/home/partials/battle_familiar_base.html` pertence a S05, apesar de conter “base” no nome; nenhuma mudança S03 foi feita nesse arquivo. Os hashes e estados do manifesto continuam referentes à base inicial `7e4c13b`.
+`home/templates/home/partials/recovery_story.html` também pertence a S05, pois integra o fluxo de recuperação de senha.
 
 ## Exclusões e lacunas
 

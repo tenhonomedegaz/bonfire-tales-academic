@@ -1,22 +1,22 @@
 <input type="hidden" name="familiar_command" value="{{ battle_familiar_token }}">
 <fieldset>
-  <legend>Familiar de Batalha Â· uma aÃ§Ã£o Â· alcance 3 m Â· duraÃ§Ã£o 1 hora</legend>
-  <p>Apenas um familiar. Uma nova conjuraÃ§Ã£o substitui a anterior. Requer diamante de pelo menos 25 PO, reutilizÃ¡vel.</p>
+  <legend>Familiar de Batalha · uma ação · alcance 3 m · duração 1 hora</legend>
+  <p>Apenas um familiar. Uma nova conjuração substitui a anterior. Requer diamante de pelo menos 25 PO, reutilizável.</p>
   <label>Forma <select name="familiar_form" required><option value="bruto">Bruto</option><option value="voador">Voador</option><option value="espreitador">Espreitador</option></select></label>
   {% if battle_familiar_has_base %}
-    <p>Seu Find Familiar serÃ¡ aprimorado, preservando tipo, alinhamento, PV, Dados de Vida e caracterÃ­sticas.</p>
+    <p>Seu Find Familiar será aprimorado, preservando tipo, alinhamento, PV, Dados de Vida e características.</p>
     <input type="hidden" name="familiar_existing" value="yes">
   {% else %}
-    <label>JÃ¡ possui um familiar de Find Familiar?
-      <select name="familiar_existing" required><option value="">Escolha</option><option value="no">NÃ£o; invocar um familiar de batalha</option><option value="yes">Sim; registrar e aprimorar meu familiar existente</option></select>
+    <label>Já possui um familiar de Find Familiar?
+      <select name="familiar_existing" required><option value="">Escolha</option><option value="no">Não; invocar um familiar de batalha</option><option value="yes">Sim; registrar e aprimorar meu familiar existente</option></select>
     </label>
-    <label>Tipo do novo familiar <select name="familiar_type"><option>Celestial</option><option>FeÃ©rico</option><option>Ãnfero</option></select></label>
-    <label>AparÃªncia animal do novo familiar <input name="familiar_appearance" maxlength="200"></label>
+    <label>Tipo do novo familiar <select name="familiar_type"><option>Celestial</option><option>Feérico</option><option>Ínfero</option></select></label>
+    <label>Aparência animal do novo familiar <input name="familiar_appearance" maxlength="200"></label>
   {% endif %}
   {% if battle_familiar_missing %}
     <details{% if battle_familiar_has_base %} open{% endif %}>
       <summary>Registrar dados ausentes do Find Familiar existente</summary>
-      <p>Preencha somente se jÃ¡ possui esse familiar. Use os dados da forma anterior; nenhum valor serÃ¡ presumido.</p>
+      <p>Preencha somente se já possui esse familiar. Use os dados da forma anterior; nenhum valor será presumido.</p>
       {% for field in battle_familiar_missing %}
         <label>{{ field.label }}
           {% if field.key == 'traits' %}<textarea name="familiar_base_{{ field.key }}" maxlength="4000"{% if battle_familiar_has_base %} required{% endif %}></textarea>

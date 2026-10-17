@@ -19,12 +19,12 @@
 <div class="mundane-market">
   <div class="market-breadcrumb"><a href="{% url 'home' %}">Bonfire Tales</a><span aria-hidden="true">/</span><span>Mercado Mundano</span></div>
   <header class="market-game-header">
-    <div><h1>Mercado Mundano</h1><p>Escolha um nome para ver detalhes, preÃ§o e opÃ§Ãµes para sua ficha.</p></div>
+    <div><h1>Mercado Mundano</h1><p>Escolha um nome para ver detalhes, preço e opções para sua ficha.</p></div>
     <div class="market-game-header-actions"><button type="button" data-market-select="guide-sobre">Sobre o mercado</button><button type="button" data-market-select="guide-economia">Economia e regras</button></div>
   </header>
-  {% if market_preview %}<p class="market-game-local">PrÃ©via local Â· compras e vendas afetam somente as fichas de demonstraÃ§Ã£o.</p>{% endif %}
+  {% if market_preview %}<p class="market-game-local">Prévia local · compras e vendas afetam somente as fichas de demonstração.</p>{% endif %}
   <div id="content-container">{% include 'home/partials/itens_mundanos_content.html' %}</div>
-  <p class="market-game-footer-note">Compras usam os preÃ§os atuais do catÃ¡logo. ServiÃ§os e versÃµes nÃ£o cadastradas estÃ£o marcados como consulta e nÃ£o descontam ouro.</p>
+  <p class="market-game-footer-note">Compras usam os preços atuais do catálogo. Serviços e versões não cadastradas estão marcados como consulta e não descontam ouro.</p>
   {{ market_legacy_navigation|json_script:'market-legacy-navigation' }}
 </div>
 {% endblock %}

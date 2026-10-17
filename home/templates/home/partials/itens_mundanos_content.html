@@ -1,17 +1,17 @@
 {% load static %}
-{% comment %}VITRINE MUNDANA â€” loja MASTER-DETAIL.
+{% comment %}VITRINE MUNDANA — loja MASTER-DETAIL.
 
-As prateleiras em blocos morreram: a vitrine Ã© uma LISTA compacta (nome Â· meta Â· preÃ§o em
-PO/PP/PC) com busca e um filtro de categoria, e ao lado o PAINEL DE DESTAQUE com a prÃ©via
-completa do item selecionado â€” imagem (ou selo temÃ¡tico quando o catÃ¡logo nÃ£o tem
-`imagem_url`), preÃ§o grande, ficha mecÃ¢nica, descriÃ§Ã£o em markdown e o botÃ£o de compra.
+As prateleiras em blocos morreram: a vitrine é uma LISTA compacta (nome · meta · preço em
+PO/PP/PC) com busca e um filtro de categoria, e ao lado o PAINEL DE DESTAQUE com a prévia
+completa do item selecionado — imagem (ou selo temático quando o catálogo não tem
+`imagem_url`), preço grande, ficha mecânica, descrição em markdown e o botão de compra.
 
-A categoria continua vindo do catÃ¡logo (dado, nunca lista fixa): ela sÃ³ deixou de ser seÃ§Ã£o
-e virou opÃ§Ã£o de filtro. Item sem preÃ§o fica exposto para consulta com o selo "Recompensa de
-missÃ£o" no lugar do botÃ£o â€” a mesma guarda existe no backend.{% endcomment %}
+A categoria continua vindo do catálogo (dado, nunca lista fixa): ela só deixou de ser seção
+e virou opção de filtro. Item sem preço fica exposto para consulta com o selo "Recompensa de
+missão" no lugar do botão — a mesma guarda existe no backend.{% endcomment %}
 <div class="shop" data-shop-root data-shop-kind="mundano">
 
-  {% include 'home/partials/_mercado_balcao.html' with balcao_titulo='Armaria & ProvisÃµes' %}
+  {% include 'home/partials/_mercado_balcao.html' with balcao_titulo='Armaria & Provisões' %}
 
   <div class="mkt-browse">
     {% if mercado_ativo %}
@@ -24,16 +24,16 @@ missÃ£o" no lugar do botÃ£o â€” a mesma guarda existe no backend.{% end
     <div class="mkt-pane" data-shop-pane="comprar" role="tabpanel">
       <div class="mkt-tools">
         <input type="search" class="mkt-search" data-shop-search autocomplete="off"
-               placeholder="Buscar item pelo nomeâ€¦" aria-label="Buscar item">
+               placeholder="Buscar item pelo nome…" aria-label="Buscar item">
         <select class="mkt-select" data-shop-group aria-label="Filtrar por categoria">
           <option value="todas">Todas as categorias</option>
           {% for g in grupos_filtro %}
           <option value="{{ g.value }}">{{ g.label }} ({{ g.total }})</option>
           {% endfor %}
         </select>
-        {% if market_favorites_enabled %}<label class="mkt-favorites-filter"><input type="checkbox" data-shop-favorites> SÃ³ favoritos</label>{% endif %}
+        {% if market_favorites_enabled %}<label class="mkt-favorites-filter"><input type="checkbox" data-shop-favorites> Só favoritos</label>{% endif %}
       </div>
-      <p class="mkt-count"><strong data-shop-count>0</strong> itens Â· setas â†‘â†“ navegam</p>
+      <p class="mkt-count"><strong data-shop-count>0</strong> itens · setas ↑↓ navegam</p>
 
       <ul class="mkt-list" data-shop-list>
         {% for item in itens %}
@@ -43,9 +43,9 @@ missÃ£o" no lugar do botÃ£o â€” a mesma guarda existe no backend.{% end
                   data-group="{{ item.grupo_id }}" aria-selected="false"
                   data-search="{{ item.nome|lower }} {{ item.cat_label|lower }} {{ item.sub_label|lower }}">
             <span class="mkt-row-name" title="{{ item.nome }}">{{ item.nome }}</span>
-            <span class="mkt-row-meta">{{ item.sub_label|default:item.cat_label }}{% if item.mec_dano %} Â· {{ item.mec_dano }}{% elif item.mec_ca %} Â· CA {{ item.mec_ca }}{% endif %}</span>
+            <span class="mkt-row-meta">{{ item.sub_label|default:item.cat_label }}{% if item.mec_dano %} · {{ item.mec_dano }}{% elif item.mec_ca %} · CA {{ item.mec_ca }}{% endif %}</span>
             {% if item.preco_display %}<span class="mkt-row-price">{{ item.preco_display }}</span>
-            {% else %}<span class="mkt-row-price is-mission">missÃ£o</span>{% endif %}
+            {% else %}<span class="mkt-row-price is-mission">missão</span>{% endif %}
           </button>
         </li>
         {% endfor %}
@@ -61,16 +61,16 @@ missÃ£o" no lugar do botÃ£o â€” a mesma guarda existe no backend.{% end
     {% endif %}
   </div>
 
-  {# PAINEL DE DESTAQUE: prÃ©via do item â€” coluna sticky no desktop, folha no mobile. #}
+  {# PAINEL DE DESTAQUE: prévia do item — coluna sticky no desktop, folha no mobile. #}
   <aside class="mkt-preview" data-shop-preview>
     <button type="button" class="mkt-sheet-close" data-shop-sheet-close>Fechar</button>
     <div class="mkt-preview-inner" data-shop-detail>
-      <p class="mkt-preview-empty">Escolha um item na lista para ver a prÃ©via completa aqui.</p>
+      <p class="mkt-preview-empty">Escolha um item na lista para ver a prévia completa aqui.</p>
     </div>
   </aside>
 
-  {# PrÃ©via de cada item, server-side, clonada no painel ao selecionar. #}
-  {# `spaceless` porque isto repete por item: a indentaÃ§Ã£o sozinha custaria dezenas de KB. #}
+  {# Prévia de cada item, server-side, clonada no painel ao selecionar. #}
+  {# `spaceless` porque isto repete por item: a indentação sozinha custaria dezenas de KB. #}
   <div class="mkt-store" hidden>
     {% spaceless %}
     {% for item in itens %}
@@ -81,12 +81,12 @@ missÃ£o" no lugar do botÃ£o â€” a mesma guarda existe no backend.{% end
           {% else %}<span class="mkt-sigil"><span class="mkt-sigil-letter">{{ item.nome|first|upper }}</span></span>{% endif %}
           <figcaption>{{ item.cat_label }}</figcaption>
         </figure>
-        <p class="mkt-card-kind">{{ item.cat_label }}{% if item.sub_label %} Â· {{ item.sub_label }}{% endif %}</p>
+        <p class="mkt-card-kind">{{ item.cat_label }}{% if item.sub_label %} · {{ item.sub_label }}{% endif %}</p>
         <h3 class="mkt-card-name">{{ item.nome }}</h3>
         {% if market_favorites_enabled %}
         <form method="post" action="{% url 'market_item_favorite' 'mundano' item.id_item %}" class="mkt-favorite-form" data-shop-favorite data-target="mu-{{ item.id_item }}">
           {% csrf_token %}<input type="hidden" name="favorite" value="{% if item.is_favorite %}false{% else %}true{% endif %}">
-          <button type="submit" class="mkt-favorite-btn" aria-pressed="{% if item.is_favorite %}true{% else %}false{% endif %}">{% if item.is_favorite %}â˜… Favorito{% else %}â˜† Salvar favorito{% endif %}</button>
+          <button type="submit" class="mkt-favorite-btn" aria-pressed="{% if item.is_favorite %}true{% else %}false{% endif %}">{% if item.is_favorite %}★ Favorito{% else %}☆ Salvar favorito{% endif %}</button>
         </form>
         {% endif %}
         <div class="mkt-deal">
@@ -102,7 +102,7 @@ missÃ£o" no lugar do botÃ£o â€” a mesma guarda existe no backend.{% end
             </form>
             {% endif %}
           {% else %}
-            <span class="mkt-seal">Recompensa de missÃ£o</span>
+            <span class="mkt-seal">Recompensa de missão</span>
           {% endif %}
         </div>
         {% if item.mec_dano or item.mec_ca or item.peso or item.mec_forca_minima %}
@@ -110,7 +110,7 @@ missÃ£o" no lugar do botÃ£o â€” a mesma guarda existe no backend.{% end
           {% if item.mec_dano %}<div><dt>Dano</dt><dd>{{ item.mec_dano }}</dd></div>{% endif %}
           {% if item.mec_ca %}<div><dt>Armadura</dt><dd>CA {{ item.mec_ca }}</dd></div>{% endif %}
           {% if item.peso %}<div><dt>Peso</dt><dd>{{ item.peso }} kg</dd></div>{% endif %}
-          {% if item.mec_forca_minima %}<div><dt>ForÃ§a mÃ­n.</dt><dd>{{ item.mec_forca_minima }}</dd></div>{% endif %}
+          {% if item.mec_forca_minima %}<div><dt>Força mín.</dt><dd>{{ item.mec_forca_minima }}</dd></div>{% endif %}
         </dl>
         {% endif %}
         {% if item.mec_propriedades %}<p class="mkt-card-line"><strong>Propriedades:</strong> {{ item.mec_propriedades }}</p>{% endif %}
@@ -119,7 +119,7 @@ missÃ£o" no lugar do botÃ£o â€” a mesma guarda existe no backend.{% end
         {% if item.descricao_markdown %}
         <div class="bonfire-markdown mkt-desc" data-markdown-source>{{ item.descricao_markdown|escape }}</div>
         {% else %}
-        <p class="mkt-card-line"><em>Sem descriÃ§Ã£o catalogada.</em></p>
+        <p class="mkt-card-line"><em>Sem descrição catalogada.</em></p>
         {% endif %}
         {% if request.user.is_superuser %}
         <details class="mkt-inline-editor">
@@ -131,9 +131,9 @@ missÃ£o" no lugar do botÃ£o â€” a mesma guarda existe no backend.{% end
             <label>Categoria<select name="categoria">{% for value,label in categorias_item_mundano %}<option value="{{ value }}"{% if item.categoria == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
             <label>Subcategoria<input name="subcategoria" value="{{ item.subcategoria|default:'' }}"></label>
             <label>Peso<input name="peso" type="number" step="0.001" value="{{ item.peso|default_if_none:'' }}"></label>
-            <label>PreÃ§o<input name="preco" value="{{ item.preco|default:'' }}"></label>
+            <label>Preço<input name="preco" value="{{ item.preco|default:'' }}"></label>
             <label class="is-wide">Imagem<input name="imagem_url" value="{{ item.imagem_url|default:'' }}"></label>
-            <label class="is-wide">DescriÃ§Ã£o<textarea name="descricao_markdown" rows="8">{{ item.descricao_markdown|default:'' }}</textarea></label>
+            <label class="is-wide">Descrição<textarea name="descricao_markdown" rows="8">{{ item.descricao_markdown|default:'' }}</textarea></label>
             <label class="is-wide">Tags, uma por linha<textarea name="tags_json" rows="8">{% for tag in item.tags_json %}{{ tag }}{% if not forloop.last %}
 {% endif %}{% endfor %}</textarea></label>
             <div class="mkt-inline-actions"><button type="button" class="mkt-btn" data-item-editor-cancel>Cancelar</button><button type="submit" class="mkt-btn is-buy">Salvar item</button><span data-item-editor-status role="status" tabindex="-1" hidden></span></div>

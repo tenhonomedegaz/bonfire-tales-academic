@@ -32,7 +32,7 @@
         paragraph.replaceWith(fragment);
       });
 
-      const title = card.querySelector('[data-feature-title]')?.textContent.replace(/^NÃ­vel\s+\d+:\s*/, '').trim();
+      const title = card.querySelector('[data-feature-title]')?.textContent.replace(/^Nível\s+\d+:\s*/, '').trim();
       body.querySelectorAll('h1,h2,h3,h4,h5,h6').forEach(heading => {
         if (heading.textContent.trim() === title) heading.remove();
       });
@@ -56,7 +56,7 @@
           heading.append(...onlyChild.childNodes);
           paragraph.replaceWith(heading);
         } else if (onlyChild?.tagName === 'EM' && paragraph.childElementCount === 1
-                   && onlyChild.textContent.trim() === text && /^["â€œ]/.test(text)) {
+                   && onlyChild.textContent.trim() === text && /^["“]/.test(text)) {
           paragraph.classList.add('bonfire-class-flavor');
         }
       });
@@ -64,7 +64,7 @@
       if (isManifestation) {
         // The revised familiar rules contain six definitions in a single
         // paragraph. Lay out those exact source labels as separate list items.
-        const familiarTypes = ['AberraÃ§Ã£o', 'Celestial', 'DragÃ£o', 'Fada', 'Ãnfero', 'Morto-Vivo'];
+        const familiarTypes = ['Aberração', 'Celestial', 'Dragão', 'Fada', 'Ínfero', 'Morto-Vivo'];
         body.querySelectorAll('p').forEach(paragraph => {
           const labels = [...paragraph.children].filter(child => child.tagName === 'STRONG'
             && familiarTypes.includes(child.textContent.trim()));
@@ -82,8 +82,8 @@
           });
           paragraph.replaceWith(intro, list);
         });
-        const choices = new Map([['Arma MÃ­stica', 'arma'], ['Contrato MÃ­stico', 'contrato'],
-          ['Livro MÃ­stico', 'livro'], ['Marca MÃ­stica', 'marca']]);
+        const choices = new Map([['Arma Mística', 'arma'], ['Contrato Místico', 'contrato'],
+          ['Livro Místico', 'livro'], ['Marca Mística', 'marca']]);
         let section = null;
         [...body.childNodes].forEach(node => {
           const slug = /^H[4-6]$/.test(node.nodeName) && choices.get(node.textContent.trim());
@@ -113,7 +113,7 @@
     // Fix trait bullet points
     document.querySelectorAll('.trait-value').forEach(el => {
       // Handle both start of string and after <br>
-      el.innerHTML = el.innerHTML.replace(/(^|<br>\s*)-\s+/g, '$1â€¢ ');
+      el.innerHTML = el.innerHTML.replace(/(^|<br>\s*)-\s+/g, '$1• ');
     });
 
     const subclassButtons = Array.from(document.querySelectorAll('[data-subclass-toggle]'));
@@ -169,7 +169,7 @@
     const featureEmpty = document.querySelector('[data-class-feature-empty]');
     const normalizeSearch = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
     const levels = [...new Set(featureCards.map(card => Number(card.dataset.featureLevel)))].sort((a,b) => a-b);
-    levels.forEach(level => { const option = document.createElement('option'); option.value = String(level); option.textContent = `NÃ­vel ${level}`; featureLevel?.append(option); });
+    levels.forEach(level => { const option = document.createElement('option'); option.value = String(level); option.textContent = `Nível ${level}`; featureLevel?.append(option); });
     document.querySelector('[data-class-feature-filters]')?.removeAttribute('hidden');
     featureSearch?.addEventListener('input', applyBaseFeatureVisibility);
     featureLevel?.addEventListener('change', applyBaseFeatureVisibility);
@@ -281,8 +281,8 @@
         button.setAttribute('aria-pressed', String(button.dataset.manifestationToggle === slug));
       });
       if (manifestationStatus) manifestationStatus.textContent = slug
-        ? `${manifestationButtons.find(button => button.dataset.manifestationToggle === slug)?.textContent.trim()} Â· nÃ­veis 1, 3 e 18`
-        : 'Comparando as quatro manifestaÃ§Ãµes Â· nÃ­veis 1, 3 e 18';
+        ? `${manifestationButtons.find(button => button.dataset.manifestationToggle === slug)?.textContent.trim()} · níveis 1, 3 e 18`
+        : 'Comparando as quatro manifestações · níveis 1, 3 e 18';
       updateSpecializationOnlyToggle();
       applyBaseFeatureVisibility();
       if (!initial && anchorTop !== null) requestAnimationFrame(() => {
@@ -375,9 +375,9 @@
           });
           const result = await response.json().catch(() => ({}));
           if (!response.ok || !result.ok || !result.feature) {
-            throw new Error(result.error || 'NÃ£o foi possÃ­vel salvar a habilidade.');
+            throw new Error(result.error || 'Não foi possível salvar a habilidade.');
           }
-          title.textContent = `NÃ­vel ${result.feature.niveladquirido}: ${result.feature.nome}`;
+          title.textContent = `Nível ${result.feature.niveladquirido}: ${result.feature.nome}`;
           preview.innerHTML = renderMarkdownContent(result.feature.descricao, preview);
           form.elements.nome.defaultValue = result.feature.nome;
           form.elements.niveladquirido.defaultValue = result.feature.niveladquirido;
@@ -387,7 +387,7 @@
           if (featureLevel && ![...featureLevel.options].some(option => option.value === card.dataset.featureLevel)) {
             const option = document.createElement('option');
             option.value = card.dataset.featureLevel;
-            option.textContent = `NÃ­vel ${result.feature.niveladquirido}`;
+            option.textContent = `Nível ${result.feature.niveladquirido}`;
             featureLevel.append(option);
           }
           if (featureSearch) featureSearch.value = '';
@@ -397,7 +397,7 @@
           edit.setAttribute('aria-expanded', 'false');
           edit.focus();
         } catch (failure) {
-          error.textContent = failure.message || 'NÃ£o foi possÃ­vel salvar a habilidade.';
+          error.textContent = failure.message || 'Não foi possível salvar a habilidade.';
           error.hidden = false;
           error.focus();
         } finally {
@@ -489,7 +489,7 @@
     if (classSearchStatus) {
       classSearchStatus.textContent = query || classAttribute
         ? (visibleCount ? `${visibleCount} classe${visibleCount === 1 ? '' : 's'} encontrada${visibleCount === 1 ? '' : 's'}.` : 'Nenhuma classe encontrada. Limpe a busca para tentar novamente.')
-        : `${visibleCount} classe${visibleCount === 1 ? '' : 's'} disponÃ­ve${visibleCount === 1 ? 'l' : 'is'}.`;
+        : `${visibleCount} classe${visibleCount === 1 ? '' : 's'} disponíve${visibleCount === 1 ? 'l' : 'is'}.`;
     }
     classNav?.classList.remove('class-nav-filtering');
     void classNav?.offsetWidth;
@@ -549,7 +549,7 @@
       temp.innerHTML = html;
 
       const newMain = temp.querySelector('#ajax-content-inner');
-      if (!newMain) throw new Error('ConteÃºdo de classe indisponÃ­vel.');
+      if (!newMain) throw new Error('Conteúdo de classe indisponível.');
       contentArea.replaceChildren(newMain);
 
       // Update sidebar active state
@@ -567,7 +567,7 @@
       if (updateHistory && window.location.href !== url) window.history.pushState({}, '', url);
       initPage();
       const heading = contentArea.querySelector('h1');
-      document.title = `${contentArea.querySelector('[data-class-catalog]') ? 'Classes' : heading?.textContent.trim()} Â· Bonfire Tales RPG`;
+      document.title = `${contentArea.querySelector('[data-class-catalog]') ? 'Classes' : heading?.textContent.trim()} · Bonfire Tales RPG`;
       if(heading) {
         heading.tabIndex = -1;
         heading.focus({preventScroll:true});

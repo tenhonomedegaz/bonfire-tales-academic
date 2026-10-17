@@ -1,7 +1,7 @@
 {% load static %}
 {% include 'home/partials/complementary_nav.html' %}
 <header class="cp-hero cp-institution-hero{% if pagina == 'contato' %} cp-contact-hero{% endif %}">
-  <div><p class="cp-eyebrow">{% if pagina == 'sobre' %}Bonfire Tales RPG Â· Um mundo compartilhado{% else %}Bonfire Tales RPG Â· Estamos por perto{% endif %}</p><h1>{{ page_title }}</h1><p>{{ meta_description }}</p></div>
+  <div><p class="cp-eyebrow">{% if pagina == 'sobre' %}Bonfire Tales RPG · Um mundo compartilhado{% else %}Bonfire Tales RPG · Estamos por perto{% endif %}</p><h1>{{ page_title }}</h1><p>{{ meta_description }}</p></div>
   {% if pagina == 'sobre' %}<div class="cp-about-art"><img src="{% static 'brand/campfire.webp' %}" alt="Aventureiros reunidos ao redor de uma fogueira" decoding="async"></div>{% else %}<span class="cp-hero-icon">{% include 'home/partials/complementary_icon.html' with kind='mail' %}</span>{% endif %}
 </header>
 <div class="cp-institution-layout">
@@ -9,10 +9,10 @@
     {% if bloco.titulo and bloco.titulo != page_title %}<h2>{{ bloco.titulo }}</h2>{% endif %}
     {% if bloco.subtitulo %}<p class="cp-lead">{{ bloco.subtitulo }}</p>{% endif %}
     {% if bloco.conteudo_markdown %}<div class="bonfire-markdown cp-prose" data-markdown-source>{{ bloco.conteudo_markdown }}</div>{% endif %}
-    {% if bloco.cta_texto and bloco.safe_cta_url %}<a class="cp-button" href="{{ bloco.safe_cta_url }}">{{ bloco.cta_texto }} <span aria-hidden="true">â†—</span></a>{% endif %}
+    {% if bloco.cta_texto and bloco.safe_cta_url %}<a class="cp-button" href="{{ bloco.safe_cta_url }}">{{ bloco.cta_texto }} <span aria-hidden="true">↗</span></a>{% endif %}
   </article>{% endfor %}</div>
   <aside class="cp-guide" aria-label="{% if pagina == 'sobre' %}Explore a comunidade{% else %}Antes de entrar em contato{% endif %}">
-  {% if pagina == 'sobre' %}<span class="cp-guide-icon">{% include 'home/partials/complementary_icon.html' with kind='flame' %}</span><p class="cp-eyebrow">Uma fogueira. Muitas histÃ³rias.</p><h2>Encontre seu lugar em CinÃ©ria.</h2><p>ConheÃ§a o mundo, prepare seu personagem e encontre a prÃ³xima aventura.</p><a href="{% url 'criacao_ficha' %}">Criar meu personagem <span aria-hidden="true">â†’</span></a><a href="{% url 'sistemas_missoes' %}">MissÃµes e ranks <span aria-hidden="true">â†’</span></a><a href="{% url 'mapa' %}">Explorar o atlas <span aria-hidden="true">â†’</span></a><p class="cp-guide-small">Jogar Ã© gratuito. Colaborar Ã© uma escolha.</p>
-  {% else %}<span class="cp-guide-icon">{% include 'home/partials/complementary_icon.html' with kind='shield' %}</span><p class="cp-eyebrow">Para ajudar a equipe</p><h2>Conte o que aconteceu.</h2><ol><li>Informe a pÃ¡gina ou a aÃ§Ã£o que estava tentando realizar.</li><li>Descreva o problema e o resultado esperado.</li><li>Se necessÃ¡rio, envie uma captura sem informaÃ§Ãµes sensÃ­veis.</li></ol><p class="cp-safety">Nunca compartilhe senhas, cÃ³digos de acesso ou dados completos de pagamento.</p><a href="{% url 'password_reset' %}">Precisa recuperar o acesso? <span aria-hidden="true">â†’</span></a>
+  {% if pagina == 'sobre' %}<span class="cp-guide-icon">{% include 'home/partials/complementary_icon.html' with kind='flame' %}</span><p class="cp-eyebrow">Uma fogueira. Muitas histórias.</p><h2>Encontre seu lugar em Cinéria.</h2><p>Conheça o mundo, prepare seu personagem e encontre a próxima aventura.</p><a href="{% url 'criacao_ficha' %}">Criar meu personagem <span aria-hidden="true">→</span></a><a href="{% url 'sistemas_missoes' %}">Missões e ranks <span aria-hidden="true">→</span></a><a href="{% url 'mapa' %}">Explorar o atlas <span aria-hidden="true">→</span></a><p class="cp-guide-small">Jogar é gratuito. Colaborar é uma escolha.</p>
+  {% else %}<span class="cp-guide-icon">{% include 'home/partials/complementary_icon.html' with kind='shield' %}</span><p class="cp-eyebrow">Para ajudar a equipe</p><h2>Conte o que aconteceu.</h2><ol><li>Informe a página ou a ação que estava tentando realizar.</li><li>Descreva o problema e o resultado esperado.</li><li>Se necessário, envie uma captura sem informações sensíveis.</li></ol><p class="cp-safety">Nunca compartilhe senhas, códigos de acesso ou dados completos de pagamento.</p><a href="{% url 'password_reset' %}">Precisa recuperar o acesso? <span aria-hidden="true">→</span></a>
   {% endif %}</aside>
 </div>
