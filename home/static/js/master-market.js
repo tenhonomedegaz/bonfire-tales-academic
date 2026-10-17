@@ -21,15 +21,18 @@
     area=key;
     areas.forEach(panel=>panel.hidden=panel.id!=='mm-area-'+key);
     tabs.forEach(tab=>{const chosen=tab.dataset.mmArea===key;tab.classList.toggle('is-active',chosen);if(chosen)tab.setAttribute('aria-current','page');else tab.removeAttribute('aria-current');});
-    if(update)syncUrl();
+    if(update)syncUrl('push');
   }
-  function syncUrl(){
+  function syncUrl(mode='replace'){
     const url=new URL(location.href);
     url.searchParams.set('area',area);url.searchParams.delete('m');
     if(selected)url.searchParams.set('recompensa',selected);else url.searchParams.delete('recompensa');
     if(search.value.trim())url.searchParams.set('q',search.value.trim().slice(0,160));else url.searchParams.delete('q');
     if(kind.value)url.searchParams.set('tipo',kind.value);else url.searchParams.delete('tipo');
-    url.hash='';history.replaceState(null,'',url.pathname+url.search);
+    url.hash='';
+    const next=url.pathname+url.search;
+    if(next===location.pathname+location.search+location.hash)return;
+    history[mode==='push'?'pushState':'replaceState'](history.state,'',next);
   }
   function show(key){
     const link=links.find(node=>node.dataset.key===key&&!node.hidden);
@@ -57,11 +60,11 @@
   }
   tabs.forEach(tab=>tab.addEventListener('click',event=>{if(native(event))return;event.preventDefault();setArea(tab.dataset.mmArea,true);announcement.textContent='Área '+tab.textContent.trim()+' aberta.';}));
   links.forEach(link=>{
-    link.addEventListener('click',event=>{if(native(event)||!show(link.dataset.key))return;event.preventDefault();syncUrl();announcement.textContent='Recompensa selecionada: '+link.querySelector('strong').textContent+'.';if(window.matchMedia('(max-width:760px)').matches){reader.focus({preventScroll:true});reader.scrollIntoView({block:'start',behavior:'auto'});}});
+    link.addEventListener('click',event=>{if(native(event)||!show(link.dataset.key))return;event.preventDefault();syncUrl('push');announcement.textContent='Recompensa selecionada: '+link.querySelector('strong').textContent+'.';if(window.matchMedia('(max-width:760px)').matches){reader.focus({preventScroll:true});reader.scrollIntoView({block:'start',behavior:'auto'});}});
     link.addEventListener('keydown',event=>{
       const visible=links.filter(node=>!node.hidden),index=visible.indexOf(link);
       const next=event.key==='ArrowDown'?Math.min(index+1,visible.length-1):event.key==='ArrowUp'?Math.max(index-1,0):event.key==='Home'?0:event.key==='End'?visible.length-1:null;
-      if(next===null||next<0)return;event.preventDefault();visible[next].focus();show(visible[next].dataset.key);syncUrl();
+      if(next===null||next<0)return;event.preventDefault();visible[next].focus();show(visible[next].dataset.key);syncUrl('push');
     });
   });
   search.addEventListener('input',()=>filter(true));kind.addEventListener('change',()=>filter(true));
