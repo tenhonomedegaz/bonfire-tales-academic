@@ -79,6 +79,7 @@ class Command(BaseCommand):
         payload = {
             'kind': 'G01-D-prechange', 'created_at': timezone.now(),
             'database_vendor': connection.vendor,
+            'database_name': connection.settings_dict['NAME'],
             'recent_home_migrations': [name for (name,) in migrations],
             'counts': {key: len(value) for key, value in rows.items()},
             'restore_policy': ('Restore only explicitly changed catalog/reward fields by primary key '

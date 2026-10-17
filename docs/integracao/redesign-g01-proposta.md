@@ -8,6 +8,8 @@
 - **D:** aprovado apenas em DEV isolado, inclusive o conceito da `0158`; adaptar a migration ao histórico real. Antes de tocar o banco, inventariar registros afetados e preparar reversão de dados. Preservar direitos adquiridos, recibos, saldo e personagens. Oferta demonstrativa não cobra.
 
 O inventário pré-mudança de D pode ser exportado com `manage.py preview_redesign_d --expected-home-head <migration_home_atual> --output <arquivo_absoluto_fora_do_repositorio.json>`. O comando exige PostgreSQL, verifica o head informado, lê em transação consistente e imprime contagens e SHA-256; o JSON guarda os valores originais de recompensas de assinatura, temas, ofertas, posses, recibos, direitos e carteira MM. Esta exportação não altera dados nem substitui a operação compensatória e a reversão específica a preparar antes de aplicar D em DEV isolado.
+
+Para a desativação das recompensas legadas de `assinatura`, `manage.py reconcile_redesign_d_rewards --snapshot <arquivo> --sha256 <hash>` mostra os IDs afetados. `--action retire --confirm G01-D-REWARDS` desativa apenas os registros do inventário; `--action restore --confirm G01-D-REWARDS` restaura somente o estado `ativo` original. O comando exige o mesmo banco PostgreSQL, compara todos os demais campos e aborta se o catálogo divergiu. Não modifica direitos, recibos, transações ou saldos. A reversão de futuros resgates e ofertas de temas ainda precisa de operação específica antes da aplicação desse trecho de D em DEV isolado.
 - **E:** somente adaptações necessárias a B/D, mantendo API, autenticação, CSRF e configuração atuais.
 - **F:** adiado; sem importação de regras, fixtures ou mecânicas.
 
