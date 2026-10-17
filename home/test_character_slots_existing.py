@@ -55,6 +55,27 @@ class ExistingCharacterSlotsTests(TestCase):
         self.assertContains(response, '2 fichas preservadas')
         self.assertNotContains(response, '#slots-g01')
 
+    def test_slot_page_manages_preserved_sheets_with_existing_actions(self):
+        self.client.force_login(self.owner)
+        slots = reverse('character_slots')
+        archive = reverse('personagem_arquivar', args=[self.active.pk])
+        restore = reverse('personagem_restaurar', args=[self.archived.pk])
+        before = self.client.get(slots)
+        self.assertContains(before, f'action="{archive}"')
+        self.assertContains(before, 'Arquive uma ficha ativa para liberar espaço.')
+        self.assertNotContains(before, f'action="{restore}"')
+        self.assertEqual(self.client.post(archive).status_code, 302)
+        after_archive = self.client.get(slots)
+        self.assertContains(after_archive, f'action="{restore}"')
+        self.assertContains(after_archive, '0 ativas')
+        self.assertEqual(self.client.post(restore).status_code, 302)
+        self.assertContains(self.client.get(slots), '2 fichas preservadas')
+        self.active.refresh_from_db()
+        self.archived.refresh_from_db()
+        self.assertTrue(self.active.arquivado)
+        self.assertFalse(self.archived.arquivado)
+        self.assertEqual(TbPersonagem.objects.filter(dono=self.owner).count(), 2)
+
     def test_character_cards_archive_and_restore_without_losing_sheets(self):
         self.client.force_login(self.owner)
         TbPersonagem.objects.filter(pk=self.active.pk).update(publico=True)

@@ -1,7 +1,7 @@
 {% extends 'home/base.html' %}{% load static %}
 {% block body_class %}bft-slots{% endblock %}
 {% block main_class %}flex-1 w-full min-w-0{% endblock %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/character-slots.css' %}?v=1">{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/character-slots.css' %}?v=2">{% endblock %}
 {% block content %}
 <section class="bf-slots" aria-labelledby="slots-title">
   <a class="bs-back" href="{% url 'personagens' %}">← Meus Personagens</a>
@@ -24,10 +24,19 @@
         <p class="bs-help">{{ retained_count }} fichas preservadas · {{ active_count }} ativas{% if not slot_details.ilimitado %} de {{ slot_limit }} permitidas{% endif %}.</p>
         <ul class="bs-rights">
           {% for character in characters %}
-          <li><a href="{% url 'ficha_detail' character.pk %}">{{ character.nome }}</a><strong>Nível {{ character.nivel }} · {% if character.arquivado %}No cofre{% else %}Ativa{% endif %}</strong></li>
+          <li class="bs-character-row">
+            <span class="bs-character-info"><a href="{% url 'ficha_detail' character.pk %}">{{ character.nome }}</a><strong>Nível {{ character.nivel }} · {% if character.arquivado %}No cofre{% else %}Ativa{% endif %}</strong></span>
+            {% if character.arquivado %}
+              {% if slot_details.ilimitado or active_count < slot_limit %}
+              <form method="post" action="{% url 'personagem_restaurar' character.pk %}">{% csrf_token %}<button type="submit">Restaurar ficha</button></form>
+              {% else %}<span class="bs-character-limit">Arquive uma ficha ativa para liberar espaço.</span>{% endif %}
+            {% else %}
+              <form method="post" action="{% url 'personagem_arquivar' character.pk %}">{% csrf_token %}<button type="submit">Arquivar ficha</button></form>
+            {% endif %}
+          </li>
           {% empty %}<li>Você ainda não possui personagens.</li>{% endfor %}
         </ul>
-        <p class="bs-help">Para arquivar ou restaurar uma ficha, use os controles em <a href="{% url 'personagens' %}">Meus Personagens</a>. Suas fichas não são excluídas ao arquivar.</p>
+        <p class="bs-help">Arquivar retira a ficha da publicação e preserva seus dados. Ao confirmar uma ação, você volta para <a href="{% url 'personagens' %}">Meus Personagens</a>, onde pode continuar a gestão.</p>
       </section>
     </div>
     <aside class="bs-panel bs-acquire" aria-labelledby="bs-acquire-title"><span class="bs-eyebrow">Direito vitalício</span><h2 id="bs-acquire-title">Mais um personagem.<br>Para sempre.</h2><p>O antigo Mestre Ouro concede um slot permanente. A compra é única e não é uma assinatura.</p><div class="bs-price"><strong>{{ slot_price_mm }} MM</strong><span>Seu saldo: {{ saldo_mm }} MM</span></div>

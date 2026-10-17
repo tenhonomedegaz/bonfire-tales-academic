@@ -50,7 +50,7 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
 
   {# ===================== CABEÇALHO (banner estilo planilha) ===================== #}
   {% include 'home/partials/_ficha_banner.html' %}
-  {% if slot_readonly_reason %}<p class="cw-slots-warning" role="status">{{ slot_readonly_reason }} <a href="#g01-character-slots">Escolher fichas ativas →</a></p>{% endif %}
+  {% if slot_readonly_reason %}<p class="cw-slots-warning" role="status">{{ slot_readonly_reason }} <a href="{% url 'character_slots' %}">Gerenciar fichas ativas →</a></p>{% endif %}
 
   {# ===================== BARRA DE ABAS ===================== #}
   <nav class="ficha-tabs" role="tablist" aria-label="Seções da ficha">
