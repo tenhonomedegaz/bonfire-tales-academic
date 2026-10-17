@@ -1,32 +1,35 @@
 {% extends 'home/base.html' %}{% load static %}
 {% block body_class %}bft-slots{% endblock %}
 {% block main_class %}flex-1 w-full min-w-0{% endblock %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/character-slots.css' %}?v=1"><script src="{% static 'js/character-slots.js' %}?v=1" defer></script>{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/character-slots.css' %}?v=1">{% endblock %}
 {% block content %}
 <section class="bf-slots" aria-labelledby="slots-title">
-  <a class="bs-back" href="{% url 'personagens' %}">â† Meus Personagens</a>
-  <header class="bs-heading"><div><p class="bs-eyebrow">HistÃ³rias que continuam</p><h1 id="slots-title">Meus slots de personagem</h1><p>Escolha quem segue para a aventura. Todas as suas fichas permanecem com vocÃª.</p></div><div class="bs-capacity"><strong>{% if slot_status.details.ilimitado %}âˆž{% else %}{{ slot_status.limite }}{% endif %}</strong><span>slots disponÃ­veis</span></div></header>
-  {% if slots_demo %}<p class="bs-notice">DemonstraÃ§Ã£o local Â· fichas e saldo fictÃ­cios. NÃ£o realiza compras nem altera contas.</p>{% endif %}
-  {% if slot_error %}<p class="bs-notice is-error" role="alert">{{ slot_error }}</p>{% endif %}
-  {% if slot_success %}<p class="bs-notice" role="status">Seu slot foi entregue. VocÃª jÃ¡ pode usÃ¡-lo.</p>{% endif %}
+  <a class="bs-back" href="{% url 'personagens' %}">← Meus Personagens</a>
+  <header class="bs-heading"><div><p class="bs-eyebrow">Histórias que continuam</p><h1 id="slots-title">Meus slots de personagem</h1><p>Consulte a capacidade reconhecida pela sua conta e as fichas que você preserva.</p></div><div class="bs-capacity"><strong>{% if slot_details.ilimitado %}∞{% else %}{{ slot_limit }}{% endif %}</strong><span>fichas ativas permitidas</span></div></header>
   <div class="bs-layout">
     <div>
-      <section class="bs-panel" aria-labelledby="bs-rights-title"><h2 id="bs-rights-title">De onde vÃªm seus slots</h2><ul class="bs-rights"><li><span>Conta Bonfire</span><strong>1 incluÃ­do</strong></li><li><span>Primeiro personagem no nÃ­vel 13</span><strong>{% if slot_status.details.nivel13 %}+1 conquistado{% else %}A conquistar{% endif %}</strong></li><li><span>Primeiro personagem no nÃ­vel 20</span><strong>{% if slot_status.details.nivel20 %}+1 conquistado{% else %}A conquistar{% endif %}</strong></li><li><span>Assinatura ativa Â· qualquer plano</span><strong>{% if slot_status.details.colaborador %}+1 temporÃ¡rio{% else %}Sem assinatura{% endif %}</strong></li><li><span>Slots adquiridos</span><strong>{{ slot_status.details.comprados }} permanentes</strong></li></ul><p class="bs-help">Os marcos valem uma Ãºnica vez por conta e nÃ£o desaparecem ao recriar ou excluir um personagem. Trocar de plano nÃ£o acumula slots de assinatura.</p></section>
-      <section class="bs-panel" aria-labelledby="bs-selection-title"><h2 id="bs-selection-title">Suas fichas ativas</h2><p class="bs-help">{{ slot_status.total }} fichas preservadas Â· {{ slot_status.ativos }} ativas{% if slot_status.limite != None %} Â· escolha atÃ© {{ slot_status.limite }}{% endif %}.</p>
-        {% if slot_status.precisa_escolher %}<p class="bs-notice">Sua capacidade mudou. Escolha quais fichas ficam ativas para voltar a jogar. Nenhuma serÃ¡ excluÃ­da.</p>{% endif %}
-        <form method="post" data-slot-selection data-limit="{% if slot_status.details.ilimitado %}99999{% else %}{{ slot_status.limite }}{% endif %}"{% if slots_demo %} data-demo="true"{% endif %}>{% csrf_token %}<input type="hidden" name="action" value="select">
-          <fieldset><legend class="sr-only">Selecione suas fichas ativas</legend>{% for character in characters %}<label class="bs-character"><input type="checkbox" name="characters" value="{{ character.pk }}"{% if not character.arquivado %} checked{% endif %}><span><strong>{{ character.nome }}</strong><small>NÃ­vel {{ character.nivel }} Â· {% if character.arquivado %}Preservada para consulta{% else %}Ativa{% endif %}</small></span></label>{% empty %}<p>VocÃª ainda nÃ£o possui personagens.</p>{% endfor %}</fieldset>
-          {% if characters %}<p class="bs-selection-status" role="status" aria-live="polite" data-selection-status></p><button type="submit" class="bs-button">{% if slots_demo %}Experimentar seleÃ§Ã£o{% else %}Confirmar fichas ativas{% endif %}</button>{% endif %}
-        </form><p class="bs-help">Fichas inativas continuam consultÃ¡veis, mas nÃ£o participam de compras, treinos ou progressÃ£o. Inativar nÃ£o libera capacidade para criar fichas ilimitadas. Ao inativar, a ficha deixa de ser pÃºblica; reativar nÃ£o a publica automaticamente.</p>
+      <section class="bs-panel" aria-labelledby="bs-rights-title">
+        <h2 id="bs-rights-title">De onde vêm seus slots</h2>
+        <ul class="bs-rights">
+          <li><span>Conta Bonfire</span><strong>{{ slot_details.base }} incluído</strong></li>
+          <li><span>Rank Esmeralda</span><strong>{% if slot_details.esmeralda %}+1 ativo{% else %}Não ativo{% endif %}</strong></li>
+          <li><span>Colaboração ativa</span><strong>{% if slot_details.colaborador %}+1 temporário{% else %}Não ativa{% endif %}</strong></li>
+          <li><span>Compra vitalícia Mestre Ouro</span><strong>{% if slot_details.mestre_ouro %}+1 permanente{% else %}Sem direito registrado{% endif %}</strong></li>
+        </ul>
+        <p class="bs-help">A compra vitalícia já registrada continua valendo. Nenhuma nova cobrança é feita aqui. Os marcos de nível do novo pacote aguardam reconciliação com os direitos existentes antes de entrarem no cálculo.</p>
+      </section>
+      <section class="bs-panel" aria-labelledby="bs-selection-title">
+        <h2 id="bs-selection-title">Suas fichas</h2>
+        <p class="bs-help">{{ retained_count }} fichas preservadas · {{ active_count }} ativas{% if not slot_details.ilimitado %} de {{ slot_limit }} permitidas{% endif %}.</p>
+        <ul class="bs-rights">
+          {% for character in characters %}
+          <li><a href="{% url 'ficha_detail' character.pk %}">{{ character.nome }}</a><strong>Nível {{ character.nivel }} · {% if character.arquivado %}No cofre{% else %}Ativa{% endif %}</strong></li>
+          {% empty %}<li>Você ainda não possui personagens.</li>{% endfor %}
+        </ul>
+        <p class="bs-help">Para arquivar ou restaurar uma ficha, use os controles em <a href="{% url 'personagens' %}">Meus Personagens</a>. Suas fichas não são excluídas ao arquivar.</p>
       </section>
     </div>
-    <aside class="bs-panel bs-acquire" aria-labelledby="bs-acquire-title"><span class="bs-eyebrow">Uma nova histÃ³ria</span><h2 id="bs-acquire-title">Mais um personagem.<br>Para sempre.</h2><p>Um slot adicional permanente para sua conta. Sem mensalidade.</p><div class="bs-price"><strong>R$ 24,99</strong><span>ou 5.000 MM</span></div><p class="bs-help">As duas opÃ§Ãµes entregam o mesmo direito. NÃ£o existe conversÃ£o geral entre MM e reais.</p>
-      {% if not commerce_enabled %}<p class="bs-notice">AquisiÃ§Ãµes em preparaÃ§Ã£o. Nenhum valor serÃ¡ cobrado nesta revisÃ£o.</p>{% endif %}
-      <button type="button" class="bs-button" disabled title="IntegraÃ§Ã£o financeira ainda desativada">Adquirir com Pix ou cartÃ£o</button>
-      <form method="post">{% csrf_token %}<input type="hidden" name="action" value="buy_mm"><input type="hidden" name="request_key" value="{{ request_key }}"><button class="bs-button is-secondary"{% if not commerce_enabled or saldo_mm < 5000 %} disabled{% endif %}>Confirmar por 5.000 MM</button></form><p class="bs-help">Seu saldo: {{ saldo_mm }} MM. O dÃ©bito sÃ³ ocorre apÃ³s sua confirmaÃ§Ã£o.</p>
-      <hr><h3>TambÃ©m faz parte da colaboraÃ§Ã£o</h3><p class="bs-help">Desde o primeiro plano, uma assinatura ativa inclui um slot temporÃ¡rio. Se ela terminar, suas fichas sÃ£o preservadas e vocÃª escolhe quais ficam ativas.</p><a class="bs-back" href="{% url 'colaborador' %}">Conhecer os planos â†’</a>
-    </aside>
+    <aside class="bs-panel bs-acquire" aria-labelledby="bs-acquire-title"><span class="bs-eyebrow">Direitos existentes</span><h2 id="bs-acquire-title">Seu histórico continua</h2><p>O slot vitalício de Mestre Ouro é reconhecido quando há direito registrado na conta. Consulte seu histórico e sua carteira na <a href="{% url 'colaborador' %}">área de colaboração</a>.</p><p class="bs-notice">Novas aquisições de slot estão em preparação. Esta página não realiza pagamento nem débito de MM.</p></aside>
   </div>
 </section>
 {% endblock %}
-

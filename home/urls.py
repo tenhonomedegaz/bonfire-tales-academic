@@ -8,6 +8,7 @@ from . import master_portfolio
 from . import theme_studio
 from . import master_commercial
 from . import subscription_views
+from . import slot_views
 
 urlpatterns = [
     path('atelie/', theme_studio.theme_studio, name='theme_studio'),
@@ -135,6 +136,7 @@ urlpatterns = [
     path('jogador/talentos/', views.talentos_view, name='jogador_talentos'),
     path('jogador/talentos', views.talentos_view),
     path('jogador/personagens/', views.personagens_list_view, name='personagens'),
+    path('jogador/personagens/slots/', slot_views.character_slots, name='character_slots'),
     path('jogador/personagens/<int:pk>/', views.ficha_detail_view, name='ficha_detail'),
     path('personagens/<int:pk>/publico/', views.ficha_publica_view, name='ficha_publica'),
     path('jogador/personagens/<int:pk>/publicacao/', views.personagem_publicacao_view, name='personagem_publicacao'),

@@ -5909,6 +5909,7 @@ def personagens_list_view(request):
         'limite': perms.get_character_limit(request.user),
         'limite_detalhe': perms.limite_detalhe(request.user),
         'slots_usados': len(ativos),
+        'fichas_preservadas': len(minhas),
         'pode_criar': perms.pode_criar(request.user),
         'is_staff': perms.is_staff_user(request.user),
     }
