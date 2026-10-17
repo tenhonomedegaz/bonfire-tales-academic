@@ -1,59 +1,95 @@
 {% extends 'home/base.html' %}
 {% load static %}
 
+{% block body_class %}bft-glossary{% endblock %}
+{% block main_class %}bft-glossary-main{% endblock %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/pages/glossario.css' %}?v=1">{% endblock %}
+
 {% block content %}
-<section class="animate-fade-in max-w-4xl" data-reference-search-root>
+<section class="glo-page" data-reference-search-root>
   {% with condicoes_count=condicoes|length %}
-  <header class="mb-3 border-b border-[var(--stroke)] pb-2.5">
-    <h1 class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">Glossário do Sistema</h1>
-    <p class="mt-1 text-sm text-[var(--muted)]">{{ regras|length|add:condicoes_count }} termos pesquisáveis, incluindo regras e condições. Para os efeitos das condições, veja a <a href="{% url 'mestre_condicoes' %}" class="text-[var(--flame)] underline">página de Condições</a>.</p>
+  <header class="glo-hero">
+    <div class="glo-hero-copy">
+      <p class="glo-eyebrow">Biblioteca Â· ReferÃªncia do sistema</p>
+      <h1>GlossÃ¡rio do Sistema</h1>
+      <p class="glo-intro">As palavras que dÃ£o forma Ã s regras de CinÃ©ria. Encontre uma aÃ§Ã£o, esclareÃ§a um termo ou consulte os efeitos de uma condiÃ§Ã£o.</p>
+      <div class="glo-hero-meta"><span>{{ regras|length|add:condicoes_count }} termos</span><span>{{ regras|length }} regras</span><span>{{ condicoes_count }} condiÃ§Ãµes</span></div>
+    </div>
+    <div class="glo-hero-symbol" aria-hidden="true"><svg viewBox="0 0 96 96" fill="none"><path d="M48 7 84 28v40L48 89 12 68V28L48 7Z M48 7v82M12 28l36 19 36-19M12 68l36-21 36 21"/><path d="M28 36 48 17l20 19M28 60l20 19 20-19"/></svg></div>
   </header>
 
-  <div class="sticky top-2 z-10 mb-3">
-    <label for="glo-busca" class="sr-only">Buscar no glossário</label>
-    <input id="glo-busca" type="search" data-reference-query placeholder="Buscar termo ou efeito (PT ou inglês)…" autocomplete="off"
-           aria-describedby="glo-resultados"
-           class="w-full rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] px-3 py-2 text-[var(--text)] shadow focus:border-[var(--ember)] focus:outline-none">
-    <p id="glo-resultados" class="mt-1 text-xs text-[var(--muted)]" role="status" aria-live="polite"><span id="glo-count" data-reference-count>{{ regras|length|add:condicoes_count }}</span> termos</p>
-  </div>
-
-  <div id="glo-lista" class="space-y-2">
-    {% for r in regras %}
-      <article id="regra-{{ r.slug }}" data-reference-item class="glo-item scroll-mt-20 rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-2.5"
-               data-busca="{{ r.nome|lower }} {{ r.nome_en|lower }}">
-        <div class="flex flex-wrap items-baseline justify-between gap-x-2">
-          <h2 class="font-serif font-bold text-[var(--text)]">{{ r.nome }}</h2>
-          <span class="text-xs text-[var(--muted)]">{{ r.nome_en }}{% if r.categoria %} · {{ r.categoria }}{% endif %}</span>
-        </div>
-        <div class="bonfire-markdown mt-1 text-sm text-[var(--muted)]" data-markdown-source>{{ r.definicao|escape }}</div>
-      </article>
-    {% endfor %}
-    <p id="glo-vazio" data-reference-empty class="hidden rounded border border-dashed border-[var(--stroke)] px-3 py-4 text-center text-sm text-[var(--muted)]">Nenhum termo encontrado.</p>
-  </div>
-
-  {% if condicoes %}
-  <section id="glo-condicoes" data-reference-group class="mt-6 border-t border-[var(--stroke)] pt-4">
-    <h2 class="font-serif text-xl font-bold text-[var(--ember)]">Condições</h2>
-    <div class="mt-3 space-y-2">
-      {% for c in condicoes %}
-      <article id="condicao-{{ c.slug }}" data-reference-item class="glo-item scroll-mt-20 rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-2.5"
-               data-busca="{{ c.nome|lower }} {{ c.nome_en|lower }}">
-        <div class="flex flex-wrap items-baseline justify-between gap-x-2">
-          <h3 class="font-serif font-bold text-[var(--text)]">{{ c.nome }}</h3>
-          {% if c.nome_en %}<span class="text-xs text-[var(--muted)]">{{ c.nome_en }}</span>{% endif %}
-        </div>
-        <div class="bonfire-markdown mt-1 text-sm text-[var(--muted)]" data-markdown-source>{{ c.definicao|default:c.resumo|escape }}</div>
-        {% for efeito in c.efeitos_json %}
-        <p class="mt-2 text-sm text-[var(--muted)]"><strong class="text-[var(--text)]">{{ efeito.titulo }}.</strong> {{ efeito.texto }}</p>
-        {% endfor %}
-        <a href="{% url 'mestre_condicoes' %}#cond-{{ c.slug }}" class="mt-2 inline-flex text-sm font-semibold text-[var(--ember)] hover:underline">Ver efeitos da condição</a>
-      </article>
-      {% endfor %}
+  <div class="glo-toolbar">
+    <div class="glo-search">
+      <label for="glo-busca">Buscar no glossÃ¡rio</label>
+      <div class="glo-search-field">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>
+        <input id="glo-busca" type="search" data-reference-query placeholder="Termo, traduÃ§Ã£o ou efeitoâ€¦" autocomplete="off" aria-describedby="glo-resultados">
+      </div>
     </div>
-  </section>
-  {% endif %}
-</section>
-  {% endwith %}
+    <p id="glo-resultados" class="glo-result-count" role="status" aria-live="polite"><span id="glo-count" data-reference-count>{{ regras|length|add:condicoes_count }}</span> termos encontrados</p>
+  </div>
 
+  <div class="glo-layout">
+    <aside class="glo-sidebar" aria-label="Ãndice do glossÃ¡rio">
+      <details class="glo-index-panel" open>
+        <summary>Ãndice de termos <span aria-hidden="true">âŒ„</span></summary>
+        <nav class="glo-index" aria-label="Ir para um termo">
+          <div class="glo-index-group">
+            <p class="glo-index-heading">Regras <span>{{ regras|length }}</span></p>
+            {% for r in regras %}<a data-reference-link href="#regra-{{ r.slug }}">{{ r.nome }}</a>{% endfor %}
+          </div>
+          {% if condicoes %}<div class="glo-index-group">
+            <p class="glo-index-heading">CondiÃ§Ãµes <span>{{ condicoes_count }}</span></p>
+            {% for c in condicoes %}<a data-reference-link href="#condicao-{{ c.slug }}">{{ c.nome }}</a>{% endfor %}
+          </div>{% endif %}
+        </nav>
+      </details>
+    </aside>
+
+    <div class="glo-reading">
+      <section class="glo-section" data-reference-group aria-labelledby="glo-regras-titulo">
+        <div class="glo-section-head"><div><p class="glo-section-eyebrow">Fundamentos do jogo</p><h2 id="glo-regras-titulo">Regras e termos</h2></div><span class="glo-section-total">{{ regras|length }} entradas</span></div>
+        <div id="glo-lista" class="glo-entry-list">
+          {% for r in regras %}
+          <article id="regra-{{ r.slug }}" tabindex="-1" data-reference-item class="glo-item glo-rule" data-busca="{{ r.nome|lower }} {{ r.nome_en|lower }}">
+            <header class="glo-item-head">
+              <div class="glo-item-labels"><span class="glo-type">Regra</span>{% if r.categoria %}<span class="glo-category">{{ r.categoria }}</span>{% endif %}</div>
+              <h3>{{ r.nome }} <a class="glo-permalink" href="#regra-{{ r.slug }}" aria-label="Link para {{ r.nome }}">#</a></h3>
+              {% if r.nome_en %}<p class="glo-translation">{{ r.nome_en }}</p>{% endif %}
+            </header>
+            <div class="glo-definition bonfire-markdown" data-markdown-source>{{ r.definicao|escape }}</div>
+          </article>
+          {% endfor %}
+        </div>
+      </section>
+
+      {% if condicoes %}
+      <section id="glo-condicoes" class="glo-section glo-conditions" data-reference-group aria-labelledby="glo-condicoes-titulo">
+        <div class="glo-section-head"><div><p class="glo-section-eyebrow">Estados em jogo</p><h2 id="glo-condicoes-titulo">CondiÃ§Ãµes</h2></div><span class="glo-section-total">{{ condicoes_count }} entradas</span></div>
+        <p class="glo-section-intro">As condiÃ§Ãµes alteram o que uma criatura pode fazer. Consulte a <a href="{% url 'mestre_condicoes' %}">pÃ¡gina de CondiÃ§Ãµes</a> para a referÃªncia completa.</p>
+        <div class="glo-entry-list">
+          {% for c in condicoes %}
+          <article id="condicao-{{ c.slug }}" tabindex="-1" data-reference-item class="glo-item glo-condition" data-busca="{{ c.nome|lower }} {{ c.nome_en|lower }}">
+            <header class="glo-item-head">
+              <div class="glo-item-labels"><span class="glo-type">CondiÃ§Ã£o</span></div>
+              <h3>{{ c.nome }} <a class="glo-permalink" href="#condicao-{{ c.slug }}" aria-label="Link para {{ c.nome }}">#</a></h3>
+              {% if c.nome_en %}<p class="glo-translation">{{ c.nome_en }}</p>{% endif %}
+            </header>
+            <div class="glo-definition bonfire-markdown" data-markdown-source>{{ c.definicao|default:c.resumo|escape }}</div>
+            {% if c.efeitos_json %}<div class="glo-effects" aria-label="Efeitos da condiÃ§Ã£o">{% for efeito in c.efeitos_json %}
+              <p><strong>{{ efeito.titulo }}.</strong> {{ efeito.texto }}</p>
+            {% endfor %}</div>{% endif %}
+            <a class="glo-more" href="{% url 'mestre_condicoes' %}#cond-{{ c.slug }}">Ver efeitos da condiÃ§Ã£o <span aria-hidden="true">â†—</span></a>
+          </article>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+      <p id="glo-vazio" data-reference-empty class="glo-empty hidden">Nenhum termo encontrado. Tente outra palavra ou procure pelo nome em inglÃªs.</p>
+    </div>
+  </div>
+  {% endwith %}
+</section>
 <script defer src="{% static 'js/reference-search.js' %}?v=2"></script>
+<script defer src="{% static 'js/glossario.js' %}?v=1"></script>
 {% endblock %}

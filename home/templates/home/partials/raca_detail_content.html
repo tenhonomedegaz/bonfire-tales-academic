@@ -1,4 +1,6 @@
-{% if raca %}
+{% if vastieren %}
+  {% include 'home/partials/vastieren_detail.html' %}
+{% elif raca %}
 {% if only_traits %}
     <section class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-3">
       <h2 class="font-rpg text-lg font-bold uppercase text-[var(--text)]">{{ raca.nome }}</h2>
@@ -9,39 +11,49 @@
           <span class="mt-1 block text-[11px] font-semibold leading-snug text-[var(--text)]">{{ linhagens|length }}</span>
         </div>
         <div class="py-2">
-          <span class="block text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Permite Essência</span>
-          <span class="mt-1 block text-[11px] font-semibold leading-snug text-[var(--text)]">{% if raca.permite_essencia %}Sim{% else %}Não{% endif %}</span>
+          <span class="block text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Permite EssÃªncia</span>
+          <span class="mt-1 block text-[11px] font-semibold leading-snug text-[var(--text)]">{% if raca.permite_essencia %}Sim{% else %}NÃ£o{% endif %}</span>
         </div>
       </div>
     </section>
 {% elif only_content %}
-    <div id="raceDetailContainer" data-active-tab="lore" data-active-lineage="" data-active-essence="" data-base-image="{{ raca.image_url }}" data-base-focus-x="{{ raca.imagem_foco_x }}" data-base-focus-y="{{ raca.imagem_foco_y }}" data-race-name="{{ raca.nome }}" data-race-slug="{{ raca.slug }}">
+    <div id="raceDetailContainer" data-active-tab="lore" data-active-lineage="" data-active-essence="" data-base-image="{{ raca.image_url }}" data-base-custom-image="{{ raca.has_custom_image|yesno:'true,false' }}" data-base-focus-x="{{ raca.imagem_foco_x }}" data-base-focus-y="{{ raca.imagem_foco_y }}" data-race-name="{{ raca.nome }}" data-race-slug="{{ raca.slug }}">
+      {{ race_portraits|json_script:'racePortraitData' }}
+      <nav class="race-breadcrumb" aria-label="LocalizaÃ§Ã£o na biblioteca"><a href="{% url 'racas' %}" data-race-route>RaÃ§as</a><span aria-hidden="true">/</span><span>{{ raca.nome }}</span></nav>
 
-      <!-- ============ HERO / CABEÇALHO DA RAÇA ============ -->
+      <!-- ============ HERO / CABEÃ‡ALHO DA RAÃ‡A ============ -->
       <header class="race-hero">
         <div class="race-hero-media">
           <button id="raceArtOpen" type="button" class="race-hero-art-button" aria-label="Ver arte completa de {{ raca.nome }}"{% if not raca.image_url %} hidden{% endif %}>
             <span id="racePreviewImage" class="race-hero-thumb"{% if raca.image_url %} style="background-image: url('{{ raca.image_url }}'); background-position: {{ raca.imagem_foco_x }}% {{ raca.imagem_foco_y }}%"{% endif %}></span>
-            <span class="race-hero-art-caption">Ver arte completa</span>
+            <span class="race-hero-art-caption"><span><small id="racePreviewLabel">RaÃ§a base</small><strong id="racePreviewTitle">{{ raca.nome }}</strong><span id="racePortraitSex" class="race-portrait-sex"></span></span><span>Ampliar <span aria-hidden="true">â†—</span></span></span>
           </button>
+          <div class="race-portrait-controls" data-portrait-controls hidden>
+            <button type="button" data-portrait-prev aria-label="Mostrar a outra arte do personagem">â€¹</button>
+            <span data-portrait-position aria-live="polite" aria-atomic="true"></span>
+            <button type="button" data-portrait-next aria-label="Mostrar a outra arte do personagem">â€º</button>
+          </div>
         </div>
         <div class="race-hero-body">
+          <p class="race-kicker">POVOS DE CINÃ‰RIA <span aria-hidden="true">/</span> {{ stats.creatureType }}</p>
           <h1 data-race-title class="race-hero-title font-rpg">{{ raca.nome }}</h1>
           {% if raca.tagline %}
           <p data-race-tagline class="race-hero-tagline">"{{ raca.tagline|cut:'*'|cut:'"' }}"</p>
           {% endif %}
+          <p class="race-hero-guide">ConheÃ§a a histÃ³ria deste povo.<br>Explore suas linhagens, traÃ§os e talentos.</p>
+          <button type="button" class="race-section-jump" data-race-jump>Ir para lore, regras e talentos <span aria-hidden="true">â†“</span></button>
         </div>
       </header>
       <dialog id="raceArtDialog" class="race-art-dialog" aria-label="Arte completa">
-        <button type="button" class="race-art-dialog-close" data-race-art-close aria-label="Fechar arte">Fechar ×</button>
+        <button type="button" class="race-art-dialog-close" data-race-art-close aria-label="Fechar arte">Fechar Ã—</button>
         <img id="raceArtFullImage" alt="" loading="lazy">
       </dialog>
 
       {% if can_edit_race %}
       <div class="flex justify-end mb-2.5">
-        <button type="button" class="wiki-edit-button" data-race-edit aria-controls="raceInlineEditor" aria-expanded="false">Editar raça</button>
+        <button type="button" class="wiki-edit-button" data-race-edit aria-controls="raceInlineEditor" aria-expanded="false">Editar raÃ§a</button>
       </div>
-      <form id="raceInlineEditor" class="wiki-inline-editor" data-race-form data-race-id="{{ raca.id_raca }}">
+      <form id="raceInlineEditor" class="wiki-inline-editor" data-race-form data-race-id="{{ raca.id_raca }}" data-race-display-image="{{ raca.image_url|default:'' }}" data-race-saved-image="{{ raca.imagem_url|default:'' }}">
         <label>Nome <input name="nome" value="{{ raca.nome }}"></label>
         <label>Tagline <input name="tagline" value="{{ raca.tagline|default:'' }}"></label>
         <label>Imagem <input name="imagem_url" type="text" inputmode="url" value="{{ raca.imagem_url|default:'' }}"></label>
@@ -49,11 +61,11 @@
           <label>Foco horizontal (%) <input name="imagem_foco_x" type="number" min="0" max="100" step="1" required value="{{ raca.imagem_foco_x }}"></label>
           <label>Foco vertical (%) <input name="imagem_foco_y" type="number" min="0" max="100" step="1" required value="{{ raca.imagem_foco_y }}"></label>
         </div>
-        <div class="race-crop-previews" aria-label="Prévia dos recortes">
-          <figure><img data-race-crop-preview alt="Prévia quadrada"{% if raca.image_url %} src="{{ raca.image_url }}"{% else %} hidden{% endif %}><figcaption>Quadrado</figcaption></figure>
-          <figure><img data-race-crop-preview alt="Prévia horizontal no celular"{% if raca.image_url %} src="{{ raca.image_url }}"{% else %} hidden{% endif %}><figcaption>Celular</figcaption></figure>
+        <div class="race-crop-previews" aria-label="PrÃ©via dos recortes">
+          <figure><img data-race-crop-preview alt="PrÃ©via quadrada"{% if raca.image_url %} src="{{ raca.image_url }}"{% else %} hidden{% endif %}><figcaption>Quadrado</figcaption></figure>
+          <figure><img data-race-crop-preview alt="PrÃ©via do retrato no celular"{% if raca.image_url %} src="{{ raca.image_url }}"{% else %} hidden{% endif %}><figcaption>Celular</figcaption></figure>
         </div>
-        <label>Visão Geral <textarea name="lore_presentation">{{ raca.lore_presentation|default:'' }}</textarea></label>
+        <label>VisÃ£o Geral <textarea name="lore_presentation">{{ raca.lore_presentation|default:'' }}</textarea></label>
         <label>Roleplay <textarea name="lore_roleplay">{{ raca.lore_roleplay|default:'' }}</textarea></label>
         <label>Sociedade <textarea name="lore_society">{{ raca.lore_society|default:'' }}</textarea></label>
         <p class="wiki-inline-error" data-race-save-error role="alert" tabindex="-1" hidden></p>
@@ -64,7 +76,7 @@
       </form>
       {% endif %}
 
-      <!-- ============ FICHA RÁPIDA (STATS) ============ -->
+      <!-- ============ FICHA RÃPIDA (STATS) ============ -->
       <div class="race-stats-grid">
         <div class="race-stat-card">
           <span class="race-stat-label">Tipo</span>
@@ -79,55 +91,70 @@
           <span class="race-stat-value">{{ stats.speed }}</span>
         </div>
         <div class="race-stat-card">
-          <span class="race-stat-label">Vida Média</span>
+          <span class="race-stat-label">Vida MÃ©dia</span>
           <span class="race-stat-value">{{ stats.lifespan }}</span>
         </div>
       </div>
 
-      <!-- ============ DIVERGÊNCIA ANCESTRAL (SELETORES) ============ -->
+      <!-- ============ DIVERGÃŠNCIA ANCESTRAL (SELETORES) ============ -->
       <section class="race-divergence">
         <h3 class="race-divergence-title font-rpg">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-[var(--flame)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
-          Divergência Ancestral
+          DivergÃªncia Ancestral
         </h3>
-        <p class="race-divergence-desc">Combine uma linhagem e/ou uma essência. A escolha muda as abas abaixo.</p>
+        <p class="race-divergence-desc">Escolha um caminho para explorar a aparÃªncia, a histÃ³ria e os traÃ§os deste povo. Escolher uma linhagem limpa a essÃªncia e vice-versa; nÃ£o altera sua ficha.</p>
+        <fieldset class="race-origin-modes">
+          <legend>Como vocÃª quer explorar?</legend>
+          <label class="race-origin-choice"><input type="radio" name="race-origin-mode" value="linhagem"><span><strong>Linhagem</strong><small>ConheÃ§a as origens deste povo.</small></span></label>
+          <label class="race-origin-choice{% if not raca.permite_essencia %} is-disabled{% endif %}"><input type="radio" name="race-origin-mode" value="essencia"{% if not raca.permite_essencia %} disabled{% endif %}><span><strong>EssÃªncia</strong><small>{% if raca.permite_essencia %}Explore uma manifestaÃ§Ã£o ancestral.{% else %}IndisponÃ­vel para esta raÃ§a.{% endif %}</small></span></label>
+        </fieldset>
+        <div class="race-origin-hint" data-origin-hint>Selecione Linhagem ou EssÃªncia para ver as opÃ§Ãµes.</div>
 
         <div class="race-divergence-selects">
-          <div class="race-select-group">
+          <div class="race-select-group" data-lineage-field hidden>
             <label for="linhagemSelect">Linhagem</label>
             <select id="linhagemSelect">
               <option value="">Sem Linhagem</option>
               {% for lin in linhagens %}
-              <option value="{{ lin.slug }}" data-image="{{ lin.image_url }}" data-focus-x="{{ lin.image_focus_x }}" data-focus-y="{{ lin.image_focus_y }}" data-name="{{ lin.nome }}">{{ lin.nome }}</option>
+              <option value="{{ lin.slug }}" data-image="{{ lin.image_url }}" data-custom-image="{{ lin.has_custom_image|yesno:'true,false' }}" data-focus-x="{{ lin.image_focus_x }}" data-focus-y="{{ lin.image_focus_y }}" data-name="{{ lin.nome }}">{{ lin.nome }}</option>
               {% endfor %}
             </select>
           </div>
 
-          <div class="race-select-group">
-            <label for="essenciaSelect" class="essence-label">Essência</label>
+          <div class="race-select-group" data-essence-field hidden>
+            <label for="essenciaSelect" class="essence-label">EssÃªncia</label>
             {% if raca.permite_essencia %}
             <select id="essenciaSelect">
-              <option value="">Sem Essência</option>
+              <option value="">Sem EssÃªncia</option>
               {% for ess in essencias %}
-              <option value="{{ ess.slug }}" data-image="{{ ess.image_url }}" data-focus-x="{{ ess.image_focus_x }}" data-focus-y="{{ ess.image_focus_y }}" data-name="{{ ess.nome }}">{{ ess.nome }}</option>
+              <option value="{{ ess.slug }}" data-image="{{ ess.image_url }}" data-custom-image="{{ ess.has_custom_image|yesno:'true,false' }}" data-focus-x="{{ ess.image_focus_x }}" data-focus-y="{{ ess.image_focus_y }}" data-name="{{ ess.nome }}">{{ ess.nome }}</option>
               {% endfor %}
             </select>
             {% else %}
             <select id="essenciaSelect" disabled class="is-disabled">
-              <option value="">Essências não disponíveis</option>
+              <option value="">EssÃªncias nÃ£o disponÃ­veis</option>
             </select>
             {% endif %}
           </div>
         </div>
 
-        <div class="race-showing">
+        <div class="race-select-group race-element-field" data-element-field hidden>
+          <label for="raceElementSelect">ManifestaÃ§Ã£o elemental</label>
+          <select id="raceElementSelect">{% for value,label in race_element_options %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select>
+          <p>O elemento muda a representaÃ§Ã£o visual. As regras continuam sendo as da essÃªncia Elemental.</p>
+        </div>
+        <div class="race-showing" role="status" aria-live="polite" aria-atomic="true">
           <span class="race-showing-label">Mostrando:</span>
-          <span id="raceShowingBadge" class="race-showing-badge">Raça base</span>
+          <span id="raceShowingBadge" class="race-showing-badge">RaÃ§a base</span>
+          <span class="race-origin-actions">
+            <button type="button" class="race-view-portrait" data-view-portrait>Ver aparÃªncia â†‘</button>
+            <button type="button" class="race-reset-origin" data-reset-origin disabled>Ver raÃ§a base</button>
+          </span>
         </div>
       </section>
 
       <!-- ============ ABAS ============ -->
-      <div class="race-tabs">
+      <div class="race-tabs" aria-label="ConteÃºdo da raÃ§a">
         <button type="button" data-tab-btn="lore" class="tab-btn active">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/></svg>
           Lore
@@ -142,14 +169,14 @@
         </button>
       </div>
 
-      <!-- ============ CONTEÚDO DAS ABAS ============ -->
+      <!-- ============ CONTEÃšDO DAS ABAS ============ -->
       <div class="tab-contents">
 
         <!-- TAB 1: LORE -->
         <div id="tab-content-lore" class="tab-pane active">
           <div id="baseRaceLore" class="h1-section-group race-lore-group">
             <div class="subtopic-nav flex flex-wrap gap-1.5 mb-3">
-              {% if raca.lore_presentation %}<button type="button" class="subtopic-btn" data-group-id="baseRaceLore" data-subtopic-toggle="visao-geral">Visão Geral</button>{% endif %}
+              {% if raca.lore_presentation %}<button type="button" class="subtopic-btn" data-group-id="baseRaceLore" data-subtopic-toggle="visao-geral">VisÃ£o Geral</button>{% endif %}
               {% if raca.lore_roleplay %}<button type="button" class="subtopic-btn" data-group-id="baseRaceLore" data-subtopic-toggle="roleplay">Como Interpretar</button>{% endif %}
               {% if raca.lore_society %}<button type="button" class="subtopic-btn" data-group-id="baseRaceLore" data-subtopic-toggle="sociedade">Sociedade e Cultura</button>{% endif %}
             </div>
@@ -171,15 +198,15 @@
             {% endif %}
 
             {% if not raca.lore_presentation and not raca.lore_roleplay and not raca.lore_society %}
-            <p class="race-empty-note">Nenhuma informação de lore cadastrada para esta raça.</p>
+            <p class="race-empty-note">Nenhuma informaÃ§Ã£o de lore cadastrada para esta raÃ§a.</p>
             {% endif %}
           </div>
 
-          <!-- Lore de Essências -->
+          <!-- Lore de EssÃªncias -->
           {% for ess in essencias %}
           <div data-essencia-lore="{{ ess.slug }}" id="lore-ess-{{ ess.slug }}" class="h1-section-group race-lore-group hidden">
             <div class="subtopic-nav flex flex-wrap gap-1.5 mb-3">
-              {% if ess.lore_presentation %}<button type="button" class="subtopic-btn" data-group-id="lore-ess-{{ ess.slug }}" data-subtopic-toggle="apresentacao">Ambientação</button>{% endif %}
+              {% if ess.lore_presentation %}<button type="button" class="subtopic-btn" data-group-id="lore-ess-{{ ess.slug }}" data-subtopic-toggle="apresentacao">AmbientaÃ§Ã£o</button>{% endif %}
               {% if ess.lore_roleplay %}<button type="button" class="subtopic-btn" data-group-id="lore-ess-{{ ess.slug }}" data-subtopic-toggle="roleplay">Roleplay</button>{% endif %}
               {% if ess.lore_society %}<button type="button" class="subtopic-btn" data-group-id="lore-ess-{{ ess.slug }}" data-subtopic-toggle="sociedade">Sociedade</button>{% endif %}
             </div>
@@ -203,12 +230,12 @@
           {% endfor %}
         </div>
 
-        <!-- TAB 2: REGRAS (TRAÇOS) -->
+        <!-- TAB 2: REGRAS (TRAÃ‡OS) -->
         <div id="tab-content-regras" class="tab-pane">
 
-          <!-- Traços da Raça Base -->
+          <!-- TraÃ§os da RaÃ§a Base -->
           <section class="race-trait-section">
-            <h4 class="race-trait-section-title race-trait-section-title--base">Traços da Raça Base</h4>
+            <h4 class="race-trait-section-title race-trait-section-title--base">TraÃ§os da RaÃ§a Base</h4>
             <div class="race-trait-list">
               {% for traco in tracos_base %}
                 {% if not traco.talento_racial and not traco.id_linhagem_id %}
@@ -239,15 +266,15 @@
                   </article>
                 {% endif %}
               {% empty %}
-                <p class="race-empty-note">Sem traços raciais cadastrados.</p>
+                <p class="race-empty-note">Sem traÃ§os raciais cadastrados.</p>
               {% endfor %}
             </div>
           </section>
 
-          <!-- Traços de Linhagem (exibidos conforme seleção) -->
+          <!-- TraÃ§os de Linhagem (exibidos conforme seleÃ§Ã£o) -->
           {% for lin in linhagens %}
           <section data-linhagem-traits="{{ lin.slug }}" class="race-trait-section hidden">
-            <h4 class="race-trait-section-title race-trait-section-title--lineage">Traços de Linhagem: {{ lin.nome }}</h4>
+            <h4 class="race-trait-section-title race-trait-section-title--lineage">TraÃ§os de Linhagem: {{ lin.nome }}</h4>
             {% if lin.descricao %}
             <p class="race-trait-section-desc bonfire-markdown" data-markdown-source>{{ lin.descricao|default:''|escape }}</p>
             {% endif %}
@@ -285,17 +312,17 @@
             <div class="race-trait-cta">
               <p>Gostou desta linhagem?</p>
               <button type="button" data-goto-talents-btn class="race-trait-cta-btn">
-                Ver Talentos Disponíveis
+                Ver Talentos DisponÃ­veis
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </button>
             </div>
           </section>
           {% endfor %}
 
-          <!-- Traços de Essência (exibidos conforme seleção) -->
+          <!-- TraÃ§os de EssÃªncia (exibidos conforme seleÃ§Ã£o) -->
           {% for ess in essencias %}
           <section data-essencia-traits="{{ ess.slug }}" class="race-trait-section hidden">
-            <h4 class="race-trait-section-title race-trait-section-title--essence">Traços de Essência: {{ ess.nome }}</h4>
+            <h4 class="race-trait-section-title race-trait-section-title--essence">TraÃ§os de EssÃªncia: {{ ess.nome }}</h4>
             <div class="race-trait-list">
               {% for traco in ess.tracos.all %}
                 {% if not traco.talento_racial %}
@@ -328,9 +355,9 @@
               {% endfor %}
             </div>
             <div class="race-trait-cta race-trait-cta--essence">
-              <p>A Essência altera fundamentalmente seu personagem.</p>
+              <p>A EssÃªncia altera fundamentalmente seu personagem.</p>
               <button type="button" data-goto-talents-btn class="race-trait-cta-btn race-trait-cta-btn--essence">
-                Ver Talentos de Essência
+                Ver Talentos de EssÃªncia
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </button>
             </div>
@@ -342,33 +369,33 @@
         <div id="tab-content-talentos" class="tab-pane">
           <div class="race-talents-guide">
             <strong>Sobre Talentos Raciais</strong>
-            Estes talentos podem ser escolhidos nos níveis indicados (1, 5, 9, 13, 17) para substituir talentos de classe, permitindo que seu personagem evolua sua biologia ou natureza mágica.
+            Estes talentos podem ser escolhidos nos nÃ­veis indicados (1, 5, 9, 13, 17) para substituir talentos de classe, permitindo que seu personagem evolua sua biologia ou natureza mÃ¡gica.
 
             <span data-talents-filter-alert="essence" class="race-talents-alert race-talents-alert--essence hidden">
-              Visualizando talentos da Essência selecionada. Talentos de linhagem específica foram ocultados.
+              Visualizando talentos da EssÃªncia selecionada. Talentos de linhagem especÃ­fica foram ocultados.
             </span>
             <span data-talents-filter-alert="lineage" class="race-talents-alert race-talents-alert--lineage hidden">
               Visualizando talentos da Linhagem selecionada.
             </span>
             <span data-talents-filter-alert="none" class="race-talents-alert race-talents-alert--none">
-              Visualizando talentos gerais da raça base. Selecione uma Linhagem ou Essência acima para liberar talentos adicionais.
+              Visualizando talentos gerais da raÃ§a base. Selecione uma Linhagem ou EssÃªncia acima para liberar talentos adicionais.
             </span>
           </div>
 
-          <!-- Filtro de níveis -->
+          <!-- Filtro de nÃ­veis -->
           <div class="race-level-filter">
-            <span class="race-level-filter-label">Filtrar por Nível:</span>
+            <span class="race-level-filter-label">Filtrar por NÃ­vel:</span>
             {% for lvl in levels %}
               <button type="button" data-level-toggle-v2="{{ lvl }}" class="level-toggle active">Nv {{ lvl }}+</button>
             {% endfor %}
           </div>
 
-          <!-- Cards de Talentos por Nível -->
+          <!-- Cards de Talentos por NÃ­vel -->
           <div class="race-talent-levels">
             {% for level in levels %}
             <div id="talent-level-section-{{ level }}" class="race-talent-level">
               <div class="race-talent-level-head">
-                <span class="race-talent-level-tag font-rpg">Nível {{ level }}</span>
+                <span class="race-talent-level-tag font-rpg">NÃ­vel {{ level }}</span>
                 <div class="race-talent-level-rule"></div>
               </div>
               <div class="race-talent-grid">
@@ -384,7 +411,7 @@
 
                       <div data-trait-preview class="talent-card-body">
                         {% if talent.pre_requisito %}
-                        <div class="talent-card-prereq" data-trait-prereq>Pré-requisito: {{ talent.pre_requisito }}</div>
+                        <div class="talent-card-prereq" data-trait-prereq>PrÃ©-requisito: {{ talent.pre_requisito }}</div>
                         {% endif %}
 
                         <div class="talent-card-desc bonfire-markdown" data-markdown-source>{{ talent.descricao|default:''|escape }}</div>
@@ -394,10 +421,10 @@
                       <form class="wiki-inline-editor" data-trait-form>
                         <div class="wiki-inline-row">
                           <label>Nome <input name="nome" value="{{ talent.nome }}"></label>
-                          <label>Nível <input name="nivel_requisito" type="number" value="{{ talent.nivel_requisito }}"></label>
+                          <label>NÃ­vel <input name="nivel_requisito" type="number" value="{{ talent.nivel_requisito }}"></label>
                         </div>
                         <input type="hidden" name="talento_racial" value="true">
-                        <label>Pré-requisito <input name="pre_requisito" value="{{ talent.pre_requisito|default:'' }}"></label>
+                        <label>PrÃ©-requisito <input name="pre_requisito" value="{{ talent.pre_requisito|default:'' }}"></label>
                         <label>Texto real <textarea name="descricao" class="min-h-[100px]">{{ talent.descricao }}</textarea></label>
                         <label>Tags <span class="text-[10px] text-[var(--muted)]">(uma por linha)</span><textarea name="tags_json_text" rows="5" spellcheck="false" class="font-mono">{% for tag in talent.tags_json %}{{ tag }}
 {% endfor %}</textarea></label>
@@ -414,26 +441,56 @@
             </div>
             {% endfor %}
           </div>
+          <p class="race-empty-note race-talent-empty" data-race-talent-empty role="status" hidden>Nenhum talento corresponde Ã  seleÃ§Ã£o e aos nÃ­veis ativos.</p>
         </div>
 
       </div>
     </div>
 {% endif %}
-{% else %}
-<section class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-5 text-center" id="ajax-content-inner">
-  <h1 class="font-rpg text-2xl font-bold text-[var(--text)]">Povos de Cinéria</h1>
-  <p class="mt-2 text-sm text-[var(--muted)]">Escolha uma raça para conhecer sua história, linhagens, traços e talentos raciais.</p>
-  <div class="mt-4 grid gap-3 text-left sm:grid-cols-2">
+{% elif only_traits %}
+  <section class="race-catalog-summary"><h2>Explore antes de escolher.</h2><p>Humanoides recebem essÃªncia. Vastieren e Folkens nÃ£o recebem essÃªncia. ConheÃ§a os oito Vastieren com conteÃºdo revisado.</p><p>Navegar aqui nÃ£o altera sua ficha.</p><span>{{ all_racas|length }} Humanoides<br>{{ vastieren_page_count }} pÃ¡ginas Vastieren<br>{{ race_placeholder_count }} prÃ©vias futuras{% if total_tracos %}<br>{{ total_tracos }} traÃ§os Humanoides{% endif %}</span></section>
+{% elif only_content %}
+<section class="race-catalog">
+  <header class="race-catalog-intro"><p class="race-kicker">BIBLIOTECA DE CINÃ‰RIA / RAÃ‡AS</p><h1>Povos de CinÃ©ria</h1><p>Explore os Humanoides, descubra a Besta dos Vastieren e conheÃ§a os povos que ainda chegarÃ£o ao Bonfire. Cada grupo tem sua prÃ³pria natureza â€” apenas Humanoides recebem essÃªncia.</p><span>Uma origem. Muitas formas de viver a sua histÃ³ria.</span></header>
+  <nav class="race-family-index" aria-label="Grupos de raÃ§as">
+    <a href="#humanoides" data-race-family-shortcut="humanoides"><span class="race-kicker">DISPONÃVEIS</span><strong>Humanoides <span>{{ all_racas|length }}</span></strong><small>Recebem essÃªncia</small><span class="race-family-arrow" aria-hidden="true">â†“</span></a>
+    {% for group in race_future_groups %}<a href="#{{ group.slug }}" data-race-family-shortcut="{{ group.slug }}"><span class="race-kicker">{% if group.page_count %}{{ group.page_count }} PÃGINAS / REVISADAS{% else %}PRÃ‰VIAS / EM BREVE{% endif %}</span><strong>{{ group.name }} <span>{{ group.entries|length }}</span></strong><small>NÃ£o recebem essÃªncia</small><span class="race-family-arrow" aria-hidden="true">â†“</span></a>{% endfor %}
+  </nav>
+  <section id="humanoides" class="race-family-section" data-race-family="humanoides" aria-labelledby="humanoides-title">
+    <header class="race-family-heading"><div><p class="race-kicker">{{ all_racas|length }} RAÃ‡AS DISPONÃVEIS</p><h2 id="humanoides-title">Humanoides</h2><p>AnÃµes, Elfos, Humanos e Orcs. Explore suas linhagens ou escolha uma essÃªncia para transformar sua origem.</p></div><span class="race-essence-badge">Recebem essÃªncia</span></header>
+    <div class="race-catalog-grid">
     {% for item in all_racas %}
-    <a href="{% url 'raca_detail' slug=item.slug %}" class="overflow-hidden rounded border border-[var(--stroke)] bg-[var(--bg0)] transition-colors hover:border-[var(--ember)]">
-      {% if item.safe_image_url %}<div class="aspect-[16/7] bg-cover bg-center" style="background-image:url('{{ item.safe_image_url }}')"></div>{% endif %}
-      <div class="p-3">
-        <h3 class="font-rpg text-lg font-bold text-[var(--flame)]">{{ item.nome }}</h3>
-        <p class="mt-1 text-[12px] leading-relaxed text-[var(--muted)]">{{ item.tagline|cut:'*'|cut:'"' }}</p>
+    <a href="{% url 'raca_detail' slug=item.slug %}" class="race-catalog-card" data-race-route data-race-card data-search="{{ item.nome }} {{ item.catalog_label }} {{ item.tagline }} humanoides recebem essÃªncia disponÃ­veis">
+      <div class="race-catalog-art">{% if item.safe_image_url %}<img src="{{ item.safe_image_url }}" alt="RepresentaÃ§Ã£o de {{ item.nome }}" width="941" height="1672" loading="lazy" style="object-position: {{ item.imagem_foco_x }}% {{ item.imagem_foco_y }}%">{% else %}<span class="race-art-placeholder" aria-hidden="true">{{ item.nome|first }}</span>{% endif %}</div>
+      <div class="race-catalog-copy">
+        <span class="race-kicker">{{ forloop.counter|stringformat:'02d' }} / RAÃ‡A</span>
+        <h3>{{ item.catalog_label|default:item.nome }}</h3>
+        {% if item.tagline %}<p>{{ item.tagline|cut:'*'|cut:'"' }}</p>{% endif %}
+        <span class="race-catalog-action">Conhecer este povo <span aria-hidden="true">â†—</span></span>
       </div>
     </a>
+    {% empty %}<p class="race-empty-note">Nenhuma raÃ§a cadastrada no momento.</p>
     {% endfor %}
-  </div>
+    </div>
+  </section>
+  {% for group in race_future_groups %}
+  <section id="{{ group.slug }}" class="race-family-section race-family-future" data-race-family="{{ group.slug }}" aria-labelledby="{{ group.slug }}-title">
+    <header class="race-family-heading"><div><p class="race-kicker">{% if group.page_count %}{{ group.page_count }} PÃGINAS REVISADAS / {{ group.entries|length }} POVOS{% else %}{{ group.entries|length }} PRÃ‰VIAS / EM BREVE{% endif %}</p><h2 id="{{ group.slug }}-title">{{ group.name }}</h2><p>{% if group.slug == 'vastieren' %}ConheÃ§a a histÃ³ria, as estirpes, as Marcas e a TransformaÃ§Ã£o Vastieren dos oito povos com conteÃºdo revisado.{% else %}Goblins, Hobrins, Fadas, Gnomos e Felpins. Suas pÃ¡ginas e regras serÃ£o apresentadas futuramente.{% endif %}</p></div><span class="race-essence-badge race-essence-badge--none">NÃ£o recebem essÃªncia</span></header>
+    {% if group.page_count %}<div class="race-catalog-grid vastieren-catalog-grid">{% for entry in group.entries %}{% if entry.available %}<a href="{{ entry.url }}" class="race-catalog-card" data-race-route data-vastieren-card="{{ entry.slug }}" data-search="{{ entry.search }}" data-allows-essence="false"><div class="race-catalog-art"><img src="{{ entry.image }}" alt="RepresentaÃ§Ã£o ilustrativa de {{ entry.name }}" width="941" height="1672" loading="lazy"></div><div class="race-catalog-copy"><span class="race-kicker">VASTIEREN / REVISADO</span><h3>{{ entry.name }}</h3><p>{{ entry.teaser }}</p><span class="race-catalog-action">Conhecer este povo <span aria-hidden="true">â†—</span></span></div></a>{% endif %}{% endfor %}</div><h3 class="vastieren-upcoming-title">Outros povos a caminho</h3>{% endif %}
+    <p class="race-future-note">Os espaÃ§os abaixo sÃ£o prÃ©vias do catÃ¡logo. Selecione um nome para ver o andamento; nÃ£o sÃ£o opÃ§Ãµes disponÃ­veis para criar personagens.</p>
+    <div class="race-placeholder-grid">
+      {% for entry in group.entries %}
+      {% if not entry.available %}
+      <details id="raca-previa-{{ entry.slug }}" class="race-coming-card{% if entry.reviewed %} race-coming-card--reviewed{% endif %}" data-race-placeholder="{{ entry.slug }}" data-search="{{ entry.search }}" data-race-reviewed="{{ entry.reviewed|yesno:'true,false' }}" data-allows-essence="false">
+        <summary><span class="race-coming-monogram" aria-hidden="true">{{ entry.name|first }}</span><span class="race-coming-title"><h3>{{ entry.name }}</h3><span class="race-coming-status">{% if entry.reviewed %}<span aria-hidden="true">âœ“ </span>{% endif %}{{ entry.status }}</span></span><span class="race-coming-expand" aria-hidden="true">+</span></summary>
+        <div class="race-coming-description"><p>{% if entry.reviewed %}As mecÃ¢nicas desta raÃ§a estÃ£o revisadas. A pÃ¡gina ainda estÃ¡ em preparaÃ§Ã£o e as regras nÃ£o foram integradas ao site.{% else %}Este espaÃ§o estÃ¡ reservado para a futura pÃ¡gina desta raÃ§a. O conteÃºdo serÃ¡ apresentado quando estiver pronto.{% endif %}</p><span>{{ group.name }} Â· NÃ£o recebe essÃªncia</span></div>
+      </details>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </section>
+  {% endfor %}
+  <p class="race-empty-note race-catalog-empty" data-race-catalog-empty role="status" hidden>Nenhum povo corresponde Ã  busca. Tente outro nome ou limpe o campo.</p>
 </section>
 {% endif %}
 

@@ -1,6 +1,8 @@
 {% extends 'home/base.html' %}
 {% load static %}
 
+{% block body_class %}bft-world-regions{% endblock %}
+
 {% block main_class %}flex-1 w-full{% endblock %}
 
 {% block ad_containers %}{% endblock %}
@@ -8,14 +10,17 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/regioes.css' %}?v=5">
+<link rel="stylesheet" href="{% static 'css/pages/world-regions.css' %}?v=1">
+<script defer src="{% static 'js/world-regions.js' %}?v=1"></script>
 {% endblock %}
 
 {% block content %}
 <section class="regions-home">
   <header class="regions-home-header">
     <div>
-      <div class="regions-kicker"><span></span> Explorar por região</div>
-      <h1>Regiões de Cinéria</h1>
+      <div class="regions-kicker"><span></span> Atlas do mundo Â· Bonfire Tales</div>
+      <h1>RegiÃµes e TerritÃ³rios</h1>
+      <p class="regions-intro">ConheÃ§a os reinos, encontre seu destino e descubra as histÃ³rias de CinÃ©ria.</p>
     </div>
     <div class="regions-summary">
       <form method="get" class="regions-filter">
@@ -26,19 +31,24 @@
           {% endfor %}
         </select>
       </form>
-      <span>{{ total_territorios }} territórios / {{ total_locais }} locais conhecidos</span>
+      <a class="regions-atlas-link" href="{% url 'mapa' %}">Abrir mapa de CinÃ©ria <span aria-hidden="true">â†—</span></a>
       {% if can_edit_wiki %}
-      <button id="btnNewRegion" type="button">+ Nova região</button>
+      <button id="btnNewRegion" type="button">+ Nova regiÃ£o</button>
       {% endif %}
     </div>
   </header>
 
-  <div class="territory-card-grid">
+  <div class="regions-catalog-tools">
+    <label class="regions-search" for="regionsSearch"><span>Buscar um destino</span><input id="regionsSearch" type="search" placeholder="TerritÃ³rio, localidade ou etiquetaâ€¦" autocomplete="off" aria-controls="regionsCatalog"></label>
+    <div class="regions-catalog-summary"><span id="regionsResultCount" role="status" aria-live="polite">{{ total_territorios }} territÃ³rios Â· {{ total_locais }} locais conhecidos</span><button type="button" id="regionsClearSearch" hidden>Limpar busca</button></div>
+  </div>
+
+  <div class="territory-card-grid" id="regionsCatalog">
     {% for territorio in territorios_cards %}
-    <article class="territory-card" style="--territory-color: {{ territorio.color }}; --territory-accent: {{ territorio.display_color }}; --territory-contrast: {{ territorio.contrast }}; --territory-image: url('{{ territorio.imagem_url }}');">
+    <article class="territory-card" data-world-card data-local-count="{{ territorio.locais_count }}" style="--territory-color: {{ territorio.color }}; --territory-accent: {{ territorio.display_color }}; --territory-contrast: {{ territorio.contrast }}; --territory-image: url('{{ territorio.imagem_url }}');">
       <div class="territory-card-bg"></div>
       <div class="territory-card-content">
-        <div class="territory-card-label">{{ territorio.display_nome }} — {{ territorio.locais_count }} locais</div>
+        <div class="territory-card-label"><i aria-hidden="true"></i> TerritÃ³rio de CinÃ©ria</div>
         <h2><a class="territory-card-link" href="{{ territorio.url }}">{{ territorio.display_nome }}</a></h2>
         <p>{{ territorio.descricao_breve }}</p>
         <div class="territory-card-meta">
@@ -55,46 +65,53 @@
           <span>{{ tag }}</span>
           {% endfor %}
         </div>
+        {% if territorio.regioes %}
+        <details class="territory-localities">
+          <summary>Explorar {{ territorio.locais_count }} localidade{{ territorio.locais_count|pluralize:"s" }} <span aria-hidden="true">+</span></summary>
+          <div>{% for r in territorio.regioes %}<a href="{% url 'regiao_detail' slug=r.slug %}" data-world-place>{{ r.nome }} <span aria-hidden="true">â†’</span></a>{% endfor %}</div>
+        </details>
+        {% endif %}
       </div>
     </article>
     {% empty %}
-    <p class="regions-empty">Nenhuma região cadastrada ainda.</p>
+    <p class="regions-empty">Nenhuma regiÃ£o cadastrada ainda.</p>
     {% endfor %}
   </div>
+  <div class="regions-empty-search" id="regionsEmptySearch" hidden><h2>Nenhum destino encontrado</h2><p>Tente outro nome ou limpe a busca para explorar todos os territÃ³rios desta camada.</p></div>
 </section>
 
 {% if can_edit_wiki %}
 <dialog id="newRegionModal" aria-labelledby="newRegionModalTitle" class="backdrop:bg-black/80 bg-[var(--bg1)] text-[var(--text)] border border-[var(--stroke)] rounded-lg shadow-2xl p-0 w-[600px] max-w-[95vw]">
   <div class="p-4 border-b border-[var(--stroke)] flex justify-between items-center bg-[var(--bg0)]">
-    <h3 id="newRegionModalTitle" class="font-cinzel text-2xl font-bold text-[var(--ember)] uppercase tracking-widest">Criar Região</h3>
-    <button type="button" data-region-close aria-label="Fechar criação de região" onclick="document.getElementById('newRegionModal').close()" class="text-[var(--muted)] hover:text-red-500 transition-colors">X</button>
+    <h3 id="newRegionModalTitle" class="font-cinzel text-2xl font-bold text-[var(--ember)] uppercase tracking-widest">Criar RegiÃ£o</h3>
+    <button type="button" data-region-close aria-label="Fechar criaÃ§Ã£o de regiÃ£o" onclick="document.getElementById('newRegionModal').close()" class="text-[var(--muted)] hover:text-red-500 transition-colors">X</button>
   </div>
   <div class="p-4 space-y-2.5">
     <div class="grid grid-cols-2 gap-2.5">
       <label class="grid gap-1 text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Nome
         <input id="nr-nome" type="text" class="bg-[var(--bg0)] border border-[var(--stroke)] rounded p-1.5 text-sm text-[var(--text)]">
       </label>
-      <label class="grid gap-1 text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Território
+      <label class="grid gap-1 text-xs font-bold uppercase tracking-widest text-[var(--muted)]">TerritÃ³rio
         <div class="flex gap-1.5">
           <select id="nr-territorio" class="flex-1 bg-[var(--bg0)] border border-[var(--stroke)] rounded p-1.5 text-sm text-[var(--text)]" style="min-width: 0;">
-            <option value="">Sem território</option>
+            <option value="">Sem territÃ³rio</option>
             {% for territory_name in all_territories_list %}
             <option value="{{ territory_name }}">{{ territory_name }}</option>
             {% endfor %}
           </select>
-          {% if can_create_territory %}<button type="button" id="btnShowCreateTerritoryRegion" class="px-3 bg-[var(--bg0)] border border-[var(--stroke)] rounded text-sm font-bold text-[var(--ember)] hover:bg-white/5 transition-all" title="Criar Novo Território" style="cursor: pointer;">+</button>{% endif %}
+          {% if can_create_territory %}<button type="button" id="btnShowCreateTerritoryRegion" class="px-3 bg-[var(--bg0)] border border-[var(--stroke)] rounded text-sm font-bold text-[var(--ember)] hover:bg-white/5 transition-all" title="Criar Novo TerritÃ³rio" style="cursor: pointer;">+</button>{% endif %}
         </div>
       </label>
     </div>
 
-    <!-- Seção oculta para criação inline de território -->
+    <!-- SeÃ§Ã£o oculta para criaÃ§Ã£o inline de territÃ³rio -->
     {% if can_create_territory %}<div id="createTerritorySectionRegion" style="display: none; border: 1px dashed var(--stroke); padding: .7rem; border-radius: 6px; background: var(--bg0);">
-      <h4 class="font-cinzel text-xs font-bold text-[var(--ember)] uppercase tracking-wider mb-2">Criar Novo Território</h4>
+      <h4 class="font-cinzel text-xs font-bold text-[var(--ember)] uppercase tracking-wider mb-2">Criar Novo TerritÃ³rio</h4>
       <div class="grid grid-cols-2 gap-2.5">
-        <label class="grid gap-1 text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Nome do Território
-          <input id="ntr-nome" type="text" placeholder="Ex: Reino de Cinéria" class="bg-[var(--bg1)] border border-[var(--stroke)] rounded p-1.5 text-sm text-[var(--text)]">
+        <label class="grid gap-1 text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Nome do TerritÃ³rio
+          <input id="ntr-nome" type="text" placeholder="Ex: Reino de CinÃ©ria" class="bg-[var(--bg1)] border border-[var(--stroke)] rounded p-1.5 text-sm text-[var(--text)]">
         </label>
-        <label class="grid gap-1 text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Cor do Território
+        <label class="grid gap-1 text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Cor do TerritÃ³rio
           <input id="ntr-cor" type="color" value="#ff8800" class="block w-[60px] h-[36px] p-[2px] cursor-pointer bg-transparent border border-[var(--stroke)] rounded">
         </label>
       </div>
@@ -111,9 +128,9 @@
       <input id="nr-mapa" type="text" class="bg-[var(--bg0)] border border-[var(--stroke)] rounded p-1.5 text-sm text-[var(--text)]">
     </label>
     <label class="grid gap-1 text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Tags adicionais
-      <input id="nr-tags" type="text" placeholder="Separadas por vírgula" class="bg-[var(--bg0)] border border-[var(--stroke)] rounded p-1.5 text-sm text-[var(--text)]">
+      <input id="nr-tags" type="text" placeholder="Separadas por vÃ­rgula" class="bg-[var(--bg0)] border border-[var(--stroke)] rounded p-1.5 text-sm text-[var(--text)]">
     </label>
-    <label class="grid gap-1 text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Descrição breve
+    <label class="grid gap-1 text-xs font-bold uppercase tracking-widest text-[var(--muted)]">DescriÃ§Ã£o breve
       <textarea id="nr-desc" rows="3" class="bg-[var(--bg0)] border border-[var(--stroke)] rounded p-1.5 text-sm text-[var(--text)]"></textarea>
     </label>
   </div>
@@ -156,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btnConfirmCreateTerritoryRegion')?.addEventListener('click', async () => {
     const nome = document.getElementById('ntr-nome').value.trim();
     const cor = document.getElementById('ntr-cor').value;
-    if (!nome) return alert('O nome do território é obrigatório.');
+    if (!nome) return alert('O nome do territÃ³rio Ã© obrigatÃ³rio.');
 
     const btn = document.getElementById('btnConfirmCreateTerritoryRegion');
     btn.disabled = true;
@@ -181,7 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('createTerritorySectionRegion').style.display = 'none';
       select.focus();
     } catch (err) {
-      alert('Erro ao criar território: ' + err.message);
+      alert('Erro ao criar territÃ³rio: ' + err.message);
     } finally {
       btn.disabled = false;
       btn.innerText = 'Criar';
@@ -203,7 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
       camada: currentLayer,
     };
     if (!payload.nome) {
-      error.textContent = 'O nome da região é obrigatório.';
+      error.textContent = 'O nome da regiÃ£o Ã© obrigatÃ³rio.';
       error.hidden = false;
       document.getElementById('nr-nome').focus();
       return;
@@ -220,10 +237,10 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (!res.ok || !data.ok) throw new Error(data.error || 'Erro ao criar região.');
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Erro ao criar regiÃ£o.');
       window.location.href = data.redirect || `/mundo/regioes/${data.region.slug}/`;
     } catch (err) {
-      error.textContent = `Não foi possível criar a região: ${err.message}`;
+      error.textContent = `NÃ£o foi possÃ­vel criar a regiÃ£o: ${err.message}`;
       error.hidden = false;
       btn.focus();
     } finally {

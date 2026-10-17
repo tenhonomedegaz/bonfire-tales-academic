@@ -1,24 +1,30 @@
 {% extends 'home/base.html' %}
 {% load static editorial_images %}
+{% block body_class %}bft-players{% endblock %}
+{% block main_class %}flex-1 w-full min-w-0{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/perfil.css' %}?v=7">
 <link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=4">
-<title>Jogadores - Bonfire Tales RPG</title>
+<link rel="stylesheet" href="{% static 'css/pages/players-redesign.css' %}?v=1">
 {% endblock %}
 
 {% block content %}
-<section class="players-page">
+<section class="players-page" aria-labelledby="playersTitle">
+  {% include 'home/partials/players_preview_notice.html' %}
   <header class="players-head">
     <div>
-      <p class="players-kicker">Comunidade</p>
-      <h1>Jogadores</h1>
+      <p class="players-kicker">Bonfire Tales RPG Â· Comunidade</p>
+      <h1 id="playersTitle">Jogadores</h1>
+      <p class="players-intro">Uma fogueira. Muitas histÃ³rias.</p>
+      <p class="players-description">ConheÃ§a a comunidade, explore perfis e descubra os personagens compartilhados.</p>
     </div>
     <form action="{% url 'jogadores' %}" method="get" class="players-search">
+      {% if players_demo %}<input type="hidden" name="demo" value="1">{% endif %}
       {% if filtro != 'todos' %}<input type="hidden" name="filtro" value="{{ filtro }}">{% endif %}
       {% if ordem != 'popular' %}<input type="hidden" name="ordem" value="{{ ordem }}">{% endif %}
       <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-      <input type="search" name="q" value="{{ q }}" aria-label="Buscar jogador ou personagem público" placeholder="Buscar jogador ou personagem público">
+      <input type="search" name="q" value="{{ q }}" aria-label="Buscar jogador ou personagem pÃºblico" placeholder="Jogador ou personagem pÃºblicoâ€¦">
       <button type="submit">Buscar</button>
     </form>
   </header>
@@ -30,6 +36,7 @@
       {% endfor %}
     </nav>
     <form action="{% url 'jogadores' %}" method="get" class="players-order">
+      {% if players_demo %}<input type="hidden" name="demo" value="1">{% endif %}
       {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
       {% if filtro != 'todos' %}<input type="hidden" name="filtro" value="{{ filtro }}">{% endif %}
       <label for="players-order">Ordenar</label>
@@ -42,11 +49,11 @@
   </div>
 
   <div class="players-meta" tabindex="-1">
-    <span role="status" aria-live="polite">{{ total_encontrados }} {% if total_encontrados == 1 %}perfil{% else %}perfis{% endif %}</span>
+    <span role="status" aria-live="polite"><strong>{{ total_encontrados }}</strong> {% if total_encontrados == 1 %}perfil encontrado{% else %}perfis encontrados{% endif %}{% if total_encontrados %}<span class="players-range"> Â· {{ page_obj.start_index }}â€“{{ page_obj.end_index }} nesta pÃ¡gina</span>{% endif %}</span>
     <span class="players-meta-actions">
-      {% if q or filtro != 'todos' or ordem != 'popular' %}<a href="{% url 'jogadores' %}">Limpar filtros</a>{% endif %}
+      {% if q or filtro != 'todos' or ordem != 'popular' %}<a href="{% url 'jogadores' %}{% if players_demo %}?demo=1{% endif %}">Limpar filtros</a>{% endif %}
       {% if user.is_authenticated %}
-      <a href="{% url 'public_profile' user.username %}">Meu perfil publico</a>
+      <a href="{% url 'public_profile' user.username %}">Meu perfil pÃºblico</a>
       {% endif %}
     </span>
   </div>
@@ -55,11 +62,11 @@
   <div class="players-grid">
     {% for card in cards %}
     <article class="player-card {{ card.appearance.theme_class }} {{ card.appearance.effect_class }}"{% if card.appearance.fx_particula %} data-fx-particula="{{ card.appearance.fx_particula }}" data-fx-vel="{{ card.appearance.fx_vel }}"{% endif %}{% if card.appearance.custom_style %} style="{{ card.appearance.custom_style }}"{% endif %}>
-      <a href="{% url 'public_profile' card.user.username %}" class="player-card-banner" aria-label="Abrir perfil de {{ card.user.username }}">
+      <a href="{% url 'public_profile' card.user.username %}{% if players_demo %}?demo=1{% endif %}" class="player-card-banner" aria-label="Abrir perfil de {{ card.user.username }}">
         {% if card.profile.banner_url|safe_profile_image %}<span style="background-image:url('{{ card.profile.banner_url|safe_profile_image }}');"></span>{% endif %}
       </a>
       <div class="player-card-body">
-        <a href="{% url 'public_profile' card.user.username %}" class="player-card-avatar {{ card.appearance.frame_class }}">
+        <a href="{% url 'public_profile' card.user.username %}{% if players_demo %}?demo=1{% endif %}" class="player-card-avatar {{ card.appearance.frame_class }}" aria-label="Ver perfil de {{ card.user.username }}">
           {% if card.profile.avatar_url|safe_profile_image %}
           <img src="{{ card.profile.avatar_url|safe_profile_image }}" alt="Avatar de {{ card.user.username }}" loading="lazy">
           {% else %}
@@ -67,17 +74,17 @@
           {% endif %}
         </a>
         <div class="player-card-main">
-          <div class="player-card-title">
-            <a href="{% url 'public_profile' card.user.username %}">{{ card.user.username }}</a>
+          <h2 class="player-card-title">
+            <a href="{% url 'public_profile' card.user.username %}{% if players_demo %}?demo=1{% endif %}">{{ card.user.username }}</a>
             {% if card.user.is_superuser %}
             <span class="profile-role is-staff">Admin</span>
             {% elif card.user.is_staff %}
             <span class="profile-role is-staff">Staff</span>
             {% endif %}
-          </div>
+          </h2>
           {% if card.titulo %}<p class="profile-title-mini {{ card.titulo.classe }}" title="{{ card.titulo.descricao }}">{{ card.titulo.nome }}</p>{% endif %}
           {% if card.badges %}
-          <ul class="profile-badges profile-badges-mini" aria-label="Insígnias de {{ card.user.username }}">
+          <ul class="profile-badges profile-badges-mini" aria-label="InsÃ­gnias de {{ card.user.username }}">
             {% for b in card.badges %}
             <li class="profile-badge {{ b.classe }}" title="{{ b.tooltip }}">
               {% if b.icone_asset %}<img class="profile-badge-icon" src="{{ b.icone_asset }}" alt="" loading="lazy">{% elif b.icone %}<span class="profile-badge-emoji" aria-hidden="true">{{ b.icone }}</span>{% endif %}
@@ -86,50 +93,54 @@
             {% endfor %}
           </ul>
           {% endif %}
-          {% if card.profile.bio %}<p>{{ card.profile.bio|truncatechars:150 }}</p>{% endif %}
-          <span class="player-card-count">
-            {% if card.character_count == 1 %}1 personagem público{% else %}{{ card.character_count }} personagens públicos{% endif %}
+        </div>
+      </div>
+      {% if card.profile.bio %}<p class="player-card-bio">{{ card.profile.bio|truncatechars:150 }}</p>{% endif %}
+      <div class="player-card-stats">
+          <span class="player-card-count"><strong>{{ card.character_count }}</strong><span>{% if card.character_count == 1 %}personagem pÃºblico{% else %}personagens pÃºblicos{% endif %}</span>
           </span>
           {# Social discreto: contagens vindas do batch (2 queries pra pagina toda). #}
           <span class="player-card-social">
-            <span title="Curtidas no perfil"><span aria-hidden="true">🔥</span> {{ card.social.curtidas }}</span>
-            <span title="Seguidores"><span aria-hidden="true">👥</span> {{ card.social.seguidores }}</span>
+            <span title="Curtidas no perfil"><strong>{{ card.social.curtidas }}</strong><span>curtidas</span></span>
+            <span title="Seguidores"><strong>{{ card.social.seguidores }}</strong><span>seguidores</span></span>
           </span>
-        </div>
       </div>
 
       {% if card.characters %}
       <div class="player-card-characters">
+        <p class="player-card-section-label">Personagens pÃºblicos</p>
         {% for c in card.characters %}
         <a href="{% url 'ficha_publica' c.obj.id_personagem %}">
           <strong>{{ c.obj.nome }}</strong>
-          <span>{{ c.raca }} - Nivel {{ c.nivel }}</span>
+          <span>{{ c.raca }} Â· NÃ­vel {{ c.nivel }}</span>
         </a>
         {% endfor %}
       </div>
-      {% endif %}
+      {% else %}<p class="player-card-no-public">Nenhuma ficha pÃºblica exibida.</p>{% endif %}
 
       <div class="player-card-footer">
-        <a href="{% url 'public_profile' card.user.username %}">Ver perfil</a>
+        <a href="{% url 'public_profile' card.user.username %}{% if players_demo %}?demo=1{% endif %}">Ver perfil <span aria-hidden="true">â†’</span></a>
       </div>
     </article>
     {% endfor %}
   </div>
   {% else %}
   <div class="players-empty">
+    <span class="players-empty-mark" aria-hidden="true">{% include 'home/partials/journal_mark.html' %}</span>
     <h2>Nenhum perfil encontrado</h2>
-    <p>Tente buscar por outro nome ou personagem publico.</p>
+    <p>Tente buscar por outro nome ou personagem pÃºblico, ou volte Ã  lista completa.</p>
+    {% if q or filtro != 'todos' or ordem != 'popular' %}<a class="players-reset" href="{% url 'jogadores' %}{% if players_demo %}?demo=1{% endif %}">Ver todos os perfis â†’</a>{% endif %}
   </div>
   {% endif %}
 
   {% if page_obj.paginator.num_pages > 1 %}
-  <nav class="players-pagination" aria-label="Paginacao de jogadores">
+  <nav class="players-pagination" aria-label="PaginaÃ§Ã£o de jogadores">
     {% if page_obj.has_previous %}
     <a href="{{ page_query_prefix }}page={{ page_obj.previous_page_number }}">Anterior</a>
     {% endif %}
-    <span>Pagina {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    <span>PÃ¡gina {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
     {% if page_obj.has_next %}
-    <a href="{{ page_query_prefix }}page={{ page_obj.next_page_number }}">Proxima</a>
+    <a href="{{ page_query_prefix }}page={{ page_obj.next_page_number }}">PrÃ³xima</a>
     {% endif %}
   </nav>
   {% endif %}

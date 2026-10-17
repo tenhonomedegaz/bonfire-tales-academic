@@ -484,8 +484,25 @@ function parseToggleBlock(content, options = {}) {
     return `<div class="h1-section-group mb-12" id="${groupId}"><h1 class="bonfire-h1-lore">${parseInlineMarkdown(title)}</h1><div class="bonfire-markdown mb-6">${introHtml}</div>${subtopics.length > 0 ? `<div class="subtopic-nav mb-6 flex flex-wrap gap-2">${buttonsHtml}</div>` : ''}<div class="h1-group-body">${panelsHtml}</div></div>`;
 }
 
+function bonfireRulesTerms(value) {
+    const articles = {as:'os',das:'dos',nas:'nos','às':'aos',pelas:'pelos',a:'o',da:'do',na:'no','à':'ao',pela:'pelo',uma:'um',outra:'outro'};
+    const protectedPart = /(```[\s\S]*?```|`[^`\n]*`|<[^>]*>|https?:\/\/[^\s<>]+|\]\([^\n)]*\))/gi;
+    return String(value || '').split(protectedPart).map((part,index) => index % 2 ? part : part.replace(/(?<![\p{L}\p{N}_])(?:(as|das|nas|às|pelas|a|da|na|à|pela|uma|outra)\s+)?(salvaguardas?)\b/giu, (_,article,term) => {
+        let replacement = /s$/i.test(term) ? 'testes de resistência' : 'teste de resistência';
+        if (term === term.toUpperCase()) replacement = replacement.toUpperCase();
+        else if (term[0] === term[0].toUpperCase()) replacement = replacement[0].toUpperCase()+replacement.slice(1);
+        if (article) {
+            let prefix = articles[article.toLowerCase()];
+            if (article === article.toUpperCase() && term === term.toUpperCase()) prefix = prefix.toUpperCase();
+            else if (article[0] === article[0].toUpperCase()) prefix = prefix[0].toUpperCase()+prefix.slice(1);
+            replacement = prefix+' '+replacement;
+        }
+        return replacement;
+    })).join('');
+}
+
 function buildBonfireMarkdownSource(value, options = {}) {
-    let source = normalizeMarkdown(value, options);
+    let source = bonfireRulesTerms(normalizeMarkdown(value, options));
     
     // Process new ::toggle ... ::endtoggle blocks
     source = source.replace(/::toggle\s*\n([\s\S]*?)\n::endtoggle/gi, (_match, content) => {
@@ -505,7 +522,8 @@ function sanitizeBonfireMarkdownHtml(html) {
     const safeTags = new Set([
         'a', 'b', 'blockquote', 'br', 'button', 'code', 'del', 'details', 'div', 'em', 'h1', 'h2', 'h3',
         'h4', 'h5', 'h6', 'hr', 'img', 'li', 'ol', 'p', 'pre', 's', 'span', 'strong',
-        'summary', 'table', 'tbody', 'td', 'th', 'thead', 'tr', 'ul'
+        'summary', 'table', 'tbody', 'td', 'th', 'thead', 'tr', 'ul',
+        'article', 'header', 'footer', 'section', 'dl', 'dt', 'dd', 'small'
     ]);
     const discardedTags = new Set([
         'base', 'embed', 'form', 'iframe', 'input', 'link', 'math', 'meta',
@@ -532,7 +550,7 @@ function sanitizeBonfireMarkdownHtml(html) {
         const element = safeTags.has(tag) ? document.createElement(tag) : document.createDocumentFragment();
         if (element.nodeType === Node.ELEMENT_NODE) {
             const classes = [...node.classList].filter(name =>
-                /^(?:(?:bonfire|atlas)-[a-z0-9_-]+|md-ref|ab|sc|h1-section-group|h1-group-body|h1-group-panel|subtopic-nav|subtopic-btn|subtopic-body-title|is-active|is-visible)$/.test(name));
+                /^(?:(?:bonfire|atlas|spell)-[a-z0-9_-]+|md-ref|ab|sc|h1-section-group|h1-group-body|h1-group-panel|subtopic-nav|subtopic-btn|subtopic-body-title|is-active|is-visible)$/.test(name));
             if (classes.length) element.className = classes.join(' ');
             if (isSubtopicButton) {
                 element.type = 'button';
@@ -549,6 +567,9 @@ function sanitizeBonfireMarkdownHtml(html) {
                 element.setAttribute('data-sub-slug', node.getAttribute('data-sub-slug'));
             }
             if (node.hasAttribute('title')) element.title = node.getAttribute('title');
+            if (classes.includes('spell-card') && /^(abjuracao|adivinhacao|conjuracao|encantamento|evocacao|ilusao|necromancia|transmutacao|arcana)$/.test(node.getAttribute('data-school') || '')) {
+                element.setAttribute('data-school', node.getAttribute('data-school'));
+            }
             if (tag === 'a') {
                 const href = safeUrl(node.getAttribute('href') || '');
                 if (href) element.setAttribute('href', href);

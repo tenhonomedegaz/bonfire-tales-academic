@@ -1,32 +1,13 @@
-{% extends 'home/base.html' %}
-{% load static %}
-
+{% extends 'home/base.html' %}{% load static %}
+{% block body_class %}bft-complementary{% endblock %}{% block main_class %}cp-main flex-1 w-full min-w-0{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/complementary.css' %}?v=1"><script src="{% static 'js/complementary.js' %}?v=1" defer></script>{% endblock %}
 {% block content %}
-<section class="animate-fade-in max-w-3xl">
-  <header class="mb-4 border-b border-[var(--stroke)] pb-2.5">
-    <h1 class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">Notas de Atualização</h1>
-    <p class="mt-1 text-sm text-[var(--muted)]">Histórico de mudanças no sistema de Bonfire Tales.</p>
-  </header>
-
-  <div class="relative space-y-4 border-l border-[var(--stroke)] pl-4">
-    {% for nota in notas %}
-      <article class="relative">
-        <span class="absolute -left-[23px] top-1.5 h-3 w-3 rounded-full bg-[var(--ember)] ring-4 ring-[var(--bg0)]"></span>
-        <div class="flex flex-wrap items-baseline justify-between gap-x-2">
-          <h2 class="font-serif text-lg font-bold text-[var(--text)]">{{ nota.versao }}</h2>
-          <span class="text-xs text-[var(--muted)]">{{ nota.data }}</span>
-        </div>
-        <ul class="mt-1.5 space-y-1">
-          {% for item in nota.itens %}
-            <li class="flex gap-2 text-sm text-[var(--muted)]">
-              <span class="mt-1 text-[var(--flame)]">•</span><span>{{ item }}</span>
-            </li>
-          {% endfor %}
-        </ul>
-      </article>
-    {% empty %}
-      <p class="text-sm text-[var(--muted)]">Nenhuma nota de atualização ainda.</p>
-    {% endfor %}
-  </div>
-</section>
+{% include 'home/partials/complementary_nav.html' with pagina='atualizacoes' %}
+<header class="cp-hero cp-hero-compact"><div><p class="cp-eyebrow">Registro de mudanÃ§as Â· Bonfire Tales RPG</p><h1>Notas de AtualizaÃ§Ã£o</h1><p>Acompanhe as mudanÃ§as nas regras e no sistema. Consulte cada registro antes da sua prÃ³xima aventura.</p></div><span class="cp-hero-icon">{% include 'home/partials/complementary_icon.html' with kind='book' %}</span></header>
+<div class="cp-updates-layout" data-cp-filter-root>
+<aside class="cp-guide cp-update-guide"><p class="cp-eyebrow">Arquivo de atualizaÃ§Ãµes</p><label for="cp-update-query">Encontrar uma mudanÃ§a</label><input id="cp-update-query" type="search" placeholder="Ex.: magias, talentosâ€¦" data-cp-filter-query><p class="cp-filter-count" data-cp-filter-count aria-live="polite">{{ notas|length }} registro{{ notas|length|pluralize:"s" }}</p><nav aria-label="Ir para uma atualizaÃ§Ã£o">{% for nota in notas %}<a href="#cp-update-{{ forloop.counter }}" data-cp-filter-link>{{ nota.versao }}</a>{% endfor %}</nav><p class="cp-guide-small">HistÃ³rico de mudanÃ§as no sistema de Bonfire Tales. As datas abaixo pertencem aos registros originais.</p></aside>
+<section class="cp-update-list" aria-label="HistÃ³rico de atualizaÃ§Ãµes">
+{% for nota in notas %}<article class="cp-update" id="cp-update-{{ forloop.counter }}" data-cp-filter-item><header><p class="cp-eyebrow">Registro {{ forloop.counter|stringformat:"02d" }}</p><h2>{{ nota.versao }}</h2><time datetime="{{ nota.data }}">{{ nota.data }}</time></header><ul>{% for item in nota.itens %}<li>{{ item }}</li>{% endfor %}</ul></article>{% empty %}<div class="cp-empty"><h2>O arquivo ainda estÃ¡ em branco.</h2><p>Nenhuma nota de atualizaÃ§Ã£o foi publicada aqui.</p></div>{% endfor %}
+<div class="cp-empty" data-cp-filter-empty hidden><h2>Nenhuma mudanÃ§a encontrada.</h2><p>Altere ou apague o termo de busca para ver os registros novamente.</p></div>
+</section></div>
 {% endblock %}

@@ -1,0 +1,145 @@
+/* Bonfire training hall — scoped presentation, no financial-rule overrides. */
+body.bft-training { --bg0:#0a0a0a; --bg1:#151112; --stroke:#4a292d; --text:#f2eee8; --muted:#bdb0a9; --ember:#e9874a; --spark:#ffc078; background:#0a0a0a; color:var(--text); font-family:'Open Sans',sans-serif; }
+.bft-training .training-main { max-width:1360px; margin:0 auto; padding:22px 28px 48px; }
+.bft-training .services-shell { width:100%; margin:0; min-width:0; }
+.services-shell [hidden] { display:none!important; }
+.training-symbols { position:absolute; pointer-events:none; overflow:hidden; }
+.bft-training :is(.services-shell a,.services-shell button,.services-shell input,.services-shell select,.services-shell summary):focus-visible { outline:2px solid #ffae75; outline-offset:3px; }
+.training-masthead { position:relative; isolation:isolate; overflow:hidden; min-height:116px; padding:16px 25px; border:1px solid #6c3030; border-top:2px solid #b31515; background:linear-gradient(105deg,#3c0e12,#1a1114 65%,#17120f); }
+.training-masthead .training-eyebrow { display:none; }
+.training-masthead::before { content:''; position:absolute; z-index:-1; inset:0; opacity:.2; background:url('../../brand/facets.svg') right center/auto 300px no-repeat; }
+.training-breadcrumb { display:flex; align-items:center; gap:9px; font-size:.73rem; letter-spacing:.07em; text-transform:uppercase; color:#cfb4a7; margin-bottom:6px; }
+.training-breadcrumb a:hover { color:#fff1df; }
+.training-eyebrow { font-size:.68rem; text-transform:uppercase; letter-spacing:.15em; font-weight:700; color:#eca477; margin:0 0 5px; }
+.training-masthead h1 { font-family:'Frank Ruhl Libre',Georgia,serif; font-size:clamp(2.2rem,3.3vw,2.5rem); font-weight:500; line-height:1.08; margin:0 0 5px; letter-spacing:-.02em; }
+.training-masthead > div:first-child > p:last-child { margin:0; color:#d0bcb1; font-size:.95rem; line-height:1.6; }
+.training-crest { position:absolute; z-index:-1; top:-33px; right:9%; width:225px; height:225px; opacity:.27; transform:rotate(-8deg); background:url('../../brand/training-crest.svg') center/contain no-repeat; }
+.training-preview-note { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:10px 2px; color:#afa19a; font-size:.74rem; line-height:1.5; }
+.training-preview-note a { color:#e7b496; text-decoration:underline; text-underline-offset:3px; white-space:nowrap; }
+.bft-training .mkt-bar { margin-top:12px; padding:12px 16px; gap:12px 20px; border-radius:2px; border:1px solid #513033; border-top:2px solid #7b2c2a; background:linear-gradient(100deg,#251518,#141112 80%); }
+.bft-training .mkt-bar-title { font-family:'Frank Ruhl Libre',Georgia,serif; font-size:1.25rem; letter-spacing:0; text-transform:none; }
+.bft-training .mkt-bar-eyebrow { font-size:.64rem; color:#dca17c; margin-bottom:3px; }
+.bft-training .mkt-picker { flex-wrap:wrap; }
+.bft-training .mkt-picker select { max-width:290px; background:#0d0b0c; padding:7px 10px; border-radius:2px; font-size:.85rem; }
+.bft-training .mkt-picker-go { min-height:36px; color:#e0c2af; border-color:#79503e; border-radius:2px; }
+.bft-training .mkt-wallet { border:0; border-left:1px solid #5a3431; border-radius:0; padding-left:20px; background:transparent; }
+.bft-training .mkt-wallet-value { color:#f2bd88; font-family:'Frank Ruhl Libre',Georgia,serif; font-size:1.4rem; }
+.bft-training .services-nav { gap:5px; margin:15px 0 0; border-color:#67302e; }
+.bft-training .services-nav a { border:1px solid transparent; border-bottom:2px solid transparent; padding:10px 17px; font-size:.82rem; color:#c0aaa1; border-radius:2px 2px 0 0; }
+.bft-training .services-nav a:hover { color:#fff1e2; background:#261619; border-color:#734132; }
+.bft-training .services-nav a[aria-selected=true] { color:#ffdfc4; background:linear-gradient(110deg,#4b0d0d,#291519); border-color:#70332b; border-bottom-color:#ff6a00; }
+.bft-training .service-section { padding:20px 0 24px; border-color:#42262a; }
+.bft-training .service-heading { align-items:center; }
+.bft-training .service-heading h2 { margin:3px 0 0; font-family:'Frank Ruhl Libre',Georgia,serif; font-weight:500; font-size:1.85rem; line-height:1.2; color:#f0e3d9; }
+.bft-training .service-heading > strong { font-size:1.5rem; color:#ffc486; white-space:nowrap; }
+.bft-training .service-heading > strong small { display:block; font-family:'Open Sans',sans-serif; font-size:.68rem; font-weight:400; color:#b6a097; margin-top:2px; }
+.bft-training .service-lead { font-size:.86rem; line-height:1.7; color:#c0b0a8; margin:10px 0 15px; }
+.bft-training .training-start { display:block; padding:0; }
+.training-category-shortcuts { display:none; }
+.training-enhanced .training-category-shortcuts { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin-bottom:16px; }
+.bft-training .training-category-shortcuts button { display:flex; align-items:center; gap:12px; min-width:0; min-height:69px; padding:11px 14px; text-align:left; border:1px solid #573130; border-radius:2px; background:#191215; color:#ead5c5; cursor:pointer; }
+.training-category-shortcuts svg { width:34px; height:34px; flex:0 0 34px; fill:none; stroke:#e2a15f; stroke-width:1.3; stroke-linecap:round; stroke-linejoin:round; }
+.training-category-shortcuts strong { display:block; font-family:'Frank Ruhl Libre',Georgia,serif; font-size:1.2rem; line-height:1.2; font-weight:500; }
+.training-category-shortcuts small { display:block; color:#bda89c; font-size:.71rem; line-height:1.4; margin-top:4px; }
+.bft-training .training-category-shortcuts button:hover { border-color:#b56740; background:#2b191a; }
+.bft-training .training-category-shortcuts button[aria-pressed=true] { background:linear-gradient(105deg,#4b0d0d,#2c1818); border-color:#d07742; box-shadow:inset 0 -2px #e5652e; color:#fff0dd; }
+.training-workbench { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr); gap:20px; align-items:start; }
+.training-browse { min-width:0; padding:17px; border:1px solid #4e2d30; border-top:2px solid #84332e; background:#141012; }
+.bft-training .training-filters { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,.7fr) auto; gap:9px; padding:0; }
+.bft-training .service-form label { font-size:.71rem; color:#c6ada1; letter-spacing:.03em; }
+.bft-training .training-filters :is(input,select) { border-color:#654035; border-radius:2px; background:#0c0b0c; font-size:.83rem; width:100%; }
+.training-enhanced .training-filters { grid-template-columns:minmax(0,1fr) auto; }
+.training-enhanced .training-category-native, .training-enhanced .training-native-choice { display:none; }
+.bft-training .training-filters .training-clear { background:#211519; color:#e5be9f; border-color:#79503c; border-radius:2px; font-size:.74rem; padding-inline:10px; }
+.bft-training .training-search-status { font-size:.74rem; color:#baaaa0; margin:11px 0; }
+.training-native-choice { display:grid; gap:6px; }
+.training-options { max-height:382px; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:#8a3b31 #171113; border:1px solid #41282b; }
+.bft-training .training-options button { display:grid; grid-template-columns:30px minmax(0,1fr); align-items:center; gap:12px; width:100%; padding:10px 12px; background:#100d0e; border:0; border-left:3px solid transparent; border-bottom:1px solid #382427; border-radius:0; text-align:left; font-weight:400; min-height:54px; color:#e5d7cd; cursor:pointer; }
+.training-options button svg { width:30px; height:30px; fill:none; stroke:#dba064; stroke-width:1.2; stroke-linecap:round; stroke-linejoin:round; }
+.training-options button strong { display:block; font-size:.92rem; font-weight:600; line-height:1.4; overflow-wrap:anywhere; }
+.training-options button small { display:block; font-size:.68rem; color:#b59f94; line-height:1.5; margin-top:1px; }
+.bft-training .training-options button:hover { background:#29171b; filter:none; }
+.bft-training .training-options button[aria-selected=true] { border-left-color:#ff6a00; background:linear-gradient(100deg,#4b0d0d,#271619); color:#fff0dd; }
+.training-noresults { border:1px dashed #694238; background:#1d1417; padding:18px; font-size:.85rem; color:#cbb5a8; line-height:1.6; }
+.training-checkout { position:sticky; top:calc(var(--bft-header-height,72px) + 12px); min-width:0; padding:20px; border:1px solid #6f3e30; border-top:2px solid #c37640; background:radial-gradient(ellipse at top right,#6c361b26,transparent 65%),#171113; scroll-margin-top:90px; }
+.training-choice-head { display:grid; grid-template-columns:54px minmax(0,1fr); align-items:center; gap:15px; margin:15px 0 13px; }
+.training-selected-symbol { display:block; width:54px; height:54px; margin:0; stroke:#e6a560; fill:none; stroke-width:1.15; stroke-linecap:round; stroke-linejoin:round; }
+.training-selected-group { display:inline-block; color:#e6ac80; font-size:.7rem; letter-spacing:.09em; text-transform:uppercase; margin-bottom:7px; }
+.training-checkout h3 { margin:0; font-family:'Frank Ruhl Libre',Georgia,serif; font-weight:500; font-size:1.65rem; line-height:1.2; color:#f2e4d6; overflow-wrap:anywhere; }
+.training-selected-description { color:#c9b3a5; font-size:.85rem; line-height:1.7; margin:0 0 14px; }
+.training-enrollment { display:grid; grid-template-columns:1fr 1fr; gap:12px; border-block:1px solid #563228; padding:14px 0; margin:0 0 18px; }
+.training-enrollment dt { font-size:.66rem; letter-spacing:.05em; text-transform:uppercase; color:#b9a295; margin-bottom:4px; }
+.training-enrollment dd { margin:0; color:#ffd093; font-family:'Frank Ruhl Libre',Georgia,serif; font-size:1.65rem; line-height:1.2; }
+.bft-training .training-checkout button[type=submit] { width:100%; min-height:43px; background:#98291f; border:1px solid #c96b3c; border-radius:2px; color:#fff3e4; font-size:.88rem; font-weight:700; }
+.bft-training .training-checkout button[type=submit]:hover { background:#b83d29; border-color:#ffab66; filter:none; }
+.bft-training .training-checkout button:disabled { background:#332122; border-color:#6a3933; color:#d1b2a2; opacity:.65; }
+.training-payment-note { color:#bfa99b; font-size:.75rem; line-height:1.65; margin:12px 0 0; }
+.bft-training .training-change-choice { display:none; background:transparent; border:0; color:#efb385; font-size:.82rem; margin-top:12px; text-decoration:underline; text-underline-offset:3px; }
+.bft-training .training-active { display:grid; grid-template-columns:64px minmax(0,1fr) auto; align-items:center; gap:16px; padding:23px; border:1px solid #90513a; border-top:2px solid #e88c45; background:linear-gradient(110deg,#321719,#171113 75%); }
+.training-active-mark { width:64px; height:64px; display:grid; place-items:center; border:1px solid #895036; background:#1b1114; }
+.training-active-mark svg { width:42px; height:42px; fill:none; stroke:#f1b76e; stroke-width:1.2; }
+.training-active > div:not(.training-progress-block) { min-width:0; }
+.bft-training .training-active strong { display:block; font-family:'Frank Ruhl Libre',Georgia,serif; font-size:1.65rem; line-height:1.3; color:#f2dcc7; overflow-wrap:anywhere; }
+.bft-training .training-active small { color:#e8aa7c; font-size:.7rem; }
+.bft-training .service-deadline time { font-size:1.25rem; color:#ffc27b; }
+.training-progress-block { grid-column:1 / -1; border-top:1px solid #5d322c; padding-top:16px; }
+.training-progress-block > p:first-child { display:flex; justify-content:space-between; align-items:center; gap:12px; margin:0 0 9px; color:#c5ada0; font-size:.78rem; }
+.bft-training .training-progress-block > p strong { font-family:'Open Sans',sans-serif; font-size:.78rem; color:#e8b189; }
+.training-progress { height:8px; background:#0c0a0b; border:1px solid #6a3d30; overflow:hidden; }
+.training-progress > span { display:block; width:0; height:100%; background:linear-gradient(90deg,#b31515,#ff6a00,#f4b965); }
+.training-finish-date { margin:12px 0 0; font-size:.8rem; line-height:1.7; color:#c6aea1; }
+.training-finish-date time { color:#f0ceb0; }
+.bft-training .service-history { margin-top:17px; border:1px solid #57342f; border-radius:2px; background:#171113; font-size:.87rem; }
+.service-history summary { padding:13px 16px; color:#e6bd9e; }
+.service-history ul { margin:0; padding:0 16px; }
+.bft-training .service-history li { padding:12px 0; color:#d8c4b8; border-color:#43292b; }
+.bft-training .service-history small { font-size:.76rem; color:#bda99f; }
+.bft-training .service-feedback,.bft-training .service-empty { border-radius:2px; font-size:.86rem; line-height:1.7; }
+@media (max-width: 1000px) {
+  .training-category-shortcuts strong { font-size:1.08rem; }
+  .bft-training .training-category-shortcuts button { gap:8px; padding:11px; }
+  .training-checkout { padding:18px; }
+}
+@media (max-width: 900px) {
+  .bft-training .training-main { padding:16px 20px 36px; }
+  .training-workbench { grid-template-columns:minmax(0,1fr); gap:16px; }
+  .training-checkout { position:static; }
+  .training-options { max-height:280px; }
+  .bft-training .training-change-choice { display:inline-block; }
+  .training-selected-symbol { width:52px; height:52px; }
+  .bft-training .mkt-picker { flex:1 1 100%; }
+  .bft-training .mkt-picker select { flex:1; max-width:none; min-width:0; }
+  .bft-training .mkt-wallet { border-left:0; padding:0; }
+}
+@media (max-width: 600px) {
+  .bft-training .training-main { padding:12px 12px 28px; }
+  .training-masthead { padding:18px; }
+  .training-masthead h1 { font-size:2.45rem; }
+  .training-masthead > div:first-child > p:last-child { max-width:26ch; font-size:.9rem; }
+  .training-crest { right:-55px; opacity:.18; }
+  .training-preview-note { flex-direction:column; align-items:start; gap:3px; }
+  .bft-training .service-heading { align-items:start; }
+  .bft-training .service-heading h2 { font-size:1.55rem; }
+  .bft-training .service-heading > strong { font-size:1.25rem; }
+  .training-enhanced .training-category-shortcuts { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .bft-training .training-category-shortcuts button { min-height:62px; }
+  .training-category-shortcuts svg { width:32px; height:32px; flex-basis:32px; }
+  .training-browse { padding:13px; }
+  .training-enhanced .training-filters { grid-template-columns:minmax(0,1fr); }
+  .bft-training .training-filters .training-clear { justify-self:start; min-height:30px; }
+  .training-checkout h3 { font-size:1.7rem; }
+  .bft-training .training-active { grid-template-columns:48px minmax(0,1fr); padding:17px; gap:12px; }
+  .training-active-mark { width:48px; height:48px; }
+  .training-active-mark svg { width:34px; height:34px; }
+  .training-active .service-deadline { grid-column:1 / -1; text-align:left; }
+  .bft-training .training-active strong { font-size:1.45rem; }
+  .bft-training .service-history li { flex-direction:column; gap:3px; }
+  .bft-training .mkt-picker label { flex:1 1 100%; }
+  .bft-training .mkt-picker select { max-width:calc(100% - 65px); }
+}
+@media (prefers-reduced-motion: reduce) { .training-progress > span { transition:none; } }
+@media (max-width: 360px) {
+  .bft-training .training-category-shortcuts button { padding:9px; gap:7px; }
+  .training-category-shortcuts svg { width:30px; height:30px; flex-basis:30px; }
+  .training-category-shortcuts strong { font-size:1rem; }
+}

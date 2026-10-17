@@ -28,7 +28,7 @@
 }
 .regions-home h1 {
   color: #f3eee6;
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: clamp(2.2rem, 4vw, 4rem);
   font-weight: 500;
   letter-spacing: .04em;
@@ -140,7 +140,7 @@
 }
 .territory-card h2 {
   color: #f3eee6;
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: clamp(1.25rem, 1.55vw, 1.75rem);
   font-weight: 500;
   margin-top: .5rem;

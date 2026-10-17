@@ -1,0 +1,7 @@
+{% if classe %}
+<section class="class-traits{% if compact %} class-traits-compact{% endif %}">
+  <h2>Ficha inicial</h2>
+  <div class="class-traits-layout"><dl>{% for trait in class_traits %}{% if not compact or trait.label == 'Atributo Principal' or trait.label == 'Dado de Vida' or trait.label == 'Resistencias' %}<div><dt>{{ trait.label }}</dt><dd class="trait-value">{{ trait.value|linebreaksbr }}</dd></div>{% endif %}{% empty %}<div><dd>InformaÃ§Ãµes de ficha ainda nÃ£o disponÃ­veis.</dd></div>{% endfor %}</dl>
+  {% if not compact and multiclass_traits %}<div class="class-multiclass"><h3>Multiclasse</h3><dl>{% for trait in multiclass_traits %}<div><dt>{{ trait.label }}</dt><dd class="trait-value">{{ trait.value|linebreaksbr }}</dd></div>{% endfor %}</dl></div>{% endif %}</div>
+</section>
+{% else %}<div class="class-sidebar-note"><p>NÃ£o existe um Ãºnico jeito de ser herÃ³i.</p><span>Explore os caminhos e descubra o seu.</span></div>{% endif %}

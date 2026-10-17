@@ -1,129 +1,72 @@
 {% extends 'home/base.html' %}
+{% load static %}
 
 {% block title %}Idiomas - Bonfire Tales RPG{% endblock %}
+{% block body_class %}bft-languages{% endblock %}
+{% block main_class %}flex-1 w-full bft-languages-main{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/idiomas.css' %}?v=1">
+<script defer src="{% static 'js/idiomas.js' %}?v=1"></script>
+{% endblock %}
 
 {% block content %}
-<section class="mx-auto w-full max-w-6xl px-2 py-4 sm:px-4">
-  <header class="border-b border-[var(--stroke)] pb-4">
-    <p class="text-xs font-bold uppercase text-[var(--ember)]">Referência de jogo</p>
-    <h1 class="mt-1 font-rpg text-3xl font-bold uppercase text-[var(--text)]">Idiomas</h1>
-    <p class="mt-2 max-w-3xl text-sm leading-relaxed text-[var(--muted)]">Línguas basais, derivadas e exóticas faladas em Cinéria.</p>
+<section class="language-shell" aria-labelledby="languagesTitle">
+  <header class="language-masthead">
+    <div class="language-masthead-copy">
+      <nav class="language-breadcrumb" aria-label="LocalizaÃ§Ã£o"><a href="{% url 'home' %}">Bonfire Tales</a><span aria-hidden="true">/</span><span>Personagens</span></nav>
+      <h1 id="languagesTitle">Idiomas</h1>
+      <p>Palavras tambÃ©m abrem caminhos. <span>ConheÃ§a as lÃ­nguas basais, derivadas e exÃ³ticas de CinÃ©ria.</span></p>
+    </div>
+    <div class="language-masthead-art" aria-hidden="true"></div>
   </header>
 
-  <div class="grid gap-6 py-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,.9fr)]">
-    <section aria-labelledby="translator-title" class="border border-[var(--stroke)] bg-[var(--bg1)] p-4">
-      <div class="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 id="translator-title" class="font-rpg text-xl font-bold text-[var(--text)]">Tradutor de ambientação</h2>
-          <p class="mt-1 text-xs text-[var(--muted)]">Transcrição consistente para falas, cartas e inscrições de mesa.</p>
-        </div>
-        <select id="languageTarget" class="min-w-48 border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)]">
-          {% for idioma in idiomas %}<option value="{{ idioma.slug }}">{{ idioma.nome }}{% if idioma.nome_mundo %} · {{ idioma.nome_mundo }}{% endif %}</option>{% endfor %}
-        </select>
+  <noscript><p class="language-notice">Consulte os idiomas abaixo. Ative o JavaScript para usar a busca e o transcritor de ambientaÃ§Ã£o.</p></noscript>
+  <div class="language-grid">
+    <button type="button" id="languageMobileMenu" class="language-mobile-button" aria-controls="languageSidebar" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Escolher idioma</button>
+    <button type="button" id="languageBackdrop" class="language-backdrop" aria-label="Fechar lista" tabindex="-1" hidden></button>
+    <aside id="languageSidebar" class="language-sidebar" aria-labelledby="languageIndexTitle">
+      <div class="language-sidebar-heading"><h2 id="languageIndexTitle">Vozes de CinÃ©ria</h2><button type="button" id="languageCloseMenu" class="language-close" aria-label="Fechar lista de idiomas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div>
+      <div class="language-tools">
+        <label for="languageSearch">Buscar idioma</label>
+        <div class="language-search-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg><input id="languageSearch" type="search" placeholder="Nome, referÃªncia ou escritaâ€¦" autocomplete="off"></div>
+        <label for="languageCategory">Categoria</label>
+        <select id="languageCategory"><option value="">Todas as categorias</option>{% for slug,label in categorias %}<option value="{{ slug }}">{{ label }}</option>{% endfor %}</select>
       </div>
-
-      <label for="languageSource" class="mt-4 block text-xs font-bold uppercase text-[var(--muted)]">Texto em comum</label>
-      <textarea id="languageSource" rows="6" maxlength="1200" placeholder="Digite a mensagem..." class="mt-1 w-full resize-y border border-[var(--stroke)] bg-[var(--bg0)] p-3 text-sm leading-relaxed text-[var(--text)] outline-none focus:border-[var(--ember)]"></textarea>
-
-      <div class="mt-3 flex items-center justify-between gap-3">
-        <span id="languageWriting" class="text-xs text-[var(--muted)]"></span>
-        <button id="copyTranslation" type="button" class="border border-[var(--stroke)] px-3 py-1.5 text-xs font-bold text-[var(--text)] hover:border-[var(--ember)] hover:text-[var(--ember)]">Copiar</button>
-      </div>
-      <output id="languageResult" class="mt-2 block min-h-36 whitespace-pre-wrap border border-[var(--stroke)] bg-[var(--bg0)] p-3 text-sm leading-relaxed text-[var(--text)]" aria-live="polite"></output>
-      <p class="mt-2 text-[11px] leading-relaxed text-[var(--muted)]">A transcrição mantém nomes próprios, números e pontuação. Não substitui um dicionário canônico.</p>
-    </section>
-
-    <aside>
-      <div class="mb-3 flex flex-wrap items-center gap-2">
-        <input id="languageSearch" type="search" placeholder="Buscar idioma..." class="min-w-0 flex-1 border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)]">
-        <select id="languageCategory" class="border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)]">
-          <option value="">Todas as categorias</option>
-          {% for slug, label in categorias %}<option value="{{ slug }}">{{ label }}</option>{% endfor %}
-        </select>
-      </div>
-      <div id="languageList" class="max-h-[640px] space-y-2 overflow-y-auto pr-1">
+      <div class="language-index-status"><span id="languageResultCount" role="status" aria-live="polite">{{ idiomas|length }} idiomas</span><button type="button" id="languageResetFilters" hidden>Limpar</button></div>
+      <nav id="languageList" class="language-list custom-scrollbar" aria-label="Lista de idiomas">
         {% for idioma in idiomas %}
-        <article class="language-row border border-[var(--stroke)] bg-[var(--bg1)] p-3" data-search="{{ idioma.nome|lower }} {{ idioma.nome_mundo|lower }} {{ idioma.idioma_caracteristico|lower }}" data-category="{{ idioma.categoria }}">
-          <div class="flex items-baseline justify-between gap-3">
-            <h2 class="font-bold text-[var(--text)]">{{ idioma.nome }}</h2>
-            <span class="text-[10px] font-bold uppercase text-[var(--ember)]">{{ idioma.categoria_label }}</span>
-          </div>
-          {% if idioma.nome_mundo %}<p class="mt-1 text-sm text-[var(--muted)]">{{ idioma.nome_mundo }}</p>{% endif %}
-          <dl class="mt-2 grid grid-cols-2 gap-2 text-xs">
-            <div><dt class="text-[var(--muted)]">Referência sonora</dt><dd class="text-[var(--text)]">{{ idioma.idioma_caracteristico|default:'Própria' }}</dd></div>
-            <div><dt class="text-[var(--muted)]">Escrita</dt><dd class="text-[var(--text)]">{{ idioma.transcricao|default:'Oral' }}</dd></div>
-          </dl>
-        </article>
+        {% ifchanged idioma.categoria %}<h3 class="language-group-title" data-language-group="{{ idioma.categoria }}">{% if idioma.categoria == 'basal' %}Basais{% elif idioma.categoria == 'derivado' %}Derivados{% elif idioma.categoria == 'exotico' %}ExÃ³ticos{% else %}{{ idioma.categoria_label }}{% endif %}</h3>{% endifchanged %}
+        <a class="language-row language-index-item" href="#{{ idioma.slug }}" data-language-slug="{{ idioma.slug }}" data-category="{{ idioma.categoria }}" data-search="{{ idioma.nome }} {{ idioma.nome_mundo }} {{ idioma.idioma_caracteristico }} {{ idioma.transcricao }} {{ idioma.categoria_label }}"><span><span class="language-index-name">{{ idioma.nome }}</span><span class="language-index-meta">{{ idioma.nome_mundo|default:idioma.categoria_label }}</span></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m10 7 5 5-5 5"/></svg></a>
         {% endfor %}
-      </div>
-      <p id="languageEmpty" class="hidden border border-dashed border-[var(--stroke)] p-4 text-center text-sm text-[var(--muted)]">Nenhum idioma encontrado.</p>
+        <div id="languageEmpty" class="language-list-empty" hidden><p>Nenhum idioma encontrado.</p><button type="button" id="languageEmptyReset">Limpar busca e filtros</button></div>
+      </nav>
     </aside>
+
+    <div class="language-reading">
+      <div id="languageDetails">
+        {% for idioma in idiomas %}
+        <article class="language-detail" data-language-detail="{{ idioma.slug }}" aria-labelledby="{{ idioma.slug }}">
+          <header class="language-detail-header">
+            <div class="language-emblem" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.1"><path d="m16 2 12 7v14l-12 7L4 23V9Z"/><path d="M9 11h9a3 3 0 0 1 3 3v4h-5l-4 3v-3H9Z"/><path d="M13 9h9v8M12 14h6"/></svg></div>
+            <div><p class="language-eyebrow">Idioma {{ idioma.categoria_label|lower }}</p><h2 id="{{ idioma.slug }}" tabindex="-1">{{ idioma.nome }}</h2>{% if idioma.nome_mundo %}<p class="language-world-name">{{ idioma.nome_mundo }}</p>{% endif %}</div>
+          </header>
+          <dl class="language-meta"><div><dt>ReferÃªncia sonora</dt><dd>{{ idioma.idioma_caracteristico|default:'PrÃ³pria' }}</dd></div><div><dt>Sistema de escrita</dt><dd>{{ idioma.transcricao|default:'Oral' }}</dd></div></dl>
+        </article>
+        {% empty %}<p class="language-notice">Nenhum idioma cadastrado.</p>{% endfor %}
+      </div>
+
+      <section class="language-transcriber" aria-labelledby="translator-title">
+        <header class="language-transcriber-heading"><div><p class="language-eyebrow">DÃª voz Ã  sua aventura</p><h2 id="translator-title">Transcritor de ambientaÃ§Ã£o</h2><p>Crie falas, cartas e inscriÃ§Ãµes para a sua mesa.</p></div></header>
+        <div class="language-target-field"><label for="languageTarget">Idioma de destino</label><select id="languageTarget" disabled>{% for idioma in idiomas %}<option value="{{ idioma.slug }}">{{ idioma.nome }}{% if idioma.nome_mundo %} Â· {{ idioma.nome_mundo }}{% endif %}</option>{% endfor %}</select></div>
+        <div class="language-workspace">
+          <div class="language-source-field"><div class="language-field-heading"><label for="languageSource">Texto em Comum</label><span id="languageCharacterCount">0 / 1.200</span></div><textarea id="languageSource" rows="7" maxlength="1200" placeholder="Digite uma fala, carta ou inscriÃ§Ã£oâ€¦" aria-describedby="languageTranscriptionHint" disabled></textarea><button type="button" id="languageClearText" class="language-clear-text" disabled>Limpar texto</button></div>
+          <div class="language-result-field"><div class="language-field-heading"><span id="languageResultLabel">TranscriÃ§Ã£o</span><span class="language-live-label"><span aria-hidden="true"></span>Em tempo real</span></div><div class="language-output-wrap"><p id="languageResultPlaceholder" aria-hidden="true">Sua transcriÃ§Ã£o aparece aqui.</p><output id="languageResult" aria-labelledby="languageResultLabel" aria-live="polite" aria-atomic="true"></output></div><div class="language-output-actions"><span id="languageWriting"></span><button type="button" id="copyTranslation" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="1"/><path d="M16 8V4H4v12h4"/></svg><span id="languageCopyLabel">Copiar</span></button></div></div>
+        </div>
+        <p id="languageCopyStatus" class="language-copy-status" role="status" aria-live="polite"></p>
+        <p id="languageTranscriptionHint" class="language-transcription-hint">TranscriÃ§Ã£o fictÃ­cia para ambientaÃ§Ã£o: nÃ£o Ã© uma traduÃ§Ã£o literal nem reproduz um alfabeto canÃ´nico. A escrita e a referÃªncia sonora acima sÃ£o informaÃ§Ãµes do idioma.</p>
+      </section>
+    </div>
   </div>
 </section>
-
-{{ idiomas_json|json_script:"language-data" }}
-<script>
-(function(){
-  const languages = JSON.parse(document.getElementById('language-data').textContent || '[]');
-  const bySlug = Object.fromEntries(languages.map(item => [item.slug, item]));
-  const source = document.getElementById('languageSource');
-  const target = document.getElementById('languageTarget');
-  const result = document.getElementById('languageResult');
-  const writing = document.getElementById('languageWriting');
-  const vowels = ['a', 'e', 'i', 'o', 'u'];
-  const syllables = ['ka','ra','th','el','or','is','va','en','ul','dra','mir','sa','lo','ven','ae','um','tor','shi','na','yr'];
-
-  function hash(value){
-    let number = 2166136261;
-    for(let i=0;i<value.length;i++) number = Math.imul(number ^ value.charCodeAt(i), 16777619);
-    return number >>> 0;
-  }
-
-  function transformWord(word, language){
-    if(!word || language.slug === 'comum' || /^\d+$/.test(word)) return word;
-    const seed = hash(language.slug + ':' + word.toLocaleLowerCase('pt-BR'));
-    const count = Math.max(1, Math.min(5, Math.ceil(word.length / 3)));
-    let output = '';
-    for(let index=0; index<count; index++){
-      const shift = (seed >>> ((index % 4) * 7)) + index * 13;
-      output += syllables[shift % syllables.length];
-      if(index === 0 && word.length > 7) output += vowels[(shift >>> 3) % vowels.length];
-    }
-    if(word[0] === word[0].toLocaleUpperCase('pt-BR')) output = output[0].toLocaleUpperCase('pt-BR') + output.slice(1);
-    return output;
-  }
-
-  function translate(){
-    const language = bySlug[target.value] || languages[0];
-    const text = source.value || '';
-    result.textContent = text.replace(/[\p{L}\p{M}\d]+/gu, word => transformWord(word, language));
-    writing.textContent = language ? ('Escrita: ' + (language.transcricao || 'oral')) : '';
-  }
-
-  source.addEventListener('input', translate);
-  target.addEventListener('change', translate);
-  document.getElementById('copyTranslation').addEventListener('click', async function(){
-    if(!result.textContent) return;
-    await navigator.clipboard.writeText(result.textContent);
-    this.textContent = 'Copiado';
-    setTimeout(() => { this.textContent = 'Copiar'; }, 1200);
-  });
-
-  const search = document.getElementById('languageSearch');
-  const category = document.getElementById('languageCategory');
-  function filter(){
-    const query = search.value.trim().toLocaleLowerCase('pt-BR');
-    let visible = 0;
-    document.querySelectorAll('.language-row').forEach(row => {
-      const show = (!query || row.dataset.search.includes(query)) && (!category.value || row.dataset.category === category.value);
-      row.hidden = !show;
-      if(show) visible++;
-    });
-    document.getElementById('languageEmpty').classList.toggle('hidden', visible !== 0);
-  }
-  search.addEventListener('input', filter);
-  category.addEventListener('change', filter);
-  translate();
-})();
-</script>
+{{ idiomas_json|json_script:'language-data' }}
 {% endblock %}

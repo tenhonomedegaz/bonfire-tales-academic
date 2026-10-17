@@ -1,322 +1,81 @@
 {% extends 'home/base.html' %}
-
+{% load static %}
+{% block title %}Regras e PuniÃ§Ãµes - Bonfire Tales RPG{% endblock %}
+{% block meta_description %}ConheÃ§a as regras de convivÃªncia do Bonfire Tales, o sistema de alertas e advertÃªncias e as orientaÃ§Ãµes para falar com a moderaÃ§Ã£o.{% endblock %}
+{% block body_class %}bft-conduct{% endblock %}
+{% block main_class %}flex-1 w-full bft-conduct-main{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/regras_punicoes.css' %}?v=1"><script src="{% static 'js/regras_punicoes.js' %}?v=1" defer></script>{% endblock %}
 {% block content %}
-<div class="-mx-4 md:-mx-8 -mt-8 mb-4">
+<div class="conduct-page">
+  <header class="conduct-masthead">
+    <div class="conduct-masthead-copy"><nav class="conduct-breadcrumb" aria-label="LocalizaÃ§Ã£o"><a href="{% url 'home' %}">Bonfire Tales</a><span aria-hidden="true">/</span><span>Comunidade</span></nav><p class="conduct-eyebrow">CÃ³digo de Conduta</p><h1 id="conduct-title" tabindex="-1">Regras e PuniÃ§Ãµes</h1><p class="conduct-subtitle">Regras bÃ¡sicas do servidor e como funciona o sistema de puniÃ§Ãµes.</p><div class="conduct-masthead-actions"><a class="conduct-primary-link" href="#regras">Ler as regras <span aria-hidden="true">â†“</span></a><a class="conduct-secondary-link" href="#punicoes">Ver puniÃ§Ãµes <span aria-hidden="true">â†“</span></a></div></div>
+    <div class="conduct-masthead-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m12 2 8 3v7c0 6-8 10-8 10S4 18 4 12V5Z"/><path d="m8 12 3 3 5-6"/></svg></div>
+  </header>
 
-  <section class="relative py-12 bg-[var(--bg1)] border-b border-[var(--stroke)] overflow-hidden">
-    <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(210,23,23,0.1),_transparent_70%)] pointer-events-none"></div>
-    <div class="container mx-auto px-4 text-center relative z-10">
-      <div class="inline-flex items-center gap-2 text-[var(--flame)] mb-2.5">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
-        <span class="font-bold uppercase tracking-widest text-sm">Código de Conduta</span>
-      </div>
-      <h1 class="font-rpg text-4xl md:text-6xl font-bold text-[var(--text)] mb-4">
-        Regras e Punições
-      </h1>
-      <p class="text-xl text-[var(--muted)] max-w-2xl mx-auto leading-relaxed">
-        Regras básicas do servidor e como funciona o sistema de punições.
-      </p>
-    </div>
+  <section class="conduct-help" aria-labelledby="moderacao">
+    <span class="conduct-help-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m12 2 8 3v7c0 6-8 10-8 10S4 18 4 12V5Z"/><path d="m8 12 3 3 5-6"/></svg></span><div><h2 id="moderacao" tabindex="-1">Precisa de ajuda ou quer denunciar?</h2><p>Se vocÃª tiver dÃºvida ou precisar denunciar algo, fale com um <span>Moderador</span>.</p></div><a href="https://discord.gg/eyqe7rj2AX" target="_blank" rel="noopener noreferrer" class="conduct-discord-link" aria-label="Ir ao Discord do Bonfire Tales, abre em nova aba">Ir ao Discord <span aria-hidden="true">â†—</span></a>
   </section>
-</div>
 
-<div class="container mx-auto max-w-4xl pb-14">
+  <div class="conduct-layout">
+    <aside class="conduct-sidebar" aria-label="NavegaÃ§Ã£o de Regras e PuniÃ§Ãµes"><p class="conduct-index-title">Nesta pÃ¡gina</p>{% include 'home/partials/conduct_toc.html' %}<a class="conduct-index-help" href="#moderacao">Falar com a moderaÃ§Ã£o <span aria-hidden="true">â†—</span></a></aside>
+    <div class="conduct-reading">
+      <details class="conduct-mobile-index"><summary>Navegar nesta pÃ¡gina <span aria-hidden="true">âŒ„</span></summary>{% include 'home/partials/conduct_toc.html' %}</details>
+      <section class="conduct-section" aria-labelledby="regras">
+        <header class="conduct-section-heading"><div><p class="conduct-eyebrow">01 Â· ConvivÃªncia</p><h2 id="regras" tabindex="-1">Regras do Servidor</h2></div><span class="conduct-section-count">10 regras</span></header>
+        <p class="conduct-intro">Para manter um ambiente agradÃ¡vel, seguro e divertido, temos regras simples. Ao participar do servidor, vocÃª concorda com estas regras e com o sistema de puniÃ§Ãµes abaixo.</p>
+        <ol class="conduct-rule-grid" role="list">
+          <li><article class="conduct-rule" aria-labelledby="regra-1"><header><span class="conduct-rule-number" aria-hidden="true">01</span><h3 id="regra-1" tabindex="-1">Respeite para ser respeitado</h3></header><div class="conduct-rule-copy"><p>Este Ã© um servidor de comunidade. Trate as pessoas com o respeito que vocÃª espera receber.</p><p>TambÃ©m crie um personagem disposto a jogar em equipe. NÃ£o importa tendÃªncia, personalidade ou motivaÃ§Ã£o. Seu personagem precisa funcionar com o grupo.</p></div></article></li>
+          <li><article class="conduct-rule" aria-labelledby="regra-2"><header><span class="conduct-rule-number" aria-hidden="true">02</span><h3 id="regra-2" tabindex="-1">ConteÃºdo ofensivo</h3></header><div class="conduct-rule-copy"><p>Ã‰ proibida qualquer manifestaÃ§Ã£o de racismo, LGBTQ+fobia ou qualquer tipo de discriminaÃ§Ã£o.</p><p>Isso vale para avatar do Discord, nome, mensagens, narraÃ§Ã£o, comportamento em campanha e qualquer manifestaÃ§Ã£o direta ou indireta dentro do servidor.</p></div></article></li>
+          <li><article class="conduct-rule" aria-labelledby="regra-3"><header><span class="conduct-rule-number" aria-hidden="true">03</span><h3 id="regra-3" tabindex="-1">AssÃ©dio</h3></header><div class="conduct-rule-copy"><p>AssÃ©dio Ã© expressamente proibido. Isso inclui apelidos para envergonhar, ameaÃ§as, humilhaÃ§Ã£o e qualquer atitude feita para causar desconforto.</p><p>Em situaÃ§Ãµes graves, a pessoa pode responder civil e criminalmente conforme a legislaÃ§Ã£o brasileira, alÃ©m de sofrer sanÃ§Ãµes internas do servidor.</p></div></article></li>
+          <li><article class="conduct-rule" aria-labelledby="regra-4"><header><span class="conduct-rule-number" aria-hidden="true">04</span><h3 id="regra-4" tabindex="-1">PolÃ­tica, religiÃ£o e esportes</h3></header><div class="conduct-rule-copy"><p>Evite ferir, provocar ou impor opiniÃµes sobre assuntos polÃªmicos que possam gerar discÃ³rdia. Isso inclui polÃ­tica, religiÃ£o, esportes e outros temas sensÃ­veis.</p></div></article></li>
+          <li><article class="conduct-rule" aria-labelledby="regra-5"><header><span class="conduct-rule-number" aria-hidden="true">05</span><h3 id="regra-5" tabindex="-1">DivulgaÃ§Ã£o</h3></header><div class="conduct-rule-copy"><p>Use apenas os canais especÃ­ficos para divulgar campanhas, streams e artes.</p><p>No geral, nÃ£o aprovamos venda de produtos ou serviÃ§os no servidor sem autorizaÃ§Ã£o da equipe.</p></div></article></li>
+          <li><article class="conduct-rule" aria-labelledby="regra-6"><header><span class="conduct-rule-number" aria-hidden="true">06</span><h3 id="regra-6" tabindex="-1">ConteÃºdo e RP +18</h3></header><div class="conduct-rule-copy"><p>Ã‰ estritamente proibido conteÃºdo sexual, nudez, erotizaÃ§Ã£o, fetichizaÃ§Ã£o, insinuaÃ§Ãµes explÃ­citas e qualquer interaÃ§Ã£o de teor sexual, mesmo em RP.</p></div></article></li>
+          <li><article class="conduct-rule" aria-labelledby="regra-7"><header><span class="conduct-rule-number" aria-hidden="true">07</span><h3 id="regra-7" tabindex="-1">Spam</h3></header><div class="conduct-rule-copy"><p>Evite spam, publicaÃ§Ãµes excessivas e caps lock.</p></div></article></li>
+          <li><article class="conduct-rule" aria-labelledby="regra-8"><header><span class="conduct-rule-number" aria-hidden="true">08</span><h3 id="regra-8" tabindex="-1">InformaÃ§Ãµes pessoais</h3></header><div class="conduct-rule-copy"><p>NÃ£o publique informaÃ§Ãµes pessoais, como nome completo, telefone, CPF, RG e dados similares.</p></div></article></li>
+          <li><article class="conduct-rule" aria-labelledby="regra-9"><header><span class="conduct-rule-number" aria-hidden="true">09</span><h3 id="regra-9" tabindex="-1">DenÃºncia</h3></header><div class="conduct-rule-copy"><p>Se vocÃª quiser denunciar comportamento inapropriado, entre em contato com um <strong>Moderador</strong>.</p></div></article></li>
+          <li><article class="conduct-rule" aria-labelledby="regra-10"><header><span class="conduct-rule-number" aria-hidden="true">10</span><h3 id="regra-10" tabindex="-1">PuniÃ§Ã£o</h3></header><div class="conduct-rule-copy"><p>Quem descumpre regras pode receber alertas. Se o comportamento for recorrente ou grave, puniÃ§Ãµes serÃ£o aplicadas.</p></div></article></li>
+        </ol>
+      </section>
 
-  <div class="prose prose-invert max-w-none text-[var(--muted)] mb-10">
-    <p class="text-lg leading-relaxed">
-      Para manter um ambiente agradável, seguro e divertido, temos regras simples. Ao participar do servidor, você concorda com estas regras e com o sistema de punições abaixo.
-    </p>
-    <div class="not-prose bg-[var(--bg2)] border-l-4 border-[var(--spark)] p-3 rounded-r mt-4">
-       <p class="text-[var(--text)] font-medium flex items-center gap-2">
-         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-[var(--spark)]"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
-         Se você tiver dúvida ou precisar denunciar algo, fale com um <span class="text-[var(--spark)] font-bold">Moderador</span>.
-       </p>
+      <section class="conduct-section conduct-sanctions" aria-labelledby="punicoes">
+        <header class="conduct-section-heading"><div><p class="conduct-eyebrow">02 Â· ModeraÃ§Ã£o</p><h2 id="punicoes" tabindex="-1">PuniÃ§Ãµes do Servidor</h2></div></header>
+        <p class="conduct-intro">Para manter a convivÃªncia saudÃ¡vel e o ambiente de jogo seguro, usamos um sistema gradual de puniÃ§Ãµes. As puniÃ§Ãµes podem ser:</p>
+        <nav class="conduct-penalty-jumps" aria-label="Tipos de puniÃ§Ã£o"><a href="#alertas">Alertas <span aria-hidden="true">â†—</span></a><a href="#advertencias">AdvertÃªncias <span aria-hidden="true">â†—</span></a><a href="#silencio">SilÃªncio <span aria-hidden="true">â†—</span></a><a href="#banimento">Banimento <span aria-hidden="true">â†—</span></a></nav>
+
+        <article class="conduct-penalty conduct-alerts" aria-labelledby="alertas">
+          <header class="conduct-penalty-header"><span class="conduct-penalty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m12 3 10 18H2Z"/><path d="M12 9v5m0 3h.01"/></svg></span><div><h3 id="alertas" tabindex="-1">Alertas</h3><p class="conduct-penalty-label">Aviso formal</p></div></header>
+          <div class="conduct-penalty-copy"><p>Alertas sÃ£o puniÃ§Ãµes leves. Eles sÃ£o aplicados quando hÃ¡ infraÃ§Ã£o de regra ou conduta nociva que ainda nÃ£o Ã© grave o suficiente para justificar uma advertÃªncia.</p><ul class="conduct-bullets "><li>Servem como aviso formal de que o comportamento precisa mudar.</li><li>A moderaÃ§Ã£o analisa contexto e histÃ³rico antes de aplicar o alerta.</li><li>Alertas podem gerar advertÃªncias em caso de reincidÃªncia.</li></ul><section class="conduct-repeat" aria-labelledby="reincidencia"><h4 id="reincidencia" tabindex="-1">Regras de reincidÃªncia</h4><div class="conduct-repeat-grid"><div><p class="conduct-mini-label">Mesmo motivo</p><p>Se o jogador receber um segundo alerta em atÃ© <strong>6 meses</strong>, pelo mesmo motivo, pode receber uma advertÃªncia por reincidÃªncia.</p></div><div><p class="conduct-mini-label">Qualquer motivo</p><p>Se o jogador receber trÃªs alertas em atÃ© <strong>6 meses</strong>, por qualquer motivo, pode receber uma advertÃªncia por reincidÃªncia.</p></div></div></section></div>
+        </article>
+
+        <article class="conduct-penalty conduct-warnings" aria-labelledby="advertencias">
+          <header class="conduct-penalty-header"><span class="conduct-penalty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m8 2-6 6v8l6 6h8l6-6V8l-6-6Z"/><path d="M12 7v7m0 3h.01"/></svg></span><div><h3 id="advertencias" tabindex="-1">AdvertÃªncias</h3><p class="conduct-penalty-label">Graves e cumulativas</p></div></header>
+          <div class="conduct-penalty-copy"><p>AdvertÃªncias sÃ£o puniÃ§Ãµes mais graves e cumulativas. Representam violaÃ§Ãµes de regra mais sÃ©rias ou comportamento nocivo contÃ­nuo com a comunidade.</p>
+            <ol class="conduct-warning-steps" aria-label="ConsequÃªncias das advertÃªncias" role="list"><li><h4>1Âª AdvertÃªncia</h4><p>1 semana como Infrator</p></li><li><h4>2Âª AdvertÃªncia</h4><p>1 mÃªs como Infrator</p></li><li><h4>3Âª AdvertÃªncia</h4><p>Banimento</p></li></ol>
+            <section class="conduct-warning-relation"><h4>RelaÃ§Ã£o entre alertas e advertÃªncias:</h4><ul class="conduct-bullets "><li>Se vocÃª jÃ¡ tiver 1 advertÃªncia, novos alertas podem reiniciar o prazo de prescriÃ§Ã£o dessa advertÃªncia.</li><li>Dependendo da gravidade e da reincidÃªncia, dois alertas adicionais podem gerar uma nova advertÃªncia.</li><li>Se vocÃª jÃ¡ tiver 2 advertÃªncias, um novo alerta pode resultar na 3Âª advertÃªncia, levando ao banimento.</li></ul></section>
+          </div>
+        </article>
+
+        <div class="conduct-secondary-grid">
+          <article class="conduct-penalty conduct-expiry" aria-labelledby="prescricao">
+            <header class="conduct-penalty-header"><span class="conduct-penalty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 12a9 9 0 1 0 2.6-6.4L3 8m0-5v5h5"/><path d="M12 7v5l3 2"/></svg></span><div><h3 id="prescricao" tabindex="-1">PrescriÃ§Ã£o de AdvertÃªncias</h3><p class="conduct-penalty-label">ReduÃ§Ã£o de advertÃªncias</p></div></header>
+            <div class="conduct-penalty-copy"><p>O servidor entende que pessoas podem mudar. Se vocÃª passar <strong>9 meses</strong> sem receber qualquer puniÃ§Ã£o (alertas, advertÃªncias ou silÃªncio), contando a partir da data da Ãºltima puniÃ§Ã£o, sua quantidade de advertÃªncias diminui em 1. Esse efeito Ã© cumulativo.</p></div>
+          </article>
+          <article class="conduct-penalty conduct-silence" aria-labelledby="silencio">
+            <header class="conduct-penalty-header"><span class="conduct-penalty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m2 2 20 20M9 9v3a3 3 0 0 0 5 2M9 5a3 3 0 0 1 6 0v4m-3 10v3m-4 0h8M5 10v2a7 7 0 0 0 12 5m2-7v2"/></svg></span><div><h3 id="silencio" tabindex="-1">SilÃªncio</h3><p class="conduct-penalty-label">Medida temporÃ¡ria</p></div></header>
+            <div class="conduct-penalty-copy"><p>SilÃªncio Ã© uma puniÃ§Ã£o temporÃ¡ria usada quando o jogador gera tumulto em canais pÃºblicos, aumenta discussÃµes ou atrapalha o andamento das conversas.</p><ul class="conduct-bullets "><li>Durante o silÃªncio, o jogador nÃ£o pode enviar mensagens por um perÃ­odo determinado.</li><li>O objetivo Ã© evitar que o conflito cresÃ§a e permitir que a pessoa se acalme.</li><li>O silÃªncio pode ser aplicado junto com alertas ou advertÃªncias.</li></ul></div>
+          </article>
+        </div>
+
+        <article class="conduct-penalty conduct-ban" aria-labelledby="banimento">
+          <header class="conduct-penalty-header"><span class="conduct-penalty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="m6 6 12 12"/></svg></span><div><h3 id="banimento" tabindex="-1">Banimento Imediato</h3><p class="conduct-penalty-label">Mesmo sem histÃ³rico</p></div></header>
+          <div class="conduct-penalty-copy"><p>Banimento imediato Ã© aplicado em condutas extremamente graves, mesmo sem histÃ³rico. Exemplos:</p>
+            <ul class="conduct-bullets conduct-ban-examples"><li>Racismo ou LGBTQ+fobia</li><li>DivulgaÃ§Ã£o de dados (doxxing)</li><li>AmeaÃ§as reais ou violÃªncia</li><li>Tentativa de golpe ou fraude</li><li>AssÃ©dio pesado ou perseguiÃ§Ã£o</li><li>ConteÃºdo sexual ilegal ou extremo</li></ul>
+            <p class="conduct-ban-note">Em casos assim, alÃ©m do banimento, o ocorrido pode ser reportado Ã  plataforma e, quando for o caso, Ã s autoridades competentes.</p>
+          </div>
+        </article>
+      </section>
+      <footer class="conduct-closing"><p>Ao participar do servidor, vocÃª concorda com estas regras e puniÃ§Ãµes. <br/> Nosso objetivo Ã© manter um ambiente saudÃ¡vel, respeitoso e divertido para todos.</p><a href="#conduct-title">Voltar ao topo <span aria-hidden="true">â†‘</span></a></footer>
     </div>
   </div>
-
-  
-  <section class="mb-10">
-    <h2 class="font-rpg text-3xl font-bold text-[var(--text)] mb-5 flex items-center gap-2 pb-2.5 border-b border-[var(--stroke)]">
-      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 text-[var(--flame)]"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
-      Regras do Servidor
-    </h2>
-
-    <div class="grid gap-3">
-
-      <div class="group bg-[var(--bg1)] p-3 rounded border border-[var(--stroke)] hover:border-[var(--muted)] transition-colors">
-        <div class="flex items-start gap-2.5">
-          <div class="flex-shrink-0 w-8 h-8 bg-[var(--bg2)] rounded flex items-center justify-center font-bold text-[var(--ember)] border border-[var(--stroke)] group-hover:border-[var(--ember)] transition-colors">1</div>
-          <div>
-            <h3 class="font-bold text-[var(--text)] text-lg mb-1.5">Respeite para ser respeitado</h3>
-            <p class="text-[var(--muted)] text-sm leading-relaxed">
-              Este é um servidor de comunidade. Trate as pessoas com o respeito que você espera receber.
-              Também crie um personagem disposto a jogar em equipe. Não importa tendência, personalidade ou motivação. Seu personagem precisa funcionar com o grupo.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      
-      <div class="group bg-[var(--bg1)] p-3 rounded border border-[var(--stroke)] hover:border-[var(--muted)] transition-colors">
-        <div class="flex items-start gap-2.5">
-          <div class="flex-shrink-0 w-8 h-8 bg-[var(--bg2)] rounded flex items-center justify-center font-bold text-[var(--ember)] border border-[var(--stroke)] group-hover:border-[var(--ember)] transition-colors">2</div>
-          <div>
-            <h3 class="font-bold text-[var(--text)] text-lg mb-1.5">Conteúdo ofensivo</h3>
-            <p class="text-[var(--muted)] text-sm leading-relaxed">
-              É proibida qualquer manifestação de racismo, LGBTQ+fobia ou qualquer tipo de discriminação.
-              Isso vale para avatar do Discord, nome, mensagens, narração, comportamento em campanha e qualquer manifestação direta ou indireta dentro do servidor.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      
-      <div class="group bg-[var(--bg1)] p-3 rounded border border-[var(--stroke)] hover:border-[var(--muted)] transition-colors">
-        <div class="flex items-start gap-2.5">
-          <div class="flex-shrink-0 w-8 h-8 bg-[var(--bg2)] rounded flex items-center justify-center font-bold text-[var(--ember)] border border-[var(--stroke)] group-hover:border-[var(--ember)] transition-colors">3</div>
-          <div>
-            <h3 class="font-bold text-[var(--text)] text-lg mb-1.5">Assédio</h3>
-            <p class="text-[var(--muted)] text-sm leading-relaxed">
-              Assédio é expressamente proibido. Isso inclui apelidos para envergonhar, ameaças, humilhação e qualquer atitude feita para causar desconforto.
-              Em situações graves, a pessoa pode responder civil e criminalmente conforme a legislação brasileira, além de sofrer sanções internas do servidor.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      
-      <div class="group bg-[var(--bg1)] p-3 rounded border border-[var(--stroke)] hover:border-[var(--muted)] transition-colors">
-        <div class="flex items-start gap-2.5">
-          <div class="flex-shrink-0 w-8 h-8 bg-[var(--bg2)] rounded flex items-center justify-center font-bold text-[var(--ember)] border border-[var(--stroke)] group-hover:border-[var(--ember)] transition-colors">4</div>
-          <div>
-            <h3 class="font-bold text-[var(--text)] text-lg mb-1.5">Política, religião e esportes</h3>
-            <p class="text-[var(--muted)] text-sm leading-relaxed">
-              Evite ferir, provocar ou impor opiniões sobre assuntos polêmicos que possam gerar discórdia. Isso inclui política, religião, esportes e outros temas sensíveis.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      
-      <div class="group bg-[var(--bg1)] p-3 rounded border border-[var(--stroke)] hover:border-[var(--muted)] transition-colors">
-        <div class="flex items-start gap-2.5">
-          <div class="flex-shrink-0 w-8 h-8 bg-[var(--bg2)] rounded flex items-center justify-center font-bold text-[var(--ember)] border border-[var(--stroke)] group-hover:border-[var(--ember)] transition-colors">5</div>
-          <div>
-            <h3 class="font-bold text-[var(--text)] text-lg mb-1.5">Divulgação</h3>
-            <p class="text-[var(--muted)] text-sm leading-relaxed">
-              Use apenas os canais específicos para divulgar campanhas, streams e artes.
-              No geral, não aprovamos venda de produtos ou serviços no servidor sem autorização da equipe.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      
-      <div class="group bg-[var(--bg1)] p-3 rounded border border-[var(--stroke)] hover:border-[var(--muted)] transition-colors">
-        <div class="flex items-start gap-2.5">
-          <div class="flex-shrink-0 w-8 h-8 bg-[var(--bg2)] rounded flex items-center justify-center font-bold text-[var(--ember)] border border-[var(--stroke)] group-hover:border-[var(--ember)] transition-colors">6</div>
-          <div>
-            <h3 class="font-bold text-[var(--text)] text-lg mb-1.5">Conteúdo e RP +18</h3>
-            <p class="text-[var(--muted)] text-sm leading-relaxed">
-              É estritamente proibido conteúdo sexual, nudez, erotização, fetichização, insinuações explícitas e qualquer interação de teor sexual, mesmo em RP.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      
-      <div class="group bg-[var(--bg1)] p-3 rounded border border-[var(--stroke)] hover:border-[var(--muted)] transition-colors">
-        <div class="flex items-start gap-2.5">
-          <div class="flex-shrink-0 w-8 h-8 bg-[var(--bg2)] rounded flex items-center justify-center font-bold text-[var(--ember)] border border-[var(--stroke)] group-hover:border-[var(--ember)] transition-colors">7</div>
-          <div>
-            <h3 class="font-bold text-[var(--text)] text-lg mb-1.5">Spam</h3>
-            <p class="text-[var(--muted)] text-sm leading-relaxed">
-              Evite spam, publicações excessivas e caps lock.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      
-      <div class="group bg-[var(--bg1)] p-3 rounded border border-[var(--stroke)] hover:border-[var(--muted)] transition-colors">
-        <div class="flex items-start gap-2.5">
-          <div class="flex-shrink-0 w-8 h-8 bg-[var(--bg2)] rounded flex items-center justify-center font-bold text-[var(--ember)] border border-[var(--stroke)] group-hover:border-[var(--ember)] transition-colors">8</div>
-          <div>
-            <h3 class="font-bold text-[var(--text)] text-lg mb-1.5">Informações pessoais</h3>
-            <p class="text-[var(--muted)] text-sm leading-relaxed">
-              Não publique informações pessoais, como nome completo, telefone, CPF, RG e dados similares.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      
-      <div class="group bg-[var(--bg1)] p-3 rounded border border-[var(--stroke)] hover:border-[var(--muted)] transition-colors">
-        <div class="flex items-start gap-2.5">
-          <div class="flex-shrink-0 w-8 h-8 bg-[var(--bg2)] rounded flex items-center justify-center font-bold text-[var(--ember)] border border-[var(--stroke)] group-hover:border-[var(--ember)] transition-colors">9</div>
-          <div>
-            <h3 class="font-bold text-[var(--text)] text-lg mb-1.5">Denúncia</h3>
-            <p class="text-[var(--muted)] text-sm leading-relaxed">
-              Se você quiser denunciar comportamento inapropriado, entre em contato com um <strong class="text-[var(--text)]">Moderador</strong>.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      
-      <div class="group bg-[var(--bg1)] p-3 rounded border border-[var(--stroke)] hover:border-[var(--muted)] transition-colors">
-        <div class="flex items-start gap-2.5">
-          <div class="flex-shrink-0 w-8 h-8 bg-[var(--bg2)] rounded flex items-center justify-center font-bold text-[var(--ember)] border border-[var(--stroke)] group-hover:border-[var(--ember)] transition-colors">10</div>
-          <div>
-            <h3 class="font-bold text-[var(--text)] text-lg mb-1.5">Punição</h3>
-            <p class="text-[var(--muted)] text-sm leading-relaxed">
-              Quem descumpre regras pode receber alertas. Se o comportamento for recorrente ou grave, punições serão aplicadas.
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  
-  <section class="mb-10">
-    <h2 class="font-rpg text-3xl font-bold text-[var(--text)] mb-5 flex items-center gap-2 pb-2.5 border-b border-[var(--stroke)]">
-      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 text-[var(--flame)]"><path d="m14 13-7.5 7.5c-.83.83-2.17.83-3 0 0 0 0 0 0 0a2.12 2.12 0 0 1 0-3L11 10"/><path d="m16 16 6-6"/><path d="m8 8 6-6"/><path d="m9 7 8 8"/><path d="m21 11-8-8"/></svg>
-      Punições do Servidor
-    </h2>
-    
-    <p class="text-[var(--muted)] mb-5 text-lg">
-      Para manter a convivência saudável e o ambiente de jogo seguro, usamos um sistema gradual de punições. As punições podem ser:
-    </p>
-
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-6">
-      <div class="bg-[var(--bg1)] border border-[var(--stroke)] py-2 px-3 rounded text-center font-bold text-[var(--text)] shadow-sm">Alertas</div>
-      <div class="bg-[var(--bg1)] border border-[var(--stroke)] py-2 px-3 rounded text-center font-bold text-[var(--text)] shadow-sm">Advertências</div>
-      <div class="bg-[var(--bg1)] border border-[var(--stroke)] py-2 px-3 rounded text-center font-bold text-[var(--text)] shadow-sm">Silêncio</div>
-      <div class="bg-[var(--bg1)] border border-[var(--stroke)] py-2 px-3 rounded text-center font-bold text-[var(--text)] shadow-sm">Banimento</div>
-    </div>
-
-    <div class="space-y-6">
-
-      <div class="bg-[var(--bg1)] p-4 rounded-lg border border-[var(--stroke)]">
-        <h3 class="font-rpg text-2xl font-bold text-[var(--text)] mb-2.5 flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-[var(--spark)]"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
-          Alertas
-        </h3>
-        <div class="text-[var(--muted)] space-y-2.5">
-          <p>
-            Alertas são punições leves. Eles são aplicados quando há infração de regra ou conduta nociva que ainda não é grave o suficiente para justificar uma advertência.
-          </p>
-          <ul class="list-disc list-inside space-y-2 marker:text-[var(--spark)]">
-            <li>Servem como aviso formal de que o comportamento precisa mudar.</li>
-            <li>A moderação analisa contexto e histórico antes de aplicar o alerta.</li>
-            <li>Alertas podem gerar advertências em caso de reincidência.</li>
-          </ul>
-          <div class="bg-[var(--bg2)] p-3 rounded mt-2.5">
-            <h4 class="font-bold text-[var(--spark)] text-sm uppercase mb-1.5">Regras de reincidência</h4>
-            <ul class="text-sm space-y-2">
-              <li>Se o jogador receber um segundo alerta em até 6 meses, pelo mesmo motivo, pode receber uma advertência por reincidência.</li>
-              <li>Se o jogador receber três alertas em até 6 meses, por qualquer motivo, pode receber uma advertência por reincidência.</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      
-      <div class="bg-[var(--bg1)] p-4 rounded-lg border border-[var(--stroke)]">
-        <h3 class="font-rpg text-2xl font-bold text-[var(--text)] mb-2.5 flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-[var(--ember)]"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
-          Advertências
-        </h3>
-        <div class="text-[var(--muted)] space-y-2.5">
-          <p>
-            Advertências são punições mais graves e cumulativas. Representam violações de regra mais sérias ou comportamento nocivo contínuo com a comunidade.
-          </p>
-          <div class="grid md:grid-cols-3 gap-2.5 my-2.5">
-            <div class="bg-[var(--bg0)] border border-[var(--stroke)] p-3 rounded text-center">
-              <span class="block text-[var(--ember)] font-bold text-lg">1ª Advertência</span>
-              <span class="text-xs">1 semana como Infrator</span>
-            </div>
-            <div class="bg-[var(--bg0)] border border-[var(--stroke)] p-3 rounded text-center">
-              <span class="block text-[var(--ember)] font-bold text-lg">2ª Advertência</span>
-              <span class="text-xs">1 mês como Infrator</span>
-            </div>
-            <div class="bg-[var(--bg0)] border border-[var(--flame)] p-3 rounded text-center relative overflow-hidden">
-              <div class="absolute inset-0 bg-[var(--flame)] opacity-10"></div>
-              <span class="block text-[var(--flame)] font-bold text-lg">3ª Advertência</span>
-              <span class="text-xs font-bold">Banimento</span>
-            </div>
-          </div>
-          <div class="text-sm border-l-2 border-[var(--ember)] pl-4">
-            <p class="mb-2"><strong>Relação entre alertas e advertências:</strong></p>
-            <ul class="space-y-1">
-              <li>Se você já tiver 1 advertência, novos alertas podem reiniciar o prazo de prescrição dessa advertência.</li>
-              <li>Dependendo da gravidade e da reincidência, dois alertas adicionais podem gerar uma nova advertência.</li>
-              <li>Se você já tiver 2 advertências, um novo alerta pode resultar na 3ª advertência, levando ao banimento.</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      
-      <div class="border border-green-900/30 bg-[#051a0a] p-4 rounded-lg">
-         <h3 class="font-rpg text-xl font-bold text-green-400 mb-1.5 flex items-center gap-2">
-           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-           Prescrição de Advertências
-         </h3>
-         <p class="text-green-100/70 text-sm leading-relaxed">
-           O servidor entende que pessoas podem mudar. Se você passar <strong class="text-green-300">9 meses</strong> sem receber qualquer punição (alertas, advertências ou silêncio), contando a partir da data da última punição, sua quantidade de advertências diminui em 1. Esse efeito é cumulativo.
-         </p>
-      </div>
-
-      
-      <div class="bg-[var(--bg1)] p-4 rounded-lg border border-[var(--stroke)]">
-        <h3 class="font-rpg text-2xl font-bold text-[var(--text)] mb-2.5 flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-[var(--muted)]"><line x1="2" x2="22" y1="2" y2="22"/><path d="M18.89 13.23A7.12 7.12 0 0 0 19 12v-2"/><path d="M5 10v2a7 7 0 0 0 12 5"/><path d="M15 9.34V5a3 3 0 0 0-5.68-1.33"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
-          Silêncio
-        </h3>
-        <p class="text-[var(--muted)] mb-2.5">
-          Silêncio é uma punição temporária usada quando o jogador gera tumulto em canais públicos, aumenta discussões ou atrapalha o andamento das conversas.
-        </p>
-        <ul class="list-disc list-inside space-y-2 text-[var(--muted)] marker:text-[var(--text)]">
-          <li>Durante o silêncio, o jogador não pode enviar mensagens por um período determinado.</li>
-          <li>O objetivo é evitar que o conflito cresça e permitir que a pessoa se acalme.</li>
-          <li>O silêncio pode ser aplicado junto com alertas ou advertências.</li>
-        </ul>
-      </div>
-
-      
-      <div class="bg-[var(--bg0)] p-4 rounded-lg border border-[var(--flame)] shadow-[0_0_15px_rgba(210,23,23,0.15)]">
-        <h3 class="font-rpg text-2xl font-bold text-[var(--flame)] mb-2.5 flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
-          Banimento Imediato
-        </h3>
-        <p class="text-[var(--muted)] mb-2.5">
-          Banimento imediato é aplicado em condutas extremamente graves, mesmo sem histórico. Exemplos:
-        </p>
-        <div class="grid md:grid-cols-2 gap-x-8 gap-y-2 text-sm text-[var(--text)]">
-          <div class="flex items-center gap-2"><div class="w-1.5 h-1.5 bg-[var(--flame)] rounded-full"></div> Racismo ou LGBTQ+fobia</div>
-          <div class="flex items-center gap-2"><div class="w-1.5 h-1.5 bg-[var(--flame)] rounded-full"></div> Divulgação de dados (doxxing)</div>
-          <div class="flex items-center gap-2"><div class="w-1.5 h-1.5 bg-[var(--flame)] rounded-full"></div> Ameaças reais ou violência</div>
-          <div class="flex items-center gap-2"><div class="w-1.5 h-1.5 bg-[var(--flame)] rounded-full"></div> Tentativa de golpe ou fraude</div>
-          <div class="flex items-center gap-2"><div class="w-1.5 h-1.5 bg-[var(--flame)] rounded-full"></div> Assédio pesado ou perseguição</div>
-          <div class="flex items-center gap-2"><div class="w-1.5 h-1.5 bg-[var(--flame)] rounded-full"></div> Conteúdo sexual ilegal ou extremo</div>
-        </div>
-        <p class="text-xs text-[var(--muted)] mt-4 italic">
-          Em casos assim, além do banimento, o ocorrido pode ser reportado à plataforma e, quando for o caso, às autoridades competentes.
-        </p>
-      </div>
-
-    </div>
-  </section>
-
-  
-  <section class="text-center py-5 border-t border-[var(--stroke)]">
-    <p class="text-[var(--muted)]">
-      Ao participar do servidor, você concorda com estas regras e punições. <br/>
-      Nosso objetivo é manter um ambiente saudável, respeitoso e divertido para todos.
-    </p>
-  </section>
-
 </div>
 {% endblock %}

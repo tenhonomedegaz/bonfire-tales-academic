@@ -1,12 +1,17 @@
 {% extends 'home/base.html' %}
 {% load static %}
+{% block body_class %}bft-traps{% endblock %}
+{% block main_class %}ar-main{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/traps.css' %}?v=1">{% endblock %}
 
 {% block content %}
-<section class="animate-fade-in max-w-2xl">
+<section class="ar-editor">
+  <a href="{% url 'mestre_armadilhas' %}" class="ar-back">â† Armadilhas e Perigos</a>
   <header class="mb-3 border-b border-[var(--stroke)] pb-2.5">
     <h1 class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">{% if editar %}Editar Armadilha{% else %}Nova Armadilha{% endif %}</h1>
-    <p class="mt-1 text-sm text-[var(--muted)]">Gatilho, detecção, desarme, salvaguarda, dano e efeito.</p>
+    <p class="mt-1 text-sm text-[var(--muted)]">Gatilho, detecÃ§Ã£o, desarme, teste de resistÃªncia, dano e efeito.</p>
   </header>
+  {% if traps_local_preview %}<p class="ar-preview-note">PrÃ©via visual de formulÃ¡rio. Nenhuma criaÃ§Ã£o ou ediÃ§Ã£o Ã© salva no acervo oficial.</p>{% endif %}
   {% if request.GET.e == 'nome' %}<p class="mb-2.5 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-2.5 py-1.5 text-sm text-[var(--flame)]">Informe um nome para a armadilha.</p>{% endif %}
 
   <form method="post" action="{% if editar %}{% url 'armadilha_editar' armadilha_id %}{% else %}{% url 'armadilha_criar' %}{% endif %}" class="space-y-3">
@@ -17,38 +22,41 @@
         Armadilha <strong>oficial</strong> (sem marcar = da comunidade)
       </label>
     {% endif %}
+    <h2>IdentificaÃ§Ã£o</h2>
     <div class="grid gap-2 sm:grid-cols-2">
       <label class="text-xs text-[var(--muted)] sm:col-span-2">Nome
         <input name="nome" required value="{{ pf.nome|default:'' }}" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]"></label>
       <label class="text-xs text-[var(--muted)]">Tipo
-        <input name="tipo" value="{{ pf.tipo|default:'' }}" placeholder="mecânica, mágica, natural, perigo" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]"></label>
+        <input name="tipo" value="{{ pf.tipo|default:'' }}" placeholder="mecÃ¢nica, mÃ¡gica, natural, perigo" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]"></label>
       <label class="text-xs text-[var(--muted)]">ND
         <input name="nd" value="{{ pf.nd|default:'' }}" placeholder="ex.: 1/4, 5" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]"></label>
     </div>
 
+    <h2>Reconhecimento e resoluÃ§Ã£o</h2>
     <label class="block text-xs text-[var(--muted)]">Gatilho
-      <input name="gatilho" value="{{ pf.gatilho|default:'' }}" placeholder="ex.: pisar na placa de pressão" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]"></label>
+      <input name="gatilho" value="{{ pf.gatilho|default:'' }}" placeholder="ex.: pisar na placa de pressÃ£o" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]"></label>
 
     <div class="grid gap-2 sm:grid-cols-2">
-      <label class="text-xs text-[var(--muted)]">Detecção
-        <input name="deteccao" value="{{ pf.deteccao|default:'' }}" placeholder="Percepção CD 15" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]"></label>
+      <label class="text-xs text-[var(--muted)]">DetecÃ§Ã£o
+        <input name="deteccao" value="{{ pf.deteccao|default:'' }}" placeholder="PercepÃ§Ã£o CD 15" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]"></label>
       <label class="text-xs text-[var(--muted)]">Desarme
-        <input name="desarme" value="{{ pf.desarme|default:'' }}" placeholder="Ferramentas de Ladrão CD 15" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]"></label>
-      <label class="text-xs text-[var(--muted)]">Salvaguarda — atributo
+        <input name="desarme" value="{{ pf.desarme|default:'' }}" placeholder="Ferramentas de LadrÃ£o CD 15" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]"></label>
+      <label class="text-xs text-[var(--muted)]">Teste de resistÃªncia â€” atributo
         <input name="save_atributo" value="{{ pf.save_atributo|default:'' }}" placeholder="DES" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]"></label>
-      <label class="text-xs text-[var(--muted)]">Salvaguarda — CD
+      <label class="text-xs text-[var(--muted)]">Teste de resistÃªncia â€” CD
         <input name="save_cd" value="{{ pf.save_cd|default:'' }}" placeholder="13" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]"></label>
       <label class="text-xs text-[var(--muted)] sm:col-span-2">Dano
         <input name="dano" value="{{ pf.dano|default:'' }}" placeholder="2d10 perfurante" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]"></label>
     </div>
 
+    <h2>Efeito e ambientaÃ§Ã£o</h2>
     <label class="block text-xs text-[var(--muted)]">Efeito
-      <textarea name="efeito" rows="3" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]">{{ pf.efeito|default:'' }}</textarea></label>
-    <label class="block text-xs text-[var(--muted)]">Descrição / lore (opcional)
-      <textarea name="descricao" rows="2" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]">{{ pf.descricao_markdown|default:'' }}</textarea></label>
+      <textarea name="efeito" rows="6" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]">{{ pf.efeito|default:'' }}</textarea></label>
+    <label class="block text-xs text-[var(--muted)]">DescriÃ§Ã£o / lore (opcional)
+      <textarea name="descricao" rows="5" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]">{{ pf.descricao_markdown|default:'' }}</textarea></label>
 
-    <div class="flex gap-1.5">
-      <button type="submit" class="rounded bg-bonfire-gradient px-3 py-2 text-sm font-bold text-white hover:opacity-90">{% if editar %}Salvar alterações{% else %}Criar armadilha{% endif %}</button>
+    <div class="ar-form-actions flex flex-wrap gap-2">
+      <button type="submit"{% if traps_local_preview %} disabled{% endif %} class="rounded bg-bonfire-gradient px-3 py-2 text-sm font-bold text-white hover:opacity-90">{% if editar %}Salvar alteraÃ§Ãµes{% else %}Criar armadilha{% endif %}</button>
       <a href="{% url 'mestre_armadilhas' %}" class="rounded border border-[var(--stroke)] px-3 py-2 text-sm text-[var(--muted)] hover:text-[var(--text)]">Cancelar</a>
     </div>
   </form>

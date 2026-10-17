@@ -1,63 +1,48 @@
 {% extends 'home/base.html' %}
 {% load static %}
-
+{% block body_class %}bft-conditions{% endblock %}
+{% block main_class %}co-main{% endblock %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/pages/conditions.css' %}?v=1"><script defer src="{% static 'js/conditions.js' %}?v=1"></script>{% endblock %}
 {% block content %}
-<section class="animate-fade-in max-w-4xl" data-reference-search-root>
-  <header class="mb-4 flex flex-wrap items-end justify-between gap-2 border-b border-[var(--stroke)] pb-2.5">
-    <div>
-      <h1 class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">Condições</h1>
-      <p class="mt-1 text-sm text-[var(--muted)]">As {{ condicoes|length }} condições do sistema e seus efeitos. Uma criatura pode estar sob várias ao mesmo tempo.</p>
-    </div>
-    {% if is_staff %}<a href="{% url 'condicao_criar' %}" class="rounded bg-bonfire-gradient px-3 py-1.5 text-sm font-bold text-white hover:opacity-90">+ Nova condição</a>{% endif %}
+<section class="co-page" aria-labelledby="co-title">
+  <header class="co-heading">
+    <div class="co-heading-copy"><span class="co-heading-symbol">{% include 'home/partials/condition_symbol.html' %}</span><div><p class="co-eyebrow">ReferÃªncia do sistema Â· Estados em jogo</p><h1 id="co-title">CondiÃ§Ãµes</h1><p>O que muda na sua vez, nos seus testes e nos seus movimentos.</p></div></div>
+    <div class="co-heading-actions"><span>{{ condition_total }} condiÃ§Ãµes</span>{% if is_staff %}<a class="co-button" href="{% url 'condicao_criar' %}">+ Nova condiÃ§Ã£o</a>{% endif %}</div>
   </header>
-
-  {% if msg == 'criada' %}<p class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-2.5 py-1.5 text-sm text-[var(--spark)]">Condição criada!</p>
-  {% elif msg == 'editada' %}<p class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-2.5 py-1.5 text-sm text-[var(--spark)]">Condição atualizada!</p>
-  {% elif msg == 'excluida' %}<p class="mb-2.5 rounded border border-[var(--stroke)] bg-[var(--bg1)] px-2.5 py-1.5 text-sm text-[var(--muted)]">Condição excluída.</p>{% endif %}
-
-  <div class="mb-4">
-    <label for="condicoes-busca" class="sr-only">Buscar condições</label>
-    <input id="condicoes-busca" type="search" data-reference-query placeholder="Buscar condição ou efeito..." autocomplete="off"
-           aria-describedby="condicoes-resultados"
-           class="w-full rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] px-3 py-2 text-[var(--text)] focus:border-[var(--ember)] focus:outline-none">
-    <p id="condicoes-resultados" class="mt-1 text-xs text-[var(--muted)]" role="status" aria-live="polite"><span data-reference-count>{{ condicoes|length }}</span> condições</p>
-  </div>
-
-  <nav class="mb-4 flex flex-wrap gap-1.5" aria-label="Ir para condição">
-    {% for c in condicoes %}
-      <a href="#cond-{{ c.slug }}" data-reference-link class="rounded border border-[var(--stroke)] bg-[var(--bg1)] px-2.5 py-1 text-xs text-[var(--muted)] hover:border-[var(--ember)] hover:text-[var(--ember)]">{{ c.nome }}</a>
-    {% endfor %}
-  </nav>
-
-  <div class="space-y-2.5">
-    {% for c in condicoes %}
-      <article id="cond-{{ c.slug }}" data-reference-item class="scroll-mt-24 rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
-        <header class="mb-1.5 flex flex-wrap items-baseline justify-between gap-1.5 border-b border-[var(--stroke)]/50 pb-1.5">
-          <h2 class="font-serif text-lg font-bold text-[var(--flame)]">{{ c.nome }}</h2>
-          <span class="flex items-center gap-2 text-xs text-[var(--muted)]">{% if c.nome_en %}{{ c.nome_en }}{% endif %}{% if c.categoria != '5e' %} · homebrew{% endif %}
-            {% if is_staff %}
-              <a href="{% url 'condicao_editar' c.id_condicao %}" class="text-[var(--ember)] hover:underline">Editar</a>
-              <form method="post" action="{% url 'condicao_excluir' c.id_condicao %}" class="inline" onsubmit="return confirm('Excluir {{ c.nome|escapejs }}?');">
-                {% csrf_token %}<button type="submit" class="text-[var(--flame)] hover:underline">Excluir</button>
-              </form>
-            {% endif %}
-          </span>
-        </header>
-        {% if c.resumo %}<p class="mb-2 text-sm italic text-[var(--muted)]">{{ c.resumo }}</p>{% endif %}
-        <dl class="space-y-1.5">
-          {% for e in c.efeitos_json %}
-            <div class="text-sm">
-              <dt class="inline font-semibold text-[var(--spark)]">{{ e.titulo }}.</dt>
-              <dd class="inline text-[var(--text)]"> {{ e.texto }}</dd>
-            </div>
-          {% empty %}
-            <p class="text-sm text-[var(--text)]">{{ c.definicao }}</p>
-          {% endfor %}
-        </dl>
+  {% if conditions_local_preview %}<p class="co-local-note">Consulta da cÃ³pia local. As regras vÃªm do cadastro existente; alteraÃ§Ãµes oficiais nÃ£o sÃ£o salvas nesta prÃ©via.</p>{% endif %}
+  {% if msg == 'criada' %}<p class="co-notice" role="status">CondiÃ§Ã£o criada!</p>{% elif msg == 'editada' %}<p class="co-notice" role="status">CondiÃ§Ã£o atualizada!</p>{% elif msg == 'excluida' %}<p class="co-notice" role="status">CondiÃ§Ã£o excluÃ­da.</p>{% endif %}
+  <details class="co-guide"><summary><span class="co-guide-label">Guia rÃ¡pido</span><span>Como consultar uma condiÃ§Ã£o</span><span aria-hidden="true">âŒ„</span></summary><div><section><h2>Encontre o estado</h2><p>Busque pelo nome, pela traduÃ§Ã£o ou por palavras do efeito, como movimento ou ConcentraÃ§Ã£o.</p></section><section><h2>Leia cada efeito</h2><p>Uma criatura pode estar sob vÃ¡rias condiÃ§Ãµes. Os blocos abaixo separam os efeitos de cada uma.</p></section><section><h2>Consulte as referÃªncias</h2><p>Os links de condiÃ§Ãµes citadas ajudam a conferir a regra completa. A pÃ¡gina nÃ£o aplica condiÃ§Ãµes Ã  ficha.</p></section></div></details>
+  <div class="co-workspace">
+    <aside class="co-catalog" aria-label="CatÃ¡logo de condiÃ§Ãµes">
+      <form method="get" action="{{ request.path }}" class="co-filter-form">
+        {% if conditions_local_preview and request.GET.before %}<input type="hidden" name="before" value="{{ request.GET.before }}">{% endif %}
+        <input type="hidden" id="co-active" name="condicao" value="{{ condition_active }}">
+        <label for="co-search" class="co-eyebrow">Encontrar condiÃ§Ã£o</label>
+        <div class="co-search-field"><input type="search" name="q" id="co-search" value="{{ condition_query }}" placeholder="Nome ou efeitoâ€¦" maxlength="160" autocomplete="off"><button type="submit" aria-label="Buscar condiÃ§Ãµes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg></button></div>
+        {% if condition_categories|length > 1 %}<label for="co-category" class="co-category-label">Categoria</label><select id="co-category" name="categoria" onchange="this.form.submit()"><option value="">Todas as categorias</option>{% for category in condition_categories %}<option value="{{ category.value }}"{% if category.value == condition_category %} selected{% endif %}>{{ category.label }}</option>{% endfor %}</select>{% elif condition_category %}<input type="hidden" name="categoria" value="{{ condition_category }}">{% endif %}
+      </form>
+      <div class="co-list-head"><p><strong id="co-count">{{ condition_result_count }}</strong> de {{ condition_total }} condiÃ§Ãµes</p><a href="{{ condition_clear_url }}" class="co-clear"{% if not condition_query %} hidden{% endif %}>Limpar busca</a></div>
+      <nav class="co-list" id="co-list" aria-label="Escolher condiÃ§Ã£o">
+        {% for entry in condition_entries %}{% with c=entry.record %}<a href="{{ entry.select_url }}" class="co-item{% if c.slug == condition_active %} is-active{% endif %}" data-target="cond-{{ c.slug }}" data-search="{{ entry.search_text }}" aria-controls="cond-{{ c.slug }}"{% if c.slug == condition_active %} aria-current="true"{% endif %}{% if not entry.matches_search %} hidden{% endif %}><span class="co-list-symbol">{% include 'home/partials/condition_symbol.html' with kind=entry.symbol %}</span><span><strong>{{ c.nome }}</strong>{% if c.categoria != '5e' %}<small>{{ entry.category_label }}</small>{% endif %}</span><span class="co-list-arrow" aria-hidden="true">â€º</span></a>{% endwith %}{% endfor %}
+      </nav>
+      <p id="co-list-empty" class="co-list-empty"{% if condition_result_count %} hidden{% endif %}>Nenhuma condiÃ§Ã£o encontrada.</p>
+      <footer class="co-catalog-footer"><a href="{% url 'sistemas_glossario' %}#glo-condicoes">GlossÃ¡rio do sistema â†—</a><a href="#co-reader">Ir para a leitura â†“</a></footer>
+    </aside>
+    <div id="co-reader" class="co-reader" role="region" aria-label="CondiÃ§Ã£o selecionada" tabindex="-1">
+      {% for entry in condition_entries %}{% with c=entry.record %}
+      <article class="co-panel" id="cond-{{ c.slug }}" aria-labelledby="co-name-{{ c.slug }}"{% if c.slug != condition_active %} hidden{% endif %}>
+        <header class="co-panel-header"><div><p class="co-eyebrow">{{ entry.category_label }}</p><h2 id="co-name-{{ c.slug }}">{{ c.nome }}</h2>{% if c.nome_en %}<p class="co-english">{{ c.nome_en }}</p>{% endif %}</div><span class="co-panel-symbol">{% include 'home/partials/condition_symbol.html' with kind=entry.symbol %}</span></header>
+        <div class="co-panel-body">
+          {% if c.resumo %}<section class="co-summary" aria-label="Resumo"><h3>Em poucas palavras</h3><p>{{ c.resumo }}</p></section>{% endif %}
+          {% if c.definicao %}<p class="co-definition">{{ c.definicao|linebreaksbr }}</p>{% endif %}
+          {% if entry.effects %}<section class="co-effects" aria-label="Efeitos da condiÃ§Ã£o">{% for effect in entry.effects %}<div class="co-effect">{% if effect.titulo %}<h3>{{ effect.titulo }}</h3>{% endif %}<p>{{ effect.texto|linebreaksbr }}</p></div>{% endfor %}</section>{% elif not c.definicao %}<p class="co-missing">Os efeitos ainda nÃ£o foram informados no cadastro.</p>{% endif %}
+          {% if entry.references %}<section class="co-related"><h3>CondiÃ§Ãµes citadas</h3><nav aria-label="CondiÃ§Ãµes citadas em {{ c.nome }}">{% for related in entry.references %}<a href="{{ related.url }}" data-condition-reference>{{ related.nome }} <span aria-hidden="true">â†—</span></a>{% endfor %}</nav><p>ReferÃªncias de leitura; consulte o texto acima para saber como se aplicam.</p></section>{% endif %}
+        </div>
+        {% if is_staff %}<footer class="co-editor-actions"><a href="{% url 'condicao_editar' c.id_condicao %}">Editar condiÃ§Ã£o</a><form method="post" action="{% url 'condicao_excluir' c.id_condicao %}" onsubmit="return confirm('Excluir {{ c.nome|escapejs }}?');">{% csrf_token %}<button type="submit"{% if conditions_local_preview %} disabled{% endif %}>Excluir</button></form></footer>{% endif %}
       </article>
-    {% endfor %}
-  </div>
-  <p data-reference-empty class="hidden rounded border border-dashed border-[var(--stroke)] px-3 py-4 text-center text-sm text-[var(--muted)]">Nenhuma condição encontrada.</p>
+      {% endwith %}{% endfor %}
+      <div class="co-reader-empty" id="co-reader-empty"{% if condition_result_count %} hidden{% endif %}><span>{% include 'home/partials/condition_symbol.html' %}</span><h2>{% if condition_total %}Nenhuma condiÃ§Ã£o encontrada{% else %}O catÃ¡logo estÃ¡ aguardando condiÃ§Ãµes{% endif %}</h2><p>{% if condition_total %}Tente outro nome, uma palavra do efeito ou a traduÃ§Ã£o em inglÃªs.{% else %}As condiÃ§Ãµes cadastradas aparecerÃ£o aqui com seus efeitos completos.{% endif %}</p><a href="{{ condition_clear_url }}" class="co-button co-clear"{% if not condition_query %} hidden{% endif %}>Limpar busca</a>{% if condition_category %}<a href="{{ condition_reset_url }}">Limpar filtros â†’</a>{% endif %}</div>
+    </div>
+  </div><p id="co-announcement" class="co-sr-only" role="status" aria-live="polite"></p>
 </section>
-<script defer src="{% static 'js/reference-search.js' %}?v=2"></script>
 {% endblock %}

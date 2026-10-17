@@ -6,8 +6,8 @@ body { overflow: hidden !important; }
   background: #111416;
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr);
-  height: calc(100vh - 57px);
-  height: calc(100dvh - 57px);
+  height: calc(100vh - var(--bft-header-height, 57px));
+  height: calc(100dvh - var(--bft-header-height, 57px));
   min-height: 500px;
   overflow: hidden;
   position: relative;
@@ -40,7 +40,7 @@ body { overflow: hidden !important; }
 @media (max-width: 1100px) {
   .map-sidebar {
     position: fixed;
-    top: 57px;
+    top: var(--bft-header-height, 57px);
     bottom: 0;
     left: 0;
     width: 60vw;
@@ -185,7 +185,7 @@ body { overflow: hidden !important; }
   color: var(--muted);
   cursor: pointer;
   display: flex;
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: .78rem;
   font-weight: 900;
   gap: .45rem;
@@ -386,7 +386,7 @@ body { overflow: hidden !important; }
   color: var(--text) !important;
   display: flex !important;
   float: none !important;
-  font: 700 20px/1 Inter, sans-serif !important;
+  font: 700 20px/1 'Open Sans', sans-serif !important;
   height: 34px !important;
   justify-content: center !important;
   line-height: 1 !important;
@@ -664,7 +664,7 @@ body { overflow: hidden !important; }
 .map-place-title,
 .territory-title {
   color: #fff;
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: 1.65rem;
   font-weight: 900;
   line-height: 1;
@@ -863,7 +863,7 @@ body { overflow: hidden !important; }
 }
 .map-modal h2 {
   color: var(--ember);
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: 1rem;
   font-weight: 900;
   text-transform: uppercase;
@@ -934,7 +934,7 @@ body { overflow: hidden !important; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: .8rem;
   font-weight: 900;
   text-transform: uppercase;
@@ -1156,7 +1156,7 @@ body { overflow: hidden !important; }
 }
 .desenho-popup strong {
   display: block;
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: .82rem;
   color: var(--ember);
   margin-bottom: .25rem;
@@ -1226,7 +1226,7 @@ body { overflow: hidden !important; }
   .map-shell,
   .map-shell.has-detail {
     grid-template-columns: 1fr;
-    min-height: calc(100vh - 57px);
+    min-height: calc(100vh - var(--bft-header-height, 57px));
       padding: 0;
     }
     #map {
@@ -1392,7 +1392,7 @@ body { overflow: hidden !important; }
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.05em;

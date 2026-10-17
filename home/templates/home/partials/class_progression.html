@@ -1,0 +1,35 @@
+<section class="class-progression-section" id="class-progression">
+{% if progression_table %}
+  <div class="class-section-heading"><h2>ProgressÃ£o da classe</h2><span>NÃ­veis 1â€“20 <abbr title="BÃ´nus de ProficiÃªncia">BP</abbr> = BÃ´nus de ProficiÃªncia</span></div>
+  <p class="class-progression-mobile-note">ProgressÃ£o por nÃ­vel Â· Todos os recursos da tabela, sem rolagem lateral.</p>
+  <div data-progression-table class="class-progression-scroll" role="region" aria-label="ProgressÃ£o de {{ classe.nome }}">
+    <table class="class-progression-table" role="table">
+      <caption class="sr-only">ProgressÃ£o da classe {{ classe.nome }} por nÃ­vel</caption>
+      <colgroup>
+        <col class="class-column-level">
+        {% for col in colunas %}<col {% if col.subclass_only %}data-subclass-column="{{ col.subclass_slugs_attr }}"{% endif %} class="{% if col.subclass_only %}is-collapsed-column {% endif %}{% if col.is_feature %}class-column-features{% elif col.spell_level %}class-column-spell{% elif col.name == 'BÃ´nus de ProficiÃªncia' or col.name == 'BÃ´nus de proficiÃªncia' %}class-column-bonus{% else %}class-column-resource{% endif %}">{% endfor %}
+      </colgroup>
+      <thead>
+        <tr>
+          <th scope="col" {% if spell_slots_count %}rowspan="2"{% endif %}>NÃ­vel</th>
+          {% for col in colunas %}{% if not col.spell_level %}
+          <th scope="col" {% if spell_slots_count %}rowspan="2"{% endif %} {% if col.subclass_only %}data-subclass-column="{{ col.subclass_slugs_attr }}"{% endif %} class="{% if col.subclass_only %}is-collapsed-column {% endif %}{% if col.is_feature %}class-cell-features{% endif %}">
+            {% if col.name == 'BÃ´nus de ProficiÃªncia' or col.name == 'BÃ´nus de proficiÃªncia' %}<abbr title="{{ col.name }}">BP</abbr>{% else %}{{ col.name }}{% endif %}
+          </th>
+          {% endif %}{% endfor %}
+          {% if spell_slots_count %}<th scope="colgroup" colspan="{{ spell_slots_count }}" data-spell-slots-header class="{% if not base_spell_slots_count %}hidden{% endif %}">EspaÃ§os de Magia</th>{% endif %}
+        </tr>
+        {% if spell_slots_count %}<tr data-spell-slots-row class="{% if not base_spell_slots_count %}hidden{% endif %}">
+          {% for col in colunas %}{% if col.spell_level %}<th scope="col" {% if col.subclass_only %}data-subclass-column="{{ col.subclass_slugs_attr }}"{% endif %} data-spell-slot-column class="{% if col.subclass_only %}is-collapsed-column{% endif %}">{{ col.name }}</th>{% endif %}{% endfor %}
+        </tr>{% endif %}
+      </thead>
+      <tbody role="rowgroup">
+        {% for row in progression_table %}<tr role="row">
+          <td role="cell" class="class-cell-level" data-column-label="NÃ­vel">{{ row.nivel }}</td>
+          {% for cell in row.cells %}<td role="cell" {% if cell.col.subclass_only %}data-subclass-column="{{ cell.col.subclass_slugs_attr }}"{% endif %} data-column-label="{% if cell.col.spell_level %}EspaÃ§os de Magia Â· {% endif %}{{ cell.col.name }}" class="{% if cell.col.subclass_only %}is-collapsed-column {% endif %}{% if cell.col.is_feature %}class-cell-features{% elif cell.col.spell_level %}class-cell-spell{% else %}class-cell-resource{% endif %}">{{ cell.valor|safe }}</td>{% endfor %}
+        </tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
+</section>

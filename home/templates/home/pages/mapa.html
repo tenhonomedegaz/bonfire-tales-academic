@@ -1,8 +1,12 @@
 {% extends 'home/base.html' %}
 {% load static %}
 
+{% block title %}Mapa de CinÃ©ria Â· Bonfire Tales RPG{% endblock %}
+{% block body_class %}bft-atlas{% endblock %}
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/mapa.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'css/pages/atlas.css' %}?v=1">
+<script defer src="{% static 'js/atlas-presentation.js' %}?v=1"></script>
 {% endblock %}
 
 {% block main_class %}flex-1 w-full overflow-hidden{% endblock %}
@@ -17,22 +21,25 @@
 {% static 'assets/subterraneo_placeholder.png' as underground_map_url %}
 {% static 'assets/fire_background.png' as default_place_url %}
 
+<header class="atlas-topbar">
+  <div class="atlas-heading"><span class="atlas-compass" aria-hidden="true"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="20" cy="20" r="13"/><path d="M20 1v10m0 18v10M1 20h10m18 0h10M6 6l6 6m16 16 6 6M34 6l-6 6M12 28l-6 6m14-15 6-6-5 12-7 6 5-12Z"/></svg></span><div><p>Atlas do mundo compartilhado</p><h1>Mapa de CinÃ©ria</h1></div></div>
+  <div class="atlas-topbar-actions"><span class="atlas-layer-status" id="atlasLayerStatus">CinÃ©ria</span>{% if atlas_local_preview %}<span class="atlas-local" title="ReferÃªncia pÃºblica capturada em 14/10/2026. Nenhuma alteraÃ§Ã£o Ã© salva na prÃ©via.">CÃ³pia local Â· leitura</span>{% endif %}<button type="button" class="atlas-button" id="atlasOverview" aria-label="Enquadrar mapa" title="Enquadrar a imagem inteira, sem apagar filtros ou alteraÃ§Ãµes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5M8 8h8v8H8Z"/></svg><span>Enquadrar mapa</span></button><details class="atlas-help" id="atlasHelp"><summary aria-label="Guia do mapa"><span aria-hidden="true">?</span><span>Guia</span></summary><div class="atlas-help-panel"><h2>Explore CinÃ©ria</h2><section><h3>Navegue pelo mapa</h3><p>Arraste para se mover. Use + e âˆ’, a roda do mouse ou o gesto de pinÃ§a para aproximar e afastar. â€œEnquadrar mapaâ€ mostra a imagem inteira.</p></section><section><h3>Encontre um local</h3><p>A busca e a categoria filtram os pinos no mapa. O Ã­ndice continua agrupado por territÃ³rio: abra um grupo e escolha um local para consultar sua ficha.</p></section><section><h3>Leia o territÃ³rio</h3><p>As cores identificam os territÃ³rios. Clique em uma Ã¡rea ou no nome dela no Ã­ndice. Os indicadores das fichas usam uma escala de 0 a 5.</p></section><section><h3>Troque de camada</h3><p>Os botÃµes sobre o mapa mostram as camadas disponÃ­veis para vocÃª. Locais, Ã¡reas e desenhos pertencem Ã  sua prÃ³pria camada.</p></section>{% if can_edit_wiki %}<section><h3>Editor preservado</h3><p>Marcadores, Ã¡reas, recortes, ediÃ§Ã£o, linhas, imagens, desenhos, suavizaÃ§Ã£o, otimizaÃ§Ã£o, alinhamento, desfazer e salvar continuam na barra lateral.</p></section>{% endif %}{% if atlas_local_preview %}<section><h3>Sobre esta cÃ³pia</h3><p>Os dados pÃºblicos foram capturados em 14/10/2026. AlteraÃ§Ãµes nÃ£o sÃ£o salvas nesta prÃ©via. Os links de histÃ³ria e catÃ¡logo consultam as pÃ¡ginas pÃºblicas do Bonfire.</p></section>{% endif %}</div></details></div>
+</header>
 <div class="map-shell border-t border-[var(--stroke)] layer-surface layer-0">
-  <button id="sidebarToggle" class="map-sidebar-mobile-toggle" aria-label="Toggle Sidebar">
+  <button id="sidebarToggle" class="map-sidebar-mobile-toggle" aria-label="Abrir locais do mapa" aria-controls="mapSidebar" aria-expanded="false" type="button">
     <div class="toggle-icon">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 open-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
       <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 close-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
     </div>
+    <span class="atlas-toggle-label">Locais</span>
   </button>
   
-  <aside class="map-sidebar">
+  <aside class="map-sidebar" id="mapSidebar" aria-label="Ãndice de locais de CinÃ©ria">
+    <header class="atlas-index-heading"><p>Escolha seu destino</p><h2>Explorar locais</h2><span id="atlasLayerCount">{{ json_markers|length }} locais no atlas</span></header>
     <div class="map-sidebar-tools">
-      <div class="flex items-center justify-between md:hidden mb-2">
-        <span class="font-cinzel text-xs font-bold text-[var(--ember)]">Mapa de Cinéria</span>
-      </div>
       <label class="map-search-new">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-        <input id="mapSearch" type="search" placeholder="Buscar locais...">
+        <input id="mapSearch" type="search" placeholder="Buscar um local no mapaâ€¦" aria-label="Buscar locais no mapa" autocomplete="off">
       </label>
       <div class="map-category-filter" id="categoryFilterWrap">
         <button type="button" class="map-category-button" id="categoryFilterButton" aria-haspopup="listbox" aria-expanded="false">
@@ -43,6 +50,7 @@
         <div class="map-category-menu" id="categoryFilterMenu" role="listbox"></div>
         <input id="categoryFilter" type="hidden" value="">
       </div>
+      <div class="atlas-filter-state"><span id="atlasFilterStatus" role="status" aria-live="polite">Carregando pinosâ€¦</span><button type="button" id="atlasClearFilters" hidden>Limpar</button></div>
     </div>
 
     <div class="map-index custom-scrollbar" id="mapIndex"></div>
@@ -51,17 +59,17 @@
     <div class="admin-toolbar" id="adminToolbar">
         <button class="admin-btn" onclick="startCreateMarker()" title="Novo Marcador">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-            <span>Pin</span>
+            <span>Marcador</span>
         </button>
-        <button class="admin-btn" onclick="startDrawPolygon()" id="btnDraw" title="Desenhar Área">
+        <button class="admin-btn" onclick="startDrawPolygon()" id="btnDraw" title="Desenhar Ãrea">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5z"></path></svg>
-            <span>Área</span>
+            <span>Ãrea</span>
         </button>
-        <button class="admin-btn" onclick="startDrawHole()" id="btnCut" title="Cortar Buraco no Polígono">
+        <button class="admin-btn" onclick="startDrawHole()" id="btnCut" title="Cortar Buraco no PolÃ­gono">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 15.536c-1.171 1.952-3.07 1.952-4.242 0-1.172-1.953-1.172-5.119 0-7.072 1.171-1.952 3.07-1.952 4.242 0M8 10.5h8m-8 3h8"></path></svg>
             <span>Buraco</span>
         </button>
-        <button class="admin-btn" onclick="toggleEditMode()" id="btnEdit" title="Editar Polígonos">
+        <button class="admin-btn" onclick="toggleEditMode()" id="btnEdit" title="Editar PolÃ­gonos">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
             <span>Editar</span>
         </button>
@@ -83,19 +91,19 @@
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
             <span>Suavizar</span>
         </button>
-        <button class="admin-btn" onclick="optimizePolygon()" id="btnOptimize" title="Otimizar/Limpar Vértices">
+        <button class="admin-btn" onclick="optimizePolygon()" id="btnOptimize" title="Otimizar/Limpar VÃ©rtices">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l-7-7m14 0l-5 5M5 19l5-5"></path></svg>
             <span>Otimizar</span>
         </button>
-        <button class="admin-btn" onclick="autoAlignPolygon()" id="btnAlign" title="Alinhar Vértices aos Vizinhos">
+        <button class="admin-btn" onclick="autoAlignPolygon()" id="btnAlign" title="Alinhar VÃ©rtices aos Vizinhos">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
             <span>Alinhar</span>
         </button>
         <div style="margin-left: auto; display: flex; gap: .3rem;">
-            <button class="admin-btn disabled-btn" id="btnUndo" onclick="undoLastChange()" title="Desfazer última alteração">
+            <button class="admin-btn disabled-btn" id="btnUndo" onclick="undoLastChange()" title="Desfazer Ãºltima alteraÃ§Ã£o">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
             </button>
-            <button class="admin-btn disabled-btn" id="btnSaveAll" onclick="saveAllChanges()" title="Salvar todas as alterações">
+            <button class="admin-btn disabled-btn" id="btnSaveAll" onclick="saveAllChanges()" title="Salvar todas as alteraÃ§Ãµes">
                 Salvar
             </button>
         </div>
@@ -103,7 +111,7 @@
     {% endif %}
 
     <div class="map-sidebar-footer">
-      <a href="{% url 'mundo_regioes' %}">Ver catálogo completo</a>
+      <a href="{% url 'mundo_regioes' %}">Ver catÃ¡logo completo <span aria-hidden="true">â†—</span></a>
     </div>
   </aside>
 
@@ -128,40 +136,42 @@
     </div>
     {% endif %}
   </div>
+  <p class="atlas-map-hint" id="atlasMapHint"><span class="atlas-hint-diamond" aria-hidden="true">â—‡</span> Arraste para explorar Â· Selecione um pino ou territÃ³rio</p>
+  <div class="atlas-no-results" id="atlasNoResults" hidden><strong id="atlasEmptyTitle">Nenhum pino encontrado</strong><p id="atlasEmptyCopy">Tente outro nome ou limpe os filtros. Os territÃ³rios continuam disponÃ­veis no mapa.</p><button type="button" id="atlasEmptyClear">Limpar filtros</button></div>
   
   <div id="toast-container"></div>
 
   {% if can_edit_wiki %}
   <div class="map-modal-backdrop" id="areaTerritoryModal" hidden>
     <div class="map-modal" role="dialog" aria-modal="true" aria-labelledby="areaTerritoryTitle">
-      <h2 id="areaTerritoryTitle">Escolher território da área</h2>
-      <p>A nova área será vinculada a este território.</p>
+      <h2 id="areaTerritoryTitle">Escolher territÃ³rio da Ã¡rea</h2>
+      <p>A nova Ã¡rea serÃ¡ vinculada a este territÃ³rio.</p>
       
       <div id="selectTerritorySection">
         <label>
-          Território
+          TerritÃ³rio
           <select id="areaTerritorySelect" style="width: 100%; margin-bottom: 0.5rem; background: var(--bg2); border: 1px solid var(--stroke); color: var(--text); padding: .3rem; font-size: .75rem; border-radius: 4px; outline: none;">
             {% for territory in json_territories %}
             <option value="{{ territory.nome }}">{{ territory.nome }}</option>
             {% endfor %}
           </select>
         </label>
-        <button type="button" class="map-modal-secondary" id="btnShowCreateTerritory" style="width: 100%; margin-bottom: 1rem; border: 1px dashed var(--stroke); padding: 0.5rem; text-align: center; font-size: 0.75rem; cursor: pointer; border-radius: 4px;">+ Criar Novo Território</button>
+        <button type="button" class="map-modal-secondary" id="btnShowCreateTerritory" style="width: 100%; margin-bottom: 1rem; border: 1px dashed var(--stroke); padding: 0.5rem; text-align: center; font-size: 0.75rem; cursor: pointer; border-radius: 4px;">+ Criar Novo TerritÃ³rio</button>
       </div>
 
       <div id="createTerritorySection" style="display: none; border-top: 1px solid var(--stroke); padding-top: 1rem; margin-top: 0.5rem; margin-bottom: 1rem;">
-        <h3 style="font-size: 0.85rem; font-weight: bold; text-transform: uppercase; margin-bottom: 0.75rem; color: var(--ember);">Novo Território</h3>
+        <h3 style="font-size: 0.85rem; font-weight: bold; text-transform: uppercase; margin-bottom: 0.75rem; color: var(--ember);">Novo TerritÃ³rio</h3>
         <label style="display: block; margin-bottom: 0.5rem; font-size: 0.75rem;">
           Nome
-          <input type="text" id="newTerritoryName" placeholder="Ex: Reino de Cinéria" style="width: 100%; background: var(--bg2); border: 1px solid var(--stroke); color: var(--text); padding: 0.4rem; border-radius: 4px; outline: none; margin-top: 0.25rem; font-size: 0.75rem;">
+          <input type="text" id="newTerritoryName" placeholder="Ex: Reino de CinÃ©ria" style="width: 100%; background: var(--bg2); border: 1px solid var(--stroke); color: var(--text); padding: 0.4rem; border-radius: 4px; outline: none; margin-top: 0.25rem; font-size: 0.75rem;">
         </label>
         <label style="display: block; margin-bottom: 0.5rem; font-size: 0.75rem;">
-          Cor do Território
+          Cor do TerritÃ³rio
           <input type="color" id="newTerritoryColor" value="#ff8800" style="display: block; width: 60px; height: 36px; padding: 2px; cursor: pointer; border: 1px solid var(--stroke); border-radius: 4px; margin-top: 0.25rem; background: transparent;">
         </label>
         <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
           <button type="button" id="btnCancelCreateTerritory" class="map-modal-secondary" style="flex: 1; padding: 0.4rem; font-size: 0.75rem; border-radius: 4px; cursor: pointer;">Voltar</button>
-          <button type="button" id="btnConfirmCreateTerritory" class="map-modal-primary" style="flex: 1; padding: 0.4rem; font-size: 0.75rem; border-radius: 4px; cursor: pointer; background: var(--ember); border: none;">Criar Território</button>
+          <button type="button" id="btnConfirmCreateTerritory" class="map-modal-primary" style="flex: 1; padding: 0.4rem; font-size: 0.75rem; border-radius: 4px; cursor: pointer; background: var(--ember); border: none;">Criar TerritÃ³rio</button>
         </div>
       </div>
 
@@ -177,7 +187,7 @@
   <div class="map-modal-backdrop" id="layerManagementModal" hidden>
     <div class="map-modal" role="dialog" aria-modal="true" aria-labelledby="layerManagementTitle" style="max-width: 600px; width: 90%;">
       <h2 id="layerManagementTitle">Gerenciar Camadas do Mapa</h2>
-      <p style="margin-bottom: 1rem; font-size: 0.85rem; color: var(--muted);">Adicione novas camadas subterrâneas, faça upload da imagem de fundo, renomeie ou exclua as existentes.</p>
+      <p style="margin-bottom: 1rem; font-size: 0.85rem; color: var(--muted);">Adicione novas camadas subterrÃ¢neas, faÃ§a upload da imagem de fundo, renomeie ou exclua as existentes.</p>
       
       <!-- List of layers -->
       <div id="layerListContainer" style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 250px; overflow-y: auto; margin-bottom: 1.5rem; padding-right: 0.25rem;">
@@ -186,20 +196,20 @@
       
       <!-- Add New Layer Form -->
       <div style="border-top: 1px solid var(--stroke); padding-top: 1rem; margin-top: 1rem;">
-        <h3 style="font-family: 'Cinzel', serif; font-size: 0.9rem; text-transform: uppercase; color: var(--ember); margin-bottom: 0.75rem;">Adicionar Nova Camada</h3>
+        <h3 style="font-family: 'Frank Ruhl Libre', serif; font-size: 0.9rem; text-transform: uppercase; color: var(--ember); margin-bottom: 0.75rem;">Adicionar Nova Camada</h3>
         <form id="addLayerForm" onsubmit="submitAddLayer(event)" enctype="multipart/form-data" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
           {% csrf_token %}
           <label style="grid-column: span 2;">
             Nome da Camada
-            <input type="text" name="nome" placeholder="Ex: Subterrâneo Lvl 2" required style="width: 100%; margin-top: 0.25rem;">
+            <input type="text" name="nome" placeholder="Ex: SubterrÃ¢neo Lvl 2" required style="width: 100%; margin-top: 0.25rem;">
           </label>
           <label>
-            Ordem (Exibição)
+            Ordem (ExibiÃ§Ã£o)
             <input type="number" name="ordem" value="0" required style="width: 100%; margin-top: 0.25rem;">
           </label>
           <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; margin-top: 1.2rem;">
             <input type="checkbox" name="publica" style="width: auto; cursor: pointer;">
-            <span>Camada Pública?</span>
+            <span>Camada PÃºblica?</span>
           </label>
           <label style="grid-column: span 2;">
             Imagem de Fundo (.png, .jpg)
@@ -219,11 +229,11 @@
   {% endif %}
 
   {% if can_edit_wiki %}
-  <!-- Painel flutuante de estilo de linha (aparece durante desenho/edição de uma linha) -->
+  <!-- Painel flutuante de estilo de linha (aparece durante desenho/ediÃ§Ã£o de uma linha) -->
   <div id="linhaStylePanel" class="desenho-style-panel" hidden>
     <div class="desenho-style-head">
       <span>Estilo da Linha</span>
-      <button type="button" class="desenho-style-close" onclick="closeLinhaStylePanel()" title="Fechar">×</button>
+      <button type="button" class="desenho-style-close" onclick="closeLinhaStylePanel()" title="Fechar">Ã—</button>
     </div>
     <label class="desenho-style-row">
       <span>Cor</span>
@@ -240,10 +250,10 @@
     </label>
     <label class="desenho-style-field">
       <span>Nome</span>
-      <input type="text" id="linhaNomeInput" maxlength="150" placeholder="Ex.: Rota do Comércio">
+      <input type="text" id="linhaNomeInput" maxlength="150" placeholder="Ex.: Rota do ComÃ©rcio">
     </label>
     <label class="desenho-style-field">
-      <span>Descrição</span>
+      <span>DescriÃ§Ã£o</span>
       <textarea id="linhaDescricaoInput" maxlength="300" rows="3" placeholder="Aparece no popup ao clicar (opcional)."></textarea>
     </label>
     <div id="linhaAnchorInfo" class="desenho-style-anchor"></div>
@@ -258,9 +268,9 @@
   <div id="imagemStylePanel" class="desenho-style-panel" hidden>
     <div class="desenho-style-head">
       <span>Imagem Sobreposta</span>
-      <button type="button" class="desenho-style-close" onclick="closeImagemStylePanel()" title="Fechar">×</button>
+      <button type="button" class="desenho-style-close" onclick="closeImagemStylePanel()" title="Fechar">Ã—</button>
     </div>
-    <p class="desenho-style-hint" id="imagemStyleHint">Envie um PNG e desenhe um retângulo no mapa para posicioná-la.</p>
+    <p class="desenho-style-hint" id="imagemStyleHint">Envie um PNG e desenhe um retÃ¢ngulo no mapa para posicionÃ¡-la.</p>
     <label class="desenho-style-row">
       <span>Opacidade</span>
       <input type="range" id="imagemOpacityInput" min="0.1" max="1" step="0.05" value="1">
@@ -268,26 +278,26 @@
     </label>
     <label class="desenho-style-field">
       <span>Nome</span>
-      <input type="text" id="imagemNomeInput" maxlength="150" placeholder="Ex.: Ruínas do Norte">
+      <input type="text" id="imagemNomeInput" maxlength="150" placeholder="Ex.: RuÃ­nas do Norte">
     </label>
     <label class="desenho-style-field">
-      <span>Descrição</span>
+      <span>DescriÃ§Ã£o</span>
       <textarea id="imagemDescricaoInput" maxlength="300" rows="3" placeholder="Aparece no popup ao clicar (opcional)."></textarea>
     </label>
     <div class="desenho-style-actions">
-      <button type="button" class="admin-btn" id="imagemRedrawBtn" onclick="redrawImagemBounds()" hidden>Redesenhar área</button>
+      <button type="button" class="admin-btn" id="imagemRedrawBtn" onclick="redrawImagemBounds()" hidden>Redesenhar Ã¡rea</button>
       <button type="button" class="admin-btn desenho-danger" id="imagemDeleteBtn" onclick="deleteCurrentImagem()" hidden>Excluir</button>
       <button type="button" class="admin-btn primary-active" id="imagemSaveBtn" onclick="saveCurrentImagem()" hidden>Salvar Imagem</button>
     </div>
     <input type="file" id="imagemFileInput" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
   </div>
 
-  <!-- Painel-lista: descoberta/gerência dos desenhos da camada ativa (fallback que
-       não depende de acertar o clique no canvas). -->
+  <!-- Painel-lista: descoberta/gerÃªncia dos desenhos da camada ativa (fallback que
+       nÃ£o depende de acertar o clique no canvas). -->
   <div id="desenhoListPanel" class="desenho-style-panel desenho-list-panel" hidden>
     <div class="desenho-style-head">
       <span>Desenhos da Camada</span>
-      <button type="button" class="desenho-style-close" onclick="toggleDesenhoListPanel(false)" title="Fechar">×</button>
+      <button type="button" class="desenho-style-close" onclick="toggleDesenhoListPanel(false)" title="Fechar">Ã—</button>
     </div>
     <div id="desenhoListBody" class="desenho-list-body"></div>
   </div>
@@ -326,8 +336,8 @@ const categoriaChoices = {
     'fortaleza': 'Fortaleza',
     'conglomerado_vilas': 'Conglomerado de Vilas',
     'vila': 'Vila',
-    'cidade_portuaria': 'Cidade Portuária',
-    'area_selvagem': 'Área Selvagem'
+    'cidade_portuaria': 'Cidade PortuÃ¡ria',
+    'area_selvagem': 'Ãrea Selvagem'
 };
 
 // Global state for editor (Phase 1: Infrastructure)
@@ -470,9 +480,9 @@ function displayTerritory(territory, plural = false) {
   const key = normalize(territory);
   if (key.includes('auralino')) return 'Reino Auraliano';
   if (key.includes('territorio independente')) {
-    return plural ? 'Territórios Independentes' : 'Território Independente';
+    return plural ? 'TerritÃ³rios Independentes' : 'TerritÃ³rio Independente';
   }
-  return territory || 'Sem território';
+  return territory || 'Sem territÃ³rio';
 }
 
 function categoryLabel(value) {
@@ -536,7 +546,7 @@ function getCategoryIcon(categoria) {
   return `<img src="${url}" style="width: 24px; height: 24px; object-fit: contain; transform: ${scale}; pointer-events: none;" />`;
 }
 
-// Auto-loader para SVGs injetados de forma assíncrona (resolve problema de CORS/Mask e garante currentColor)
+// Auto-loader para SVGs injetados de forma assÃ­ncrona (resolve problema de CORS/Mask e garante currentColor)
 const svgStash = {};
 const svgObserver = new MutationObserver(mutations => {
   mutations.forEach(m => {
@@ -600,18 +610,18 @@ function placeCard(item) {
       : ['movimentacoes_economicas', 'poder_militar', 'desenvolvimento_tecnologico', 'estabilidade_politica_interna', 'ameacas_externas', 'densidade_populacional', 'tolerancia_estrangeiros', 'manipulacao_trama'];
     
     const statsLabels = {
-        'movimentacoes_economicas': 'Movimentações Econômicas',
+        'movimentacoes_economicas': 'MovimentaÃ§Ãµes EconÃ´micas',
         'poder_militar': 'Poder Militar',
-        'desenvolvimento_tecnologico': 'Desenvolvimento Tecnológico',
-        'estabilidade_politica_interna': 'Estabilidade Política Interna',
-        'ameacas_externas': 'Ameaças Externas',
+        'desenvolvimento_tecnologico': 'Desenvolvimento TecnolÃ³gico',
+        'estabilidade_politica_interna': 'Estabilidade PolÃ­tica Interna',
+        'ameacas_externas': 'AmeaÃ§as Externas',
         'densidade_populacional': 'Densidade Populacional',
-        'tolerancia_estrangeiros': 'Tolerância a Estrangeiros',
-        'manipulacao_trama': 'Manipulação da Trama',
-        'ameacas_internas': 'Ameaças Internas',
-        'nivel_periculosidade': 'Nível de Periculosidade',
+        'tolerancia_estrangeiros': 'TolerÃ¢ncia a Estrangeiros',
+        'manipulacao_trama': 'ManipulaÃ§Ã£o da Trama',
+        'ameacas_internas': 'AmeaÃ§as Internas',
+        'nivel_periculosidade': 'NÃ­vel de Periculosidade',
         'recursos_naturais': 'Recursos Naturais',
-        'recursos_magicos': 'Recursos Mágicos',
+        'recursos_magicos': 'Recursos MÃ¡gicos',
         'diversidade_criaturas': 'Diversidade de Criaturas'
     };
     
@@ -641,9 +651,9 @@ function placeCard(item) {
                   </select>
               </div>
               <div class="flex flex-col gap-1">
-                  <label class="text-[0.6rem] uppercase opacity-70">Território</label>
+                  <label class="text-[0.6rem] uppercase opacity-70">TerritÃ³rio</label>
                   <select onchange="updatePendingMarkerField('${item.id || item._tempId}', 'territorio', this.value)" style="background: var(--bg2); border: 1px solid var(--stroke); color: var(--text); padding: .3rem; font-size: .75rem; border-radius: 4px; outline: none; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right .7rem top 50%; background-size: .65rem auto;">
-                      <option value="" style="background: var(--bg1); color: var(--text);">Sem Território</option>
+                      <option value="" style="background: var(--bg1); color: var(--text);">Sem TerritÃ³rio</option>
                       ${jsonTerritories.map(t => `<option value="${t.nome}" ${item.territorio === t.nome ? 'selected' : ''} style="background: var(--bg1); color: var(--text);">${t.nome}</option>`).join('')}
                   </select>
               </div>
@@ -666,12 +676,12 @@ function placeCard(item) {
       </header>
       <div class="map-place-body">
         <div class="map-place-grid">
-          <div class="map-place-field"><span>Território</span><strong>${escapeHtml(displayTerritory(item.territorio, false) || '-')}</strong></div>
+          <div class="map-place-field"><span>TerritÃ³rio</span><strong>${escapeHtml(displayTerritory(item.territorio, false) || '-')}</strong></div>
         </div>
         ${briefDesc ? `<p class="map-place-desc" style="margin-top: 1rem; margin-bottom: 0;">${escapeHtml(briefDesc)}</p>` : ''}
         ${statsHtml}
         ${adminEditHtml}
-        <a class="map-place-action" href="${escapeHtml(detailUrl)}">Ver história completa</a>
+        <a class="map-place-action" href="${escapeHtml(detailUrl)}">Ver histÃ³ria completa</a>
       </div>
     </article>
   `;
@@ -687,11 +697,11 @@ function territoryCard(territory) {
   const statsHtml = territory.stats ? `
     <div class="map-place-stats" style="margin-top: 1rem; border-top: 0; padding-top: 0;">
       <div class="map-place-stat"><span>Riqueza Natural</span>${renderDots(territory.stats.riqueza_natural)}</div>
-      <div class="map-place-stat"><span>Monetária</span>${renderDots(territory.stats.riqueza_monetaria)}</div>
+      <div class="map-place-stat"><span>MonetÃ¡ria</span>${renderDots(territory.stats.riqueza_monetaria)}</div>
       <div class="map-place-stat"><span>Militar</span>${renderDots(territory.stats.poder_militar)}</div>
       <div class="map-place-stat"><span>Tecnologia</span>${renderDots(territory.stats.desenvolvimento_tecnologico)}</div>
       <div class="map-place-stat"><span>Estabilidade</span>${renderDots(territory.stats.estabilidade_politica_interna)}</div>
-      <div class="map-place-stat"><span>Ameaças Externas</span>${renderDots(territory.stats.ameacas_externas)}</div>
+      <div class="map-place-stat"><span>AmeaÃ§as Externas</span>${renderDots(territory.stats.ameacas_externas)}</div>
       <div class="map-place-stat"><span>Diplomacia</span>${renderDots(territory.stats.diplomacia)}</div>
       <div class="map-place-stat"><span>Trama</span>${renderDots(territory.stats.manipulacao_trama)}</div>
     </div>
@@ -707,7 +717,7 @@ function territoryCard(territory) {
       <div class="territory-body">
         ${briefDesc ? `<p class="map-place-desc" style="margin-bottom: 1rem;">${escapeHtml(briefDesc)}</p>` : ''}
         ${statsHtml}
-        <a class="territory-action" href="${escapeHtml(linkUrl)}">Página do Território</a>
+        <a class="territory-action" href="${escapeHtml(linkUrl)}">PÃ¡gina do TerritÃ³rio</a>
       </div>
     </article>
   `;
@@ -752,23 +762,23 @@ let activeMarker = null;
 let activeTerritory = '';
 let isEditMode = false;
 
-let activeLayer = 0; // 0 = Superfície, 1 = Subterrâneo
+let activeLayer = 0; // 0 = SuperfÃ­cie, 1 = SubterrÃ¢neo
 
-// ==== Desenhos do mapa (linhas / imagens sobrepostas) — WP2 ====
+// ==== Desenhos do mapa (linhas / imagens sobrepostas) â€” WP2 ====
 // Pane dedicada para os desenhos: fica ACIMA da imagem de fundo (tilePane=200)
-// e ABAIXO dos marcadores (markerPane=600), para não interceptar cliques dos pinos.
+// e ABAIXO dos marcadores (markerPane=600), para nÃ£o interceptar cliques dos pinos.
 map.createPane('desenhosPane');
 map.getPane('desenhosPane').style.zIndex = 450;
 
 const jsonDesenhos = JSON.parse(document.getElementById('desenhos-data').textContent);
-// Grupo que só contém os desenhos da camada ativa (filtragem por camada EXATA,
-// igual aos markers em filterMap — SEM depender das classes .layer-N do CSS,
-// que têm teto de 20 e são só para os polígonos de território).
-// featureGroup (não layerGroup): só o featureGroup propaga eventos das camadas-filhas
-// para o grupo (layer.addEventParent). É isso que faz desenhosLayer.on('click') disparar
-// quando o staff clica num desenho — com layerGroup o clique nunca chegava (bug do Gaz).
+// Grupo que sÃ³ contÃ©m os desenhos da camada ativa (filtragem por camada EXATA,
+// igual aos markers em filterMap â€” SEM depender das classes .layer-N do CSS,
+// que tÃªm teto de 20 e sÃ£o sÃ³ para os polÃ­gonos de territÃ³rio).
+// featureGroup (nÃ£o layerGroup): sÃ³ o featureGroup propaga eventos das camadas-filhas
+// para o grupo (layer.addEventParent). Ã‰ isso que faz desenhosLayer.on('click') disparar
+// quando o staff clica num desenho â€” com layerGroup o clique nunca chegava (bug do Gaz).
 const desenhosLayer = L.featureGroup().addTo(map);
-// desenho.id -> { data, leafletLayer|null } (leafletLayer só existe enquanto na camada ativa)
+// desenho.id -> { data, leafletLayer|null } (leafletLayer sÃ³ existe enquanto na camada ativa)
 const desenhoRegistry = new Map();
 jsonDesenhos.forEach(d => desenhoRegistry.set(d.id, { data: d, leafletLayer: null }));
 
@@ -859,7 +869,7 @@ function showToast(message, type = 'info') {
 
 function undoAllChanges() {
     if(Object.keys(pendingChanges.markers).length > 0 || Object.keys(pendingChanges.territories).length > 0) {
-        if(confirm("Deseja descartar todas as alterações não salvas?")) {
+        if(confirm("Deseja descartar todas as alteraÃ§Ãµes nÃ£o salvas?")) {
             location.reload();
         }
     }
@@ -978,10 +988,10 @@ function setupMarkersAndPolygons() {
         const newPos = e.target.getLatLng();
         updatePendingMarkerField(item.id, 'lat', newPos.lat);
         updatePendingMarkerField(item.id, 'lng', newPos.lng);
-        // Ligações: linhas ancoradas neste pino acompanham o novo ponto.
+        // LigaÃ§Ãµes: linhas ancoradas neste pino acompanham o novo ponto.
         if (typeof renderDesenhos === 'function') renderDesenhos();
       });
-      // Enquanto arrasta, atualiza as ligações em tempo real (feedback visual).
+      // Enquanto arrasta, atualiza as ligaÃ§Ãµes em tempo real (feedback visual).
       marker.on('drag', () => { if (typeof renderDesenhos === 'function') renderDesenhos(); });
     }
 
@@ -1073,7 +1083,7 @@ function regionsByTerritory() {
   const grouped = new Map();
   enrichedMarkers.forEach(m => {
     if ((m.camada || 0) !== activeLayer) return;
-    const t = m.territorio || 'Sem território';
+    const t = m.territorio || 'Sem territÃ³rio';
     if (!grouped.has(t)) grouped.set(t, []);
     grouped.get(t).push(m);
   });
@@ -1140,8 +1150,8 @@ function buildSidebarIndex() {
   const container = document.getElementById('mapIndex');
   const grouped = regionsByTerritory();
   const territories = Array.from(grouped.keys()).sort((a,b) => {
-      if (a === 'Sem território') return 1;
-      if (b === 'Sem território') return -1;
+      if (a === 'Sem territÃ³rio') return 1;
+      if (b === 'Sem territÃ³rio') return -1;
       return a.localeCompare(b);
   });
 
@@ -1155,15 +1165,15 @@ function buildSidebarIndex() {
     const textColor = (colorLower === '#000000' || colorLower === '#000') ? '#ffffff' : color;
     
     return `
-      <div class="territory-group ${isOpen}" data-territory-name="${t}" style="--item-color: ${color}; --item-text-color: ${textColor};">
-        <button class="territory-button ${isActive}" data-territory-open="${t}">
-          ${displayTerritory(t, true)}
+      <div class="territory-group ${isOpen}" data-territory-name="${escapeHtml(t)}" style="--item-color: ${color}; --item-text-color: ${textColor};">
+        <button class="territory-button ${isActive}" data-territory-open="${escapeHtml(t)}">
+          ${escapeHtml(displayTerritory(t, true))}
         </button>
         <div class="territory-regions">
           ${regions.map(r => `
-            <button class="index-item" data-marker-key="${markerKey(r)}" onclick="event.stopPropagation(); selectRegion('${r.nome}', true)">
+            <button class="index-item" data-marker-key="${escapeHtml(markerKey(r))}" onclick="event.stopPropagation(); selectRegion(${escapeHtml(JSON.stringify(r.nome))}, true)">
               <div class="index-item-icon-png" style="flex-shrink: 0; display:flex; justify-content:center; align-items:center;">${getCategoryIcon(r.categoria)}</div>
-              <span class="index-item-title">${r.nome}</span>
+              <span class="index-item-title">${escapeHtml(r.nome)}</span>
             </button>
           `).join('')}
         </div>
@@ -1197,7 +1207,7 @@ function buildSidebarIndex() {
 function openDetail(html) {
   const panel = document.getElementById('mapDetail');
   const shell = document.querySelector('.map-shell');
-  panel.innerHTML = `<button type="button" class="map-detail-close" onclick="closeDetail()">×</button>${html}`;
+  panel.innerHTML = `<button type="button" class="map-detail-close" onclick="closeDetail()">Ã—</button>${html}`;
   shell.classList.add('has-detail');
   setTimeout(() => map.invalidateSize(), 80);
 }
@@ -1347,11 +1357,11 @@ function updateActiveIndex() {
   });
 }
 
-// ==== Renderização dos desenhos (viewer, todos os usuários) ====
+// ==== RenderizaÃ§Ã£o dos desenhos (viewer, todos os usuÃ¡rios) ====
 
-// Resolve a posição ATUAL de um marker de ligação (id_marker) -> [lat, lng].
-// Usa o marker Leaflet vivo (que reflete arrastes não-salvos no editor) e cai
-// no dado embutido se o marker não estiver instanciado.
+// Resolve a posiÃ§Ã£o ATUAL de um marker de ligaÃ§Ã£o (id_marker) -> [lat, lng].
+// Usa o marker Leaflet vivo (que reflete arrastes nÃ£o-salvos no editor) e cai
+// no dado embutido se o marker nÃ£o estiver instanciado.
 function resolveMarkerLatLng(markerId) {
     if (markerId === null || markerId === undefined) return null;
     const live = leafletMarkers.find(m => m._bonfireData && m._bonfireData.id == markerId);
@@ -1364,8 +1374,8 @@ function resolveMarkerLatLng(markerId) {
     return null;
 }
 
-// Constrói os pontos efetivos de uma linha: se houver liga_marker_inicio/fim,
-// o primeiro/último ponto vira a posição atual do marker correspondente.
+// ConstrÃ³i os pontos efetivos de uma linha: se houver liga_marker_inicio/fim,
+// o primeiro/Ãºltimo ponto vira a posiÃ§Ã£o atual do marker correspondente.
 function linhaEffectivePoints(dados) {
     const pts = (dados.pontos || []).map(p => [p[0], p[1]]);
     if (pts.length < 2) return pts;
@@ -1380,7 +1390,7 @@ function linhaEffectivePoints(dados) {
     return pts;
 }
 
-// Monta o HTML do popup de um desenho (nome + descrição), sempre escapado —
+// Monta o HTML do popup de um desenho (nome + descriÃ§Ã£o), sempre escapado â€”
 // nunca insere dado do banco cru via innerHTML sem passar por escapeHtml.
 function desenhoPopupHtml(d) {
     const dados = d.dados_json || {};
@@ -1394,11 +1404,11 @@ function desenhoPopupHtml(d) {
     return html;
 }
 
-// Cria a camada Leaflet de um desenho. interactive=false no viewer (não intercepta
-// cliques dos markers) A MENOS que o desenho tenha nome/descrição — nesse caso vira
-// clicável e ganha um popup (WP2: feedback do Gaz "precisava ser clicável pra aparecer
-// o que ela é"). No editor staff passamos interactive=true para poder selecioná-lo
-// (edição tem prioridade sobre popup — o clique lá abre o painel de edição).
+// Cria a camada Leaflet de um desenho. interactive=false no viewer (nÃ£o intercepta
+// cliques dos markers) A MENOS que o desenho tenha nome/descriÃ§Ã£o â€” nesse caso vira
+// clicÃ¡vel e ganha um popup (WP2: feedback do Gaz "precisava ser clicÃ¡vel pra aparecer
+// o que ela Ã©"). No editor staff passamos interactive=true para poder selecionÃ¡-lo
+// (ediÃ§Ã£o tem prioridade sobre popup â€” o clique lÃ¡ abre o painel de ediÃ§Ã£o).
 function buildDesenhoLayer(d, interactive) {
     const dados = d.dados_json || {};
     const popupHtml = interactive ? null : desenhoPopupHtml(d);
@@ -1436,12 +1446,12 @@ function buildDesenhoLayer(d, interactive) {
 function renderDesenhos() {
     desenhoRegistry.forEach(entry => {
         const d = entry.data;
-        // Remove a instância antiga (para re-resolver ligações que possam ter mudado).
+        // Remove a instÃ¢ncia antiga (para re-resolver ligaÃ§Ãµes que possam ter mudado).
         if (entry.leafletLayer) {
             desenhosLayer.removeLayer(entry.leafletLayer);
             entry.leafletLayer = null;
         }
-        if ((d.camada || 0) !== activeLayer) return; // camada 1 não aparece na 2
+        if ((d.camada || 0) !== activeLayer) return; // camada 1 nÃ£o aparece na 2
         const layer = buildDesenhoLayer(d, canEditWiki);
         if (layer) {
             layer._bonfireDesenhoId = d.id;
@@ -1483,11 +1493,11 @@ function startCreateMarker() {
     const data = {
         id: null,
         _tempId: tempId,
-        nome: 'Nova Região',
+        nome: 'Nova RegiÃ£o',
         lat: center.lat,
         lng: center.lng,
         categoria: 'cidade',
-        territorio: activeTerritory && activeTerritory !== 'Sem território' ? activeTerritory : '',
+        territorio: activeTerritory && activeTerritory !== 'Sem territÃ³rio' ? activeTerritory : '',
         camada: activeLayer
     };
     
@@ -1549,7 +1559,7 @@ function startDrawPolygon() {
     isEditMode = true;
     updateAdminEditState();
     document.getElementById('btnDraw')?.classList.add('primary-active');
-    showToast('Desenhe a nova área. Depois escolha o território dela.', 'info');
+    showToast('Desenhe a nova Ã¡rea. Depois escolha o territÃ³rio dela.', 'info');
 
     map.pm.enableDraw('Polygon', {
         snappable: true,
@@ -1578,10 +1588,10 @@ function startDrawPolygon() {
     
     map.once('pm:create', async (e) => {
         const layer = e.layer;
-        const chosenTerritory = await chooseAreaTerritory(activeTerritory && activeTerritory !== 'Sem território' ? activeTerritory : '');
+        const chosenTerritory = await chooseAreaTerritory(activeTerritory && activeTerritory !== 'Sem territÃ³rio' ? activeTerritory : '');
         if (!chosenTerritory) {
             map.removeLayer(layer);
-            showToast('Criação de área cancelada.', 'info');
+            showToast('CriaÃ§Ã£o de Ã¡rea cancelada.', 'info');
             return;
         }
         bindTerritoryLayer(layer, chosenTerritory);
@@ -1636,7 +1646,7 @@ function chooseAreaTerritory(preferredName = '') {
             const colorInput = document.getElementById('newTerritoryColor');
             const name = nameInput.value.trim();
             const color = colorInput.value;
-            if (!name) return alert('Nome do território é obrigatório.');
+            if (!name) return alert('Nome do territÃ³rio Ã© obrigatÃ³rio.');
             
             btnConfirm.disabled = true;
             btnConfirm.textContent = 'Criando...';
@@ -1666,10 +1676,10 @@ function chooseAreaTerritory(preferredName = '') {
                 
                 chooseAreaTerritory(data.territory.nome);
             } catch (err) {
-                alert('Erro ao criar território: ' + err.message);
+                alert('Erro ao criar territÃ³rio: ' + err.message);
             } finally {
                 btnConfirm.disabled = false;
-                btnConfirm.textContent = 'Criar Território';
+                btnConfirm.textContent = 'Criar TerritÃ³rio';
             }
         });
     }
@@ -1762,20 +1772,20 @@ function bindTerritoryLayer(layer, territoryName) {
 
 function processTerritoryGeometry(territoryName) {
     recalculateTerritoryCoords(territoryName);
-    showToast('Área criada. Lembre-se de salvar suas alterações.', 'success');
+    showToast('Ãrea criada. Lembre-se de salvar suas alteraÃ§Ãµes.', 'success');
 }
 
 function startDrawHole() {
     console.log('startDrawHole called. activeTerritory:', activeTerritory);
-    if (!activeTerritory || activeTerritory === 'Sem território') {
-        showToast('Selecione um território antes de cortar um buraco.', 'error');
+    if (!activeTerritory || activeTerritory === 'Sem territÃ³rio') {
+        showToast('Selecione um territÃ³rio antes de cortar um buraco.', 'error');
         return;
     }
     
     isEditMode = true;
     updateAdminEditState();
     document.getElementById('btnCut')?.classList.add('primary-active');
-    showToast('Desenhe a área que deseja recortar dentro de um polígono existente.', 'info');
+    showToast('Desenhe a Ã¡rea que deseja recortar dentro de um polÃ­gono existente.', 'info');
     
     const layers = territoryPolygonsLayer.getLayers();
     console.log('Layers available for cutting:', layers.length, layers);
@@ -1870,8 +1880,8 @@ function collectSharedVertices(territoryName) {
 }
 
 function applyChaikin(territoryName = activeTerritory, silent = false) {
-    if (!territoryName || territoryName === 'Sem território') {
-        showToast('Selecione um território para suavizar.', 'error');
+    if (!territoryName || territoryName === 'Sem territÃ³rio') {
+        showToast('Selecione um territÃ³rio para suavizar.', 'error');
         return;
     }
     
@@ -1883,7 +1893,7 @@ function applyChaikin(territoryName = activeTerritory, silent = false) {
     });
     
     if (targetLayers.length === 0) {
-        showToast('Este território ainda não possui um polígono para suavizar.', 'error');
+        showToast('Este territÃ³rio ainda nÃ£o possui um polÃ­gono para suavizar.', 'error');
         return;
     }
 
@@ -1898,7 +1908,7 @@ function applyChaikin(territoryName = activeTerritory, silent = false) {
             const outerVertices = countVertices([outerRing]);
 
             if (outerVertices > 400) {
-                showToast('Polígono muito complexo. Suavização bloqueada.', 'error');
+                showToast('PolÃ­gono muito complexo. SuavizaÃ§Ã£o bloqueada.', 'error');
                 return;
             }
 
@@ -1916,7 +1926,7 @@ function applyChaikin(territoryName = activeTerritory, silent = false) {
     });
     
     recalculateTerritoryCoords(territoryName);
-    if (!silent) showToast('Polígonos suavizados com sucesso (preservando fronteiras)!', 'success');
+    if (!silent) showToast('PolÃ­gonos suavizados com sucesso (preservando fronteiras)!', 'success');
 }
 
 function getClosestPointOnSegment(p, p1, p2) {
@@ -1928,8 +1938,8 @@ function getClosestPointOnSegment(p, p1, p2) {
 }
 
 function optimizePolygon(territoryName = activeTerritory, silent = false) {
-    if (!territoryName || territoryName === 'Sem território') {
-        showToast('Selecione um território para otimizar.', 'error');
+    if (!territoryName || territoryName === 'Sem territÃ³rio') {
+        showToast('Selecione um territÃ³rio para otimizar.', 'error');
         return;
     }
     
@@ -2038,9 +2048,9 @@ function optimizePolygon(territoryName = activeTerritory, silent = false) {
     
     if (removedCount > 0 || otherLayersModified.size > 0) {
         recalculateTerritoryCoords(territoryName);
-        if (!silent) showToast(`${removedCount} vértices inúteis otimizados nos territórios!`, 'success');
+        if (!silent) showToast(`${removedCount} vÃ©rtices inÃºteis otimizados nos territÃ³rios!`, 'success');
     } else {
-        if (!silent) showToast('O polígono já está limpo e otimizado.', 'info');
+        if (!silent) showToast('O polÃ­gono jÃ¡ estÃ¡ limpo e otimizado.', 'info');
     }
 }
 
@@ -2172,8 +2182,8 @@ function ensureContainedPolygonHoles(targetLayers, otherLayers) {
 }
 
 function autoAlignPolygon(territoryName = activeTerritory, silent = false) {
-    if (!territoryName || territoryName === 'Sem território') {
-        showToast('Selecione um território para alinhar.', 'error');
+    if (!territoryName || territoryName === 'Sem territÃ³rio') {
+        showToast('Selecione um territÃ³rio para alinhar.', 'error');
         return;
     }
     
@@ -2189,7 +2199,7 @@ function autoAlignPolygon(territoryName = activeTerritory, silent = false) {
     });
     
     if (targetLayers.length === 0) {
-        showToast('Este território ainda não possui um polígono para alinhar.', 'error');
+        showToast('Este territÃ³rio ainda nÃ£o possui um polÃ­gono para alinhar.', 'error');
         return;
     }
 
@@ -2386,7 +2396,7 @@ function autoAlignPolygon(territoryName = activeTerritory, silent = false) {
         recalculateTerritoryCoords(territoryName);
         if (!silent) showToast('Fronteiras zipadas e alinhadas perfeitamente!', 'success');
     } else {
-        if (!silent) showToast('Fronteiras já estão alinhadas.', 'info');
+        if (!silent) showToast('Fronteiras jÃ¡ estÃ£o alinhadas.', 'info');
     }
 }
 
@@ -2397,7 +2407,7 @@ function autoAlignPolygon(territoryName = activeTerritory, silent = false) {
         const territoryName = originalLayer?._bonfireTerritory?.nome || activeTerritory;
         console.log('pm:cut resolved layer:', layer, 'originalLayer:', originalLayer, 'territoryName:', territoryName);
         if (!territoryName) {
-            showToast('Não consegui identificar o território cortado.', 'error');
+            showToast('NÃ£o consegui identificar o territÃ³rio cortado.', 'error');
             return;
         }
         if (originalLayer) territoryPolygonsLayer.removeLayer(originalLayer);
@@ -2420,7 +2430,7 @@ function autoAlignPolygon(territoryName = activeTerritory, silent = false) {
         }
         recalculateTerritoryCoords(territoryName);
         if (addedCount > 1) {
-            showToast(`Polígono dividido em ${addedCount} partes!`, 'success');
+            showToast(`PolÃ­gono dividido em ${addedCount} partes!`, 'success');
         } else {
             showToast('Buraco cortado com sucesso!', 'success');
         }
@@ -2499,10 +2509,10 @@ function toggleEditMode() {
         isEditMode = false;
         updateAdminEditState();
         if (btnEdit) btnEdit.classList.remove('primary-active');
-        showToast('Modo de edição desativado.', 'info');
+        showToast('Modo de ediÃ§Ã£o desativado.', 'info');
     } else {
-        if (!activeTerritory || activeTerritory === 'Sem território') {
-            showToast('Selecione um território antes de ativar a edição.', 'error');
+        if (!activeTerritory || activeTerritory === 'Sem territÃ³rio') {
+            showToast('Selecione um territÃ³rio antes de ativar a ediÃ§Ã£o.', 'error');
             return;
         }
         
@@ -2525,9 +2535,9 @@ function toggleEditMode() {
             isEditMode = true;
             updateAdminEditState();
             if (btnEdit) btnEdit.classList.add('primary-active');
-            showToast(`Edição ativada para o território: ${activeTerritory}`, 'success');
+            showToast(`EdiÃ§Ã£o ativada para o territÃ³rio: ${activeTerritory}`, 'success');
         } else {
-            showToast('Nenhuma camada encontrada para este território.', 'error');
+            showToast('Nenhuma camada encontrada para este territÃ³rio.', 'error');
         }
     }
 }
@@ -2551,7 +2561,7 @@ function renderLayersList() {
         
         row.innerHTML = `
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
-                <span style="font-family: 'Cinzel', serif; font-size: 0.8rem; font-weight: 700; color: var(--ember);">ID: ${layer.id_layer}</span>
+                <span style="font-family: 'Frank Ruhl Libre', serif; font-size: 0.8rem; font-weight: 700; color: var(--ember);">ID: ${layer.id_layer}</span>
                 <div style="display: flex; gap: 0.35rem;">
                     <button type="button" class="map-modal-primary" onclick="saveLayerChanges(${layer.id_layer}, this)" style="padding: 0.35rem 0.7rem; font-size: 0.72rem; border-radius: 4px; border: none; font-weight: bold; cursor: pointer;">Salvar</button>
                     ${!isBaseLayer ? `<button type="button" class="map-modal-secondary" onclick="deleteLayer(${layer.id_layer})" style="padding: 0.35rem 0.7rem; font-size: 0.72rem; border-radius: 4px; color: var(--ruby); border: 1px solid var(--ruby); cursor: pointer; background: transparent;">Excluir</button>` : ''}
@@ -2568,7 +2578,7 @@ function renderLayersList() {
                 </label>
                 <label style="margin: 0; font-size: 0.75rem; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; cursor: pointer; padding-bottom: 0.3rem;">
                     <input type="checkbox" id="layer-public-${layer.id_layer}" ${layer.publica ? 'checked' : ''} ${isBaseLayer ? 'disabled' : ''} style="cursor: pointer; width: auto;">
-                    <span style="font-size: 0.65rem; margin-top: 0.2rem;">Pública?</span>
+                    <span style="font-size: 0.65rem; margin-top: 0.2rem;">PÃºblica?</span>
                 </label>
             </div>
             <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem;">
@@ -2617,7 +2627,7 @@ function submitAddLayer(e) {
     })
     .catch(err => {
         console.error(err);
-        showToast('Falha na comunicação com o servidor.', 'error');
+        showToast('Falha na comunicaÃ§Ã£o com o servidor.', 'error');
     });
 }
 
@@ -2630,7 +2640,7 @@ function saveLayerChanges(layerId, btn) {
     const file = fileInput ? fileInput.files[0] : null;
     
     if (!nome) {
-        showToast('Nome da camada é obrigatório.', 'error');
+        showToast('Nome da camada Ã© obrigatÃ³rio.', 'error');
         return;
     }
     
@@ -2660,24 +2670,24 @@ function saveLayerChanges(layerId, btn) {
     .then(response => response.json())
     .then(data => {
         if (data.ok) {
-            showToast('Alterações salvas com sucesso!', 'success');
+            showToast('AlteraÃ§Ãµes salvas com sucesso!', 'success');
             setTimeout(() => location.reload(), 1000);
         } else {
-            showToast(data.error || 'Erro ao salvar alterações.', 'error');
+            showToast(data.error || 'Erro ao salvar alteraÃ§Ãµes.', 'error');
             btn.innerText = originalText;
             btn.disabled = false;
         }
     })
     .catch(err => {
         console.error(err);
-        showToast('Falha na comunicação com o servidor.', 'error');
+        showToast('Falha na comunicaÃ§Ã£o com o servidor.', 'error');
         btn.innerText = originalText;
         btn.disabled = false;
     });
 }
 
 function deleteLayer(layerId) {
-    if (!confirm('Tem certeza que deseja excluir esta camada? Todos os marcadores e territórios nela serão reassociados à Superfície (camada 0) e esta ação NÃO pode ser desfeita.')) {
+    if (!confirm('Tem certeza que deseja excluir esta camada? Todos os marcadores e territÃ³rios nela serÃ£o reassociados Ã  SuperfÃ­cie (camada 0) e esta aÃ§Ã£o NÃƒO pode ser desfeita.')) {
         return;
     }
     
@@ -2695,7 +2705,7 @@ function deleteLayer(layerId) {
     .then(response => response.json())
     .then(data => {
         if (data.ok) {
-            showToast('Camada excluída com sucesso!', 'success');
+            showToast('Camada excluÃ­da com sucesso!', 'success');
             setTimeout(() => location.reload(), 1000);
         } else {
             showToast(data.error || 'Erro ao excluir camada.', 'error');
@@ -2703,18 +2713,18 @@ function deleteLayer(layerId) {
     })
     .catch(err => {
         console.error(err);
-        showToast('Falha na comunicação com o servidor.', 'error');
+        showToast('Falha na comunicaÃ§Ã£o com o servidor.', 'error');
     });
 }
 
 // ============================================================================
-// EDITOR DE DESENHOS (staff) — linhas/rotas e imagens sobrepostas — WP2
+// EDITOR DE DESENHOS (staff) â€” linhas/rotas e imagens sobrepostas â€” WP2
 // ============================================================================
 if (canEditWiki) {
   const CSRF_TOKEN = '{{ csrf_token }}';
   const ANCHOR_TOLERANCE_PX = 22; // proximidade (px) p/ ancorar linha em um pino
 
-  // Estado da linha em edição/criação.
+  // Estado da linha em ediÃ§Ã£o/criaÃ§Ã£o.
   let linhaDraft = null;   // { id|null, layer, dados, isNew }
   let imagemDraft = null;  // { id|null, layer, dados, isNew }
 
@@ -2741,8 +2751,8 @@ if (canEditWiki) {
     desenhoRegistry.delete(id);
   }
 
-  // ---- Detecção de ancoragem: dado um LatLng, retorna o id do marker mais próximo
-  // dentro da tolerância (em pixels), considerando só markers da camada ativa.
+  // ---- DetecÃ§Ã£o de ancoragem: dado um LatLng, retorna o id do marker mais prÃ³ximo
+  // dentro da tolerÃ¢ncia (em pixels), considerando sÃ³ markers da camada ativa.
   function findAnchorMarker(latlng) {
     const target = map.latLngToContainerPoint(latlng);
     let best = null, bestDist = ANCHOR_TOLERANCE_PX;
@@ -2769,7 +2779,7 @@ if (canEditWiki) {
       if (linhaDraft.layer.pm && linhaDraft.layer.pm.enabled()) linhaDraft.layer.pm.disable();
     }
     linhaDraft = null;
-    renderDesenhos(); // restaura a versão viewer (não-interativa)
+    renderDesenhos(); // restaura a versÃ£o viewer (nÃ£o-interativa)
   };
 
   function syncLinhaPanelFromDraft() {
@@ -2798,14 +2808,14 @@ if (canEditWiki) {
     const ini = nameOf(dd.liga_marker_inicio);
     const fim = nameOf(dd.liga_marker_fim);
     if (ini || fim) {
-      el.innerHTML = 'Ancorada: início → <b>' + escapeHtml(ini || 'livre') +
-                     '</b>, fim → <b>' + escapeHtml(fim || 'livre') + '</b>';
+      el.innerHTML = 'Ancorada: inÃ­cio â†’ <b>' + escapeHtml(ini || 'livre') +
+                     '</b>, fim â†’ <b>' + escapeHtml(fim || 'livre') + '</b>';
     } else {
       el.textContent = 'Sem ancoragem em pinos.';
     }
   }
 
-  // Aplica o estilo atual do painel à camada Leaflet do rascunho (feedback vivo).
+  // Aplica o estilo atual do painel Ã  camada Leaflet do rascunho (feedback vivo).
   function applyLinhaStyleToLayer() {
     if (!linhaDraft || !linhaDraft.layer) return;
     const dd = linhaDraft.dados;
@@ -2816,7 +2826,7 @@ if (canEditWiki) {
     });
   }
 
-  // Lê os vértices atuais da polyline e recalcula ancoragens nas pontas.
+  // LÃª os vÃ©rtices atuais da polyline e recalcula ancoragens nas pontas.
   function refreshLinhaDadosFromLayer() {
     if (!linhaDraft || !linhaDraft.layer) return;
     let latlngs = linhaDraft.layer.getLatLngs();
@@ -2833,7 +2843,7 @@ if (canEditWiki) {
 
   window.startDrawLinha = function () {
     if (linhaDraft) { showToast('Finalize a linha atual primeiro.', 'info'); return; }
-    showToast('Clique para traçar a linha. Duplo-clique/Enter finaliza. Pontas perto de um pino ancoram.', 'info');
+    showToast('Clique para traÃ§ar a linha. Duplo-clique/Enter finaliza. Pontas perto de um pino ancoram.', 'info');
     isEditMode = true;
     updateAdminEditState();
     document.getElementById('btnLinha')?.classList.add('primary-active');
@@ -2884,13 +2894,13 @@ if (canEditWiki) {
     });
   };
 
-  // Editar uma linha já salva: instancia versão interativa + painel.
+  // Editar uma linha jÃ¡ salva: instancia versÃ£o interativa + painel.
   function editExistingLinha(id) {
     if (linhaDraft) closeLinhaStylePanel();
     const entry = desenhoRegistry.get(id);
     if (!entry) return;
     const d = entry.data;
-    // remove a versão viewer
+    // remove a versÃ£o viewer
     if (entry.leafletLayer) { desenhosLayer.removeLayer(entry.leafletLayer); entry.leafletLayer = null; }
     const dados = JSON.parse(JSON.stringify(d.dados_json || {}));
     const pts = (dados.pontos || []).map(p => [p[0], p[1]]);
@@ -2908,20 +2918,20 @@ if (canEditWiki) {
     syncLinhaPanelFromDraft();
   }
 
-  // Duplica uma linha já salva (por id): cria uma cópia com pequeno deslocamento nos
-  // pontos e já entra em edição de vértices da cópia (mesma ideia de duplicateImagem).
-  // Usada tanto pelo botão "Duplicar" do painel de edição quanto pela lista de desenhos.
+  // Duplica uma linha jÃ¡ salva (por id): cria uma cÃ³pia com pequeno deslocamento nos
+  // pontos e jÃ¡ entra em ediÃ§Ã£o de vÃ©rtices da cÃ³pia (mesma ideia de duplicateImagem).
+  // Usada tanto pelo botÃ£o "Duplicar" do painel de ediÃ§Ã£o quanto pela lista de desenhos.
   window.duplicateLinhaById = function (id) {
     const entry = desenhoRegistry.get(id);
     if (!entry || entry.data.tipo !== 'linha') return;
-    // Se a própria linha está com rascunho aberto, usa os dados vivos (com edições não salvas).
+    // Se a prÃ³pria linha estÃ¡ com rascunho aberto, usa os dados vivos (com ediÃ§Ãµes nÃ£o salvas).
     const isDraftAtivo = linhaDraft && linhaDraft.id === id;
     if (isDraftAtivo) refreshLinhaDadosFromLayer();
     const srcDados = JSON.parse(JSON.stringify(isDraftAtivo ? linhaDraft.dados : (entry.data.dados_json || {})));
     const srcNome = (isDraftAtivo ? linhaDraft.nome : entry.data.nome) || '';
     const pts = srcDados.pontos || [];
-    if (pts.length < 2) { showToast('Linha sem pontos válidos.', 'error'); return; }
-    // Desloca ~5% do comprimento total (bbox) para a cópia não ficar por cima do original.
+    if (pts.length < 2) { showToast('Linha sem pontos vÃ¡lidos.', 'error'); return; }
+    // Desloca ~5% do comprimento total (bbox) para a cÃ³pia nÃ£o ficar por cima do original.
     let minLat = pts[0][0], maxLat = pts[0][0], minLng = pts[0][1], maxLng = pts[0][1];
     pts.forEach(p => {
       if (p[0] < minLat) minLat = p[0]; if (p[0] > maxLat) maxLat = p[0];
@@ -2939,16 +2949,16 @@ if (canEditWiki) {
       liga_marker_fim: null,
       descricao: srcDados.descricao || ''
     };
-    const nomeCopia = srcNome ? (srcNome + ' (cópia)') : '';
+    const nomeCopia = srcNome ? (srcNome + ' (cÃ³pia)') : '';
     const payload = { id: null, tipo: 'linha', camada: activeLayer, nome: nomeCopia, dados_json: dados };
     postJson('/wiki/mapa/desenhos/salvar/', payload).then(data => {
       const saved = { id: data.id, tipo: 'linha', camada: activeLayer, nome: nomeCopia, ordem: 0, dados_json: dados };
       upsertDesenhoLocal(saved);
-      showToast('Cópia da linha criada. Ajuste os vértices.', 'success');
+      showToast('CÃ³pia da linha criada. Ajuste os vÃ©rtices.', 'success');
       editExistingLinha(data.id);
     }).catch(err => showToast('Erro ao duplicar: ' + err.message, 'error'));
   };
-  // Atalho usado pelo botão do painel de edição (opera sobre a linha em edição no momento).
+  // Atalho usado pelo botÃ£o do painel de ediÃ§Ã£o (opera sobre a linha em ediÃ§Ã£o no momento).
   window.duplicateLinha = function () {
     if (!linhaDraft || linhaDraft.isNew) return;
     duplicateLinhaById(linhaDraft.id);
@@ -2989,7 +2999,7 @@ if (canEditWiki) {
       linhaDraft = null;
       document.getElementById('linhaStylePanel').hidden = true;
       removeDesenhoLocal(id);
-      showToast('Linha excluída.', 'success');
+      showToast('Linha excluÃ­da.', 'success');
     }).catch(err => showToast('Erro ao excluir: ' + err.message, 'error'));
   };
 
@@ -3048,7 +3058,7 @@ if (canEditWiki) {
         dados: { url: data.url, bounds: null, opacidade: 1, descricao: '' }
       };
       openImagemStylePanel();
-      document.getElementById('imagemStyleHint').textContent = 'Desenhe um retângulo no mapa para posicionar a imagem.';
+      document.getElementById('imagemStyleHint').textContent = 'Desenhe um retÃ¢ngulo no mapa para posicionar a imagem.';
       document.getElementById('imagemOpacityInput').value = 1;
       document.getElementById('imagemOpacityOut').textContent = '1';
       document.getElementById('imagemNomeInput').value = '';
@@ -3057,9 +3067,9 @@ if (canEditWiki) {
     }).catch(err => showToast('Erro no upload: ' + err.message, 'error'));
   });
 
-  // Ativa o desenho de retângulo (Geoman) que define os bounds da imagem.
+  // Ativa o desenho de retÃ¢ngulo (Geoman) que define os bounds da imagem.
   function beginRectForImagem() {
-    showToast('Desenhe um retângulo: ele será os limites da imagem.', 'info');
+    showToast('Desenhe um retÃ¢ngulo: ele serÃ¡ os limites da imagem.', 'info');
     isEditMode = true; updateAdminEditState();
     map.pm.enableDraw('Rectangle', { snappable: false });
     const cleanup = () => { map.off('pm:drawend', cleanup); isEditMode = false; updateAdminEditState(); };
@@ -3177,7 +3187,7 @@ if (canEditWiki) {
   });
 
   window.saveCurrentImagem = function () {
-    if (!imagemDraft || !imagemDraft.dados.bounds) { showToast('Desenhe a área da imagem primeiro.', 'error'); return; }
+    if (!imagemDraft || !imagemDraft.dados.bounds) { showToast('Desenhe a Ã¡rea da imagem primeiro.', 'error'); return; }
     const btn = document.getElementById('imagemSaveBtn');
     btn.disabled = true; const prev = btn.textContent; btn.textContent = 'Salvando...';
     const nome = document.getElementById('imagemNomeInput').value.trim();
@@ -3210,7 +3220,7 @@ if (canEditWiki) {
       imagemDraft = null;
       document.getElementById('imagemStylePanel').hidden = true;
       removeDesenhoLocal(id);
-      showToast('Imagem excluída.', 'success');
+      showToast('Imagem excluÃ­da.', 'success');
     }).catch(err => showToast('Erro ao excluir: ' + err.message, 'error'));
   };
 
@@ -3242,8 +3252,8 @@ if (canEditWiki) {
     else if (entry.data.tipo === 'imagem') editExistingImagem(id);
   }
 
-  // Expor edição de desenhos existentes: clique no próprio desenho.
-  // Agora funciona porque desenhosLayer é um featureGroup (propaga o clique das filhas);
+  // Expor ediÃ§Ã£o de desenhos existentes: clique no prÃ³prio desenho.
+  // Agora funciona porque desenhosLayer Ã© um featureGroup (propaga o clique das filhas);
   // antes era layerGroup e este handler nunca disparava.
   desenhosLayer.on('click', (e) => {
     const id = e.layer && e.layer._bonfireDesenhoId;
@@ -3252,7 +3262,7 @@ if (canEditWiki) {
     editDesenho(id);
   });
 
-  // ===================== PAINEL-LISTA (descoberta/gerência) =====================
+  // ===================== PAINEL-LISTA (descoberta/gerÃªncia) =====================
 
   // Centraliza o mapa num desenho (bounds da imagem ou pontos da linha) e pisca a layer.
   window.locateDesenho = function (id) {
@@ -3279,15 +3289,15 @@ if (canEditWiki) {
   };
 
   // Duplica uma imagem: cria um NOVO desenho reusando a MESMA url (sem re-upload),
-  // deslocado um pouco, e já abre em edição para reposicionar (feedback do Gaz).
+  // deslocado um pouco, e jÃ¡ abre em ediÃ§Ã£o para reposicionar (feedback do Gaz).
   window.duplicateImagem = function (id) {
     const entry = desenhoRegistry.get(id);
     if (!entry || entry.data.tipo !== 'imagem') return;
     const src = JSON.parse(JSON.stringify(entry.data.dados_json || {}));
     if (!Array.isArray(src.bounds) || src.bounds.length !== 2) {
-      showToast('Imagem sem área definida.', 'error'); return;
+      showToast('Imagem sem Ã¡rea definida.', 'error'); return;
     }
-    // Desloca ~15% da própria altura/largura para a cópia não ficar exatamente por cima.
+    // Desloca ~15% da prÃ³pria altura/largura para a cÃ³pia nÃ£o ficar exatamente por cima.
     const dLat = (src.bounds[1][0] - src.bounds[0][0]) * 0.15;
     const dLng = (src.bounds[1][1] - src.bounds[0][1]) * 0.15;
     const dados = {
@@ -3300,29 +3310,29 @@ if (canEditWiki) {
       ]
     };
     const nomeBase = entry.data.nome || '';
-    const nomeCopia = nomeBase ? (nomeBase + ' (cópia)') : '';
+    const nomeCopia = nomeBase ? (nomeBase + ' (cÃ³pia)') : '';
     const payload = { id: null, tipo: 'imagem', camada: activeLayer, nome: nomeCopia, dados_json: dados };
     postJson('/wiki/mapa/desenhos/salvar/', payload).then(data => {
       const saved = { id: data.id, tipo: 'imagem', camada: activeLayer, nome: payload.nome, ordem: 0, dados_json: dados };
       upsertDesenhoLocal(saved);
-      showToast('Cópia da imagem criada. Reposicione-a.', 'success');
+      showToast('CÃ³pia da imagem criada. Reposicione-a.', 'success');
       editExistingImagem(data.id);
     }).catch(err => showToast('Erro ao duplicar: ' + err.message, 'error'));
   };
 
-  // Exclui direto pela lista (sem precisar abrir o painel de edição antes).
+  // Exclui direto pela lista (sem precisar abrir o painel de ediÃ§Ã£o antes).
   window.deleteDesenhoById = function (id) {
     const entry = desenhoRegistry.get(id);
     if (!entry) return;
     const label = entry.data.tipo === 'imagem' ? 'esta imagem' : 'esta linha';
     if (!confirm('Excluir ' + label + '?')) return;
-    // Se o item estiver em edição no momento, encerra o rascunho para não deixar layer órfã.
+    // Se o item estiver em ediÃ§Ã£o no momento, encerra o rascunho para nÃ£o deixar layer Ã³rfÃ£.
     if (linhaDraft && linhaDraft.id === id) { if (linhaDraft.layer) map.removeLayer(linhaDraft.layer); linhaDraft = null; document.getElementById('linhaStylePanel').hidden = true; }
     if (imagemDraft && imagemDraft.id === id) { if (imagemDraft.layer) map.removeLayer(imagemDraft.layer); imagemDraft = null; document.getElementById('imagemStylePanel').hidden = true; }
     postJson('/wiki/mapa/desenhos/excluir/', { id: id }).then(() => {
       removeDesenhoLocal(id);
       renderDesenhoList();
-      showToast('Desenho excluído.', 'success');
+      showToast('Desenho excluÃ­do.', 'success');
     }).catch(err => showToast('Erro ao excluir: ' + err.message, 'error'));
   };
 
@@ -3377,14 +3387,14 @@ if (canEditWiki) {
   // editDesenho precisa ser global (usado no onclick inline da lista).
   window.editDesenho = editDesenho;
 
-  // Torna os desenhos clicáveis SÓ para staff (viewer normal permanece interactive:false):
-  // reconstruímos o render staff com interactive:true. Também mantém a lista em dia.
+  // Torna os desenhos clicÃ¡veis SÃ“ para staff (viewer normal permanece interactive:false):
+  // reconstruÃ­mos o render staff com interactive:true. TambÃ©m mantÃ©m a lista em dia.
   const _origRenderDesenhos = renderDesenhos;
   renderDesenhos = function () {
     desenhoRegistry.forEach(entry => {
       const d = entry.data;
       if (entry.leafletLayer) { desenhosLayer.removeLayer(entry.leafletLayer); entry.leafletLayer = null; }
-      // Não re-renderiza o item que está sendo editado (tem sua própria layer viva).
+      // NÃ£o re-renderiza o item que estÃ¡ sendo editado (tem sua prÃ³pria layer viva).
       if (linhaDraft && linhaDraft.id === d.id) return;
       if (imagemDraft && imagemDraft.id === d.id) return;
       if ((d.camada || 0) !== activeLayer) return;
@@ -3396,7 +3406,7 @@ if (canEditWiki) {
         entry.leafletLayer = layer;
       }
     });
-    // Mantém a lista sincronizada (troca de camada, criar/editar/excluir chamam renderDesenhos).
+    // MantÃ©m a lista sincronizada (troca de camada, criar/editar/excluir chamam renderDesenhos).
     renderDesenhoList();
   };
   renderDesenhos();

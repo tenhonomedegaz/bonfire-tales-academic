@@ -1,6 +1,10 @@
-{% extends 'home/base.html' %}
+{% extends 'home/base.html' %}{% load static %}
+{% block body_class %}{% if pagina == 'sobre' or pagina == 'contato' %}bft-complementary{% endif %}{% endblock %}
+{% block main_class %}{% if pagina == 'sobre' or pagina == 'contato' %}cp-main flex-1 w-full min-w-0{% else %}flex-1 w-full max-w-5xl mx-auto px-3 md:px-5 py-4{% endif %}{% endblock %}
+{% block extra_head %}{% if pagina == 'sobre' or pagina == 'contato' %}<link rel="stylesheet" href="{% static 'css/pages/complementary.css' %}?v=1">{% endif %}{% endblock %}
 
 {% block content %}
+{% if pagina == 'sobre' or pagina == 'contato' %}{% include 'home/partials/institutional_complementary.html' %}{% else %}
 <div class="mx-auto max-w-4xl py-5 md:py-8">
   <header class="border-b border-[var(--stroke)] pb-5">
     <p class="text-xs font-bold uppercase text-[var(--ember)]">Bonfire Tales</p>
@@ -29,4 +33,5 @@
     {% endfor %}
   </div>
 </div>
+{% endif %}
 {% endblock %}

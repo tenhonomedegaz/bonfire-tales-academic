@@ -1,25 +1,30 @@
 {% extends 'home/base.html' %}
 {% load static %}
 
-{% block main_class %}flex-1 w-full py-2.5{% endblock %}
+{% block body_class %}bft-mundane-market bft-market-game{% endblock %}
+{% block main_class %}bft-market-main{% endblock %}
 
-{% block title %}{{ title }} | Bonfire Tales{% endblock %}
+{% block title %}Mercado Mundano | Bonfire Tales{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/mercado_loja.css' %}?v=3">
-<script src="{% static 'js/mercado_loja.js' %}?v=9" defer></script>
+<link rel="stylesheet" href="{% static 'css/pages/mundane-market-redesign.css' %}?v=6">
+<link rel="stylesheet" href="{% static 'css/pages/mundane-market-game.css' %}?v=1">
+<script src="{% static 'js/mercado_loja.js' %}?v=7" defer></script>
+<script src="{% static 'js/mundane-market-presentation.js' %}?v=6" defer></script>
+<script src="{% static 'js/mundane-market-game.js' %}?v=1" defer></script>
 {% endblock %}
 
 {% block content %}
-<div class="mx-auto w-full max-w-[1440px] px-2 sm:px-4 py-2.5">
-
-  <div class="mb-2.5">
-    <h1 class="font-cinzel text-xl font-bold text-bonfire-text uppercase">{{ title|default:"Itens Mundanos" }}</h1>
-    <p class="text-bonfire-muted text-[11px] mt-1">Armas, armaduras, ferramentas e provisões de Cinéria. Clique num item da lista para ver a prévia completa e comprar com o ouro do personagem ativo.</p>
-  </div>
-
-  <div id="content-container">
-    {% include 'home/partials/itens_mundanos_content.html' %}
-  </div>
+<div class="mundane-market">
+  <div class="market-breadcrumb"><a href="{% url 'home' %}">Bonfire Tales</a><span aria-hidden="true">/</span><span>Mercado Mundano</span></div>
+  <header class="market-game-header">
+    <div><h1>Mercado Mundano</h1><p>Escolha um nome para ver detalhes, preÃ§o e opÃ§Ãµes para sua ficha.</p></div>
+    <div class="market-game-header-actions"><button type="button" data-market-select="guide-sobre">Sobre o mercado</button><button type="button" data-market-select="guide-economia">Economia e regras</button></div>
+  </header>
+  {% if market_preview %}<p class="market-game-local">PrÃ©via local Â· compras e vendas afetam somente as fichas de demonstraÃ§Ã£o.</p>{% endif %}
+  <div id="content-container">{% include 'home/partials/itens_mundanos_content.html' %}</div>
+  <p class="market-game-footer-note">Compras usam os preÃ§os atuais do catÃ¡logo. ServiÃ§os e versÃµes nÃ£o cadastradas estÃ£o marcados como consulta e nÃ£o descontam ouro.</p>
+  {{ market_legacy_navigation|json_script:'market-legacy-navigation' }}
 </div>
 {% endblock %}
