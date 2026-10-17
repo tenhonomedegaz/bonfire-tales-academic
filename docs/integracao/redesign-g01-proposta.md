@@ -6,6 +6,8 @@
 - **B:** aprovado apenas em DEV isolado. Reconciliar com a implementação em `../bonfire-bot-main`: cargo de Mestre/Mestre em Teste e propriedade da missão continuam sob política do bot; perfil, moderação e anúncio no site não devem conceder cargo ou modificar missões do bot.
 - **C:** adaptar direitos e marcos já existentes. A compra de slot por 5.000 MM substitui o antigo Mestre Ouro como assinatura; marcos 5, 9 e 13 explicitados pelo PO, demais marcos exigem conferência. Não cobrar retroativamente nem duplicar direitos.
 - **D:** aprovado apenas em DEV isolado, inclusive o conceito da `0158`; adaptar a migration ao histórico real. Antes de tocar o banco, inventariar registros afetados e preparar reversão de dados. Preservar direitos adquiridos, recibos, saldo e personagens. Oferta demonstrativa não cobra.
+
+O inventário pré-mudança de D pode ser exportado com `manage.py preview_redesign_d --expected-home-head <migration_home_atual> --output <arquivo_absoluto_fora_do_repositorio.json>`. O comando exige PostgreSQL, verifica o head informado, lê em transação consistente e imprime contagens e SHA-256; o JSON guarda os valores originais de recompensas de assinatura, temas, ofertas, posses, recibos, direitos e carteira MM. Esta exportação não altera dados nem substitui a operação compensatória e a reversão específica a preparar antes de aplicar D em DEV isolado.
 - **E:** somente adaptações necessárias a B/D, mantendo API, autenticação, CSRF e configuração atuais.
 - **F:** adiado; sem importação de regras, fixtures ou mecânicas.
 
