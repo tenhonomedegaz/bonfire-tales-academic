@@ -55,6 +55,32 @@ class ExistingCharacterSlotsTests(TestCase):
         self.assertContains(response, '2 fichas preservadas')
         self.assertNotContains(response, '#slots-g01')
 
+    def test_character_cards_archive_and_restore_without_losing_sheets(self):
+        self.client.force_login(self.owner)
+        TbPersonagem.objects.filter(pk=self.active.pk).update(publico=True)
+        archive = reverse('personagem_arquivar', args=[self.active.pk])
+        restore = reverse('personagem_restaurar', args=[self.archived.pk])
+        page = self.client.get(reverse('personagens'))
+        self.assertContains(page, f'action="{archive}"')
+        self.assertContains(page, 'Arquivar e retirar publicação')
+        self.assertContains(page, 'Prévia privada')
+        self.assertContains(page, 'Limite de fichas ativas atingido')
+        self.assertNotContains(page, f'action="{restore}"')
+
+        self.assertEqual(self.client.post(archive).status_code, 302)
+        self.active.refresh_from_db()
+        self.assertTrue(self.active.arquivado)
+        self.assertFalse(self.active.publico)
+        self.assertContains(self.client.get(reverse('personagens')), f'action="{restore}"')
+        self.assertEqual(self.client.post(restore).status_code, 302)
+        self.archived.refresh_from_db()
+        self.assertFalse(self.archived.arquivado)
+        self.assertEqual(self.client.post(reverse('personagem_restaurar',
+                                                args=[self.active.pk])).status_code, 400)
+        self.active.refresh_from_db()
+        self.assertTrue(self.active.arquivado)
+        self.assertEqual(TbPersonagem.objects.filter(dono=self.owner).count(), 2)
+
 
 class CharacterSlotRedemptionTests(TestCase):
     def setUp(self):

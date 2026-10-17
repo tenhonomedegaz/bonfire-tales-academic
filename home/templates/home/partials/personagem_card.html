@@ -14,12 +14,21 @@
   </a>
   <div class="cw-card-links mt-2 flex items-center gap-2 border-t border-[var(--stroke)] pt-2 text-xs font-semibold">
     <a href="{% url 'ficha_detail' c.obj.id_personagem %}" class="text-[var(--ember)] hover:underline">Ver ficha</a>
-    <a href="{% url 'ficha_publica' c.obj.id_personagem %}?preview=1" class="text-[var(--ember)] hover:underline">Ver como visitante</a>
+    <a href="{% url 'ficha_publica' c.obj.id_personagem %}?preview=1" class="text-[var(--ember)] hover:underline">{% if cofre %}Prévia privada{% else %}Ver como visitante{% endif %}</a>
   </div>
   <a class="cw-edit-info" href="{% url 'ficha_detail' c.obj.id_personagem %}?aba=info">Editar informações e aparência <span aria-hidden="true">↗</span></a>
   {% if rank.is_lenda %}<span class="bf-rank-preview-link" aria-disabled="true" title="Página de Lenda disponível após integração">Imortalização · Lenda em breve</span>{% endif %}
   <details class="cw-manage"><summary>Gerenciar ficha</summary><div class="cw-manage-actions">
-    <a href="#" aria-disabled="true" class="text-[var(--muted)] hover:text-[var(--text)]">Escolher fichas ativas</a>
+    <a href="{% url 'character_slots' %}" class="text-[var(--ember)] hover:underline">Ver capacidade e direitos</a>
+    {% if cofre %}
+      {% if pode_criar %}
+      <form method="post" action="{% url 'personagem_restaurar' c.obj.id_personagem %}">{% csrf_token %}<button type="submit">Restaurar ficha ativa</button></form>
+      {% else %}
+      <p class="cw-manage-limit">Limite de fichas ativas atingido. Arquive outra ficha antes de restaurar esta.</p>
+      {% endif %}
+    {% else %}
+    <form method="post" action="{% url 'personagem_arquivar' c.obj.id_personagem %}">{% csrf_token %}<button type="submit">Arquivar e retirar publicação</button></form>
+    {% endif %}
     {% if not c.obj.arquivado %}
     <form method="post" action="{% url 'personagem_publicacao' c.obj.id_personagem %}">{% csrf_token %}
       <input type="hidden" name="action" value="{% if c.obj.publico %}unpublish{% else %}publish{% endif %}">

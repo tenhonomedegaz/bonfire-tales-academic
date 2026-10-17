@@ -1,5 +1,6 @@
 /* Four connected character workflows; operational rules and personal themes stay intact. */
 .cw-card-group>div{align-items:start}.cw-main .cw-card-identity{flex:0 0 auto}
+.cw-manage-limit{width:100%;font-size:11px;line-height:1.6;color:#d4b293}
 .bft-sheet-editor .lvl-progline .flame{color:#eab983}.bft-character-sheet .info-actions button:disabled{opacity:.5;cursor:not-allowed}
 .bft-character-sheet [data-tabpanel="info"] .info-field .lbl{text-transform:none;letter-spacing:0;font-weight:600}
 @media(min-width:700px){.bft-character-sheet [data-tabpanel="info"] .appearance-controls:not(.custom-theme-controls) .info-field.full{grid-column:auto}}
