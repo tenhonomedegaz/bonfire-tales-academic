@@ -59,3 +59,9 @@ auditável por recibo, separada da desativação do catálogo.
 Produção só é reavaliada depois da ação do PO em G02: conferir SHA servido,
 respostas do site/API, login, ficha/charbuilder, mercado, anúncios e logs.
 Registrar resultado de S13 separado do push e do deploy.
+
+Para recompensas de assinatura importadas depois do inventário pré-D, capture
+`preview_redesign_d_rewards --output <novo-json-absoluto>` **antes** de desativá-las.
+O snapshot restrito e seu SHA-256 servem apenas a `reconcile_redesign_d_rewards`;
+`rollback_redesign_d_pilot` exige o inventário completo de `preview_redesign_d`
+feito no head 0154. Um snapshot só de recompensas não pode arquivar o piloto.

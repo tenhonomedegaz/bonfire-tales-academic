@@ -43,8 +43,12 @@ class Command(BaseCommand):
             saved = _read_json(options['snapshot'], options['sha256'])
         except (OSError, ValueError) as exc:
             raise CommandError(f'Invalid snapshot: {exc}') from exc
-        if saved.get('kind') != 'G01-D-prechange':
-            raise CommandError('Not a G01-D prechange snapshot.')
+        kind = saved.get('kind')
+        if kind not in ('G01-D-prechange', 'G01-D-rewards-prechange'):
+            raise CommandError('Not a G01-D rewards snapshot.')
+        if (kind == 'G01-D-rewards-prechange'
+                and saved.get('scope') != 'imported_rewards_pre_retirement_only'):
+            raise CommandError('Narrow G01-D rewards snapshot has an invalid scope.')
         if saved.get('database_identity') != database_identity():
             raise CommandError('Snapshot belongs to a different database connection.')
         originals = saved.get('rows', {}).get('subscription_rewards')

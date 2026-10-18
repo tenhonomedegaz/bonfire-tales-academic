@@ -15,6 +15,37 @@ from .test_redesign_d_support import capture_pre_d_snapshot
 
 
 class RedesignDPilotRollbackTests(TransactionTestCase):
+    def test_rewards_only_snapshot_cannot_archive_pilot(self):
+        reward = TbRecompensaMestre.objects.create(
+            slug='rollback-narrow', nome='Assinatura anterior', tipo='assinatura', ativo=True)
+        with tempfile.TemporaryDirectory() as directory:
+            full_path = Path(directory) / 'before.json'
+            full_digest = capture_pre_d_snapshot(full_path)
+            narrow = json.loads(full_path.read_text(encoding='utf-8'))
+            narrow['scope'] = 'imported_rewards_pre_retirement_only'
+            narrow['rows'] = {'subscription_rewards': narrow['rows']['subscription_rewards']}
+            narrow.pop('counts')
+            narrow.pop('recent_home_migrations')
+            narrow_path = Path(directory) / 'rewards-only.json'
+            narrow_path.write_text(json.dumps(narrow), encoding='utf-8')
+            narrow_digest = hashlib.sha256(narrow_path.read_bytes()).hexdigest()
+
+            call_command('reconcile_redesign_d_pilot', snapshot=str(full_path),
+                         sha256=full_digest, action='seed', confirm='G01-D-PILOT',
+                         stdout=StringIO())
+            call_command('reconcile_redesign_d_rewards', snapshot=str(full_path),
+                         sha256=full_digest, action='retire', confirm='G01-D-REWARDS',
+                         stdout=StringIO())
+            with self.assertRaisesMessage(CommandError, 'complete verified pre-D snapshot'):
+                call_command('rollback_redesign_d_pilot', snapshot=str(narrow_path),
+                             sha256=narrow_digest, confirm='G01-D-ROLLBACK-PILOT',
+                             stdout=StringIO())
+            self.assertEqual(TbCosmetico.objects.filter(
+                slug__in=['tema-forja-de-brasas', 'tema-aurora-glacial',
+                          'tema-circulo-arcano'], ativo=True).count(), 3)
+            reward.refresh_from_db()
+            self.assertFalse(reward.ativo)
+
     def test_rollback_is_atomic_and_restores_only_original_reward_state(self):
         active = TbRecompensaMestre.objects.create(
             slug='rollback-active', nome='Assinatura anterior', tipo='assinatura', ativo=True)

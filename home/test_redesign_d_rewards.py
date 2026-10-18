@@ -1,6 +1,7 @@
 """The approved catalog transition must preserve acquired rights and MM."""
 
 import json
+import hashlib
 import tempfile
 from io import StringIO
 from pathlib import Path
@@ -18,6 +19,33 @@ from .test_redesign_d_support import capture_pre_d_snapshot
 
 
 class RedesignDRewardsTests(TransactionTestCase):
+    def test_narrow_snapshot_captures_imported_reward_and_restores_it(self):
+        reward = TbRecompensaMestre.objects.create(
+            slug='imported-subscription', nome='Assinatura importada',
+            tipo='assinatura', ativo=True, preco_mm=5000)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'rewards.json'
+            output = StringIO()
+            call_command('preview_redesign_d_rewards', output=str(path), stdout=output)
+            result = json.loads(output.getvalue())
+            saved = json.loads(path.read_text(encoding='utf-8'))
+            self.assertEqual(saved['kind'], 'G01-D-rewards-prechange')
+            self.assertEqual(saved['scope'], 'imported_rewards_pre_retirement_only')
+            self.assertEqual(result['sha256'], hashlib.sha256(path.read_bytes()).hexdigest())
+            self.assertEqual([row['id_recompensa'] for row in saved['rows']['subscription_rewards']],
+                             [reward.pk])
+            call_command('reconcile_redesign_d_rewards', snapshot=str(path),
+                         sha256=result['sha256'], action='retire',
+                         confirm='G01-D-REWARDS', stdout=StringIO())
+            reward.refresh_from_db()
+            self.assertFalse(reward.ativo)
+            call_command('reconcile_redesign_d_rewards', snapshot=str(path),
+                         sha256=result['sha256'], action='restore',
+                         confirm='G01-D-REWARDS', stdout=StringIO())
+            reward.refresh_from_db()
+            self.assertTrue(reward.ativo)
+            self.assertEqual(reward.preco_mm, 5000)
+
     def test_retire_and_restore_only_originally_active_subscription_rewards(self):
         user = get_user_model().objects.create_user('d_reward_owner', password='test-pass')
         profile = UserProfile.objects.get(user=user)

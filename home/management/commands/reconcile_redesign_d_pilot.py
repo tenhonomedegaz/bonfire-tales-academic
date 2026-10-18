@@ -7,7 +7,8 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import connection, transaction
 
 from home.management.commands.reconcile_redesign_d_rewards import _read_json
-from home.management.commands.preview_redesign_d import database_identity
+from home.management.commands.preview_redesign_d import (PRE_D_HOME_HEAD,
+                                                           database_identity)
 from home.management.commands._redesign_dev_guard import require_redesign_dev_database
 from home.models import (CosmeticCheckoutOffer, CosmeticCheckoutPurchase,
                          CosmeticMMRedemption,
@@ -59,7 +60,24 @@ class Command(BaseCommand):
         if (saved.get('kind') != 'G01-D-prechange'
                 or saved.get('database_identity') != database_identity()):
             raise CommandError('Snapshot kind or database connection differs.')
-        original_slugs = {row['slug'] for row in saved.get('rows', {}).get('themes', [])}
+        required_rows = (
+            'subscription_rewards', 'themes', 'theme_checkout_offers',
+            'theme_inventory', 'theme_purchases', 'related_orders',
+            'event_offers', 'event_redemptions', 'lifetime_rights',
+            'legacy_reviews', 'mm_ledger', 'mm_profiles',
+        )
+        rows = saved.get('rows')
+        counts = saved.get('counts')
+        migrations = saved.get('recent_home_migrations')
+        if (saved.get('scope')
+                or not isinstance(rows, dict)
+                or not isinstance(counts, dict)
+                or not isinstance(migrations, list)
+                or not migrations or migrations[0] != PRE_D_HOME_HEAD
+                or any(not isinstance(rows.get(key), list)
+                       or counts.get(key) != len(rows[key]) for key in required_rows)):
+            raise CommandError('Pilot requires the complete verified pre-D snapshot.')
+        original_slugs = {row['slug'] for row in rows['themes']}
         pilot_slugs = {'tema-' + key for key in PILOT}
         if original_slugs & pilot_slugs:
             raise CommandError('Pilot slug existed before G01-D; reconcile it manually.')
