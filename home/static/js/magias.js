@@ -11,6 +11,9 @@
     DISPLAY=JSON.parse(document.getElementById('mg-display').textContent||'{}');
   } catch(_) { return; }
   if(!Array.isArray(MAGIAS)||!Array.isArray(CLASSES)||!Array.isArray(SCHOOLS)) return;
+  SCHOOLS=SCHOOLS.map(function(school){
+    return typeof school==='string'?{key:norm(school).trim(),label:school}:school;
+  });
   DISPLAY=Object.assign(Object.create(null),DISPLAY);
   var guideTemplate=document.getElementById('mgGuideTemplate');
   var listContainer=document.getElementById('mgList');

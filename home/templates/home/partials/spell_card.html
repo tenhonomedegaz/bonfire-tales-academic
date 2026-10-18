@@ -1,6 +1,6 @@
-<article class="spell-card spell-card-full" data-school="{{ school.key }}" data-full-spell="{{ magia.slug }}">
+<article class="spell-card spell-card-full" data-school="{{ school.key|default:magia.escola|slugify }}" data-full-spell="{{ magia.slug }}">
   <header class="spell-card-header">
-    <div class="spell-card-school">{% include 'home/components/spell_school_icon.html' with school=school only %}<span>{{ school.label }}</span></div>
+    <div class="spell-card-school">{% if school.icon_url %}{% include 'home/components/spell_school_icon.html' with school=school only %}{% else %}<svg viewBox="0 0 40 40" aria-hidden="true" focusable="false"><use href="#spell-school-{{ school.key|default:magia.escola|slugify }}"></use></svg>{% endif %}<span>{{ school.label|default:magia.escola|default:'Escola não informada' }}</span></div>
     <div class="spell-circle"><span>{{ magia.nivel }}</span><small>{% if magia.nivel == 0 %}Truque{% else %}Círculo{% endif %}</small></div>
     <h2 id="magia-{{ magia.slug }}" tabindex="-1">{{ magia.nome }}</h2>
     {% if magia.nome_ingles %}<p class="spell-english">{{ magia.nome_ingles }}</p>{% endif %}
@@ -19,5 +19,5 @@
     <section class="spell-effect" aria-labelledby="mg-description-title"><h3 id="mg-description-title">Efeito da magia</h3><div class="spell-copy bonfire-markdown" data-spell-description>{{ facts.descricao|default:magia.descricao|linebreaks }}</div></section>
     {% if magia.em_niveis %}<section class="spell-upcast"><h3>Em níveis superiores</h3><div class="spell-copy bonfire-markdown" data-spell-upcast>{{ facts.em_niveis|default:magia.em_niveis|linebreaks }}</div></section>{% endif %}
   </div>
-  <footer class="spell-card-footer"><span>Bonfire Tales <small>RPG</small></span><span>{{ school.label }}</span></footer>
+  <footer class="spell-card-footer"><span>Bonfire Tales <small>RPG</small></span><span>{{ school.label|default:magia.escola|default:'Escola não informada' }}</span></footer>
 </article>

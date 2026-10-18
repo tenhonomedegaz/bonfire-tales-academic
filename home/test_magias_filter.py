@@ -34,7 +34,12 @@ class MagiasClassFilterTests(TestCase):
         self.assertEqual(response.context['magias'][0]['classes_lista'], ['Bardo', 'Mago'])
         self.assertContains(response, 'id="mg-classe"')
         self.assertContains(response, '<option value="Bardo">Bardo</option>', html=True)
-        self.assertContains(response, "(m.classes_lista||[]).indexOf(classe)===-1")
+        self.assertContains(response, 'id="mg-data"')
+        self.assertContains(response, 'data-slug="luz-de-teste"')
+        self.assertContains(response, 'data-school-filter="Evocação"')
+        selected = self.client.get(reverse('magias_listas') + '?magia=luz-de-teste')
+        self.assertContains(selected, 'data-full-spell="luz-de-teste"')
+        self.assertContains(selected, 'data-school="evocacao"')
 
 
 class MagiasMobileAccessibilityTests(StaticLiveServerTestCase):
@@ -124,6 +129,11 @@ class MagiasMobileAccessibilityTests(StaticLiveServerTestCase):
                 self.assertEqual(js('document.activeElement?.id'), 'mg-busca')
                 self.assertFalse(js('document.querySelector("#mgList").inert'))
                 self.assertNotEqual(js('getComputedStyle(document.activeElement).outlineStyle'), 'none')
+                self.assertEqual(js('document.querySelectorAll("[data-school-filter]").length'), 2)
+                js('document.querySelector("[data-school=evocacao][data-school-filter]").click()')
+                self.assertEqual(js('document.querySelector("#mg-count").textContent'), '2')
+                js('document.querySelector("[data-school=evocacao][data-school-filter]").click()')
+                self.assertEqual(js('document.querySelector("#mg-count").textContent'), '3')
                 key('Escape', 27)
                 self.assertTrue(js('document.querySelector("#mgList").inert'))
                 self.assertEqual(js('document.activeElement?.id'), 'mgMobileMenuButton')
@@ -178,4 +188,8 @@ class MagiasMobileAccessibilityTests(StaticLiveServerTestCase):
                 if ws:
                     ws.close()
                 process.terminate()
-                process.wait(timeout=10)
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait(timeout=10)
