@@ -2,7 +2,7 @@
 {% load static editorial_images %}
 {% block body_class %}bft-bestiary{% endblock %}
 {% block main_class %}be-main{% endblock %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/bestiary.css' %}?v=3"><script src="{% static 'js/bestiary.js' %}?v=2" defer></script>{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/bestiary.css' %}?v=3"><script src="{% static 'js/bestiary.js' %}?v=3" defer></script>{% endblock %}
 {% block content %}
 <section class="bestiary-shell" aria-labelledby="bestiary-title">
   <header class="be-heading">
@@ -54,7 +54,7 @@
           {% if c.imagem|safe_profile_image %}<img class="be-creature-art" src="{{ c.imagem|safe_profile_image }}" alt="Ilustração de {{ c.nome }}" loading="lazy">{% else %}<span class="be-creature-mark" aria-hidden="true">{% include 'home/partials/bestiary_mark.html' %}</span>{% endif %}
         </header>
         {% if c.statblock_incompleto %}<p class="be-incomplete" role="note">Statblock incompleto: atributos e ações ainda não foram cadastrados.</p>{% endif %}
-        <div class="be-view-switch" role="group" aria-label="Visualização de {{ c.nome }}" hidden><button type="button" data-creature-view="sheet" aria-pressed="true" aria-controls="monster-{{ c.id }}-sheet">Ficha da criatura</button><button type="button" data-creature-view="art" aria-pressed="false" aria-controls="monster-{{ c.id }}-art">Ilustração</button></div>
+        {% if c.imagem|safe_profile_image %}<div class="be-view-switch" role="group" aria-label="Visualização de {{ c.nome }}" hidden><button type="button" data-creature-view="sheet" aria-pressed="true" aria-controls="monster-{{ c.id }}-sheet">Ficha da criatura</button><button type="button" data-creature-view="art" aria-pressed="false" aria-controls="monster-{{ c.id }}-art">Ilustração</button></div>{% endif %}
         <div class="monster-sheet-inner" id="monster-{{ c.id }}-sheet" data-creature-content="sheet">
           <dl class="monster-vitals">
             <div><dt>Classe de Armadura</dt><dd>{{ sb.ca|default:'Não informada' }}</dd></div>

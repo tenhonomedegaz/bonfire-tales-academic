@@ -28,6 +28,7 @@
     const panel = panels.find(item => item.id === id);
     const link = links.find(item => item.dataset.target === id);
     if (!panel || !link) return false;
+    if (activeView === 'art' && !panel.querySelector('.be-view-switch')) activeView = 'sheet';
     setView(panel, activeView);
     panels.forEach(item => item.classList.toggle('hidden', item !== panel));
     links.forEach(item => {
