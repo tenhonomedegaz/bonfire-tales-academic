@@ -12,6 +12,12 @@
   var mirror = shop.querySelector('[data-market-mobile-feedback]');
   var filterLabel = shop.querySelector('[data-market-filter-label]');
 
+  function updateSheetLink(id) {
+    if (!sheetLink || !id) return;
+    var pattern = sheetLink.getAttribute('data-market-sheet-pattern');
+    if (pattern) sheetLink.href = pattern.replace('/0/', '/' + encodeURIComponent(id) + '/') + '?aba=mochila';
+  }
+
   function setText(node, value) {
     if (node && node.textContent !== value) node.textContent = value;
   }
@@ -48,10 +54,6 @@
       if (shop.querySelector('[data-shop-favorites]:checked')) active++;
       setText(filterLabel, 'Mais filtros' + (active ? ' · ' + active + ' ativo' + (active > 1 ? 's' : '') : ''));
     }
-    if (sheetLink && picker) {
-      var pattern = sheetLink.getAttribute('data-market-sheet-pattern');
-      if (pattern) sheetLink.href = pattern.replace('/0/', '/' + encodeURIComponent(picker.value) + '/') + '?aba=mochila';
-    }
     if (!detail || !wallet) return;
     var form = detail.querySelector('[data-shop-buy]:not([data-backend-unavailable])');
     if (!form) return;
@@ -87,6 +89,10 @@
     if (event.target.matches('[name="qtd"]')) update();
   });
   shop.addEventListener('change', update);
+  shop.addEventListener('shop:character-changed', function (event) {
+    updateSheetLink(event.detail.id);
+    update();
+  });
   if (detail) new MutationObserver(update).observe(detail, { childList: true, subtree: true, characterData: true });
   if (wallet) new MutationObserver(update).observe(wallet, { childList: true, characterData: true });
   if (feedback && mirror) new MutationObserver(function () {
@@ -95,5 +101,6 @@
     mirror.hidden = !message;
     mirror.classList.toggle('is-err', feedback.classList.contains('is-err'));
   }).observe(feedback, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['hidden', 'class'] });
+  if (picker) updateSheetLink(picker.value);
   update();
 }());

@@ -390,6 +390,7 @@
             url.searchParams.set('personagem', personagemAtivo);
             history.pushState(Object.assign({}, history.state, { mercadoPersonagem: personagemAtivo }), '', url.href);
           }
+          root.dispatchEvent(new CustomEvent('shop:character-changed', { detail: { id: personagemAtivo } }));
           trocaPendente = false;
           travarNegocios(false);
           avisar('Personagem ativo: ' + novoSeletor.selectedOptions[0].textContent + '.', true);
