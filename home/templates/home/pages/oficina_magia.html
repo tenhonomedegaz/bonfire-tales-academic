@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="{% static 'css/pages/mercado_loja.css' %}?v=2">
 <link rel="stylesheet" href="{% static 'css/pages/oficina_magia.css' %}?v=2">
 <link rel="stylesheet" href="{% static 'css/pages/oficina-arcana.css' %}?v=2">
-<script defer src="{% static 'js/oficina-magia.js' %}?v=1"></script>
+<script defer src="{% static 'js/oficina-magia.js' %}?v=2"></script>
 {% endblock %}
 
 {% block content %}
@@ -299,9 +299,6 @@
 
 <script>
 (function(){
-  var tabs=document.querySelectorAll('[data-workshop-tab]'), panels=document.querySelectorAll('[data-workshop-panel]');
-  function show(name){var found=false;tabs.forEach(function(t){var on=t.dataset.workshopTab===name;t.classList.toggle('is-active',on);found=found||on});if(!found)name='scrolls';panels.forEach(function(p){var on=p.dataset.workshopPanel===name;p.hidden=!on;p.classList.toggle('is-active',on)});}
-  tabs.forEach(function(t){t.addEventListener('click',function(){show(t.dataset.workshopTab)})});
   document.querySelectorAll('[data-signature-form]').forEach(function(form){
     var base=form.querySelector('[data-signature-base]'), action=form.querySelector('[data-signature-action]'), concentration=form.querySelector('[data-signature-concentration]'), finalEl=form.querySelector('[data-signature-final]'), submit=form.querySelector('button[type="submit"]'), max=Number(form.dataset.maxLevel||0), damageFrom=form.querySelector('[data-signature-damage-from]'), damageTo=form.querySelector('[data-signature-damage-to]'), shape=form.querySelector('[data-signature-shape]'), squares=form.querySelector('[data-signature-squares]');
     function values(raw){return String(raw||'').split(',').filter(Boolean);}
@@ -318,7 +315,6 @@
     }
     base.addEventListener('change',refresh);form.addEventListener('change',refresh);refresh();
   });
-  try{show(new URL(window.location.href).searchParams.get('tab')||'scrolls')}catch(e){show('scrolls')}
 })();
 </script>
 {% endblock %}
