@@ -1,11 +1,38 @@
 from django.test import TestCase
 from django.urls import reverse
+from django.contrib.auth.models import User
 
 from .bestiary_catalog import cr_classification, size_keys, type_key, type_keys
 from .models import TbBestiario, TbClasse
 
 
 class BestiaryCatalogClassificationTests(TestCase):
+    def test_synthetic_community_creature_round_trip_stays_separate_from_official_catalog(self):
+        staff = User.objects.create_user('community_qa_staff', is_staff=True)
+        self.client.force_login(staff)
+        created = self.client.post(reverse('bestiario_criar'), {
+            'nome': 'Sentinela Comunitaria QA', 'tipo': 'besta',
+            'tamanho': 'M', 'nd': '1', 'ca': '12', 'pv': '18',
+            'acoes': 'Ataque de Teste | Causa 1d6 de dano.',
+        })
+        self.assertEqual(created.status_code, 302)
+        creature = TbBestiario.objects.get(nome='Sentinela Comunitaria QA')
+        self.assertTrue(creature.comunidade)
+        self.assertEqual(creature.autor_id, staff.id)
+
+        self.client.logout()
+        community = self.client.get(reverse('bestiario'), {'f': 'comunidade'})
+        self.assertEqual(community.status_code, 200)
+        self.assertIn(creature.slug, [row['slug'] for row in community.context['criaturas']])
+        self.assertEqual(community.context['total_criaturas'], 1)
+        official = self.client.get(reverse('bestiario'), {'f': 'oficial'})
+        self.assertNotIn(creature.slug, [row['slug'] for row in official.context['criaturas']])
+        preview = self.client.get(reverse('api_creature_preview'), {'slug': creature.slug})
+        self.assertEqual(preview.status_code, 200)
+        self.assertTrue(preview.json()['success'])
+        self.assertFalse(preview.json()['statblock_incompleto'])
+        self.assertIn('Ataque de Teste', preview.json()['statblock_html'])
+
     def test_public_catalog_identifies_owner_scaled_placeholder_without_guessing_stats(self):
         creature = TbBestiario.objects.create(
             slug='espirito-de-teste', nome='Espirito de Teste', tipo='elemental',
