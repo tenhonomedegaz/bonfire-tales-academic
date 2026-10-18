@@ -1,4 +1,5 @@
 """Aceite local da progressão de nível baseada em revisão canônica."""
+import json
 from datetime import timedelta
 from io import StringIO
 from unittest.mock import patch
@@ -20,7 +21,7 @@ from home.event_deliveries import (LEVEL_CONSUMER, process_level_delivery,
 from home.models import (TbConquista, TbConquistaNotificacao, TbCosmetico,
                          TbEntregaEventoConquista, TbPersonagem,
                          TbPersonagemRevisao, TbEventoConquista,
-                         TbUsuarioConquista,
+                         TbUsuarioConquista, TbTransacaoMestre,
                          UserProfile)
 from home.test_criador import _CriadorBase
 from home.permissions import limite_detalhe, is_rank_esmeralda
@@ -73,6 +74,59 @@ class LevelAchievementTests(_CriadorBase):
         marker.refresh_from_db()
         self.assertIsNone(marker.personagem_id)
         self.assertTrue(is_rank_esmeralda(owner))
+
+    def test_legacy_level_thirteen_reconciliation_grants_only_proven_slot_once(self):
+        owner = self._novo_usuario('legacy-level-thirteen-owner')
+        created = self._post_criar(owner, self._payload('guerreiro'))
+        self.assertTrue(created.json()['ok'], created.content)
+        character = TbPersonagem.objects.get(pk=created.json()['id'])
+        primary = character.classes.get(principal=True)
+        primary.nivel = 12
+        primary.save(update_fields=['nivel'])
+        character.nivel = 12
+        character.save(update_fields=['nivel', 'atualizado_em'])
+        snapshot = capture_build(character)
+        primary.nivel = 13
+        primary.save(update_fields=['nivel'])
+        character.nivel = 13
+        character.save(update_fields=['nivel', 'atualizado_em'])
+        register_revision(character, tipo='level_up', snapshot=snapshot, user=owner,
+                          nivel_antes=12, nivel_depois=13)
+        TbEventoConquista.objects.filter(
+            conta=owner, tipo='rank_slot_13_granted').delete()
+        profile, _ = UserProfile.objects.get_or_create(user=owner)
+        profile.moedas_mestragem = 7000
+        profile.save(update_fields=['moedas_mestragem'])
+        ledger_before = TbTransacaoMestre.objects.filter(mestre=owner).count()
+
+        unproven_owner = self._novo_usuario('unproven-level-thirteen-owner')
+        unproven_created = self._post_criar(unproven_owner, self._payload('guerreiro'))
+        self.assertTrue(unproven_created.json()['ok'], unproven_created.content)
+        unproven = TbPersonagem.objects.get(pk=unproven_created.json()['id'])
+        unproven.nivel = 13
+        unproven.save(update_fields=['nivel', 'atualizado_em'])
+
+        self.assertFalse(TbEventoConquista.objects.filter(
+            conta=owner, tipo='rank_slot_13_granted').exists())
+
+        output = StringIO()
+        call_command('reconcile_redesign_c_esmeralda', apply=True,
+                     confirm='G01-C-LEVEL13', stdout=output)
+        applied = json.loads(output.getvalue())
+        self.assertEqual(applied['granted_user_ids'], [owner.pk])
+        self.assertTrue(is_rank_esmeralda(owner))
+        self.assertFalse(is_rank_esmeralda(unproven_owner))
+
+        output = StringIO()
+        call_command('reconcile_redesign_c_esmeralda', apply=True,
+                     confirm='G01-C-LEVEL13', stdout=output)
+        self.assertEqual(json.loads(output.getvalue())['granted_user_ids'], [])
+        self.assertEqual(TbEventoConquista.objects.filter(
+            conta=owner, tipo='rank_slot_13_granted').count(), 1)
+        profile.refresh_from_db()
+        self.assertEqual(profile.moedas_mestragem, 7000)
+        self.assertEqual(TbTransacaoMestre.objects.filter(mestre=owner).count(),
+                         ledger_before)
 
     def test_level_delivery_replays_milestone_and_reversal_once(self):
         owner = self._novo_usuario('level-delivery-owner')

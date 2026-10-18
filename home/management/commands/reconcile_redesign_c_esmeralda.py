@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connection, transaction
 
+from home.management.commands._redesign_dev_guard import require_redesign_dev_database
 from home.conquistas import (_marcos_rank_comprovados,
                              registrar_slot_esmeralda_comprovado)
 from home.models import TbEventoConquista
@@ -24,11 +25,10 @@ class Command(BaseCommand):
         with connection.cursor() as cursor:
             cursor.execute('select current_database(), inet_server_addr()')
             database, address = cursor.fetchone()
-        if options['apply'] and (
-                options['confirm'] != 'G01-C-LEVEL13' or
-                database != 'bonfire_redesign_6113ea68' or
-                str(address) not in ('::1', '127.0.0.1')):
-            raise CommandError('Write requires dedicated local DEV and --confirm G01-C-LEVEL13.')
+        if options['apply']:
+            if options['confirm'] != 'G01-C-LEVEL13':
+                raise CommandError('Write requires --confirm G01-C-LEVEL13.')
+            require_redesign_dev_database()
 
         candidates = []
         granted = []
@@ -41,6 +41,8 @@ class Command(BaseCommand):
                 payload_json__level_after__gte=13,
             ).values_list('conta_id', flat=True)))
             for user in get_user_model().objects.filter(pk__in=account_ids).order_by('pk'):
+                if options['apply']:
+                    get_user_model().objects.select_for_update().get(pk=user.pk)
                 proof = next(((level, event) for level, event in
                               _marcos_rank_comprovados(user) if level >= 13), None)
                 if proof is None:
@@ -51,8 +53,9 @@ class Command(BaseCommand):
                 candidates.append({'user_id': user.pk, 'level': proof[0],
                                    'already_recorded': exists})
                 if options['apply']:
-                    get_user_model().objects.select_for_update().get(pk=user.pk)
-                    registrar_slot_esmeralda_comprovado(user)
+                    marker = registrar_slot_esmeralda_comprovado(user)
+                    if marker is None:
+                        raise CommandError('Level-13 proof changed during reconciliation.')
                     if not exists:
                         granted.append(user.pk)
         self.stdout.write(json.dumps({
