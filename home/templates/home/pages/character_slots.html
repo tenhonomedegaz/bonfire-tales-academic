@@ -17,8 +17,17 @@
           <li><span>Colaboração ativa</span><strong>{% if slot_details.colaborador %}+1 temporário{% else %}Não ativa{% endif %}</strong></li>
           <li><span>Compra vitalícia Mestre Ouro</span><strong>{% if slot_details.mestre_ouro %}+1 permanente{% elif slot_legacy_pending %}Histórico em revisão{% else %}Sem direito registrado{% endif %}</strong></li>
         </ul>
-        <p class="bs-help">O direito vitalício já registrado continua valendo sem novo débito. Um novo resgate de 5.000 MM só debita seu saldo após confirmação. O nível 13 comprovado no site usa o mesmo slot Esmeralda do histórico do bot; os demais marcos aguardam reconciliação.</p>
+        <p class="bs-help">O direito vitalício já registrado continua valendo sem novo débito. Um novo resgate de 5.000 MM só debita seu saldo após confirmação. O nível 13 comprovado no site usa o mesmo slot Esmeralda do histórico do bot.</p>
         {% if esmeralda_review_pending %}<p class="bs-notice">Há progresso de nível 13 a conferir. Suas fichas continuam preservadas; este slot só entra no limite quando o direito for comprovado.</p>{% endif %}
+      </section>
+      <section class="bs-panel" aria-labelledby="bs-milestones-title">
+        <h2 id="bs-milestones-title">Benefícios de progressão definidos</h2>
+        <ul class="bs-rights">
+          <li><span>Nível 5</span><strong>1 token de quest</strong></li>
+          <li><span>Nível 9</span><strong>1 token de item raro</strong></li>
+          <li><span>Nível 13</span><strong>1 token de item muito raro e 1 slot</strong></li>
+        </ul>
+        <p class="bs-help">Esta página confirma apenas os direitos de slot exibidos acima. A entrega dos tokens ainda depende da integração com o sistema de recompensas; nenhum token é concedido ao abrir esta página.</p>
       </section>
       <section class="bs-panel" aria-labelledby="bs-selection-title">
         <h2 id="bs-selection-title">Suas fichas</h2>
