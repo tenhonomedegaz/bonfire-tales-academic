@@ -11,7 +11,9 @@ from django.core.management.base import CommandError
 from django.test import TransactionTestCase
 from django.utils import timezone
 
-from .models import MestreOuroDireito, TbRecompensaMestre, TbTransacaoMestre, UserProfile
+from .models import (MestreOuroDireito, TbCosmetico, TbPersonagem,
+                     TbRecompensaMestre, TbTransacaoMestre, TbUsuarioCosmetico,
+                     UserProfile)
 from .test_redesign_d_support import capture_pre_d_snapshot
 
 
@@ -21,8 +23,18 @@ class RedesignDRewardsTests(TransactionTestCase):
         profile = UserProfile.objects.get(user=user)
         profile.moedas_mestragem = 123
         profile.save(update_fields=['moedas_mestragem'])
-        active = TbRecompensaMestre.objects.create(slug='d-legacy-active', nome='Antiga assinatura',
-                                                   tipo='assinatura', ativo=True)
+        # Minimized historical shape: one level-13 sheet, two owned badges,
+        # and the old subscription offer. No account data is copied from backup.
+        character = TbPersonagem.objects.create(
+            dono=user, nome='Ficha histórica representativa', nivel=13, arquivado=True)
+        badges = [TbCosmetico.objects.create(
+            slug=slug, tipo='badge', nome=slug, origem='evento_manual')
+            for slug in ('badge-beta-portal', 'badge-beta-centelha')]
+        owned = [TbUsuarioCosmetico.objects.create(
+            user=user, cosmetico=badge, origem='evento_manual') for badge in badges]
+        active = TbRecompensaMestre.objects.create(
+            slug='mestre-ouro', nome='Antiga assinatura', tipo='assinatura',
+            ativo=True, preco_mm=5000, mensalidade_mm=500, ordem=90)
         inactive = TbRecompensaMestre.objects.create(slug='d-legacy-inactive', nome='Inativa',
                                                      tipo='assinatura', ativo=False)
         normal = TbRecompensaMestre.objects.create(slug='d-normal', nome='Normal',
@@ -50,6 +62,17 @@ class RedesignDRewardsTests(TransactionTestCase):
                              [active.pk])
             active.refresh_from_db()
             self.assertFalse(active.ativo)
+            self.assertEqual((active.preco_mm, active.mensalidade_mm, active.ordem),
+                             (5000, 500, 90))
+            self.assertTrue(TbPersonagem.objects.filter(
+                pk=character.pk, dono=user, nivel=13, arquivado=True).exists())
+            self.assertEqual(set(TbUsuarioCosmetico.objects.filter(
+                pk__in=[row.pk for row in owned], user=user,
+                suspenso_em__isnull=True).values_list('cosmetico__slug', flat=True)),
+                {'badge-beta-portal', 'badge-beta-centelha'})
+            self.assertTrue(MestreOuroDireito.objects.filter(pk=right.pk).exists())
+            profile.refresh_from_db()
+            self.assertEqual(profile.moedas_mestragem, 123)
             self.assertEqual(run('retire', confirm='G01-D-REWARDS')['changed_reward_ids'], [])
             self.assertFalse(TbRecompensaMestre.objects.get(pk=active.pk).ativo)
             self.assertEqual(run('restore', confirm='G01-D-REWARDS')['changed_reward_ids'],
@@ -59,10 +82,18 @@ class RedesignDRewardsTests(TransactionTestCase):
             normal.refresh_from_db()
             profile.refresh_from_db()
             self.assertTrue(active.ativo)
+            self.assertEqual((active.preco_mm, active.mensalidade_mm, active.ordem),
+                             (5000, 500, 90))
             self.assertFalse(inactive.ativo)
             self.assertTrue(normal.ativo)
             self.assertEqual(profile.moedas_mestragem, 123)
             self.assertTrue(MestreOuroDireito.objects.filter(pk=right.pk).exists())
+            self.assertTrue(TbPersonagem.objects.filter(
+                pk=character.pk, dono=user, nivel=13, arquivado=True).exists())
+            self.assertEqual(set(TbUsuarioCosmetico.objects.filter(
+                pk__in=[row.pk for row in owned], user=user,
+                suspenso_em__isnull=True).values_list('cosmetico__slug', flat=True)),
+                {'badge-beta-portal', 'badge-beta-centelha'})
 
             active.nome = 'Alterada após inventário'
             active.save(update_fields=['nome'])
