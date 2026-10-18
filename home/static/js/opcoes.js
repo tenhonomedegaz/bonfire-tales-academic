@@ -153,6 +153,10 @@
         } else {
             detailContainer.innerHTML = '<div class="option-empty"><h2>' + (location.hash ? 'Opção não encontrada' : 'Nenhuma opção encontrada') + '</h2><p>' + (location.hash ? 'O link não corresponde a uma opção deste catálogo. Escolha outra na lista.' : 'Tente outra busca ou limpe os filtros do catálogo.') + '</p></div>';
         }
+        const url = new URL(location.href);
+        if (searchInput.value.trim()) url.searchParams.set('q', searchInput.value.trim());
+        else url.searchParams.delete('q');
+        if (url.href !== location.href) history.replaceState(null, '', url);
     }
     function renderList() {
         listItemsContainer.replaceChildren();
@@ -432,6 +436,7 @@
     document.body.classList.add('options-enhanced');
     [searchInput, category, filterToggle, sort].forEach(control => { control.disabled = false; });
     populateFilters();
+    searchInput.value = new URL(location.href).searchParams.get('q') || '';
     selectedOpcaoId = selectedFromHash();
     applyFilters();
     handleLayout();
@@ -463,8 +468,11 @@
             trapFocus(event, modalOpen ? filterModal : listContainer);
         }
     });
-    const restoreFromURL = () => { selectedOpcaoId = selectedFromHash(); applyFilters(); };
+    const restoreFromURL = () => {
+        searchInput.value = new URL(location.href).searchParams.get('q') || '';
+        selectedOpcaoId = selectedFromHash();
+        applyFilters();
+    };
     window.addEventListener('popstate', restoreFromURL);
     window.addEventListener('hashchange', restoreFromURL);
 })();
-

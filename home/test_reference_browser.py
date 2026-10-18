@@ -11,7 +11,8 @@ from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.db import connection
 from django.urls import reverse
 
-from .models import TbAntecedente, TbArmadilha, TbCondicao, TbRegra
+from .models import (TbAntecedente, TbArmadilha, TbCondicao, TbIdioma,
+                     TbOpcaojogo, TbRegra, TbTalento)
 
 
 class ReferenceCatalogBrowserTests(StaticLiveServerTestCase):
@@ -44,6 +45,14 @@ class ReferenceCatalogBrowserTests(StaticLiveServerTestCase):
         rule = TbRegra.objects.create(
             slug='chamado-das-brumas', nome='Chamado das Brumas')
         TbRegra.objects.create(slug='eco-do-vale', nome='Eco do Vale')
+        talent = TbTalento.objects.create(
+            slug='guarda-das-brumas', nome='Guarda das Brumas', descricao='Protege a vigília.')
+        TbTalento.objects.create(slug='guarda-do-vale', nome='Guarda do Vale', descricao='Protege a estrada.')
+        language = TbIdioma.objects.create(slug='fala-das-brumas', nome='Fala das Brumas')
+        TbIdioma.objects.create(slug='fala-do-vale', nome='Fala do Vale')
+        option = TbOpcaojogo.objects.create(
+            slug='sinal-das-brumas', nome='Sinal das Brumas', tipo='Exploração')
+        TbOpcaojogo.objects.create(slug='sinal-do-vale', nome='Sinal do Vale', tipo='Exploração')
         with tempfile.TemporaryDirectory(prefix='bonfire-conditions-', ignore_cleanup_errors=True) as scratch:
             profile = Path(scratch) / 'profile'
             process = subprocess.Popen([
@@ -114,6 +123,15 @@ class ReferenceCatalogBrowserTests(StaticLiveServerTestCase):
                     (rule, 'sistemas_glossario',
                      '!document.querySelector("#regra-chamado-das-brumas")?.classList.contains("hidden")',
                      'document.querySelector("#glo-count")?.textContent === "1"'),
+                    (talent, 'jogador_talentos',
+                     'document.querySelector("[data-talent-title]")?.textContent === "Guarda das Brumas"',
+                     'document.querySelector("#talentResultCount")?.textContent.startsWith("1 de ")'),
+                    (language, 'jogador_idiomas',
+                     'document.querySelector("[data-language-detail=fala-das-brumas]")?.hidden === false',
+                     'document.querySelector("#languageResultCount")?.textContent.startsWith("1 de ")'),
+                    (option, 'jogador_opcoes',
+                     'document.querySelector("[data-option-title]")?.textContent === "Sinal das Brumas"',
+                     'document.querySelector("#optionResults")?.textContent.startsWith("1 opção")'),
                 ):
                     cdp('Page.navigate', {'url': self.live_server_url + reverse('busca') + '?q=' + quote(entry.nome)})
                     result_link = 'Array.from(document.querySelectorAll(".cp-result-group a")).find(a => a.textContent.includes(%s))' % json.dumps(entry.nome)
@@ -122,6 +140,8 @@ class ReferenceCatalogBrowserTests(StaticLiveServerTestCase):
                     wait_for('location.pathname === %s && %s && %s' % (json.dumps(reverse(route)), selected, count))
                     self.assertEqual(js('new URLSearchParams(location.search).get("q")'), entry.nome)
                     self.assertLessEqual(js('document.documentElement.scrollWidth'), js('document.documentElement.clientWidth'))
+                    cdp('Page.reload', {'ignoreCache': True})
+                    wait_for('location.pathname === %s && %s && %s' % (json.dumps(reverse(route)), selected, count))
             finally:
                 if ws:
                     ws.close()

@@ -8,7 +8,7 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/talentos.css' %}?v=5">
-<link rel="stylesheet" href="{% static 'css/pages/talentos_redesign.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'css/pages/talentos_redesign.css' %}?v=3">
 
 {% endblock %}
 
@@ -162,6 +162,7 @@
         attribute: ''
     };
     const requestedType = new URL(window.location.href).searchParams.get('tipo');
+    searchInput.value = new URL(window.location.href).searchParams.get('q') || '';
     activeFilters.type = talentCatalogTipoChoices.find(([key]) => key === requestedType)?.[1] || '';
     let draftFilters = { ...activeFilters };
     let listAnimationTimer = null;
@@ -399,6 +400,9 @@
         const typeKey = talentCatalogTipoChoices.find(([, label]) => label === activeFilters.type)?.[0];
         if (typeKey) url.searchParams.set('tipo', typeKey);
         else url.searchParams.delete('tipo');
+        const query = searchInput.value.trim();
+        if (query) url.searchParams.set('q', query);
+        else url.searchParams.delete('q');
         if (url.href !== window.location.href) window.history.replaceState(null, '', url);
     }
 
@@ -528,6 +532,7 @@
                 <div class="talent-index-copy">
                     <h3 class="font-bold text-[13px] ${textClass} transition-colors">${escapeHtml(talento.nome)}</h3>
                     <p class="text-xs text-bonfire-muted mt-0.5 uppercase tracking-wider">${escapeHtml(etiquetaStr)}</p>
+                    <div class="talent-index-tags">${getExtraTags(talento).map(tag => `<span>${escapeHtml(tag)}</span>`).join('')}</div>
                 </div>
                 <div class="talent-index-type">
                     <span class="text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wide ${typeBadgeColor}">
@@ -900,10 +905,13 @@
     populateFilters();
     applyFilters(false, false);
     function restoreTalentFromHash() {
-        const typeKey = new URL(window.location.href).searchParams.get('tipo');
+        const url = new URL(window.location.href);
+        const typeKey = url.searchParams.get('tipo');
         const restoredType = talentCatalogTipoChoices.find(([key]) => key === typeKey)?.[1] || '';
-        if (activeFilters.type !== restoredType) {
+        const restoredQuery = url.searchParams.get('q') || '';
+        if (activeFilters.type !== restoredType || searchInput.value !== restoredQuery) {
             activeFilters.type = restoredType;
+            searchInput.value = restoredQuery;
             applyFilters(false, false);
         }
         let slug = '';

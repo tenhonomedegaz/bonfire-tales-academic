@@ -6,10 +6,27 @@ from django.test import TestCase
 from django.urls import reverse
 
 from .models import (TbAntecedente, TbArmadilha, TbBestiario, TbCondicao,
-                     TbItemMagico, TbItemMundano, TbRegra)
+                     TbIdioma, TbItemMagico, TbItemMundano, TbOpcaojogo,
+                     TbRegra, TbTalento)
 
 
 class ReferenceSearchRoutesTests(TestCase):
+    def test_global_search_opens_filtered_talent_language_and_option_catalogs(self):
+        talent = TbTalento.objects.create(
+            slug='guarda-das-brumas', nome='Guarda das Brumas', descricao='Protege a vigília.')
+        language = TbIdioma.objects.create(slug='fala-das-brumas', nome='Fala das Brumas')
+        option = TbOpcaojogo.objects.create(
+            slug='sinal-das-brumas', nome='Sinal das Brumas', tipo='Exploração')
+        for entry, route in (
+            (talent, 'jogador_talentos'),
+            (language, 'jogador_idiomas'),
+            (option, 'jogador_opcoes'),
+        ):
+            url = reverse(route)
+            response = self.client.get(reverse('busca'), {'q': entry.nome})
+            self.assertContains(response, f'href="{url}?q={quote(entry.nome)}"')
+            self.assertEqual(self.client.get(url, {'q': entry.nome}).status_code, 200)
+
     def test_global_search_opens_filtered_background_trap_and_glossary_catalogs(self):
         background = TbAntecedente.objects.create(
             slug='vigia-das-brumas', nome='Vigia das Brumas', descricao='Vigia as passagens.')

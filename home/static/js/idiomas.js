@@ -82,6 +82,10 @@
     document.getElementById('languageResultCount').textContent = visible + ' de ' + languages.length + ' idiomas';
     document.getElementById('languageEmpty').hidden = visible !== 0;
     document.getElementById('languageResetFilters').hidden = !query && !category.value;
+    const url = new URL(window.location.href);
+    if (search.value.trim()) url.searchParams.set('q', search.value.trim());
+    else url.searchParams.delete('q');
+    if (url.href !== window.location.href) history.replaceState(null, '', url);
   }
 
   function resetFilters() {
@@ -140,10 +144,13 @@
   }
 
   function restoreFromHash() {
+    search.value = new URL(window.location.href).searchParams.get('q') || '';
+    filter();
     let slug = '';
     try { slug = decodeURIComponent(window.location.hash.replace(/^#(?:idioma-)?/, '')); }
     catch { /* Malformed links must not interrupt the transcriber. */ }
-    selectLanguage(bySlug[slug] ? slug : selectedSlug || languages[0]?.slug, {historyMode: 'none'});
+    const firstVisible = rows.find(row => !row.hidden)?.dataset.languageSlug;
+    selectLanguage(bySlug[slug] ? slug : firstVisible || selectedSlug || languages[0]?.slug, {historyMode: 'none'});
   }
 
   source.addEventListener('input', translate);
@@ -196,7 +203,6 @@
   document.body.classList.add('language-enhanced');
   target.disabled = !languages.length;
   source.disabled = !languages.length;
-  filter();
   restoreFromHash();
   setMenuOpen(false);
   translate();
