@@ -1305,6 +1305,8 @@
             tabs.forEach(function (t, idx) {
                 var errs = stepErrors(idx);
                 t.classList.toggle('is-current', idx === current);
+                if (idx === current) t.setAttribute('aria-current', 'step');
+                else t.removeAttribute('aria-current');
                 t.classList.toggle('is-complete', !!touched[idx] && errs.length === 0);
                 t.classList.toggle('is-error', !!touched[idx] && errs.length > 0);
             });
