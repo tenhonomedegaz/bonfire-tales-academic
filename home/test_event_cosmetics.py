@@ -82,6 +82,7 @@ class EventCosmeticShopTests(TestCase):
         self.assertContains(self.client.get(response['Location']), 'desbloqueado')
         self.assertContains(self.client.get(self.url), 'Você já possui')
         self.assertContains(self.client.get(self.url), 'Origem: Resgate de evento.')
+        self.assertContains(self.client.get(self.url), 'href="' + reverse('personagens') + '">Escolher ficha')
         self.assertEqual(self.client.post(self.url, form).status_code, 302)
         self.assertEqual(EventCosmeticRedemption.objects.count(), 1)
         self.assertEqual(TbEventoConquista.objects.filter(

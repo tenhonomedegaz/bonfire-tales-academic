@@ -247,6 +247,9 @@ class CosmeticCheckoutTests(TestCase):
     @patch('home.views._asaas_api_request', return_value={'id': 'checkout_1'})
     def test_order_freezes_offer_and_reuses_checkout(self, api):
         url = reverse('cosmetic_checkout')
+        storefront = self.client.get(url)
+        self.assertContains(storefront, 'Comprar cosmético')
+        self.assertNotContains(storefront, 'Aquisições em preparação')
         first = self.client.post(url, {'slug': self.cosmetic.slug})
         self.offer.amount = Decimal('99.99')
         self.offer.save()
@@ -289,6 +292,35 @@ class CosmeticCheckoutTests(TestCase):
             self.user, 'moldura', 'perfil') if item['key'] == 'paga'), 'possui')
         order.refresh_from_db()
         self.assertEqual(order.status, AsaasCheckoutOrder.Status.PAID)
+        receipt = self.client.get(reverse('cosmetic_checkout_status', args=[order.pk]))
+        self.assertContains(receipt, reverse('profile') + '#perfil-aparencia')
+        self.assertContains(self.client.get(reverse('profile')), 'id="perfil-aparencia"')
+
+    def test_paid_ficha_only_receipt_selects_character_instead_of_profile(self):
+        self.cosmetic.escopo = 'ficha'
+        self.cosmetic.save(update_fields=['escopo'])
+        order = self._order()
+        order.status = AsaasCheckoutOrder.Status.PAID
+        order.save(update_fields=['status'])
+        purchase = CosmeticCheckoutPurchase.objects.get(order=order)
+        purchase.granted_at = timezone.now()
+        purchase.save(update_fields=['granted_at'])
+        receipt = self.client.get(reverse('cosmetic_checkout_status', args=[order.pk]))
+        self.assertContains(receipt, 'href="' + reverse('personagens') + '">Escolher ficha</a>')
+        self.assertNotContains(receipt, 'href="' + reverse('profile') + '">Personalizar meu perfil</a>')
+
+    def test_paid_title_receipt_opens_profile_insignias(self):
+        self.cosmetic.tipo = 'titulo'
+        self.cosmetic.save(update_fields=['tipo'])
+        order = self._order()
+        order.status = AsaasCheckoutOrder.Status.PAID
+        order.save(update_fields=['status'])
+        purchase = CosmeticCheckoutPurchase.objects.get(order=order)
+        purchase.granted_at = timezone.now()
+        purchase.save(update_fields=['granted_at'])
+        receipt = self.client.get(reverse('cosmetic_checkout_status', args=[order.pk]))
+        self.assertContains(receipt, reverse('profile') + '#perfil-insignias')
+        self.assertContains(self.client.get(reverse('profile')), 'id="perfil-insignias"')
 
     def test_paid_title_and_badge_remain_usable_after_inventory_suspension(self):
         from django.utils import timezone
