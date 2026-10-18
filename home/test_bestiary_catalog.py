@@ -6,6 +6,29 @@ from .models import TbBestiario, TbClasse
 
 
 class BestiaryCatalogClassificationTests(TestCase):
+    def test_existing_creature_selection_keeps_filter_and_shows_available_art(self):
+        first = TbBestiario.objects.create(
+            slug='corcel-ilustrado', nome='Corcel Ilustrado', tipo='Besta',
+            tamanho='M', nd='2', imagem_url='/media/bestiario/corcel.png',
+            statblock_json={'hp': 20},
+        )
+        second = TbBestiario.objects.create(
+            slug='corcel-cinzento', nome='Corcel Cinzento', tipo='Besta',
+            tamanho='M', nd='3', statblock_json={'hp': 24},
+        )
+        url = reverse('bestiario')
+        initial = self.client.get(url, {'q': 'Corcel'})
+        self.assertEqual(initial.status_code, 200)
+        self.assertContains(initial, f'href="?q=Corcel&amp;active={second.pk}"')
+        self.assertContains(initial, 'class="be-list-art">Ilustração disponível</small>')
+        self.assertContains(initial, 'src="/media/bestiario/corcel.png"')
+        self.assertContains(initial, '<b aria-hidden="true">2</b>', html=True)
+
+        selected = self.client.get(url, {'q': 'Corcel', 'active': second.pk})
+        self.assertEqual(selected.context['active_creature_id'], second.pk)
+        self.assertContains(selected, f'id="monster-{second.pk}" class="monster-panel "')
+        self.assertEqual(selected.context['total_criaturas'], 2)
+
     def test_public_catalog_identifies_owner_scaled_placeholder_without_guessing_stats(self):
         creature = TbBestiario.objects.create(
             slug='espirito-de-teste', nome='Espirito de Teste', tipo='elemental',
@@ -14,7 +37,7 @@ class BestiaryCatalogClassificationTests(TestCase):
         url = reverse('bestiario')
         response = self.client.get(url, {'q': creature.slug})
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Statblock incompleto: atributos e acoes ainda nao foram cadastrados')
+        self.assertContains(response, 'Statblock incompleto: atributos e ações ainda não foram cadastrados')
         self.assertContains(response, 'ND pendente')
         creature_preview_url = reverse('api_creature_preview')
         card_preview_url = reverse('api_card_preview')
