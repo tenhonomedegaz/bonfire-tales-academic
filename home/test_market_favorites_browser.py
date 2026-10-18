@@ -32,7 +32,7 @@ class MarketFavoriteBrowserTests(StaticLiveServerTestCase):
 
         user = get_user_model().objects.create_user('market-favorite-browser')
         mundane = TbItemMundano.objects.create(
-            nome='Corda de favorita', slug='corda-browser', preco='1 PO',
+            nome='Corda de favorita 30 pés', slug='corda-browser', preco='1 PO',
             imagem_url='//external.example/item.svg')
         mundane_other = TbItemMundano.objects.create(nome='Tocha comum', slug='tocha-browser', preco='1 PC')
         magic = TbItemMagico.objects.create(
@@ -92,6 +92,13 @@ class MarketFavoriteBrowserTests(StaticLiveServerTestCase):
                 })
                 call('Page.navigate', {'url': self.live_server_url + reverse('mercado_itens_mundanos')})
                 wait_for('document.querySelector("[data-shop-favorite] button") !== null')
+                self.assertIn('9 metros [30 pés]', js('document.querySelector("[data-mkt-row]").textContent'))
+                js('document.querySelector("[data-shop-search]").value = "9 metros"; '
+                   'document.querySelector("[data-shop-search]").dispatchEvent(new Event("input", {bubbles:true}))')
+                wait_for('document.querySelector("[data-shop-count]")?.textContent === "1"')
+                self.assertTrue(js('document.querySelector("[data-mkt-row]").closest("li").hidden === false'))
+                js('document.querySelector("[data-shop-search]").value = ""; '
+                   'document.querySelector("[data-shop-search]").dispatchEvent(new Event("input", {bubbles:true}))')
                 self.assertTrue(js('document.querySelector("[data-shop-detail] .mkt-sigil-letter") !== null'))
                 self.assertFalse(js('document.querySelector("[data-shop-detail] img") !== null'))
                 self.assertLessEqual(js('document.documentElement.scrollWidth - innerWidth'), 1)
@@ -114,7 +121,7 @@ class MarketFavoriteBrowserTests(StaticLiveServerTestCase):
                 self.assertTrue(js('document.querySelector("[data-shop-favorites]").checked'))
                 js('history.back()')
                 wait_for('document.querySelector("[data-shop-favorites]")?.checked === false')
-                self.assertEqual(js('document.querySelector("[data-shop-count]")?.textContent'), '2')
+                self.assertEqual(js('document.querySelector("[data-shop-count]")?.textContent'), '4')
                 js('history.forward()')
                 wait_for('document.querySelector("[data-shop-favorites]")?.checked === true')
                 self.assertEqual(js('document.querySelector("[data-shop-count]")?.textContent'), '1')
@@ -122,13 +129,16 @@ class MarketFavoriteBrowserTests(StaticLiveServerTestCase):
                 wait_for('document.querySelector("[data-shop-count]")?.textContent === "0"')
                 self.assertFalse(MarketItemFavorite.objects.filter(user=user, mundane_item=mundane).exists())
                 js('document.querySelector("[data-shop-favorites]").click()')
-                wait_for('document.querySelector("[data-shop-count]")?.textContent === "2"')
+                wait_for('document.querySelector("[data-shop-count]")?.textContent === "4"')
                 wait_for('document.querySelector("[data-shop-detail]")?.textContent.includes("Corda de favorita")')
                 wait_for('document.querySelector("[data-shop-favorite] button")?.getAttribute("aria-pressed") === "false"')
                 call('Emulation.setDeviceMetricsOverride', {'width': 1280, 'height': 900,
                                                             'deviceScaleFactor': 1, 'mobile': False})
                 self.assertLessEqual(js('document.documentElement.scrollWidth - innerWidth'), 1)
                 call('Page.navigate', {'url': self.live_server_url + reverse('mercado_itens_magicos')})
+                wait_for('document.querySelector("[data-shop-stock]") !== null')
+                js('document.querySelector("[data-shop-stock]").value = "catalogo"; '
+                   'document.querySelector("[data-shop-stock]").dispatchEvent(new Event("change", {bubbles:true}))')
                 wait_for('document.querySelector("[data-shop-favorite] button") !== null')
                 self.assertEqual(js('document.querySelector("[data-shop-detail] img")?.getAttribute("src")'),
                                  '/static/assets/logo.png')
