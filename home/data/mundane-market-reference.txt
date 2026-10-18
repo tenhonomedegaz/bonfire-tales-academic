@@ -1,0 +1,7 @@
+[guide-sobre]
+Sobre o mercado
+Os itens à venda vêm do catálogo atual. Selecione um item para consultar seus detalhes e o preço vigente antes de comprar.
+
+[guide-economia]
+Economia e regras
+A compra usa o preço exibido no catálogo atual e a carteira da ficha selecionada. Itens sem preço são apenas para consulta e não podem ser comprados aqui.

@@ -1,5 +1,11 @@
 # G01 — proposta estrutural do redesign Bonfire
 
+## Decisão complementar do PO em 18/10/2026
+
+- **A, sublote de consulta/apresentação aprovado:** somente os helpers de distância, terminologia, formatação e referência do mercado e a ligação de contexto estritamente necessária. Valores, regras, preços e dados atuais prevalecem. A página antiga da fonte fixa contém regras próprias de arredondamento e pacotes; seu conteúdo mecânico não entra no catálogo. `0152_magic_market_caravan`, `0153_fate_deck_server_attunement`, caravana, estoque novo e mudança de sintonização continuam sem aprovação.
+- **C, benefícios definidos:** nível 5 concede um token de quest; nível 9, um token de item raro; nível 13, um token de item muito raro e um slot de personagem. A compra de slot por 5.000 MM substitui o antigo Mestre Ouro sem assinatura. `tokenXpBoost` e `tokenSuperboost` não são substitutos presumidos para tokens de item. Unidade da concessão e retroatividade precisam ser confirmadas no comportamento existente antes de automatização; não há autorização para concessão retroativa em massa. Benefícios comprovados permanecem.
+- **B/D/E/F:** B e D continuam nos limites aprovados para DEV dedicado; E só adaptações necessárias; F adiado. G00 e G02 permanecem.
+
 ## Decisão do PO em 17/10/2026
 
 - **A:** sem aprovação integral. A `0152` da fonte cria calendário, visita e estoque; estrutura da caravana continua pendente. A `0153` altera três itens por slug e não está autorizada. Tags e dados devem usar o fluxo genérico existente, mediante decisão específica sobre esses itens.

@@ -16761,6 +16761,7 @@ def _mercado_contexto(request):
 def itens_mundanos_view(request):
     """Vitrine MUNDANA: lista alfabética única, filtrada pela categoria do catálogo."""
     from .editorial_links import safe_editorial_image
+    from .mundane_market_reference import market_inventory_context
     cat_label = dict(TbItemMundano.CATEGORIA_CHOICES)
     itens = []
     for i in TbItemMundano.objects.all().order_by('nome'):
@@ -16787,6 +16788,7 @@ def itens_mundanos_view(request):
         'categorias_item_mundano': TbItemMundano.CATEGORIA_CHOICES,
     }
     context.update(_mercado_contexto(request))
+    context.update(market_inventory_context(itens, context['grupos_filtro']))
     _market_favorites_context(request, itens, 'mundano', context)
     if is_ajax(request):
         return render(request, 'home/partials/itens_mundanos_content.html', context)

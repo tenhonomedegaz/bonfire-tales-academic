@@ -27,7 +27,7 @@ missão" no lugar do botão — a mesma guarda existe no backend.{% endcomment %
                placeholder="Buscar item pelo nome…" aria-label="Buscar item">
         <select class="mkt-select" data-shop-group aria-label="Filtrar por categoria">
           <option value="todas">Todas as categorias</option>
-          {% for g in grupos_filtro %}
+          {% for g in market_browser_groups %}
           <option value="{{ g.value }}">{{ g.label }} ({{ g.total }})</option>
           {% endfor %}
         </select>
@@ -46,6 +46,18 @@ missão" no lugar do botão — a mesma guarda existe no backend.{% endcomment %
             <span class="mkt-row-meta">{{ item.sub_label|default:item.cat_label }}{% if item.mec_dano %} · {{ item.mec_dano }}{% elif item.mec_ca %} · CA {{ item.mec_ca }}{% endif %}</span>
             {% if item.preco_display %}<span class="mkt-row-price">{{ item.preco_display }}</span>
             {% else %}<span class="mkt-row-price is-mission">missão</span>{% endif %}
+          </button>
+        </li>
+        {% endfor %}
+        {% for entry in market_extra_entries %}
+        <li>
+          <button type="button" class="mkt-row market-reference-row" data-mkt-row
+                  data-target="{{ entry.id }}" data-group="{{ entry.category.value }}"
+                  data-name="{{ entry.name }}" data-favorite="false"
+                  data-search="{{ entry.name|lower }} {{ entry.category.label|lower }}">
+            <span class="mkt-row-name">{{ entry.name }}</span>
+            <span class="mkt-row-meta">{{ entry.category.label }}</span>
+            <span class="mkt-row-price">guia</span>
           </button>
         </li>
         {% endfor %}
@@ -143,6 +155,7 @@ missão" no lugar do botão — a mesma guarda existe no backend.{% endcomment %
       </article>
     </template>
     {% endfor %}
+    {% include 'home/partials/market_consultation_cards.html' %}
     {% endspaceless %}
   </div>
 </div>
