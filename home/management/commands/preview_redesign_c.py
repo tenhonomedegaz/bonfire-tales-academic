@@ -10,7 +10,7 @@ from home.conquistas import _marcos_rank_comprovados
 from home.mestre_ouro import has_unreconciled_mestre_ouro_history
 from home.models import (MestreOuroDireito, MestreOuroRevisao, TbConquista,
                          TbEventoConquista, TbPersonagem, TbTransacaoMestre,
-                         TbUsuarioConquista, UserProfile)
+                         TbPersonagemRevisao, TbUsuarioConquista, UserProfile)
 
 MILESTONE_LEVELS = (5, 9, 13, 20)
 
@@ -49,6 +49,36 @@ def configured_level_achievements():
     return rows
 
 
+def level_events_needing_review(user, proven):
+    """Report old level facts whose original proof can no longer be verified."""
+    events = list(TbEventoConquista.objects.filter(
+        conta=user, origem='site', tipo='character_level_up',
+    ).order_by('ocorrido_em', 'pk'))
+    proven_ids = {event.pk for _, event in proven}
+    revisions = {row.pk: row for row in TbPersonagemRevisao.objects.filter(
+        pk__in=[event.agregado_id for event in events], tipo='level_up',
+    )}
+    rows = []
+    for event in events:
+        payload = event.payload_json or {}
+        level = payload.get('level_after') if isinstance(payload, dict) else None
+        if type(level) is not int or level < 5 or event.pk in proven_ids:
+            continue
+        revision = revisions.get(event.agregado_id)
+        if event.personagem_id is None:
+            reason = 'character_missing'
+        elif revision is None:
+            reason = 'revision_missing'
+        elif revision.revertida:
+            reason = 'revision_reverted'
+        elif revision.id_personagem_id != event.personagem_id:
+            reason = 'character_mismatch'
+        else:
+            reason = 'proof_invalid'
+        rows.append({'event_id': str(event.pk), 'level': level, 'reason': reason})
+    return rows
+
+
 def preview():
     """Classify candidates; a level alone never grants a right here."""
     owners = set(TbPersonagem.objects.filter(nivel__gte=5).values_list('dono_id', flat=True))
@@ -80,10 +110,12 @@ def preview():
             f'proven_level_{level}': any(value >= level for value, _ in proven)
             for level in MILESTONE_LEVELS
         }
+        event_reviews = level_events_needing_review(user, proven)
         rows.append({
             'user_id': user.pk,
             **milestone_candidates,
             **milestone_proof,
+            'level_events_needing_review': event_reviews,
             'existing_lifetime_slot': lifetime_right,
             'legacy_gold_review_needed': has_unreconciled_mestre_ouro_history(user.pk, profile),
             'slot_redemption_without_right': (
