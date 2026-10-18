@@ -70,8 +70,10 @@ class Command(BaseCommand):
                         raise CommandError(f'Reward {row.pk} was activated outside G01-D.')
                     target = original['ativo']
                 else:
-                    if row.ativo != original['ativo'] and options['action'] == 'retire':
-                        raise CommandError(f'Reward {row.pk} state differs from snapshot.')
+                    # A repeated retire after an interrupted run is a no-op. Reject
+                    # a row that was originally inactive but activated elsewhere.
+                    if options['action'] == 'retire' and not original['ativo'] and row.ativo:
+                        raise CommandError(f'Reward {row.pk} was activated outside G01-D.')
                     target = False
                 if row.ativo != target:
                     changed.append(row.pk)

@@ -50,6 +50,8 @@ class RedesignDRewardsTests(TransactionTestCase):
                              [active.pk])
             active.refresh_from_db()
             self.assertFalse(active.ativo)
+            self.assertEqual(run('retire', confirm='G01-D-REWARDS')['changed_reward_ids'], [])
+            self.assertFalse(TbRecompensaMestre.objects.get(pk=active.pk).ativo)
             self.assertEqual(run('restore', confirm='G01-D-REWARDS')['changed_reward_ids'],
                              [active.pk])
             active.refresh_from_db()
@@ -64,6 +66,15 @@ class RedesignDRewardsTests(TransactionTestCase):
 
             active.nome = 'Alterada após inventário'
             active.save(update_fields=['nome'])
+            with self.assertRaises(CommandError):
+                run('retire', confirm='G01-D-REWARDS')
+            active.refresh_from_db()
+            self.assertTrue(active.ativo)
+
+            active.nome = 'Antiga assinatura'
+            active.save(update_fields=['nome'])
+            inactive.ativo = True
+            inactive.save(update_fields=['ativo'])
             with self.assertRaises(CommandError):
                 run('retire', confirm='G01-D-REWARDS')
             active.refresh_from_db()
