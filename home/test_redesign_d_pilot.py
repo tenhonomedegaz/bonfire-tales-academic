@@ -19,6 +19,26 @@ from .test_redesign_d_support import capture_pre_d_snapshot
 
 
 class RedesignDPilotTests(TransactionTestCase):
+    def test_archive_refuses_commercial_offer_without_mm_history(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'before.json'
+            digest = capture_pre_d_snapshot(path)
+            options = {'snapshot': str(path), 'sha256': digest,
+                       'confirm': 'G01-D-PILOT', 'stdout': StringIO()}
+            call_command('reconcile_redesign_d_pilot', action='seed', **options)
+            slug = 'tema-aurora-glacial'
+            CosmeticCheckoutOffer.objects.filter(cosmetico__slug=slug).update(
+                demonstration=False)
+
+            with self.assertRaisesMessage(CommandError, 'commercial offer without MM history'):
+                call_command('reconcile_redesign_d_pilot', action='archive', **options)
+
+            self.assertTrue(TbCosmetico.objects.get(slug=slug).ativo)
+            self.assertTrue(CosmeticCheckoutOffer.objects.get(cosmetico__slug=slug).active)
+            self.assertEqual(TbCosmetico.objects.filter(
+                slug__in=('tema-forja-de-brasas', 'tema-aurora-glacial',
+                          'tema-circulo-arcano'), ativo=True).count(), 3)
+
     def test_cash_checkout_stays_closed_if_pilot_offer_is_misconfigured(self):
         user = get_user_model().objects.create_user('pilot_cash_guard', email='cash@example.test')
         with tempfile.TemporaryDirectory() as directory:

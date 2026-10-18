@@ -83,6 +83,10 @@ class Command(BaseCommand):
                     if (not offer or offer.amount != amount
                             or (action != 'archive' and not offer.demonstration)):
                         raise CommandError(f'{slug} offer changed; reconcile manually.')
+                    if (action == 'archive' and not offer.demonstration
+                            and not CosmeticMMRedemption.objects.filter(cosmetico=item).exists()):
+                        raise CommandError(f'{slug} has a commercial offer without MM history; '
+                                           'reconcile manually before archiving.')
                     if action == 'seed' and (not item.ativo or not offer.active):
                         raise CommandError(f'{slug} is archived; reconcile manually.')
                     has_usage = action == 'archive' and (
