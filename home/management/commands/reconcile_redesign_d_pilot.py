@@ -8,6 +8,7 @@ from django.db import connection, transaction
 
 from home.management.commands.reconcile_redesign_d_rewards import _read_json
 from home.management.commands.preview_redesign_d import database_identity
+from home.management.commands._redesign_dev_guard import require_redesign_dev_database
 from home.models import (CosmeticCheckoutOffer, CosmeticCheckoutPurchase,
                          CosmeticMMRedemption,
                          EventCosmeticRedemption, TbCosmetico, TbUsuarioCosmetico)
@@ -49,6 +50,8 @@ class Command(BaseCommand):
         action = options['action']
         if action != 'preview' and options['confirm'] != 'G01-D-PILOT':
             raise CommandError('Write requires --confirm G01-D-PILOT.')
+        if action != 'preview':
+            require_redesign_dev_database()
         try:
             saved = _read_json(options['snapshot'], options['sha256'])
         except (OSError, ValueError) as exc:

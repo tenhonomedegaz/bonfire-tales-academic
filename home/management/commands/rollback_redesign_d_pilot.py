@@ -10,6 +10,7 @@ from io import StringIO
 from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+from home.management.commands._redesign_dev_guard import require_redesign_dev_database
 
 
 class Command(BaseCommand):
@@ -23,6 +24,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         if options['confirm'] != 'G01-D-ROLLBACK-PILOT':
             raise CommandError('Write requires --confirm G01-D-ROLLBACK-PILOT.')
+        require_redesign_dev_database()
         with transaction.atomic():
             pilot = StringIO()
             rewards = StringIO()

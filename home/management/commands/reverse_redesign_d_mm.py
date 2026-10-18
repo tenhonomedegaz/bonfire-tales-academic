@@ -4,6 +4,7 @@ from django.core.management.base import BaseCommand, CommandError
 
 from home.models import CosmeticMMRedemption
 from home.theme_mm import reverse_theme_mm
+from home.management.commands._redesign_dev_guard import require_redesign_dev_database
 
 
 class Command(BaseCommand):
@@ -16,6 +17,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         if options['confirm'] != 'G01-D-MM-REVERSAL':
             raise CommandError('Informe --confirm G01-D-MM-REVERSAL para estornar.')
+        require_redesign_dev_database()
         if not CosmeticMMRedemption.objects.filter(pk=options['redemption_id']).exists():
             raise CommandError('Recibo MM não encontrado.')
         try:

@@ -13,6 +13,7 @@ from django.db import connection, transaction
 
 from home.models import TbRecompensaMestre
 from home.management.commands.preview_redesign_d import database_identity
+from home.management.commands._redesign_dev_guard import require_redesign_dev_database
 
 
 def _read_json(path, digest):
@@ -36,6 +37,8 @@ class Command(BaseCommand):
             raise CommandError('G01-D changes require PostgreSQL.')
         if options['action'] != 'preview' and options['confirm'] != 'G01-D-REWARDS':
             raise CommandError('Write requires --confirm G01-D-REWARDS.')
+        if options['action'] != 'preview':
+            require_redesign_dev_database()
         try:
             saved = _read_json(options['snapshot'], options['sha256'])
         except (OSError, ValueError) as exc:
