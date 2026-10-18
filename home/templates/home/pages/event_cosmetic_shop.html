@@ -1,7 +1,7 @@
 {% extends 'home/base.html' %}{% load static %}
 {% block title %}Cosméticos de evento · Bonfire Tales RPG{% endblock %}
 {% block body_class %}bft-commerce{% endblock %}{% block main_class %}co-main flex-1 w-full min-w-0{% endblock %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/commerce.css' %}?v=1"><script src="{% static 'js/commerce.js' %}?v=1" defer></script>{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/commerce.css' %}?v=2"><script src="{% static 'js/commerce.js' %}?v=1" defer></script>{% endblock %}
 {% block content %}
 {% include 'home/partials/commerce_nav.html' with section='events' %}
 <header class="co-hero"><div><p class="co-eyebrow">Ateliê de Cinéria · Eventos</p><h1>Memórias que <em>ficam.</em></h1><p>Resgate cosméticos gratuitos ou use os braseiros de um personagem seu. A oferta pode terminar; o cosmético adquirido permanece com você.</p></div><span class="co-large-symbol" aria-hidden="true">{% include 'home/partials/commerce_symbol.html' with kind='badge' %}</span></header>
