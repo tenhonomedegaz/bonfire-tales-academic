@@ -1,6 +1,7 @@
 """Moderation and public visibility of site listings on an isolated database."""
 
-from datetime import timedelta
+from datetime import datetime, time, timedelta, timezone as datetime_timezone
+from zoneinfo import ZoneInfo
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
@@ -68,6 +69,14 @@ class MasterTableFlowTests(TestCase):
         self.client.force_login(self.other)
         self.assertEqual(self.client.get(reverse('master_table_detail', args=[table.pk])).status_code, 200)
         self.assertContains(self.client.get(reverse('sistemas_missoes')), table.titulo)
+        # 01:30 UTC belongs to the previous calendar day in Brasilia.
+        utc_day = timezone.now().date() + timedelta(days=10)
+        table.data = datetime.combine(utc_day, time(1, 30), tzinfo=datetime_timezone.utc)
+        table.save(update_fields=['data'])
+        brasilia_time = table.data.astimezone(ZoneInfo('America/Sao_Paulo'))
+        schedule = brasilia_time.strftime('%d/%m/%Y · %H:%M') + ' · Brasília'
+        self.assertContains(self.client.get(reverse('sistemas_missoes')), schedule)
+        self.assertContains(self.client.get(reverse('master_table_detail', args=[table.pk])), schedule)
         public_profile = self.client.get(reverse('public_profile', args=[self.master.username]))
         self.assertContains(public_profile, reverse('master_table_detail', args=[table.pk]), count=2)
 
