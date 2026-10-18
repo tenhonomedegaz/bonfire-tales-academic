@@ -20,10 +20,10 @@
 <div class="mundane-market">
   {% include 'home/partials/magic_market_symbols.html' %}
   <div class="market-breadcrumb"><a href="{% url 'home' %}">Bonfire Tales</a><span>/</span><span>Itens Mágicos</span></div>
-  <header class="market-game-header"><div><h1>Itens Mágicos</h1><p>Cinco lojas. Escolha seu próximo achado e leve-o para sua ficha.</p></div><a class="magic-mundane-link" href="{% url 'mercado_itens_mundanos' %}">Mercado Mundano ↗</a></header>
+  <header class="market-game-header"><div><h1>Itens Mágicos</h1><p>Consulte as lojas do catálogo e compre itens com preço para sua ficha.</p></div><a class="magic-mundane-link" href="{% url 'mercado_itens_mundanos' %}">Mercado Mundano ↗</a></header>
   {% if market_preview %}<p class="market-game-local">Prévia local · compras e vendas afetam somente as fichas de demonstração.</p>{% endif %}
   <nav class="magic-shops" aria-label="Escolher loja">
-    {% for shop in magic_shops %}<button type="button" data-magic-shop="{{ shop.value }}" aria-pressed="false"><svg aria-hidden="true"><use href="#magic-{{ shop.icon }}"></use></svg><span><strong>{{ shop.label }}</strong><small>{{ shop.description }}</small></span><em>{{ shop.total }} disponíveis</em></button>{% endfor %}
+    {% for shop in grupos_filtro %}<button type="button" data-magic-shop="{{ shop.value }}" aria-pressed="false"><svg aria-hidden="true"><use href="#magic-gem"></use></svg><span><strong>{{ shop.label }}</strong><small>Itens do catálogo</small></span><em>{{ shop.a_venda }} com preço</em></button>{% endfor %}
   </nav>
   <section class="magic-caravan {% if caravan.active %}is-present{% endif %}" aria-label="Caravana mercante">
     <svg aria-hidden="true"><use href="#magic-caravan"></use></svg>
@@ -34,6 +34,6 @@
   <div id="content-container">
     {% include 'home/partials/itens_magicos_content.html' %}
   </div>
-  <p class="market-game-footer-note">{% if caravan.configured %}O estoque permanente e a caravana seguem{% else %}O estoque permanente segue{% endif %} as regras do servidor. O catálogo completo também pode ser consultado; um preço de referência não garante disponibilidade. Pergaminhos de níveis 1–9 usam os preços da Oficina; pergaminhos de truques aguardam um preço definido pelo servidor.</p>
+  <p class="market-game-footer-note">Compras de itens com preço seguem o catálogo e as validações atuais do servidor. Itens sem preço ficam disponíveis apenas para consulta. A caravana ainda não está configurada nesta integração.</p>
 </div>
 {% endblock %}
