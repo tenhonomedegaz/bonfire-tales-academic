@@ -72,7 +72,14 @@
     const hash=location.hash.slice(1);
     const panel=panels.filter(item => hash===item.id || hash.startsWith(item.id+'-'))
       .sort((a,b) => b.id.length-a.id.length)[0];
-    if(panel)show(panel.id,false,false);
+    if(panel){show(panel.id,false,false);return;}
+    if(!hash && search.value.trim()){
+      const exact=visible().find(link => {
+        const title=panels.find(item => item.id===link.dataset.target)?.querySelector('h2')?.textContent.trim();
+        return norm(title)===norm(search.value.trim());
+      });
+      if(exact)show(exact.dataset.target,false,false);
+    }
   }
   filter();fromLocation();
   window.addEventListener('hashchange',fromLocation);

@@ -37,11 +37,11 @@ class ReferenceCatalogBrowserTests(StaticLiveServerTestCase):
         background = TbAntecedente.objects.create(
             slug='vigia-das-brumas', nome='Vigia das Brumas', descricao='Vigia as passagens.')
         TbAntecedente.objects.create(
-            slug='escriba-do-vale', nome='Escriba do Vale', descricao='Registra as viagens.')
+            slug='antigo-vigia-das-brumas', nome='Antigo Vigia das Brumas', descricao='Registra as viagens.')
         trap = TbArmadilha.objects.create(
             slug='sino-das-brumas', nome='Sino das Brumas', efeito='O sino soa.')
         TbArmadilha.objects.create(
-            slug='fosso-do-vale', nome='Fosso do Vale', efeito='O chão cede.')
+            slug='antigo-sino-das-brumas', nome='Antigo Sino das Brumas', efeito='O chão cede.')
         rule = TbRegra.objects.create(
             slug='chamado-das-brumas', nome='Chamado das Brumas')
         TbRegra.objects.create(slug='eco-do-vale', nome='Eco do Vale')
@@ -116,10 +116,10 @@ class ReferenceCatalogBrowserTests(StaticLiveServerTestCase):
                 for entry, route, selected, count in (
                     (background, 'jogador_antecedentes',
                      'document.querySelector("[data-background=vigia-das-brumas]")?.hidden === false',
-                     'document.querySelector("#backgroundResultCount")?.textContent.startsWith("1 ")'),
+                     'document.querySelector("#backgroundResultCount")?.textContent.startsWith("2 ")'),
                     (trap, 'mestre_armadilhas',
                      'document.querySelector("#armadilha-%s")?.hidden === false' % trap.pk,
-                     'document.querySelector("#ar-count")?.textContent === "1"'),
+                     'document.querySelector("#ar-count")?.textContent === "2"'),
                     (rule, 'sistemas_glossario',
                      '!document.querySelector("#regra-chamado-das-brumas")?.classList.contains("hidden")',
                      'document.querySelector("#glo-count")?.textContent === "1"'),

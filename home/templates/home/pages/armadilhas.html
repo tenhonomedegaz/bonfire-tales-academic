@@ -2,7 +2,7 @@
 {% load static %}
 {% block body_class %}bft-traps{% endblock %}
 {% block main_class %}ar-main{% endblock %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/traps.css' %}?v=2"><script src="{% static 'js/traps.js' %}?v=2" defer></script>{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/traps.css' %}?v=2"><script src="{% static 'js/traps.js' %}?v=3" defer></script>{% endblock %}
 {% block content %}
 <section class="trap-page" aria-labelledby="ar-title">
   <header class="ar-heading"><div class="ar-heading-copy"><span class="ar-heading-mark">{% include 'home/partials/trap_symbol.html' %}</span><div><p class="ar-eyebrow">Arquivo do mestre · Cinéria</p><h1 id="ar-title">Armadilhas e Perigos</h1><p>Nem todo perigo empunha uma espada.</p></div></div>{% if pode_criar %}<a class="ar-button" href="{% url 'armadilha_criar' %}">+ Nova armadilha</a>{% endif %}</header>

@@ -94,6 +94,9 @@
     search.value = url.searchParams.get('q') || '';
     type.value = types.includes(url.searchParams.get('tipo')) ? url.searchParams.get('tipo') : '';
     try { activeSlug = decodeURIComponent(url.hash.slice(1)); } catch { activeSlug = ''; }
+    if (!activeSlug && search.value.trim()) {
+      activeSlug = filtered().find(item => normalize(item.nome) === normalize(search.value.trim()))?.slug || '';
+    }
     render();
   }
 
