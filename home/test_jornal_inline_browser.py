@@ -163,7 +163,10 @@ class JornalInlineBrowserTests(StaticLiveServerTestCase):
                 call('Page.navigate', {'url': detail_url})
                 until("document.readyState === 'complete' && !!document.querySelector('.artigo-hero')")
                 self.assertFalse(js("document.querySelector('.artigo-hero').classList.contains('artigo-hero--text')"))
-                self.assertGreaterEqual(js("document.querySelector('.artigo-hero').getBoundingClientRect().height"), 340)
+                until("document.querySelector('.journal-article-figure img')?.naturalWidth > 0")
+                self.assertIn(article.titulo, js("document.querySelector('.journal-article-figure img').alt"))
+                self.assertLessEqual(js("document.querySelector('.journal-article-figure').getBoundingClientRect().right"),
+                                     js('document.documentElement.clientWidth'))
             finally:
                 if ws:
                     ws.close()
