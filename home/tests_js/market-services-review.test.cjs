@@ -23,7 +23,7 @@ let validity = false;
 let submitted = null;
 const form = {
   classList: { contains(name) { return name === 'loan-payment'; } },
-  dataset: { counterpart: 'Credor', balance: '10 PO' },
+  dataset: { counterpart: 'Credor', balance: '10 PO', balancePc: '1000' },
   addEventListener(type, callback) { listeners[`form:${type}`] = callback; },
   querySelector() { return input; },
   reportValidity() { return validity; },
@@ -58,3 +58,13 @@ assert.equal(dialog.open, true);
 assert.match(elements['[data-service-amount]'].textContent, /2 PO/);
 listeners['[data-service-confirm]:click']();
 assert.equal(submitted, partial, 'confirmation must preserve the partial payment submitter');
+
+submitted = null;
+input.value = '20';
+submit(partial);
+assert.equal(dialog.open, true);
+assert.equal(elements['[data-service-amount]'].textContent, '10 PO', 'review must show the capped debit');
+assert.equal(elements['#service-review-title'].textContent, 'Revisar quitação');
+assert.match(elements['[data-service-note]'].textContent, /quitado/);
+listeners['[data-service-back]:click']();
+assert.equal(submitted, null, 'going back must not submit the capped payment');

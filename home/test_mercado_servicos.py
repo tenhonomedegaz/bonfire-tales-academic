@@ -10,7 +10,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from home.market_services import (
-    create_loan_proposal, register_transaction, respond_loan,
+    create_loan_proposal, pay_loan, register_transaction, respond_loan,
     start_training, sync_overdue_loans, sync_training,
     tables_played,
 )
@@ -195,6 +195,31 @@ class MercadoServicosTests(TestCase):
         self.assertContains(response, 'Empréstimos')
         sheet = self.client.get(reverse('ficha_detail', args=[self.borrower.pk]))
         self.assertNotContains(sheet, 'data-tab="treinamentos"')
+
+    def test_active_loan_review_receives_exact_remaining_balance(self):
+        TbEmprestimoPersonagem.objects.create(
+            credor=self.lender, devedor=self.borrower, proponente=self.lender,
+            valor_original_pc=10000, valor_total_pc=10000,
+            valor_pago_pc=200, status='ativo')
+        self.client.force_login(self.borrower_user)
+        response = self.client.get(
+            reverse('mercado_servicos') + f'?personagem={self.borrower.pk}')
+        self.assertContains(response, 'data-balance-pc="9800"')
+        self.assertContains(response, 'name="valor_po" value="" formnovalidate')
+
+    def test_payment_above_remaining_balance_debits_only_the_balance(self):
+        loan = TbEmprestimoPersonagem.objects.create(
+            credor=self.lender, devedor=self.borrower, proponente=self.lender,
+            valor_original_pc=10000, valor_total_pc=10000,
+            valor_pago_pc=200, status='ativo')
+        _loan, status = pay_loan(self.borrower_user, loan.pk, 20000)
+        self.assertEqual(status, 'emprestimo_quitado')
+        loan.refresh_from_db()
+        self.borrower.refresh_from_db()
+        self.lender.refresh_from_db()
+        self.assertEqual(loan.valor_pago_pc, 10000)
+        self.assertEqual(self.borrower.carteira_pc, 10200)
+        self.assertEqual(self.lender.carteira_pc, 109800)
 
     def test_training_catalog_groups_tools_without_changing_payment_tokens(self):
         for slug, subcategory in (
@@ -396,6 +421,13 @@ class MercadoServicosBrowserTests(StaticLiveServerTestCase):
                 self.assertEqual(loan.valor_pago_pc, 200)
                 borrower.refresh_from_db()
                 self.assertEqual(borrower.carteira_pc, 19800)
+                js('document.querySelector(".loan-payment input[name=valor_po]").value = "200"; document.querySelector(".loan-payment button:not([name])").click()')
+                wait_for('document.querySelector("#service-review").open')
+                self.assertEqual(js('document.querySelector("[data-service-amount]").textContent'), '98 PO')
+                js('document.querySelector("[data-service-back]").click()')
+                wait_for('!document.querySelector("#service-review").open')
+                loan.refresh_from_db()
+                self.assertEqual(loan.valor_pago_pc, 200)
                 js('document.querySelector(".loan-payment input[name=valor_po]").value = "0"')
                 js('document.querySelector(".loan-payment button[name=valor_po]").click()')
                 wait_for('document.querySelector("#service-review").open')

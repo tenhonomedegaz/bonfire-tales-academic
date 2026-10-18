@@ -39,9 +39,14 @@
         const balance = form.dataset.balance || '';
         if (form.classList.contains('loan-payment')) {
           const full = button.name === 'valor_po';
-          title.textContent = full ? 'Revisar quitação' : 'Revisar pagamento';
-          amount.textContent = full ? balance : `${form.querySelector('input[name="valor_po"]').value} PO (saldo: ${balance})`;
-          note.textContent = full ? 'O saldo devido será debitado da sua ficha.' : 'O valor informado será debitado da sua ficha.';
+          const requestedPc = Number(form.querySelector('input[name="valor_po"]').value) * 100;
+          const balancePc = Number(form.dataset.balancePc);
+          const settlesBalance = full || (balancePc > 0 && requestedPc >= balancePc);
+          title.textContent = settlesBalance ? 'Revisar quitação' : 'Revisar pagamento';
+          amount.textContent = settlesBalance ? balance : `${form.querySelector('input[name="valor_po"]').value} PO (saldo: ${balance})`;
+          note.textContent = settlesBalance
+            ? 'O saldo devido será debitado da sua ficha e o empréstimo será quitado.'
+            : 'O valor informado será debitado da sua ficha.';
         } else {
           title.textContent = 'Revisar ' + button.textContent.trim().toLowerCase();
           amount.textContent = balance;
