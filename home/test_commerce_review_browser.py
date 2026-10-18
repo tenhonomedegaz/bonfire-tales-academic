@@ -1,5 +1,8 @@
 """The shared checkout review stays usable without submitting a real payment."""
 
+import base64
+import hashlib
+import hmac
 import json
 import shutil
 import subprocess
@@ -12,11 +15,13 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.db import connection
+from django.test import override_settings
 from django.urls import reverse
 
 from home.models import AsaasCheckoutOrder
 
 
+@override_settings(BONFIRE_CHECKOUT_SIGNING_SECRET='review-browser-secret')
 class CommerceReviewBrowserTests(StaticLiveServerTestCase):
     def test_review_account_cancel_and_confirm_without_checkout_request(self):
         if connection.vendor != 'postgresql' or not connection.settings_dict['NAME'].startswith('test_'):
@@ -31,8 +36,10 @@ class CommerceReviewBrowserTests(StaticLiveServerTestCase):
         ) if path.exists()), None)
         if not browser:
             self.skipTest('Chrome or Edge unavailable.')
-        user = get_user_model().objects.create_user(
-            'checkout-review-owner', email='checkout-review@example.test')
+        user, _ = get_user_model().objects.get_or_create(
+            username='checkout-review-owner',
+            defaults={'email': 'checkout-review@example.test'},
+        )
         self.client.force_login(user)
 
         with tempfile.TemporaryDirectory(prefix='bonfire-checkout-review-', ignore_cleanup_errors=True) as profile:
@@ -115,13 +122,45 @@ class CommerceReviewBrowserTests(StaticLiveServerTestCase):
                 self.assertTrue(js('document.querySelector("[data-co-proceed]").getBoundingClientRect().height >= 44'))
                 js('document.querySelector(".co-dialog-actions [data-co-close]").click()')
                 wait_for('!document.querySelector("#co-review").open')
-                self.assertTrue(js('document.activeElement === document.querySelector("form[data-purchase-review] button")'))
+                wait_for('document.activeElement === document.querySelector("form[data-purchase-review] button")')
                 js('window.reviewSubmits = []; document.querySelector("form[data-purchase-review] button").click()')
                 wait_for('document.querySelector("#co-review").open')
                 js('document.querySelector("[data-co-proceed]").click()')
                 wait_for('window.reviewSubmits.length === 2')
                 self.assertEqual(js('JSON.stringify(window.reviewSubmits)'), '[true,false]')
                 self.assertFalse(AsaasCheckoutOrder.objects.filter(user=user).exists())
+
+                payload = {'discord_id': '987654321', 'discord_name': 'Discord Buyer',
+                           'product': 'token-boost', 'mode': 'single',
+                           'exp': int(time.time()) + 300}
+                encoded = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip('=')
+                signature = base64.urlsafe_b64encode(hmac.new(
+                    b'review-browser-secret', encoded.encode(), hashlib.sha256).digest()
+                ).decode().rstrip('=')
+                token = encoded + '.' + signature
+                call('Page.navigate', {'url': self.live_server_url + reverse('colaborador_discord_checkout') + '?token=' + token})
+                wait_for('document.readyState === "complete" && document.querySelector("form[data-purchase-review]") !== null')
+                js('''(() => {
+                    window.reviewSubmits = [];
+                    document.querySelector('form[data-purchase-review]').addEventListener('submit', event => {
+                        window.reviewSubmits.push(event.defaultPrevented);
+                        if (!event.defaultPrevented) event.preventDefault();
+                    });
+                })()''')
+                js('document.querySelector("form[data-purchase-review] button").click()')
+                wait_for('document.querySelector("#co-review").open')
+                self.assertIn('Discord Buyer (ID 987654321)', js('document.querySelector("[data-co-account-target]").textContent'))
+                self.assertIn('Discord que receberá a compra', js('document.querySelector("[data-co-account-label]").textContent'))
+                self.assertFalse(js('document.querySelector("[data-co-account-target]").hidden'))
+                self.assertEqual(js('window.reviewSubmits.length'), 1)
+                js('document.querySelector(".co-dialog-actions [data-co-close]").click()')
+                self.assertEqual(js('window.reviewSubmits.length'), 1)
+                js('document.querySelector("form[data-purchase-review] button").click()')
+                wait_for('document.querySelector("#co-review").open')
+                js('document.querySelector("[data-co-proceed]").click()')
+                wait_for('window.reviewSubmits.length === 3')
+                self.assertEqual(js('JSON.stringify(window.reviewSubmits)'), '[true,true,false]')
+                self.assertFalse(AsaasCheckoutOrder.objects.exists())
             finally:
                 if ws:
                     ws.close()

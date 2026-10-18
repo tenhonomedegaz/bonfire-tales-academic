@@ -30,12 +30,18 @@
   let opener = null;
   let approved = null;
   const proceed = dialog.querySelector('[data-co-proceed]');
+  const accountTarget = dialog.querySelector('[data-co-account-target]');
+  const defaultAccount = accountTarget.querySelector('[data-co-account]').textContent.trim();
   function review(form, button) {
     if (!form.reportValidity()) return;
     pending = form; opener = button;
     dialog.querySelector('[data-co-product]').textContent = form.dataset.product || '';
     dialog.querySelector('[data-co-amount]').textContent = form.dataset.amount || '';
     dialog.querySelector('[data-co-mode]').textContent = form.dataset.mode || '';
+    const account = form.dataset.account || defaultAccount;
+    accountTarget.hidden = !account;
+    accountTarget.querySelector('[data-co-account-label]').textContent = form.dataset.accountLabel || 'Conta Bonfire que receberá o benefício:';
+    accountTarget.querySelector('[data-co-account]').textContent = account;
     const character = form.querySelector('[name="character"]');
     const selected = character ? character.options[character.selectedIndex] : null;
     dialog.querySelector('[data-co-note]').textContent = (form.dataset.note || '') + (selected ? ' Personagem: ' + selected.textContent + '.' : '');

@@ -1,7 +1,7 @@
 {% extends 'home/base.html' %}{% load static %}
 {% block body_class %}bft-commerce{% endblock %}
 {% block main_class %}co-main flex-1 w-full min-w-0{% endblock %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/commerce.css' %}?v=2"><script src="{% static 'js/commerce.js' %}?v=1" defer></script>{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/commerce.css' %}?v=2"><script src="{% static 'js/commerce.js' %}?v=2" defer></script>{% endblock %}
 {% block content %}
 {% include 'home/partials/commerce_nav.html' with section='support' %}
 {% if user.is_authenticated %}<p><a class="co-text-link" href="{% url 'subscription_management' %}">Consultar minha assinatura</a></p><aside class="co-notice" data-nav-addition><div><strong>Confira a conta que receberá sua compra.</strong><p>Revise seu e-mail e o Discord vinculado antes de escolher um plano ou token.</p></div><a class="co-btn co-btn-secondary" href="{% url 'profile' %}">Conferir conta →</a></aside>{% endif %}
