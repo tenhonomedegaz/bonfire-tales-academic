@@ -1,0 +1,25 @@
+.nt-review {
+  box-sizing: border-box;
+  width: min(460px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+  margin: auto;
+  padding: 1.2rem;
+  border: 1px solid #a86242;
+  border-radius: 5px;
+  background: #1b1011;
+  color: #f2d9bd;
+  box-shadow: 0 20px 60px #000b;
+}
+.nt-review::backdrop { background: #090708c9; }
+.nt-review-head, .nt-review-actions { display: flex; align-items: center; justify-content: space-between; gap: .7rem; }
+.nt-review h2 { margin: 0; font: 500 1.5rem 'Frank Ruhl Libre', Georgia, serif; }
+.nt-review-head button { min-width: 44px; min-height: 44px; border: 0; background: transparent; color: inherit; font-size: 1.5rem; }
+.nt-review dl { margin: 1rem 0; border-top: 1px solid #704331; }
+.nt-review dl > div { display: flex; justify-content: space-between; gap: 1rem; padding: .7rem 0; border-bottom: 1px solid #704331; }
+.nt-review dt { color: #c4a58a; }
+.nt-review dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+.nt-review p { font-size: .85rem; line-height: 1.5; }
+.nt-review-actions { justify-content: flex-end; flex-wrap: wrap; margin-top: 1rem; }
+.nt-review-actions .nt-button { min-height: 44px; }
+@media (max-width: 420px) { .nt-review-actions .nt-button { flex: 1 1 100%; } }

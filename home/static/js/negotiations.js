@@ -14,4 +14,42 @@
   search.addEventListener('input', () => { query = search.value.trim().slice(0, 160); refresh(''); sync(false); }); rarity.addEventListener('change', () => { selectedRarity = rarity.value; refresh(''); sync(false); });
   tabs.forEach(tab => tab.addEventListener('click', () => { area = tab.dataset.ntArea; refresh(''); sync(true); })); entries.forEach(entry => entry.addEventListener('click', () => { selected = entry.dataset.key; refresh(selected); sync(true); reader.focus({ preventScroll: true }); })); clear.addEventListener('click', () => { search.value = ''; rarity.value = ''; query = ''; selectedRarity = ''; refresh(''); sync(true); search.focus({ preventScroll: true }); });
   addEventListener('popstate', () => { area = params().get('area') || 'venda'; query = params().get('q') || ''; selectedRarity = params().get('raridade') || ''; search.value = query; rarity.value = selectedRarity; refresh(params().get('anuncio') || ''); }); refresh(selected);
+  const review = root.querySelector('#nt-review');
+  if (!review || typeof review.showModal !== 'function') return;
+  const proceed = review.querySelector('[data-nt-proceed]');
+  let pending = null;
+  let opener = null;
+  let approved = null;
+  for (const form of root.querySelectorAll('form[data-nt-review]')) {
+    form.addEventListener('submit', event => {
+      if (approved === form) { approved = null; return; }
+      event.preventDefault();
+      if (!form.reportValidity()) return;
+      pending = form;
+      opener = event.submitter || form.querySelector('[type="submit"]');
+      const buying = form.dataset.ntReview === 'buy';
+      const character = buying ? form.querySelector('[name="comprador"]') : null;
+      const selectedCharacter = character?.selectedOptions[0];
+      review.querySelector('#nt-review-title').textContent = buying ? 'Revisar compra' : 'Revisar cancelamento';
+      review.querySelector('[data-nt-product]').textContent = form.dataset.ntProduct || '';
+      review.querySelector('[data-nt-price-row]').hidden = !buying;
+      review.querySelector('[data-nt-price]').textContent = buying ? form.dataset.ntPrice || '' : '';
+      review.querySelector('[data-nt-character]').textContent = buying ? selectedCharacter?.textContent || '' : form.closest('.nt-offer').querySelector('.nt-vendor strong').textContent;
+      review.querySelector('[data-nt-note]').textContent = buying
+        ? 'O valor será debitado do personagem escolhido e o item irá para a mochila dele. O servidor confere saldo e disponibilidade ao confirmar.'
+        : 'O item anunciado voltará para a mochila do personagem vendedor.';
+      proceed.textContent = buying ? 'Confirmar compra' : 'Cancelar anúncio';
+      review.showModal();
+    });
+  }
+  for (const close of review.querySelectorAll('[data-nt-close]')) close.addEventListener('click', () => review.close());
+  review.addEventListener('close', () => { pending = null; opener?.focus(); });
+  proceed.addEventListener('click', () => {
+    const form = pending;
+    if (!form || !form.reportValidity()) return;
+    pending = null;
+    review.close();
+    approved = form;
+    form.requestSubmit();
+  });
 })();
