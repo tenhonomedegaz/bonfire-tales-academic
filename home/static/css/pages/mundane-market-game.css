@@ -2,3 +2,8 @@
 .bft-market-game .mkt-row { transition:border-color .15s ease,background .15s ease; }
 .bft-market-game .mkt-row.is-selected { border-color:var(--ember); background:color-mix(in srgb,var(--ember) 10%,var(--bg1)); }
 .bft-market-game .mkt-preview { min-width:0; }
+.bft-market-game .market-symbols { height:0; position:absolute; width:0; }
+.bft-market-game .mkt-row { grid-template-columns:1.2rem minmax(0,1fr) auto; }
+.bft-market-game .market-row-icon { align-self:center; fill:none; grid-column:1; grid-row:1 / span 2; height:1.1rem; stroke:currentColor; stroke-linecap:round; stroke-linejoin:round; stroke-width:2; width:1.1rem; }
+.bft-market-game .mkt-row-name, .bft-market-game .mkt-row-meta { grid-column:2; }
+.bft-market-game .mkt-row-price { grid-column:3; }

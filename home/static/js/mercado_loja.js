@@ -229,6 +229,9 @@
       linhasDe(pane).sort(function (a, b) {
         var av, bv;
         if (ordem.indexOf('preco-') === 0) {
+          var aPriced = a.hasAttribute('data-price') && a.getAttribute('data-price') !== '';
+          var bPriced = b.hasAttribute('data-price') && b.getAttribute('data-price') !== '';
+          if (aPriced !== bPriced) return aPriced ? -1 : 1;
           av = Number(a.getAttribute('data-price') || 0);
           bv = Number(b.getAttribute('data-price') || 0);
         } else if (ordem.indexOf('raridade-') === 0) {
