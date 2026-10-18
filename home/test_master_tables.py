@@ -38,19 +38,22 @@ class MasterTableFlowTests(TestCase):
         return data
 
     def test_free_listing_requires_owner_staff_review_and_current_revision(self):
+        discord_url = 'https://discord.com/channels/123/456'
         self.client.force_login(self.other)
         self.assertEqual(self.client.post(reverse('master_table_create'), self.payload()).status_code, 403)
 
         self.client.force_login(self.master)
-        result = self.client.post(reverse('master_table_create'), self.payload())
+        result = self.client.post(reverse('master_table_create'), self.payload(discord_url=discord_url))
         self.assertEqual(result.status_code, 302, result.content[:500])
         table = TbMesaAnuncio.objects.get(mestre=self.master)
         self.assertEqual(table.estado, 'pendente')
+        self.assertEqual(table.discord_url, discord_url)
         self.assertTrue(table.preco_demonstrativo)
         self.assertEqual(table.revisao, 1)
         self.assertContains(self.client.get(reverse('profile') + '?aba=mestre'), 'Preparar anúncio')
         self.client.force_login(self.other)
         self.assertEqual(self.client.get(reverse('master_table_detail', args=[table.pk])).status_code, 404)
+        self.assertNotContains(self.client.get(reverse('sistemas_missoes')), discord_url)
         self.assertEqual(self.client.post(reverse('master_table_action', args=[table.pk]), {
             'acao': 'aprovar', 'revisao': '1',
         }).status_code, 403)
@@ -69,6 +72,13 @@ class MasterTableFlowTests(TestCase):
         self.client.force_login(self.other)
         self.assertEqual(self.client.get(reverse('master_table_detail', args=[table.pk])).status_code, 200)
         self.assertContains(self.client.get(reverse('sistemas_missoes')), table.titulo)
+        self.assertContains(self.client.get(reverse('sistemas_missoes')),
+                            f'href="{discord_url}" target="_blank" rel="noopener noreferrer">Consultar inscrição no Discord')
+        table.discord_url = ''
+        table.save(update_fields=['discord_url'])
+        no_channel = self.client.get(reverse('sistemas_missoes'))
+        self.assertContains(no_channel, table.titulo)
+        self.assertNotContains(no_channel, 'Consultar inscrição no Discord')
         # 01:30 UTC belongs to the previous calendar day in Brasilia.
         utc_day = timezone.now().date() + timedelta(days=10)
         table.data = datetime.combine(utc_day, time(1, 30), tzinfo=datetime_timezone.utc)
