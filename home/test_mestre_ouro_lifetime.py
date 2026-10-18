@@ -90,6 +90,43 @@ class MestreOuroLifetimeTests(TestCase):
                          'multiple_first_purchases')
         self.assertFalse(is_mestre_ouro(self.user))
 
+    def test_orphan_slot_redemption_requires_review_even_with_old_purchase(self):
+        self.purchase()
+        TbTransacaoMestre.objects.create(
+            mestre=self.user, tipo='resgate', valor_mm=-5000,
+            saldo_mm=0, descricao='Slot permanente de personagem (Mestre Ouro)',
+        )
+        preview = StringIO()
+        call_command('reconcile_mestre_ouro_lifetime', stdout=preview)
+        self.assertEqual(json.loads(preview.getvalue())['rows'][0]['status'],
+                         'review_required')
+        grant, result = reconcile_mestre_ouro(self.user.pk)
+        self.assertIsNone(grant)
+        self.assertEqual(result, 'review_required')
+        self.assertEqual(MestreOuroRevisao.objects.get(user=self.user).motivo,
+                         'slot_redemption_without_right')
+        self.assertFalse(MestreOuroDireito.objects.exists())
+
+    def test_orphan_slot_redemption_prevents_legacy_offer_debit(self):
+        self.profile.moedas_mestragem = 900
+        self.profile.save(update_fields=['moedas_mestragem'])
+        self.offer.preco_vitalicio_aprovado_mm = 700
+        self.offer.save(update_fields=['preco_vitalicio_aprovado_mm'])
+        old = TbTransacaoMestre.objects.create(
+            mestre=self.user, tipo='resgate', valor_mm=-5000,
+            saldo_mm=900, descricao='Slot permanente de personagem (Mestre Ouro)',
+        )
+        preview = StringIO()
+        call_command('reconcile_mestre_ouro_lifetime', stdout=preview)
+        self.assertEqual(json.loads(preview.getvalue())['rows'][0]['status'],
+                         'review_required')
+        with self.assertRaisesMessage(ValueError, 'requires review'):
+            buy_mestre_ouro_lifetime(self.user.pk, self.offer.pk)
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.moedas_mestragem, 900)
+        self.assertEqual(list(TbTransacaoMestre.objects.values_list('pk', flat=True)), [old.pk])
+        self.assertFalse(MestreOuroDireito.objects.exists())
+
     def test_unproven_legacy_flag_is_not_a_lifetime_entitlement(self):
         self.profile.mestre_ouro_ativo = True
         self.profile.save(update_fields=['mestre_ouro_ativo'])

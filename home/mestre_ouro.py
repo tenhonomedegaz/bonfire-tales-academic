@@ -30,6 +30,13 @@ def _purchases(user_id):
     ).order_by('criado_em', 'pk')[:2])
 
 
+def _has_slot_redemption_without_right(user_id):
+    return TbTransacaoMestre.objects.filter(
+        mestre_id=user_id, tipo='resgate', valor_mm__lt=0,
+        descricao__icontains='Slot permanente de personagem',
+    ).exists()
+
+
 def has_unreconciled_mestre_ouro_history(user_id, profile=None):
     """A past subscription/charge must be reviewed before a new slot debit."""
     if MestreOuroDireito.objects.filter(user_id=user_id).exists():
@@ -39,6 +46,7 @@ def has_unreconciled_mestre_ouro_history(user_id, profile=None):
     return bool(
         (profile and profile.mestre_ouro_ativo)
         or _purchases(user_id)
+        or _has_slot_redemption_without_right(user_id)
         or TbTransacaoMestre.objects.filter(
             mestre_id=user_id, tipo='mensalidade', valor_mm__lt=0).exists()
         or MestreOuroRevisao.objects.filter(user_id=user_id).exists()
@@ -87,6 +95,11 @@ def reconcile_mestre_ouro(user_id):
         _grant_cosmetics(user)
         return existing, 'already_granted'
     purchases = _purchases(user_id)
+    if _has_slot_redemption_without_right(user_id):
+        MestreOuroRevisao.objects.update_or_create(
+            user=user, defaults={'motivo': 'slot_redemption_without_right'},
+        )
+        return None, 'review_required'
     if len(purchases) == 1:
         first = purchases[0]
         grant = MestreOuroDireito.objects.create(
@@ -125,7 +138,8 @@ def buy_mestre_ouro_lifetime(user_id, offer_id):
     if existing:
         _grant_cosmetics(user)
         return existing, False
-    if _purchases(user_id) or profile.mestre_ouro_ativo:
+    if (_purchases(user_id) or profile.mestre_ouro_ativo
+            or _has_slot_redemption_without_right(user_id)):
         grant, result = reconcile_mestre_ouro(user_id)
         if result in ('granted', 'already_granted'):
             return grant, False

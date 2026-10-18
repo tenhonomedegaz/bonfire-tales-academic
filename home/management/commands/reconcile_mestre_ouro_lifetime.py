@@ -27,6 +27,9 @@ class Command(BaseCommand):
         user_ids = (get_user_model().objects.filter(
             Q(profile__mestre_ouro_ativo=True)
             | Q(transacoes_mm__tipo__in=('assinatura', 'mensalidade'))
+            | Q(transacoes_mm__tipo='resgate',
+                transacoes_mm__valor_mm__lt=0,
+                transacoes_mm__descricao__icontains='Slot permanente de personagem')
         ).distinct().order_by('pk').values_list('pk', flat=True))
         rows = []
         for user_id in user_ids:
@@ -38,10 +41,14 @@ class Command(BaseCommand):
                 pk=user_id, profile__mestre_ouro_ativo=True).exists()
             monthly = TbTransacaoMestre.objects.filter(
                 mestre_id=user_id, tipo='mensalidade', valor_mm__lt=0).exists()
+            slot_redemption = TbTransacaoMestre.objects.filter(
+                mestre_id=user_id, tipo='resgate', valor_mm__lt=0,
+                descricao__icontains='Slot permanente de personagem').exists()
             if options['apply']:
                 _, result = reconcile_mestre_ouro(user_id)
             else:
-                result = ('already_granted' if has_grant else 'eligible' if len(purchases) == 1
+                result = ('already_granted' if has_grant else 'review_required' if slot_redemption
+                          else 'eligible' if len(purchases) == 1
                           else 'review_required' if len(purchases) > 1 or legacy_active or monthly
                           else 'unproven')
             rows.append({'user_id': user_id, 'first_purchase_id': purchases[0] if purchases else None,

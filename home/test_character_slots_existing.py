@@ -170,3 +170,18 @@ class CharacterSlotRedemptionTests(TestCase):
         self.assertEqual(guarded.post(self.url).status_code, 403)
         self.assertEqual(guarded.get(self.url).status_code, 405)
         self.assertFalse(TbTransacaoMestre.objects.exists())
+
+    @patch('home.permissions.is_mestre', return_value=True)
+    def test_orphan_slot_redemption_blocks_second_debit(self, _is_mestre):
+        old = TbTransacaoMestre.objects.create(
+            mestre=self.user, tipo='resgate', valor_mm=-5000,
+            saldo_mm=6000, descricao='Slot permanente de personagem (Mestre Ouro)',
+        )
+        page = self.client.get(reverse('character_slots'))
+        self.assertContains(page, 'histórico legado de Mestre Ouro')
+        self.assertNotContains(page, 'Confirmar resgate por 5.000 MM')
+        self.client.post(self.url)
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.moedas_mestragem, 6000)
+        self.assertEqual(list(TbTransacaoMestre.objects.values_list('pk', flat=True)), [old.pk])
+        self.assertFalse(MestreOuroDireito.objects.exists())
