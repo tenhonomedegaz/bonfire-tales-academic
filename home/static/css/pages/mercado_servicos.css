@@ -60,6 +60,18 @@
 .staff-loan-people dd { margin: 0; color: var(--text); font-size: .78rem; }
 .staff-loan-people code { color: var(--spark); user-select: all; }
 .staff-loan-row.is-overdue .service-deadline span { color: #fb7185; }
+.loan-review { width: min(100% - 1rem, 27rem); max-height: calc(100vh - 2rem); margin: auto; padding: 1.25rem; border: 1px solid var(--ember); border-radius: 8px; background: var(--bg1); color: var(--text); box-shadow: 0 1rem 3rem rgba(0, 0, 0, .5); }
+.loan-review::backdrop { background: rgba(0, 0, 0, .7); }
+.loan-review h2 { font: 800 1.4rem/1.2 'Frank Ruhl Libre', serif; }
+.loan-review dl { display: grid; gap: .65rem; margin: 1rem 0; }
+.loan-review dl > div { display: grid; gap: .2rem; }
+.loan-review dt { color: var(--muted); font-size: .7rem; font-weight: 800; text-transform: uppercase; }
+.loan-review dd { overflow-wrap: anywhere; font-weight: 700; }
+.loan-review p { color: var(--muted); font-size: .85rem; line-height: 1.5; }
+.loan-review-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
+.loan-review-actions button { min-height: 2.35rem; padding: .45rem .75rem; border: 1px solid var(--ember); border-radius: 5px; background: var(--ember); color: #fff; font-weight: 800; }
+.loan-review-actions button.is-muted { border-color: var(--stroke); background: transparent; color: var(--text); }
+.loan-review-actions button:focus-visible { outline: 2px solid var(--spark); outline-offset: 2px; }
 @media (max-width: 760px) {
   .services-shell { width: min(100% - .75rem, 1120px); margin-top: .4rem; }
   .service-heading { align-items: start; }
