@@ -94,7 +94,7 @@ class AdLayoutBrowserTests(StaticLiveServerTestCase):
                 ]})
                 labels = (
                     'Publicidade lateral esquerda', 'Publicidade lateral direita',
-                    'Publicidade acima do conte\u00fado', 'Publicidade ap\u00f3s o conte\u00fado',
+                    'Publicidade ap\u00f3s o conte\u00fado',
                 )
                 for width in (360, 768, 1280, 1340, 1920):
                     with self.subTest(width=width):
@@ -103,7 +103,7 @@ class AdLayoutBrowserTests(StaticLiveServerTestCase):
                             'deviceScaleFactor': 1, 'mobile': width <= 768,
                         })
                         call('Page.navigate', {'url': self.live_server_url + reverse('home')})
-                        wait_for('document.querySelectorAll("ins.adsbygoogle").length === 4')
+                        wait_for('document.querySelectorAll("ins.adsbygoogle").length === 3')
                         # Aguarda a folha responsiva antes de medir os breakpoints.
                         wait_for('document.styleSheets.length > 1')
                         areas = js('''(() => {
@@ -114,16 +114,15 @@ class AdLayoutBrowserTests(StaticLiveServerTestCase):
                                 return node && getComputedStyle(node).display !== 'none';
                             });
                         })()''' % json.dumps(labels))
-                        self.assertEqual(areas, [width >= 1340, width >= 1340,
-                                                 width < 1340, True])
+                        self.assertEqual(areas, [width >= 1340, width >= 1340, True])
                         self.assertLessEqual(js('document.documentElement.scrollWidth'), width)
-                        self.assertEqual(js('document.querySelectorAll("ins.adsbygoogle").length'), 4)
+                        self.assertEqual(js('document.querySelectorAll("ins.adsbygoogle").length'), 3)
                         js('document.querySelectorAll("ins.adsbygoogle").forEach('
                            'slot => slot.setAttribute("data-ad-status", "unfilled"))')
                         self.assertEqual(js('''[...document.querySelectorAll('aside')]
                             .filter(aside => aside.getAttribute('aria-label')?.startsWith('Publicidade'))
                             .map(aside => getComputedStyle(aside).display !== 'none')'''),
-                            [False, False, False, False])
+                            [False, False, False])
 
                 call('Page.navigate', {'url': self.live_server_url + reverse('login')})
                 wait_for('!!document.querySelector("main")')

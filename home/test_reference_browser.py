@@ -12,7 +12,7 @@ from django.db import connection
 from django.urls import reverse
 
 from .models import (TbAntecedente, TbArmadilha, TbCondicao, TbIdioma,
-                     TbOpcaojogo, TbRegra, TbTalento)
+                     TbItemMagico, TbItemMundano, TbOpcaojogo, TbRegra, TbTalento)
 
 
 class ReferenceCatalogBrowserTests(StaticLiveServerTestCase):
@@ -53,6 +53,10 @@ class ReferenceCatalogBrowserTests(StaticLiveServerTestCase):
         option = TbOpcaojogo.objects.create(
             slug='sinal-das-brumas', nome='Sinal das Brumas', tipo='Exploração')
         TbOpcaojogo.objects.create(slug='antigo-sinal-das-brumas', nome='Antigo Sinal das Brumas', tipo='Exploração')
+        mundane = TbItemMundano.objects.create(slug='corda-das-brumas', nome='Corda das Brumas', preco='1 PO')
+        TbItemMundano.objects.create(slug='antiga-corda-das-brumas', nome='A Corda das Brumas', preco='1 PO')
+        magic = TbItemMagico.objects.create(slug='anel-das-brumas', nome='Anel das Brumas', preco=0)
+        TbItemMagico.objects.create(slug='antigo-anel-das-brumas', nome='A Anel das Brumas', preco=0)
         with tempfile.TemporaryDirectory(prefix='bonfire-conditions-', ignore_cleanup_errors=True) as scratch:
             profile = Path(scratch) / 'profile'
             process = subprocess.Popen([
@@ -142,6 +146,17 @@ class ReferenceCatalogBrowserTests(StaticLiveServerTestCase):
                     self.assertLessEqual(js('document.documentElement.scrollWidth'), js('document.documentElement.clientWidth'))
                     cdp('Page.reload', {'ignoreCache': True})
                     wait_for('location.pathname === %s && %s && %s' % (json.dumps(reverse(route)), selected, count))
+                for entry, route in ((mundane, 'mercado_itens_mundanos'),
+                                     (magic, 'mercado_itens_magicos')):
+                    cdp('Page.navigate', {'url': self.live_server_url + reverse('busca') + '?q=' + quote(entry.nome)})
+                    result_link = 'Array.from(document.querySelectorAll(".cp-result-group a")).find(a => a.querySelector(".cp-result-name")?.firstChild?.textContent.trim() === %s)' % json.dumps(entry.nome)
+                    wait_for(result_link + ' !== undefined')
+                    js(result_link + '.click()')
+                    selected = 'document.querySelector("[data-shop-pane=comprar] [data-mkt-row].is-selected")?.dataset.name === %s' % json.dumps(entry.nome)
+                    wait_for('location.pathname === %s && %s' % (json.dumps(reverse(route)), selected))
+                    self.assertEqual(js('new URLSearchParams(location.search).get("busca")'), entry.nome)
+                    cdp('Page.reload', {'ignoreCache': True})
+                    wait_for('location.pathname === %s && %s' % (json.dumps(reverse(route)), selected))
             finally:
                 if ws:
                     ws.close()

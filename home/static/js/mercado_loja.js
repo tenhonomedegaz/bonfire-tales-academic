@@ -80,9 +80,18 @@
     });
     if (soFavoritos) soFavoritos.checked = params.get('favoritos') === '1';
     var alvo = params.get('item');
-    var linhaDoLink = alvo && linhasDe(paneDe('comprar')).find(function (r) {
+    var linhasCompra = linhasDe(paneDe('comprar'));
+    var linhaDoLink = alvo && linhasCompra.find(function (r) {
       return r.getAttribute('data-target') === alvo || r.getAttribute('data-magic-slug') === alvo;
     });
+    // A busca global fornece o nome do registro. Prefira a correspondencia
+    // exata quando outros itens da vitrine tambem contem esse nome.
+    if (!alvo && params.get('busca')) {
+      var nomeBuscado = norm(params.get('busca').trim());
+      linhaDoLink = linhasCompra.find(function (r) {
+        return norm(r.getAttribute('data-name')) === nomeBuscado;
+      });
+    }
     if (linhaDoLink && selEstoque && !params.has('estoque') && linhaDoLink.getAttribute('data-available') !== 'true') {
       selEstoque.value = 'catalogo';
     }
