@@ -55,6 +55,7 @@ acesso é fechado por is_staff na view (dono não-staff é redirecionado para a 
       {# ===================== STAFF — CONCEDER ITEM (missão/recompensa, sem custo de ouro) ===================== #}
       <div class="lvl-staffbox" style="margin-top:1.2rem" id="cw-grants">
         <h2 class="cw-panel-title lbl">Conceder item de missão ou recompensa</h2>
+        <p class="lvl-note-cap">Esta concessão registra um item diretamente na ficha. Ela não resgata tokens de item raro ou muito raro do marco de nível.</p>
         <form method="post" action="{% url 'personagem_conceder_item' p.id_personagem %}" class="lvl-inline" style="flex:1 1 100%" data-conceder-form>
           {% csrf_token %}
           <select name="tipo" class="lvl-field" data-conceder-tipo aria-label="Tipo de item">

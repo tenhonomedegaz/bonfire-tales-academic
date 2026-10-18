@@ -36,13 +36,14 @@ caminho para desfazer os CONTADORES (aventuras/ouro/braseiros).{% endcomment %}
     </select>
     <input type="date" name="data_missao" class="lvl-field" aria-label="Data da missão" title="Data em que a missão aconteceu (não a do lançamento)">
     <input type="number" name="aventuras" min="1" max="200" value="1" class="lvl-field" style="width:5rem" aria-label="Quantidade de aventuras">
-    <select name="quest_category" class="lvl-field" aria-label="Categoria confirmada da missão" title="Opcional; marque somente uma missão concluída e comprovada">
+    <select name="quest_category" class="lvl-field" aria-label="Categoria confirmada da missão" aria-describedby="quest-category-note" title="Opcional; marque somente uma missão concluída e comprovada">
       <option value="">Sem categoria confirmada</option>
       <option value="bg_token">BG/token</option>
       <option value="item_rare">Quest de item raro</option>
       <option value="item_very_rare">Quest de item muito raro</option>
       <option value="item_legendary">Quest de item lendário</option>
     </select>
+    <p class="lvl-note-cap" id="quest-category-note" style="flex:1 1 100%">A categoria registra uma missão concluída e confirmada pela staff. Ela não consome tokens de progressão da ficha.</p>
     <input type="text" name="bot_quest_id" maxlength="30" class="lvl-field" placeholder="ID da missão no bot (opcional)" aria-label="ID da missão no bot" title="Use o ID exato da missão finalizada; nome e data não identificam a missão">
     <label class="lvl-radio"><input type="checkbox" name="evento"> missão de evento (dá braseiros)</label>
     <button type="submit" class="lvl-add">+ Aventuras (ouro + nível)</button>

@@ -1,0 +1,21 @@
+# G01-C — proposta mínima de tokens por ficha
+
+**Estado:** proposta para decisão e aprovação explícita do PO. Nada nesta página autoriza alteração de backend, contrato ou banco em DEV ou produção.
+
+## Contrato encontrado
+
+- No bot, `/token-info`, `/token-adicionar`, `/token-remover` e `/token-usar` operam `tokenMission`, `tokenXpBoost` e `tokenSuperboost` do **membro Discord**, sem ID de personagem (`src/modules/discord/commands/bonfire/subscription/`, `admin/`, `UseMemberTokenUseCase.ts`, `prisma/schema.prisma:72-74`). Não há tipo de token de item raro/muito raro nesse contrato.
+- No site, a staff registra uma missão concluída e sua categoria para uma ficha em `personagem_registrar_aventuras` (`home/views.py:7427-7483`, `:7800-7810`); `item_rare` e `item_very_rare` são categorias de quest concluída. A staff pode conceder um item diretamente ao inventário da ficha em `personagem_conceder_item` (`home/views.py:8007-8087`). Esses dois fluxos **não consultam nem consomem tokens**. `validar_vinculo_aventura_bot` comprova participação da conta Discord e evita vincular a mesma missão duas vezes na conta; o bot não informa qual ficha participou, então a atribuição à ficha ainda depende da staff.
+- Na leitura do PostgreSQL DEV isolado `bonfire_redesign_6113ea68` em 18/10/2026: zero eventos cujo tipo contém `token`, zero itens com `origem_tipo=concessao` e zero missões categorizadas. Essas contagens do DEV não provam ausência de histórico de produção.
+
+## Fluxo proposto, sujeito a G01-C
+
+1. Registrar um fato de concessão em `TbEventoConquista` para cada nova subida de nível **comprovada** 5, 9 ou 13. A chave única contém ID imutável da ficha, nível e benefício. Não varrer níveis antigos, não creditar saldo de membro do bot e não substituir token de item por boost. O token permanece vinculado à ficha original mesmo que a conta possua outras fichas; após exclusão da ficha, o fato fica para auditoria sem permitir uso por outra.
+2. Mostrar à dona da ficha o direito e permitir solicitar uso somente nela. A solicitação identifica a concessão e não a debita de imediato. Staff confirma o cumprimento; uma transação com trava registra um único consumo ligado à concessão e à ficha. Repetição da confirmação retorna o mesmo resultado, sem segunda entrega. Preservar a identidade do operador, data e referência externa.
+3. **Token de quest:** a staff cria/identifica a missão no fluxo existente do bot e vincula explicitamente seu ID à ficha solicitante no registro de cumprimento. O ID do bot, sozinho, prova uma missão da conta Discord, não a ficha; a staff precisa validar essa atribuição. A categoria de missão concluída no site continua sendo apenas registro posterior e não vale como consumo por si só. A proposta não muda criação, propriedade ou regras de missões do bot.
+4. **Token de item raro/muito raro:** a staff escolhe um item já existente no catálogo da raridade correspondente e o entrega à mesma ficha pelo fluxo atual de concessão. O consumo referencia o ID da linha do inventário. A conferência de raridade precisa considerar as variantes já cadastradas (`raro`, `raro_menor`, `raro_maior`; `muito_raro`, `muito_raro_menor`, `muito_raro_maior`), conforme aprovação do PO. Não gerar item, preço, estoque ou bônus novo.
+5. O slot de nível 13 para novos marcos seria registrado por ficha e somado ao limite em `home/permissions.py`, preservando o direito Esmeralda histórico de conta sem duplicá-lo. A compra de 5.000 MM e os demais direitos atuais continuam independentes.
+
+**Arquivos candidatos:** `home/conquistas.py`, `home/permissions.py`, `home/slot_views.py`, `home/views.py`, `home/urls.py`, templates da ficha e de slots, com testes regionais. A proposta utiliza `TbEventoConquista` existente; não importa a migration `0157` da fonte e não prevê migração de dados ou concessão retroativa. Se a implementação exigir nova estrutura, retornar ao PO com um sublote próprio antes de aplicá-la.
+
+**Aceite exigido antes de ativar:** duas fichas da mesma conta; marco novo versus histórico; replay e concorrência; pedido de outra ficha; confirmação duplicada; quest do bot sem ID ou com ID de outra ficha; item de raridade incompatível; exclusão da ficha; estorno e auditoria; slot histórico preservado; nenhum envio real nos testes. G00 e G02 permanecem separados.
