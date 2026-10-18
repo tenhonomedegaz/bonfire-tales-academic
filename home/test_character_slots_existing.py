@@ -180,8 +180,23 @@ class CharacterSlotRedemptionTests(TestCase):
         page = self.client.get(reverse('character_slots'))
         self.assertContains(page, 'histórico legado de Mestre Ouro')
         self.assertNotContains(page, 'Confirmar resgate por 5.000 MM')
+        market = self.client.get(reverse('mestre_mercado'))
+        self.assertContains(market, 'Histórico em revisão')
+        self.assertNotContains(market, 'Não adquirido')
         self.client.post(self.url)
         self.profile.refresh_from_db()
         self.assertEqual(self.profile.moedas_mestragem, 6000)
         self.assertEqual(list(TbTransacaoMestre.objects.values_list('pk', flat=True)), [old.pk])
         self.assertFalse(MestreOuroDireito.objects.exists())
+
+    @patch('home.permissions.is_mestre', return_value=True)
+    def test_legacy_subscription_without_right_has_matching_market_status(self, _is_mestre):
+        TbTransacaoMestre.objects.create(
+            mestre=self.user, tipo='assinatura', valor_mm=-500,
+            saldo_mm=6000, descricao='Mestre Ouro antigo',
+        )
+        self.assertContains(self.client.get(reverse('character_slots')),
+                            'histórico legado de Mestre Ouro')
+        market = self.client.get(reverse('mestre_mercado'))
+        self.assertContains(market, 'Histórico em revisão')
+        self.assertNotContains(market, 'Não adquirido')

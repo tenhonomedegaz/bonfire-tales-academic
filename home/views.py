@@ -14858,6 +14858,7 @@ def mercado_mestre_view(request):
     """Mercado de Mestre: saldo de MM, catálogo de recompensas, registro de aventuras,
     histórico, Rei da Colina e Mestre Ouro. Gated por is_mestre."""
     from .models import MestreOuroDireito, TbRecompensaMestre, TbReiDaColina
+    from .mestre_ouro import has_unreconciled_mestre_ouro_history
     from . import permissions as perms
     if not perms.is_mestre(request.user):
         raise Http404
@@ -14876,7 +14877,8 @@ def mercado_mestre_view(request):
         'rei_colina': rdc,
         'sou_rei': bool(rdc and rdc.holder_id == request.user.id),
         'mestre_ouro_ativo': ouro_vitalicio,
-        'mestre_ouro_legado_pendente': perfil.mestre_ouro_ativo and not ouro_vitalicio,
+        'mestre_ouro_legado_pendente': has_unreconciled_mestre_ouro_history(
+            request.user.pk, perfil),
         'meus_personagens': meus,
         'msg': request.GET.get('m'),
     })
