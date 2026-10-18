@@ -94,6 +94,22 @@ def is_rank_esmeralda(user):
         return False
 
 
+def esmeralda_progress_needs_review(user, characters, *, has_right):
+    """Indica progresso legado sem prova conciliada; nunca altera o limite."""
+    if has_right or not getattr(user, 'is_authenticated', False):
+        return False
+    if any(character.nivel >= 13 for character in characters):
+        return True
+    try:
+        from .models import TbEventoConquista
+        return TbEventoConquista.objects.filter(
+            conta=user, origem='site', tipo='character_level_up',
+            payload_json__level_after__gte=13,
+        ).exists()
+    except Exception:
+        return False
+
+
 def is_colaborador(user):
     """+1 slot: assinatura COLABORADOR ativa (Asaas → tabela `transactions` do bot).
     Vínculo por e-mail (auth.User.email + e-mails do BotMember ligado por discord_user_id).

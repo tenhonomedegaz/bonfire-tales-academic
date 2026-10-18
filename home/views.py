@@ -5921,6 +5921,8 @@ def personagens_list_view(request):
         'pode_criar': perms.pode_criar(request.user),
         'is_staff': perms.is_staff_user(request.user),
     }
+    ctx['esmeralda_review_pending'] = perms.esmeralda_progress_needs_review(
+        request.user, minhas, has_right=ctx['limite_detalhe']['esmeralda'])
     if perms.is_staff_user(request.user):
         outras = (TbPersonagem.objects.exclude(dono=request.user)
                   .select_related('dono', 'id_raca').prefetch_related('classes__id_classe')

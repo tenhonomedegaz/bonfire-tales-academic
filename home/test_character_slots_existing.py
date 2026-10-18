@@ -1,9 +1,10 @@
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
+from django.utils import timezone
 from unittest.mock import patch
 
-from .models import (MestreOuroDireito, TbCosmetico, TbPersonagem,
+from .models import (MestreOuroDireito, TbCosmetico, TbEventoConquista, TbPersonagem,
                      TbTransacaoMestre, TbUsuarioCosmetico, UserProfile)
 
 
@@ -28,6 +29,7 @@ class ExistingCharacterSlotsTests(TestCase):
         self.assertContains(before, '2 fichas preservadas')
         self.assertContains(before, 'Fiel')
         self.assertContains(before, 'Guardada')
+        self.assertContains(before, 'Nível 13 em revisão')
         self.assertNotContains(before, 'Secreta')
         self.assertNotContains(before, 'Confirmar por 5.000 MM')
 
@@ -46,6 +48,24 @@ class ExistingCharacterSlotsTests(TestCase):
         self.assertFalse(self.active.arquivado)
         self.assertTrue(self.archived.arquivado)
         self.assertEqual(TbTransacaoMestre.objects.filter(mestre=self.owner).count(), 1)
+
+    def test_old_level_event_without_sheet_is_reviewed_without_grant(self):
+        TbPersonagem.objects.filter(dono=self.owner).update(nivel=1)
+        TbEventoConquista.objects.create(
+            origem='site', chave_origem='legacy-level-13-without-sheet',
+            tipo='character_level_up', conta=self.owner,
+            agregado_id=999999, ocorrido_em=timezone.now(),
+            payload_json={'level_after': 13},
+        )
+        self.client.force_login(self.owner)
+        slots = self.client.get(reverse('character_slots'))
+        listing = self.client.get(reverse('personagens'))
+        self.assertContains(slots, 'Nível 13 em revisão')
+        self.assertContains(listing, 'progresso de nível 13 em revisão')
+        self.assertContains(slots, '<strong>1</strong><span>fichas ativas permitidas</span>', html=True)
+        self.client.force_login(self.other)
+        self.assertNotContains(self.client.get(reverse('character_slots')),
+                               'Nível 13 em revisão')
 
     def test_character_list_links_to_capacity_and_uses_actual_totals(self):
         self.client.force_login(self.owner)

@@ -13,11 +13,12 @@
         <h2 id="bs-rights-title">De onde vêm seus slots</h2>
         <ul class="bs-rights">
           <li><span>Conta Bonfire</span><strong>{{ slot_details.base }} incluído</strong></li>
-          <li><span>Rank Esmeralda</span><strong>{% if slot_details.esmeralda %}+1 ativo{% else %}Não ativo{% endif %}</strong></li>
+          <li><span>Rank Esmeralda</span><strong>{% if slot_details.esmeralda %}+1 ativo{% elif esmeralda_review_pending %}Nível 13 em revisão{% else %}Não ativo{% endif %}</strong></li>
           <li><span>Colaboração ativa</span><strong>{% if slot_details.colaborador %}+1 temporário{% else %}Não ativa{% endif %}</strong></li>
           <li><span>Compra vitalícia Mestre Ouro</span><strong>{% if slot_details.mestre_ouro %}+1 permanente{% elif slot_legacy_pending %}Histórico em revisão{% else %}Sem direito registrado{% endif %}</strong></li>
         </ul>
         <p class="bs-help">O direito vitalício já registrado continua valendo sem novo débito. Um novo resgate de 5.000 MM só debita seu saldo após confirmação. O nível 13 comprovado no site usa o mesmo slot Esmeralda do histórico do bot; os demais marcos aguardam reconciliação.</p>
+        {% if esmeralda_review_pending %}<p class="bs-notice">Há progresso de nível 13 a conferir. Suas fichas continuam preservadas; este slot só entra no limite quando o direito for comprovado.</p>{% endif %}
       </section>
       <section class="bs-panel" aria-labelledby="bs-selection-title">
         <h2 id="bs-selection-title">Suas fichas</h2>

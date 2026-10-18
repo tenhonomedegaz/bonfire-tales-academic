@@ -16,6 +16,8 @@ from .models import UserProfile
 def character_slots(request):
     characters = list(request.user.personagens.order_by('-atualizado_em'))
     details = permissions.limite_detalhe(request.user)
+    esmeralda_review_pending = permissions.esmeralda_progress_needs_review(
+        request.user, characters, has_right=details['esmeralda'])
     profile = UserProfile.objects.filter(user=request.user).first()
     balance = int(profile.moedas_mestragem or 0) if profile else 0
     legacy_pending = has_unreconciled_mestre_ouro_history(request.user.pk, profile)
@@ -23,6 +25,7 @@ def character_slots(request):
         'page_title': 'Meus slots de personagem',
         'characters': characters,
         'slot_details': details,
+        'esmeralda_review_pending': esmeralda_review_pending,
         'slot_limit': permissions.get_character_limit(request.user),
         'active_count': sum(not character.arquivado for character in characters),
         'retained_count': len(characters),

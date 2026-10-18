@@ -27,6 +27,7 @@
   </header>
 
   <p class="cw-slots-note">{{ fichas_preservadas }} fichas preservadas. <a href="{% url 'character_slots' %}">Ver direitos e capacidade →</a></p>
+  {% if esmeralda_review_pending %}<p class="cw-slots-note">Há progresso de nível 13 em revisão. <a href="{% url 'character_slots' %}">Entenda o limite atual →</a></p>{% endif %}
   <div class="cw-search-tools" hidden data-cw-controls><label for="cw-search">Encontrar uma ficha<input type="search" id="cw-search" maxlength="160" placeholder="Nome, raça ou classe…" autocomplete="off"></label><label for="cw-group">Mostrar<select id="cw-group"><option value="">Todas as fichas</option><option value="ativo">Somente ativas</option><option value="inativo">Somente inativas</option></select></label><button type="button" data-cw-clear>Limpar filtros</button><p role="status" aria-live="polite" data-cw-count></p></div>
   <section class="cw-card-group" data-cw-group="ativo" aria-labelledby="cw-active-title">
   <h2 id="cw-active-title" class="mb-2 font-serif text-lg font-bold text-[var(--text)]">Ativos <span class="cw-section-note">Prontos para continuar a aventura</span></h2>
