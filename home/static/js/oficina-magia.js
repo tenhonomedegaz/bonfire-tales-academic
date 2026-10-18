@@ -32,6 +32,33 @@
     return new URL(window.location.href).searchParams.get('tab') || 'scrolls';
   }
 
+  var submittedTabKey = 'bonfire-workshop-submitted-tab';
+  var submittedTab = window.sessionStorage.getItem(submittedTabKey);
+  window.sessionStorage.removeItem(submittedTabKey);
+  var initialUrl = new URL(window.location.href);
+  if (!initialUrl.searchParams.has('tab') && initialUrl.searchParams.has('status') && submittedTab &&
+      tabs.some(function (tab) { return tab.dataset.workshopTab === submittedTab; })) {
+    initialUrl.searchParams.set('tab', submittedTab);
+    window.history.replaceState(null, '', initialUrl);
+  }
+
+  shell.addEventListener('submit', function (event) {
+    var form = event.target;
+    if (form.method.toLowerCase() !== 'post') return;
+    var panel = form.closest('[data-workshop-panel]');
+    if (!panel) return;
+    var name = panel.dataset.workshopPanel;
+    var input = form.querySelector('input[name="tab"]');
+    if (!input) {
+      input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'tab';
+      form.appendChild(input);
+    }
+    input.value = name;
+    window.sessionStorage.setItem(submittedTabKey, name);
+  });
+
   tabs.forEach(function (tab) {
     tab.addEventListener('click', function () {
       var name = tab.dataset.workshopTab;

@@ -100,6 +100,45 @@ class WorkshopTabsBrowserTests(StaticLiveServerTestCase):
                 js('document.querySelector("[data-workshop-tab=casting]").click()')
                 js('history.back()')
                 wait_for('document.querySelector("[data-workshop-tab=components][aria-pressed=true]") !== null')
+
+                self.assertTrue(js('document.cookie.includes("csrftoken=")'))
+                component_action = reverse('oficina_comprar_componente', args=[second.pk])
+                js('''(() => {
+                    const form = document.createElement('form');
+                    form.method = 'post';
+                    form.action = %s;
+                    const csrf = document.createElement('input');
+                    csrf.name = 'csrfmiddlewaretoken';
+                    csrf.value = document.cookie.split('; ').find(part => part.startsWith('csrftoken=')).split('=')[1];
+                    form.appendChild(csrf);
+                    document.querySelector('[data-workshop-panel=components]').appendChild(form);
+                    form.requestSubmit();
+                })()''' % json.dumps(component_action))
+                wait_for('location.search.includes("status=invalido")')
+                wait_for('document.querySelector("[data-workshop-tab=components][aria-pressed=true]") !== null')
+                self.assertTrue(js('location.search.includes("tab=components")'))
+
+                js('document.querySelector("[data-workshop-tab=transcription]").click()')
+                transcription_action = reverse('personagem_transcrever_magia', args=[second.pk])
+                js('''(() => {
+                    const form = document.createElement('form');
+                    form.method = 'post';
+                    form.action = %s;
+                    for (const [name, value] of Object.entries({
+                        csrfmiddlewaretoken: document.cookie.split('; ').find(part => part.startsWith('csrftoken=')).split('=')[1],
+                        next: 'oficina', personagem: %s,
+                    })) {
+                        const input = document.createElement('input');
+                        input.name = name;
+                        input.value = value;
+                        form.appendChild(input);
+                    }
+                    document.querySelector('[data-workshop-panel=transcription]').appendChild(form);
+                    form.requestSubmit();
+                })()''' % (json.dumps(transcription_action), json.dumps(str(second.pk))))
+                wait_for('location.search.includes("status=invalida")')
+                wait_for('document.querySelector("[data-workshop-tab=transcription][aria-pressed=true]") !== null')
+                self.assertTrue(js('location.search.includes("tab=transcription")'))
             finally:
                 if ws:
                     ws.close()
