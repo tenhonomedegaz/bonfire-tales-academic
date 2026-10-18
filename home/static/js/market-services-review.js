@@ -14,9 +14,9 @@
     form.addEventListener('submit', event => {
       if (approved === form) { approved = null; return; }
       event.preventDefault();
-      if (!form.reportValidity()) return;
       const button = event.submitter || form.querySelector('button[type="submit"], button:not([type])');
       if (!button) return;
+      if (!button.formNoValidate && !form.reportValidity()) return;
       const action = button.value || button.textContent.trim();
       subjectLabel.textContent = 'Personagens';
       if (form.classList.contains('training-start')) {
@@ -67,7 +67,7 @@
   confirm.addEventListener('click', () => {
     if (!pending) return;
     const { form, button } = pending;
-    if (!form.reportValidity()) return;
+    if (!button.formNoValidate && !form.reportValidity()) return;
     pending = null;
     dialog.close();
     approved = form;
