@@ -97,8 +97,18 @@ class MarketFavoriteBrowserTests(StaticLiveServerTestCase):
                    'document.querySelector("[data-shop-search]").dispatchEvent(new Event("input", {bubbles:true}))')
                 wait_for('document.querySelector("[data-shop-count]")?.textContent === "1"')
                 self.assertTrue(js('document.querySelector("[data-mkt-row]").closest("li").hidden === false'))
+                self.assertTrue(js('document.querySelector(".mkt-count").getAttribute("role") === "status"'))
+                js('document.querySelector("[data-shop-search]").value = "carteira da ficha"; '
+                   'document.querySelector("[data-shop-search]").dispatchEvent(new Event("input", {bubbles:true}))')
+                wait_for('document.querySelector("[data-shop-count]")?.textContent === "1"')
+                self.assertTrue(js('document.querySelector("[data-mkt-row][data-target=guide-economia]").closest("li").hidden === false'))
+                self.assertTrue(js('document.querySelector("[data-mkt-row][data-target=guide-sobre]").closest("li").hidden === true'))
+                js('document.querySelector("[data-mkt-row][data-target=guide-economia]").click()')
+                wait_for('document.querySelector("[data-shop-detail]")?.textContent.includes("carteira da ficha")')
+                self.assertFalse(js('document.querySelector("[data-shop-detail] form[data-shop-buy]") !== null'))
                 js('document.querySelector("[data-shop-search]").value = ""; '
                    'document.querySelector("[data-shop-search]").dispatchEvent(new Event("input", {bubbles:true}))')
+                js(f'document.querySelector(\'[data-mkt-row][data-target="mu-{mundane.pk}"]\').click()')
                 self.assertTrue(js('document.querySelector("[data-shop-detail] .mkt-sigil-letter") !== null'))
                 self.assertFalse(js('document.querySelector("[data-shop-detail] img") !== null'))
                 self.assertLessEqual(js('document.documentElement.scrollWidth - innerWidth'), 1)

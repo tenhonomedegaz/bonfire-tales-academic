@@ -40,7 +40,7 @@ missão" no lugar do botão — a mesma guarda existe no backend.{% endcomment %
         </select>
         {% if market_favorites_enabled %}<label class="mkt-favorites-filter"><input type="checkbox" data-shop-favorites> Só favoritos</label>{% endif %}
       </div>
-      <p class="mkt-count"><strong data-shop-count>0</strong> entradas · setas ↑↓ navegam</p>
+      <p class="mkt-count" role="status" aria-live="polite"><strong data-shop-count>0</strong> entradas · setas ↑↓ navegam</p>
 
       <ul class="mkt-list" data-shop-list>
         {% for item in itens %}
@@ -63,7 +63,7 @@ missão" no lugar do botão — a mesma guarda existe no backend.{% endcomment %
           <button type="button" class="mkt-row market-reference-row" data-mkt-row
                   data-target="{{ entry.id }}" data-group="{{ entry.category.value }}"
                   data-name="{{ entry.name }}" data-favorite="false"
-                  data-search="{{ entry.name|lower }} {{ entry.category.label|lower }}">
+                  data-search="{{ entry.name|lower }} {{ entry.category.label|lower }} {{ entry.search|lower }}">
             <svg class="market-row-icon" aria-hidden="true"><use href="#mkt-icon-{{ entry.icon|market_symbol }}"></use></svg>
             <span class="mkt-row-name">{{ entry.name }}</span>
             <span class="mkt-row-meta">{{ entry.category.label }}</span>
