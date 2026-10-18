@@ -41,6 +41,7 @@
 
   cancel.addEventListener('click', () => dialog.close());
   dialog.addEventListener('close', () => {
+    if (dialog.open) return;
     pendingForm = null;
     pendingSubmitter = null;
   });

@@ -196,6 +196,25 @@ class CharacterSlotsBrowserTests(StaticLiveServerTestCase):
                     time.sleep(.1)
                 self.assertFalse(character.publico)
                 self.assertEqual(visitor.get(public).status_code, 404)
+                for _ in range(80):
+                    if js('document.readyState === "complete" && !!document.querySelector("[data-character-delete]")'):
+                        break
+                    time.sleep(.1)
+                js('document.querySelector(".cw-character-card:not(.is-vault) summary").click()')
+                js('document.querySelector("[data-character-delete] button").click()')
+                deletion = json.loads(js('JSON.stringify({open:document.querySelector("[data-character-delete-review]").open,description:document.querySelector("[data-character-delete-description]").textContent,width:document.querySelector("[data-character-delete-review]").getBoundingClientRect().width,viewport:innerWidth})'))
+                self.assertTrue(deletion['open'], deletion)
+                self.assertIn(character.nome, deletion['description'])
+                self.assertLessEqual(deletion['width'], deletion['viewport'])
+                js('document.querySelector("[data-character-delete-cancel]").click()')
+                self.assertTrue(TbPersonagem.objects.filter(pk=character.pk).exists())
+                js('document.querySelector("[data-character-delete] button").click()')
+                js('document.querySelector("[data-character-delete-confirm]").click()')
+                for _ in range(80):
+                    if not TbPersonagem.objects.filter(pk=character.pk).exists():
+                        break
+                    time.sleep(.1)
+                self.assertFalse(TbPersonagem.objects.filter(pk=character.pk).exists())
             finally:
                 if ws:
                     ws.close()

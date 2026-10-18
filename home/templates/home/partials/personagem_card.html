@@ -35,7 +35,7 @@
       <button class="text-[var(--ember)] hover:underline">{% if c.obj.publico %}Retirar publicação{% else %}Publicar ficha{% endif %}</button>
     </form>
     {% endif %}
-    <form method="post" action="{% url 'personagem_excluir' c.obj.id_personagem %}" onsubmit="return confirm('Excluir {{ c.obj.nome|escapejs }} definitivamente?');">{% csrf_token %}
+    <form method="post" action="{% url 'personagem_excluir' c.obj.id_personagem %}" data-character-delete data-character-name="{{ c.obj.nome }}" onsubmit="return confirm('Excluir {{ c.obj.nome|escapejs }} definitivamente?');">{% csrf_token %}
       <button class="text-[var(--flame)] hover:underline" title="Excluir definitivamente">Excluir</button>
     </form>
   </div></details>
