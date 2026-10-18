@@ -926,7 +926,8 @@
             activeFilters = { type: '', mainTag: '', tag: '', attribute: '' };
             applyFilters(false, false);
         }
-        const selected = talent || filteredTalentos[0];
+        const exactMatch = restoredQuery.trim() && filteredTalentos.find(item => normalizeSearch(item.nome) === normalizeSearch(restoredQuery.trim()));
+        const selected = talent || exactMatch || filteredTalentos[0];
         if (selected) selectTalento(selected.id, { historyMode: talent ? 'none' : 'replace' });
     }
     restoreTalentFromHash();

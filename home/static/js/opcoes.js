@@ -124,7 +124,9 @@
                 && (!activeFilters.tag || getExtraTags(option).some(tag => canonicalTag(tag) === canonicalTag(activeFilters.tag)));
         }).sort((a,b) => (a.tipo || '').localeCompare(b.tipo || '', 'pt-BR')
             || (isAscending ? 1 : -1) * (a.nome || '').localeCompare(b.nome || '', 'pt-BR'));
-        if (selectedOpcaoId === null && !location.hash) selectedOpcaoId = filteredOpcoes[0]?.id ?? null;
+        if (selectedOpcaoId === null && !location.hash) {
+            selectedOpcaoId = (query && filteredOpcoes.find(option => normalizeSearch(option.nome) === query) || filteredOpcoes[0])?.id ?? null;
+        }
         const count = [activeFilters.type, activeFilters.tag].filter(Boolean).length;
         filterCount.textContent = count;
         filterCount.hidden = count === 0;

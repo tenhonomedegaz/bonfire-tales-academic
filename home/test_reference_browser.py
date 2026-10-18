@@ -47,12 +47,12 @@ class ReferenceCatalogBrowserTests(StaticLiveServerTestCase):
         TbRegra.objects.create(slug='eco-do-vale', nome='Eco do Vale')
         talent = TbTalento.objects.create(
             slug='guarda-das-brumas', nome='Guarda das Brumas', descricao='Protege a vigília.')
-        TbTalento.objects.create(slug='guarda-do-vale', nome='Guarda do Vale', descricao='Protege a estrada.')
+        TbTalento.objects.create(slug='antiga-guarda-das-brumas', nome='Antiga Guarda das Brumas', descricao='Protege a estrada.')
         language = TbIdioma.objects.create(slug='fala-das-brumas', nome='Fala das Brumas')
-        TbIdioma.objects.create(slug='fala-do-vale', nome='Fala do Vale')
+        TbIdioma.objects.create(slug='antiga-fala-das-brumas', nome='Antiga Fala das Brumas')
         option = TbOpcaojogo.objects.create(
             slug='sinal-das-brumas', nome='Sinal das Brumas', tipo='Exploração')
-        TbOpcaojogo.objects.create(slug='sinal-do-vale', nome='Sinal do Vale', tipo='Exploração')
+        TbOpcaojogo.objects.create(slug='antigo-sinal-das-brumas', nome='Antigo Sinal das Brumas', tipo='Exploração')
         with tempfile.TemporaryDirectory(prefix='bonfire-conditions-', ignore_cleanup_errors=True) as scratch:
             profile = Path(scratch) / 'profile'
             process = subprocess.Popen([
@@ -125,16 +125,16 @@ class ReferenceCatalogBrowserTests(StaticLiveServerTestCase):
                      'document.querySelector("#glo-count")?.textContent === "1"'),
                     (talent, 'jogador_talentos',
                      'document.querySelector("[data-talent-title]")?.textContent === "Guarda das Brumas"',
-                     'document.querySelector("#talentResultCount")?.textContent.startsWith("1 de ")'),
+                     'document.querySelector("#talentResultCount")?.textContent.startsWith("2 de ")'),
                     (language, 'jogador_idiomas',
                      'document.querySelector("[data-language-detail=fala-das-brumas]")?.hidden === false',
-                     'document.querySelector("#languageResultCount")?.textContent.startsWith("1 de ")'),
+                     'document.querySelector("#languageResultCount")?.textContent.startsWith("2 de ")'),
                     (option, 'jogador_opcoes',
                      'document.querySelector("[data-option-title]")?.textContent === "Sinal das Brumas"',
-                     'document.querySelector("#optionResults")?.textContent.startsWith("1 opção")'),
+                     'document.querySelector("#optionResults")?.textContent.startsWith("2 opções")'),
                 ):
                     cdp('Page.navigate', {'url': self.live_server_url + reverse('busca') + '?q=' + quote(entry.nome)})
-                    result_link = 'Array.from(document.querySelectorAll(".cp-result-group a")).find(a => a.textContent.includes(%s))' % json.dumps(entry.nome)
+                    result_link = 'Array.from(document.querySelectorAll(".cp-result-group a")).find(a => a.querySelector(".cp-result-name")?.firstChild?.textContent.trim() === %s)' % json.dumps(entry.nome)
                     wait_for(result_link + ' !== undefined')
                     js(result_link + '.click()')
                     wait_for('location.pathname === %s && %s && %s' % (json.dumps(reverse(route)), selected, count))

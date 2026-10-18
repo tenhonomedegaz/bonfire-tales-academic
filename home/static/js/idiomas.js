@@ -149,8 +149,10 @@
     let slug = '';
     try { slug = decodeURIComponent(window.location.hash.replace(/^#(?:idioma-)?/, '')); }
     catch { /* Malformed links must not interrupt the transcriber. */ }
-    const firstVisible = rows.find(row => !row.hidden)?.dataset.languageSlug;
-    selectLanguage(bySlug[slug] ? slug : firstVisible || selectedSlug || languages[0]?.slug, {historyMode: 'none'});
+    const visibleRows = rows.filter(row => !row.hidden);
+    const exactMatch = search.value.trim() && visibleRows.find(row => normalize(bySlug[row.dataset.languageSlug]?.nome) === normalize(search.value.trim()))?.dataset.languageSlug;
+    const firstVisible = visibleRows[0]?.dataset.languageSlug;
+    selectLanguage(bySlug[slug] ? slug : exactMatch || firstVisible || selectedSlug || languages[0]?.slug, {historyMode: 'none'});
   }
 
   source.addEventListener('input', translate);
