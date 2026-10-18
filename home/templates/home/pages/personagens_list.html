@@ -2,7 +2,7 @@
 {% load static %}
 {% block body_class %}bft-character-list{% endblock %}
 {% block main_class %}cw-main flex-1 w-full min-w-0{% endblock %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/character-workflows.css' %}?v=2"><script src="{% static 'js/character-list.js' %}?v=1" defer></script>{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/character-workflows.css' %}?v=2"><script src="{% static 'js/character-list.js' %}?v=2" defer></script>{% endblock %}
 
 {% block content %}
 <section class="cw-list-page animate-fade-in" aria-labelledby="cw-list-title">
@@ -55,10 +55,11 @@
   <p class="cw-no-match" data-cw-empty hidden>Nenhuma ficha encontrada. Tente outro nome, raça ou classe, ou limpe os filtros.</p>
 
   {% if is_staff and todas %}
-    <h2 class="cw-staff-title mb-2 mt-6 font-serif text-lg font-bold text-[var(--spark)]">Todas as fichas (staff)</h2>
+    <h2 class="cw-staff-title mb-2 mt-6 font-serif text-lg font-bold text-[var(--spark)]">Fichas de outras contas (staff)</h2>
+    <div class="cw-search-tools" hidden data-cw-staff-controls><label for="cw-staff-search">Encontrar personagem ou conta<input type="search" id="cw-staff-search" maxlength="160" placeholder="Personagem, dono, raça ou classe…" autocomplete="off"></label><label for="cw-staff-group">Mostrar<select id="cw-staff-group"><option value="">Todas as fichas</option><option value="ativo">Somente ativas</option><option value="inativo">Somente inativas</option></select></label><button type="button" data-cw-staff-clear>Limpar filtros</button><p role="status" aria-live="polite" data-cw-staff-count></p></div>
     <div class="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
       {% for c in todas %}
-        <a href="{% url 'ficha_detail' c.obj.id_personagem %}" class="block rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3 hover:border-[var(--spark)]">
+        <a href="{% url 'ficha_detail' c.obj.id_personagem %}" class="block rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3 hover:border-[var(--spark)]" data-cw-staff-card data-cw-staff-search="{{ c.obj.nome }} {{ c.dono }} {{ c.raca }} {{ c.classe }}" data-cw-staff-kind="{% if c.obj.arquivado %}inativo{% else %}ativo{% endif %}">
           <div class="flex items-center justify-between">
             <span class="font-serif font-bold text-[var(--text)]">{{ c.obj.nome }}</span>
             <span class="text-xs text-[var(--muted)]">@{{ c.dono }}</span>
@@ -67,6 +68,7 @@
         </a>
       {% endfor %}
     </div>
+    <p class="cw-no-match" data-cw-staff-empty hidden>Nenhuma ficha de outra conta encontrada. Ajuste a busca ou limpe os filtros.</p>
   {% endif %}
 </section>
 {% endblock %}
