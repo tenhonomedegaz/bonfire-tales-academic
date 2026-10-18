@@ -1,4 +1,4 @@
-{% load static market_display %}
+{% load static market_display distance_display %}
 {% comment %}VITRINE MUNDANA — loja MASTER-DETAIL.
 
 As prateleiras em blocos morreram: a vitrine é uma LISTA compacta (nome · meta · preço em
@@ -51,7 +51,7 @@ missão" no lugar do botão — a mesma guarda existe no backend.{% endcomment %
                   data-group="{{ item.grupo_id }}" aria-selected="false"
                   data-search="{{ item.nome|lower }} {{ item.cat_label|lower }} {{ item.sub_label|lower }}">
             <svg class="market-row-icon" aria-hidden="true"><use href="#mkt-icon-{{ item.categoria|market_symbol }}"></use></svg>
-            <span class="mkt-row-name" title="{{ item.nome }}">{{ item.nome }}</span>
+            <span class="mkt-row-name" title="{{ item.nome|dual_distance }}">{{ item.nome|dual_distance }}</span>
             <span class="mkt-row-meta">{{ item.sub_label|default:item.cat_label }}{% if item.mec_dano %} · {{ item.mec_dano }}{% elif item.mec_ca %} · CA {{ item.mec_ca }}{% endif %}</span>
             {% if item.preco_display %}<span class="mkt-row-price">{{ item.preco_display }}</span>
             {% else %}<span class="mkt-row-price is-mission">missão</span>{% endif %}
@@ -104,7 +104,7 @@ missão" no lugar do botão — a mesma guarda existe no backend.{% endcomment %
           <figcaption>{{ item.cat_label }}</figcaption>
         </figure>
         <p class="mkt-card-kind">{{ item.cat_label }}{% if item.sub_label %} · {{ item.sub_label }}{% endif %}</p>
-        <h3 class="mkt-card-name">{{ item.nome }}</h3>
+        <h3 class="mkt-card-name">{{ item.nome|dual_distance }}</h3>
         {% if market_favorites_enabled %}
         <form method="post" action="{% url 'market_item_favorite' 'mundano' item.id_item %}" class="mkt-favorite-form" data-shop-favorite data-target="mu-{{ item.id_item }}">
           {% csrf_token %}<input type="hidden" name="favorite" value="{% if item.is_favorite %}false{% else %}true{% endif %}">
@@ -139,7 +139,7 @@ missão" no lugar do botão — a mesma guarda existe no backend.{% endcomment %
         {% if item.mec_maestrias %}<p class="mkt-card-line"><strong>Maestria:</strong> {{ item.mec_maestrias }}</p>{% endif %}
         {% if item.mec_furtividade %}<p class="mkt-card-line is-warn"><strong>Desvantagem em Furtividade</strong></p>{% endif %}
         {% if item.descricao_markdown %}
-        <div class="bonfire-markdown mkt-desc" data-markdown-source>{{ item.descricao_markdown|escape }}</div>
+        <div class="bonfire-markdown mkt-desc" data-markdown-source>{{ item.descricao_markdown|dual_distance|escape }}</div>
         {% else %}
         <p class="mkt-card-line"><em>Sem descrição catalogada.</em></p>
         {% endif %}
