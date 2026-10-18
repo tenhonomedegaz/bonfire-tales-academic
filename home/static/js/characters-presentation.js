@@ -17,7 +17,7 @@
       if (/\/(notas|personalidade|info)\/$/.test(path)) return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      localFeedback.querySelector('[data-character-preview-message]').textContent = 'Esta aÃ§Ã£o depende dos serviÃ§os oficiais. A ficha de demonstraÃ§Ã£o nÃ£o foi alterada.';
+      localFeedback.querySelector('[data-character-preview-message]').textContent = 'Esta ação depende dos serviços oficiais. A ficha de demonstração não foi alterada.';
       localFeedback.hidden = false;
     }, true);
   }

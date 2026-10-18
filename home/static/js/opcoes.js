@@ -80,7 +80,7 @@
             container.replaceChildren();
             if (!values.length) {
                 const empty = document.createElement('p');
-                empty.textContent = 'Nenhuma opÃ§Ã£o de filtro cadastrada.';
+                empty.textContent = 'Nenhuma opção de filtro cadastrada.';
                 container.appendChild(empty);
             }
             values.forEach(value => {
@@ -129,9 +129,9 @@
         filterCount.textContent = count;
         filterCount.hidden = count === 0;
         reset.hidden = !query && !count;
-        results.textContent = filteredOpcoes.length + (filteredOpcoes.length === 1 ? ' opÃ§Ã£o' : ' opÃ§Ãµes') + ' de ' + opcoesData.length;
+        results.textContent = filteredOpcoes.length + (filteredOpcoes.length === 1 ? ' opção' : ' opções') + ' de ' + opcoesData.length;
         const labels = [activeFilters.type, activeFilters.tag].filter(Boolean);
-        activeSummary.textContent = labels.join(' Â· ');
+        activeSummary.textContent = labels.join(' · ');
         activeSummary.hidden = !labels.length;
         category.value = activeFilters.type;
         renderList();
@@ -142,7 +142,7 @@
                 const notice = document.createElement('div');
                 notice.className = 'option-notice';
                 const message = document.createElement('p');
-                message.textContent = 'Esta opÃ§Ã£o estÃ¡ fora da busca ou dos filtros atuais.';
+                message.textContent = 'Esta opção está fora da busca ou dos filtros atuais.';
                 const button = document.createElement('button');
                 button.type = 'button';
                 button.textContent = 'Mostrar na lista';
@@ -151,7 +151,7 @@
                 detailContainer.prepend(notice);
             }
         } else {
-            detailContainer.innerHTML = '<div class="option-empty"><h2>' + (location.hash ? 'OpÃ§Ã£o nÃ£o encontrada' : 'Nenhuma opÃ§Ã£o encontrada') + '</h2><p>' + (location.hash ? 'O link nÃ£o corresponde a uma opÃ§Ã£o deste catÃ¡logo. Escolha outra na lista.' : 'Tente outra busca ou limpe os filtros do catÃ¡logo.') + '</p></div>';
+            detailContainer.innerHTML = '<div class="option-empty"><h2>' + (location.hash ? 'Opção não encontrada' : 'Nenhuma opção encontrada') + '</h2><p>' + (location.hash ? 'O link não corresponde a uma opção deste catálogo. Escolha outra na lista.' : 'Tente outra busca ou limpe os filtros do catálogo.') + '</p></div>';
         }
     }
     function renderList() {
@@ -159,15 +159,15 @@
         if (!filteredOpcoes.length) {
             const empty = document.createElement('p');
             empty.className = 'option-list-empty';
-            empty.textContent = 'Nenhuma opÃ§Ã£o encontrada. Tente outra busca ou limpe os filtros.';
+            empty.textContent = 'Nenhuma opção encontrada. Tente outra busca ou limpe os filtros.';
             listItemsContainer.appendChild(empty);
             return;
         }
         const counts = new Map();
-        filteredOpcoes.forEach(option => counts.set(option.tipo || 'Outras opÃ§Ãµes', (counts.get(option.tipo || 'Outras opÃ§Ãµes') || 0) + 1));
+        filteredOpcoes.forEach(option => counts.set(option.tipo || 'Outras opções', (counts.get(option.tipo || 'Outras opções') || 0) + 1));
         let previous = null;
         filteredOpcoes.forEach(option => {
-            const group = option.tipo || 'Outras opÃ§Ãµes';
+            const group = option.tipo || 'Outras opções';
             if (previous !== group) {
                 const heading = document.createElement('h3');
                 heading.className = 'option-group-title';
@@ -186,7 +186,7 @@
             const name = document.createElement('span');
             name.textContent = option.nome;
             const tags = document.createElement('small');
-            tags.textContent = getExtraTags(option).join(' Â· ');
+            tags.textContent = getExtraTags(option).join(' · ');
             link.appendChild(name);
             if (tags.textContent) link.appendChild(tags);
             link.addEventListener('click', event => {
@@ -215,15 +215,15 @@
         const tags = getExtraTags(option);
         const accesses = (option.acessos || []).map(access => '<li><strong>' + html(access.nome) + '</strong>'
             + (access.tipo === 'Subclasse' ? ' <span>(' + html(access.classe) + ')</span>' : '')
-            + ' <span>Â· nÃ­vel ' + html(access.nivel) + '</span></li>').join('');
+            + ' <span>· nível ' + html(access.nivel) + '</span></li>').join('');
         const prerequisite = String(option.pre_requisito || '').trim();
         detailContainer.innerHTML =
-            '<header class="option-detail-header"><div class="option-emblem" aria-hidden="true"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.25"><path d="M20 2 36 11v18L20 38 4 29V11Z"/><path d="m20 2 8 18-8 18-8-18Zm-16 9 24 9-24 9m32-18-24 9 24 9"/></svg></div><div class="option-detail-heading"><p class="option-eyebrow">' + html(option.tipo || 'OpÃ§Ã£o adicional') + '</p><h2 data-option-title tabindex="-1">' + html(option.nome) + '</h2></div>'
+            '<header class="option-detail-header"><div class="option-emblem" aria-hidden="true"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.25"><path d="M20 2 36 11v18L20 38 4 29V11Z"/><path d="m20 2 8 18-8 18-8-18Zm-16 9 24 9-24 9m32-18-24 9 24 9"/></svg></div><div class="option-detail-heading"><p class="option-eyebrow">' + html(option.tipo || 'Opção adicional') + '</p><h2 data-option-title tabindex="-1">' + html(option.nome) + '</h2></div>'
             + (canEditWiki && option.id !== null ? '<button type="button" class="wiki-edit-button" aria-expanded="false" aria-controls="opcao-editor">Editar wiki</button>' : '') + '</header>'
             + '<div class="option-detail-body">' + (tags.length ? '<div class="option-tags" aria-label="Etiquetas">' + tags.map(tag => '<span>' + html(tag) + '</span>').join('') + '</div>' : '')
-            + '<dl class="option-meta"><div><dt>PrÃ©-requisitos</dt><dd>' + html(prerequisite || 'NÃ£o informado no cadastro.') + '</dd></div><div><dt>Acesso por classe e subclasse</dt><dd>' + (accesses ? '<ul>' + accesses + '</ul>' : 'NÃ£o informado no cadastro. Consulte as regras da sua classe.') + '</dd></div></dl>'
+            + '<dl class="option-meta"><div><dt>Pré-requisitos</dt><dd>' + html(prerequisite || 'Não informado no cadastro.') + '</dd></div><div><dt>Acesso por classe e subclasse</dt><dd>' + (accesses ? '<ul>' + accesses + '</ul>' : 'Não informado no cadastro. Consulte as regras da sua classe.') + '</dd></div></dl>'
             + '<div id="opcao-editor" data-option-editor></div><div data-option-preview class="option-copy bonfire-markdown">' + renderMarkdown(option.descricao) + '</div>'
-            + '<details class="option-guidance"><summary>Como usar estas opÃ§Ãµes?</summary><p>Consulte os prÃ©-requisitos e o acesso por classe ou subclasse antes de escolher. A disponibilidade e a quantidade de escolhas seguem as regras da sua classe e das suas habilidades. Este catÃ¡logo serve para consulta; clicar em uma opÃ§Ã£o nÃ£o a adiciona Ã  sua ficha.</p></details></div>';
+            + '<details class="option-guidance"><summary>Como usar estas opções?</summary><p>Consulte os pré-requisitos e o acesso por classe ou subclasse antes de escolher. A disponibilidade e a quantidade de escolhas seguem as regras da sua classe e das suas habilidades. Este catálogo serve para consulta; clicar em uma opção não a adiciona à sua ficha.</p></details></div>';
         formatCopy(detailContainer.querySelector('[data-option-preview]'));
         detailContainer.querySelector('.wiki-edit-button')?.addEventListener('click', () => openOpcaoEditor(option.id));
     }
@@ -332,12 +332,12 @@
                         <input name="tipo" value="${escapeHtml(opcao.tipo || '')}">
                     </label>
                     <label class="wide">Etiquetas Adicionais
-                        <input name="etiquetas_adicionais" value="${escapeHtml(opcao.etiquetas_adicionais || '')}" placeholder="Separadas por vÃ­rgula">
+                        <input name="etiquetas_adicionais" value="${escapeHtml(opcao.etiquetas_adicionais || '')}" placeholder="Separadas por vírgula">
                     </label>
-                    <label class="wide">PrÃ©-requisito
+                    <label class="wide">Pré-requisito
                         <input name="pre_requisito" value="${escapeHtml(opcao.pre_requisito || '')}">
                     </label>
-                    <label class="wide">DescriÃ§Ã£o
+                    <label class="wide">Descrição
                         <textarea name="descricao">${escapeHtml(opcao.descricao || '')}</textarea>
                     </label>
                 </div>
@@ -404,11 +404,11 @@
             });
             const result = await response.json().catch(() => ({}));
             if (!response.ok || !result.ok || !result.opcao) {
-                throw new Error(result.error || 'NÃ£o foi possÃ­vel salvar esta opÃ§Ã£o.');
+                throw new Error(result.error || 'Não foi possível salvar esta opção.');
             }
             const index = opcoesData.findIndex(o => o.id === id);
             if (index >= 0) opcoesData[index] = { ...result.opcao, acessos: opcoesData[index].acessos || [] };
-            // O tipo ou as tags editados podem deixar a opÃ§Ã£o fora dos filtros ativos.
+            // O tipo ou as tags editados podem deixar a opção fora dos filtros ativos.
             searchInput.value = '';
             activeFilters = { type: '', tag: '' };
             draftFilters = { ...activeFilters };
@@ -418,7 +418,7 @@
             selectOpcao(id);
             detailContainer.querySelector('.wiki-edit-button')?.focus();
         } catch (failure) {
-            error.textContent = failure.message || 'NÃ£o foi possÃ­vel salvar esta opÃ§Ã£o.';
+            error.textContent = failure.message || 'Não foi possível salvar esta opção.';
             error.hidden = false;
             error.focus();
         } finally {
@@ -440,8 +440,8 @@
     reset.addEventListener('click', resetFilters);
     sort.addEventListener('click', () => {
         isAscending = !isAscending;
-        byId('optionSortLabel').textContent = isAscending ? 'Aâ€“Z' : 'Zâ€“A';
-        sort.setAttribute('aria-label', 'Ordem alfabÃ©tica: ' + (isAscending ? 'A a Z' : 'Z a A') + '. Inverter ordem.');
+        byId('optionSortLabel').textContent = isAscending ? 'A–Z' : 'Z–A';
+        sort.setAttribute('aria-label', 'Ordem alfabética: ' + (isAscending ? 'A a Z' : 'Z a A') + '. Inverter ordem.');
         applyFilters();
     });
     filterToggle.addEventListener('click', openFilterModal);
