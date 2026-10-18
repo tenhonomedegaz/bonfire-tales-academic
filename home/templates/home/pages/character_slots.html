@@ -15,9 +15,9 @@
           <li><span>Conta Bonfire</span><strong>{{ slot_details.base }} incluído</strong></li>
           <li><span>Rank Esmeralda</span><strong>{% if slot_details.esmeralda %}+1 ativo{% else %}Não ativo{% endif %}</strong></li>
           <li><span>Colaboração ativa</span><strong>{% if slot_details.colaborador %}+1 temporário{% else %}Não ativa{% endif %}</strong></li>
-          <li><span>Compra vitalícia Mestre Ouro</span><strong>{% if slot_details.mestre_ouro %}+1 permanente{% else %}Sem direito registrado{% endif %}</strong></li>
+          <li><span>Compra vitalícia Mestre Ouro</span><strong>{% if slot_details.mestre_ouro %}+1 permanente{% elif slot_legacy_pending %}Histórico em revisão{% else %}Sem direito registrado{% endif %}</strong></li>
         </ul>
-        <p class="bs-help">A compra vitalícia já registrada continua valendo. Nenhuma nova cobrança é feita aqui. Os marcos de nível do novo pacote aguardam reconciliação com os direitos existentes antes de entrarem no cálculo.</p>
+        <p class="bs-help">O direito vitalício já registrado continua valendo sem novo débito. Um novo resgate de 5.000 MM só debita seu saldo após confirmação. Os marcos de nível do novo pacote aguardam reconciliação com os direitos existentes antes de entrarem no cálculo.</p>
       </section>
       <section class="bs-panel" aria-labelledby="bs-selection-title">
         <h2 id="bs-selection-title">Suas fichas</h2>
@@ -43,7 +43,7 @@
       {% if slot_details.mestre_ouro %}<p class="bs-notice">Você já possui este direito permanente. Nenhuma nova compra é necessária.</p>
       {% elif slot_legacy_pending %}<p class="bs-notice">Há histórico legado de Mestre Ouro a reconciliar. Sua compra fica suspensa para evitar um débito duplicado.</p>
       {% elif slot_purchase_eligible %}<form method="post" action="{% url 'buy_character_slot' %}">{% csrf_token %}<button class="bs-button"{% if saldo_mm < slot_price_mm %} disabled{% endif %}>Confirmar resgate por 5.000 MM</button></form>{% if saldo_mm < slot_price_mm %}<p class="bs-help" role="status">Seu saldo ainda não cobre este resgate. Consulte suas MM e aventuras no <a href="{% url 'mestre_mercado' %}">Mercado de Mestre</a>.</p>{% else %}<p class="bs-help">O saldo é debitado somente após sua confirmação. Uma repetição do pedido não cria outro débito.</p>{% endif %}
-      {% else %}<p class="bs-notice">O resgate com MM está disponível na participação de mestre autorizada.</p>{% endif %}
+      {% else %}<p class="bs-notice">O resgate com MM exige acesso ao Mercado de Mestre.</p>{% endif %}
       <p class="bs-help">Este resgate usa MM da sua conta; não inicia pagamento em reais.</p>
     </aside>
   </div>
