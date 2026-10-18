@@ -32,8 +32,8 @@ class ReferenceCatalogBrowserTests(StaticLiveServerTestCase):
 
         TbCondicao.objects.create(slug='agarrado', nome='Agarrado',
                                   efeitos_json=[{'titulo': 'Movimento', 'texto': 'Deslocamento zero.'}])
-        TbCondicao.objects.create(slug='amedrontado', nome='Amedrontado',
-                                  efeitos_json=[{'titulo': 'Ataque', 'texto': 'Desvantagem.'}])
+        condition = TbCondicao.objects.create(slug='amedrontado', nome='Amedrontado',
+                                              efeitos_json=[{'titulo': 'Ataque', 'texto': 'Desvantagem.'}])
         background = TbAntecedente.objects.create(
             slug='vigia-das-brumas', nome='Vigia das Brumas', descricao='Vigia as passagens.')
         TbAntecedente.objects.create(
@@ -116,6 +116,19 @@ class ReferenceCatalogBrowserTests(StaticLiveServerTestCase):
                 self.assertFalse(js('document.querySelector("#cond-agarrado").hidden'))
                 self.assertTrue(js('document.querySelector("#cond-amedrontado").hidden'))
                 self.assertLessEqual(js('document.documentElement.scrollWidth'), js('document.documentElement.clientWidth'))
+
+                cdp('Page.navigate', {'url': self.live_server_url + reverse('busca') + '?q=' + quote(condition.nome)})
+                condition_link = 'Array.from(document.querySelectorAll(".cp-result-group a")).find(a => a.querySelector(".cp-result-name")?.firstChild?.textContent.trim() === %s)' % json.dumps(condition.nome)
+                wait_for(condition_link + ' !== undefined')
+                js(condition_link + '.click()')
+                condition_open = 'location.hash === "#cond-amedrontado" && document.querySelector("#cond-amedrontado")?.hidden === false && document.activeElement?.id === "co-reader"'
+                wait_for('location.pathname === %s && %s' % (json.dumps(reverse('mestre_condicoes')), condition_open))
+                self.assertTrue(js('''(() => {
+                    const rect = document.querySelector('#co-reader').getBoundingClientRect();
+                    return rect.top < innerHeight && rect.bottom > 0;
+                })()'''))
+                cdp('Page.reload', {'ignoreCache': True})
+                wait_for(condition_open)
 
                 for entry, route, selected, count in (
                     (background, 'jogador_antecedentes',

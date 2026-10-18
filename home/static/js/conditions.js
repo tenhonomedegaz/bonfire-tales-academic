@@ -60,8 +60,12 @@
     if(!links.some(item=>item.dataset.target===id))return;
     event.preventDefault();search.value='';filter();show(id,true);bringReader(true);
   }));
-  function fromLocation(){const id=location.hash.slice(1);if(panels.some(panel=>panel.id===id))show(id,false,false);}
+  function fromLocation(){
+    const id=location.hash.slice(1);
+    if(panels.some(panel=>panel.id===id) && show(id,false,false))bringReader(true);
+  }
   filter();fromLocation();
+  window.addEventListener('pageshow',()=>{if(location.hash)fromLocation();});
   window.addEventListener('hashchange',fromLocation);
   window.addEventListener('popstate',()=>{search.value=new URL(location.href).searchParams.get('q') || '';filter();fromLocation();});
 })();
