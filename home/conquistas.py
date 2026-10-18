@@ -561,6 +561,39 @@ def _marcos_rank_comprovados(user):
     return sorted(supported, key=lambda row: (row[0], row[1].pk), reverse=True)
 
 
+def registrar_slot_esmeralda_comprovado(user):
+    """Preserva uma unica vez o slot do nivel 13, com fato historico verificavel."""
+    from .models import TbEventoConquista
+
+    key = f'conta:{user.pk}:slot-esmeralda-nivel-13'
+    existing = TbEventoConquista.objects.filter(
+        origem='site', chave_origem=key).first()
+    if existing:
+        if (existing.conta_id != user.pk or existing.tipo != 'rank_slot_13_granted'
+                or existing.versao_payload != 1 or
+                not isinstance(existing.payload_json, dict) or
+                existing.payload_json.get('threshold') != 13):
+            raise ValueError('Identidade do direito Esmeralda inconsistente.')
+        return existing
+    proof = next(((level, event) for level, event in _marcos_rank_comprovados(user)
+                  if level >= 13), None)
+    if proof is None:
+        return None
+    level, event = proof
+    marker, _ = TbEventoConquista.objects.get_or_create(
+        origem='site', chave_origem=key,
+        defaults={
+            'tipo': 'rank_slot_13_granted', 'conta': user,
+            'personagem_id': event.personagem_id,
+            'agregado_id': event.agregado_id, 'ocorrido_em': event.ocorrido_em,
+            'payload_json': {'threshold': 13, 'level': level,
+                             'source_event_id': str(event.pk),
+                             'source_event_key': event.chave_origem},
+        },
+    )
+    return marker
+
+
 @transaction.atomic
 def avaliar_nivel_personagem(user):
     """Concede ou revoga marcos automáticos após subir ou reverter nível."""
@@ -570,6 +603,7 @@ def avaliar_nivel_personagem(user):
                          TbUsuarioCosmetico)
 
     get_user_model().objects.select_for_update().only('pk').get(pk=user.pk)
+    registrar_slot_esmeralda_comprovado(user)
     candidates = TbConquista.objects.filter(
         ativo=True, criterio='automatico',
         criterio_json__metric__in=['character_level', 'rank_reached'],

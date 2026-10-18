@@ -56,8 +56,22 @@ def is_staff_user(user):
 
 
 def is_rank_esmeralda(user):
-    """HOOK: True se o jogador tem algum personagem no rank Esmeralda.
-    Tenta via e-mail (auth.User.email → bot Discord); default False em qualquer falha."""
+    """Um slot pelo marco Esmeralda comprovado no site ou no bot."""
+    if not getattr(user, 'is_authenticated', False):
+        return False
+    try:
+        from django.db import transaction
+        from .models import TbEventoConquista
+
+        with transaction.atomic():
+            if TbEventoConquista.objects.filter(
+                conta=user, origem='site', tipo='rank_slot_13_granted',
+                chave_origem=f'conta:{user.pk}:slot-esmeralda-nivel-13',
+                payload_json__threshold=13,
+            ).exists():
+                return True
+    except Exception:
+        pass
     try:
         from django.db import transaction
         from .models import BotMember, BotCharacterLog

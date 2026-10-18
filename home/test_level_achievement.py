@@ -23,9 +23,57 @@ from home.models import (TbConquista, TbConquistaNotificacao, TbCosmetico,
                          TbUsuarioConquista,
                          UserProfile)
 from home.test_criador import _CriadorBase
+from home.permissions import limite_detalhe, is_rank_esmeralda
 
 
 class LevelAchievementTests(_CriadorBase):
+    def test_level_thirteen_slot_is_proven_once_and_survives_character_deletion(self):
+        owner = self._novo_usuario('slot-level-thirteen-owner')
+        created = self._post_criar(owner, self._payload('guerreiro'))
+        self.assertTrue(created.json()['ok'], created.content)
+        character = TbPersonagem.objects.get(pk=created.json()['id'])
+        primary = character.classes.get(principal=True)
+        primary.nivel = 12
+        primary.save(update_fields=['nivel'])
+        character.nivel = 12
+        character.save(update_fields=['nivel', 'atualizado_em'])
+        avaliar_nivel_personagem(owner)
+        self.assertFalse(is_rank_esmeralda(owner))
+
+        snapshot = capture_build(character)
+        primary.nivel = 13
+        primary.save(update_fields=['nivel'])
+        character.nivel = 13
+        character.save(update_fields=['nivel', 'atualizado_em'])
+        revision = register_revision(
+            character, tipo='level_up', snapshot=snapshot, user=owner,
+            nivel_antes=12, nivel_depois=13)
+        marker = TbEventoConquista.objects.get(
+            conta=owner, tipo='rank_slot_13_granted')
+        self.assertEqual(marker.agregado_id, revision.pk)
+        self.assertEqual(marker.payload_json['threshold'], 13)
+        self.assertTrue(is_rank_esmeralda(owner))
+        with (patch('home.permissions.is_colaborador', return_value=False),
+              patch('home.permissions.is_mestre_ouro', return_value=False)):
+            self.assertEqual(limite_detalhe(owner)['total'], 2)
+        owner.email = 'esmeralda@example.invalid'
+        owner.save(update_fields=['email'])
+        with (patch('home.models.TbEventoConquista.objects.filter',
+                    side_effect=RuntimeError('site event table unavailable')),
+              patch('home.models.BotMember.objects.filter') as bot_member,
+              patch('home.models.BotCharacterLog.objects.filter') as bot_rank):
+            bot_member.return_value.values_list.return_value = ['discord-id']
+            bot_rank.return_value.exists.return_value = True
+            self.assertTrue(is_rank_esmeralda(owner))
+
+        avaliar_nivel_personagem(owner)
+        self.assertEqual(TbEventoConquista.objects.filter(
+            conta=owner, tipo='rank_slot_13_granted').count(), 1)
+        character.delete()
+        marker.refresh_from_db()
+        self.assertIsNone(marker.personagem_id)
+        self.assertTrue(is_rank_esmeralda(owner))
+
     def test_level_delivery_replays_milestone_and_reversal_once(self):
         owner = self._novo_usuario('level-delivery-owner')
         rule = TbConquista.objects.create(
