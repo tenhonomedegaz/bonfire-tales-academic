@@ -75,15 +75,15 @@ class MagiasMobileAccessibilityTests(StaticLiveServerTestCase):
             ws = None
             try:
                 port_file = profile / 'DevToolsActivePort'
-                for _ in range(80):
-                    if port_file.exists():
+                for _ in range(150):
+                    if port_file.exists() or process.poll() is not None:
                         break
-                    time.sleep(.1)
+                    time.sleep(.2)
                 self.assertTrue(port_file.exists(), 'Chrome nao iniciou.')
                 port = port_file.read_text(encoding='utf-8').splitlines()[0]
                 with urlopen(f'http://127.0.0.1:{port}/json', timeout=5) as response:
                     target = next(item for item in json.load(response) if item['type'] == 'page')
-                ws = websocket.create_connection(target['webSocketDebuggerUrl'], timeout=10)
+                ws = websocket.create_connection(target['webSocketDebuggerUrl'], timeout=30)
                 sequence = 0
 
                 def call(method, params=None):
@@ -102,7 +102,7 @@ class MagiasMobileAccessibilityTests(StaticLiveServerTestCase):
                     return result['result'].get('value')
 
                 def wait_for(expression):
-                    for _ in range(80):
+                    for _ in range(150):
                         if js(expression):
                             return
                         time.sleep(.2)
@@ -165,8 +165,9 @@ class MagiasMobileAccessibilityTests(StaticLiveServerTestCase):
                 self.assertTrue(js('document.querySelector("#mgList").inert'))
                 self.assertEqual(js('new URLSearchParams(location.search).get("magia")'), 'coracao-de-teste')
                 shared_url = js('location.href')
-                call('Page.navigate', {'url': shared_url})
-                wait_for('document.querySelector("#mgDetail h2")?.textContent === "Coração de Teste"')
+                call('Page.reload')
+                wait_for('document.readyState === "complete" && document.querySelector("#mg-busca")?.value === "coracao" && document.querySelector("#mgDetail h2")?.textContent === "Coração de Teste"')
+                self.assertEqual(js('location.href'), shared_url)
                 self.assertEqual(js('document.querySelector("#mg-busca").value'), 'coracao')
                 self.assertEqual(js('document.querySelector("#mg-count").textContent'), '1')
                 js('document.querySelector("#mgMobileMenuButton").click()')

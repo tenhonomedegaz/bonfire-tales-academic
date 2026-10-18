@@ -294,11 +294,19 @@
     if(exists&&selectedSlug!==requested) syncFiltersToUrl(true);
     notice.hidden=!requested||Boolean(exists);
     notice.textContent='A magia deste link não foi encontrada. Escolha um nome na lista.';
-    if(selectedSlug&&mobileLayout.matches){
+    if(selectedSlug){
       var heading=mount.querySelector('h2');
       if(heading){heading.focus({preventScroll:true});deckTitle.scrollIntoView({block:'start'});}
     }
   }
+  window.addEventListener('pageshow',function(){
+    if(!selectedSlug) return;
+    requestAnimationFrame(function(){
+      if(document.activeElement!==document.body) return;
+      var heading=mount.querySelector('h2');
+      if(heading){heading.focus({preventScroll:true});deckTitle.scrollIntoView({block:'start'});}
+    });
+  });
   function restoreIsolation(){
     outsideInert.forEach(function(value,element){element.inert=value;});
     outsideInert=new Map();

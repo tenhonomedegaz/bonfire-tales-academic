@@ -1,4 +1,4 @@
-"""A global search spell result opens its readable card on a narrow screen."""
+"""A global search spell result opens its readable card on desktop and mobile."""
 
 import json
 import shutil
@@ -16,7 +16,7 @@ from home.models import TbMagia
 
 
 class MagiasDeepLinkBrowserTests(StaticLiveServerTestCase):
-    def test_global_search_opens_the_selected_spell_on_mobile(self):
+    def test_global_search_opens_the_selected_spell_responsively(self):
         if connection.vendor != 'postgresql' or not connection.settings_dict['NAME'].startswith('test_'):
             self.skipTest('Requires an isolated PostgreSQL test database.')
         try:
@@ -78,8 +78,9 @@ class MagiasDeepLinkBrowserTests(StaticLiveServerTestCase):
                         time.sleep(.2)
                     self.fail(f'Timed out waiting for {expression}')
 
+                call('Page.bringToFront')
                 call('Emulation.setDeviceMetricsOverride', {
-                    'width': 360, 'height': 800, 'deviceScaleFactor': 1, 'mobile': True,
+                    'width': 1440, 'height': 900, 'deviceScaleFactor': 1, 'mobile': False,
                 })
                 call('Page.navigate', {
                     'url': self.live_server_url + reverse('busca') + '?q=Luz%20de%20Teste',
@@ -90,14 +91,24 @@ class MagiasDeepLinkBrowserTests(StaticLiveServerTestCase):
                 ))
                 js("document.querySelector('.cp-results a[href*=magia]').click()")
                 wait_for('document.activeElement?.id === "magia-luz-de-teste"')
+                self.assertNotEqual(js('getComputedStyle(document.activeElement).outlineStyle'), 'none')
                 self.assertEqual(js('new URLSearchParams(location.search).get("magia")'), 'luz-de-teste')
                 self.assertTrue(js('''(() => {
                     const rect=document.querySelector('#magia-luz-de-teste').getBoundingClientRect();
                     return rect.top >= 0 && rect.bottom <= innerHeight;
                 })()'''))
-                self.assertTrue(js('document.querySelector("#mgList").inert'))
+                self.assertFalse(js('document.querySelector("#mgList").inert'))
+                call('Emulation.setDeviceMetricsOverride', {
+                    'width': 360, 'height': 800, 'deviceScaleFactor': 1, 'mobile': True,
+                })
                 call('Page.reload')
                 wait_for('document.activeElement?.id === "magia-luz-de-teste"')
+                self.assertNotEqual(js('getComputedStyle(document.activeElement).outlineStyle'), 'none')
+                self.assertTrue(js('document.querySelector("#mgList").inert'))
+                self.assertTrue(js('''(() => {
+                    const rect=document.querySelector('#magia-luz-de-teste').getBoundingClientRect();
+                    return rect.top >= 0 && rect.bottom <= innerHeight;
+                })()'''))
             finally:
                 if ws:
                     ws.close()

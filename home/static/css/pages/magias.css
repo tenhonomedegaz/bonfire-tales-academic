@@ -151,7 +151,7 @@ body.bft-spells {
 .bft-spells .spell-technical summary { cursor:pointer; }
 .bft-spells .spell-technical code { display:block; padding-top:10px; font-size:11px; overflow-wrap:anywhere; white-space:pre-wrap; }
 .bft-spells :is(a,button,input,select,textarea,summary):focus-visible { outline:2px solid #ff9c66; outline-offset:3px; }
-.bft-spells :is(#mgDeckTitle,.spell-card-full h2):focus { outline:none; }
+.bft-spells :is(#mgDeckTitle,.spell-card-full h2):focus { outline:2px solid #ff9c66; outline-offset:4px; }
 .bft-spells button { cursor:pointer; }
 .bft-spells button:disabled { cursor:default; }
 .bft-spells.spell-menu-open #main-content { z-index:80; }
