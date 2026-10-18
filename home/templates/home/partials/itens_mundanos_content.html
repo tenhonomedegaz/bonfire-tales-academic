@@ -49,7 +49,7 @@ missão" no lugar do botão — a mesma guarda existe no backend.{% endcomment %
                   data-favorite="{% if item.is_favorite %}true{% else %}false{% endif %}"
                   data-name="{{ item.nome }}" data-price="{{ item.preco|copper_price }}"
                   data-group="{{ item.grupo_id }}" aria-selected="false"
-                  data-search="{{ item.nome|dual_distance|lower }} {{ item.cat_label|lower }} {{ item.sub_label|lower }}">
+                  data-search="{{ item.nome|lower }} {{ item.nome|dual_distance|lower }} {{ item.cat_label|lower }} {{ item.sub_label|lower }}">
             <svg class="market-row-icon" aria-hidden="true"><use href="#mkt-icon-{{ item.categoria|market_symbol }}"></use></svg>
             <span class="mkt-row-name" title="{{ item.nome|dual_distance }}">{{ item.nome|dual_distance }}</span>
             <span class="mkt-row-meta">{{ item.sub_label|default:item.cat_label }}{% if item.mec_dano %} · {{ item.mec_dano }}{% elif item.mec_ca %} · CA {{ item.mec_ca }}{% endif %}</span>

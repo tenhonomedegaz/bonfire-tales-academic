@@ -1,0 +1,102 @@
+import json
+import shutil
+import subprocess
+import tempfile
+import time
+from pathlib import Path
+from urllib.request import urlopen
+
+from django.contrib.staticfiles.testing import StaticLiveServerTestCase
+from django.db import connection
+from django.urls import reverse
+
+from .models import TbCondicao
+
+
+class ConditionCatalogBrowserTests(StaticLiveServerTestCase):
+    def test_glossary_link_and_condition_search_on_mobile(self):
+        if connection.vendor != 'postgresql' or not connection.settings_dict['NAME'].startswith('test_'):
+            self.skipTest('Requer PostgreSQL de teste isolado.')
+        try:
+            import websocket
+        except ImportError:
+            self.skipTest('websocket-client indisponível.')
+        browser = shutil.which('chrome') or next((str(path) for path in (
+            Path(r'C:\Program Files\Google\Chrome\Application\chrome.exe'),
+            Path(r'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe'),
+        ) if path.exists()), None)
+        if not browser:
+            self.skipTest('Chrome ou Edge indisponível.')
+
+        TbCondicao.objects.create(slug='agarrado', nome='Agarrado',
+                                  efeitos_json=[{'titulo': 'Movimento', 'texto': 'Deslocamento zero.'}])
+        TbCondicao.objects.create(slug='amedrontado', nome='Amedrontado',
+                                  efeitos_json=[{'titulo': 'Ataque', 'texto': 'Desvantagem.'}])
+        with tempfile.TemporaryDirectory(prefix='bonfire-conditions-', ignore_cleanup_errors=True) as scratch:
+            profile = Path(scratch) / 'profile'
+            process = subprocess.Popen([
+                browser, '--headless=new', '--no-sandbox', '--disable-gpu',
+                '--remote-debugging-port=0', '--remote-allow-origins=*',
+                f'--user-data-dir={profile}', '--window-size=360,800', 'about:blank',
+            ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            ws = None
+            try:
+                port_file = profile / 'DevToolsActivePort'
+                for _ in range(80):
+                    if port_file.exists():
+                        break
+                    time.sleep(.1)
+                self.assertTrue(port_file.exists())
+                port = port_file.read_text(encoding='utf-8').splitlines()[0]
+                with urlopen(f'http://127.0.0.1:{port}/json', timeout=5) as response:
+                    target = next(item for item in json.load(response) if item['type'] == 'page')
+                ws = websocket.create_connection(target['webSocketDebuggerUrl'], timeout=10)
+                sequence = 0
+
+                def cdp(method, params):
+                    nonlocal sequence
+                    sequence += 1
+                    ws.send(json.dumps({'id': sequence, 'method': method, 'params': params}))
+                    while True:
+                        result = json.loads(ws.recv())
+                        if result.get('id') == sequence:
+                            self.assertNotIn('error', result, method)
+                            return result.get('result', {})
+
+                def js(expression):
+                    result = cdp('Runtime.evaluate', {'expression': expression, 'returnByValue': True})
+                    self.assertNotIn('exceptionDetails', result, expression)
+                    return result['result'].get('value')
+
+                def wait_for(expression):
+                    for _ in range(80):
+                        if js(expression):
+                            return
+                        time.sleep(.2)
+                    self.fail(f'Tempo esgotado: {expression}')
+
+                cdp('Emulation.setDeviceMetricsOverride', {
+                    'width': 360, 'height': 800, 'deviceScaleFactor': 1, 'mobile': True,
+                })
+                cdp('Page.navigate', {'url': self.live_server_url + reverse('sistemas_glossario')})
+                target_link = 'Array.from(document.querySelectorAll("a")).find(a => a.getAttribute("href")?.endsWith("#cond-amedrontado"))'
+                wait_for(target_link + ' !== undefined')
+                js(target_link + '.click()')
+                wait_for('location.hash === "#cond-amedrontado" && document.querySelector("#cond-amedrontado")?.hidden === false')
+                self.assertEqual(js('document.querySelector("#co-count").textContent'), '2')
+                self.assertTrue(js('document.querySelector("#cond-amedrontado").textContent.includes("Desvantagem.")'))
+                js('document.querySelector("#co-search").value = "Deslocamento"; document.querySelector("#co-search").dispatchEvent(new Event("input", {bubbles:true}))')
+                wait_for('document.querySelector("#co-count").textContent === "1"')
+                self.assertEqual(js('document.querySelector(".co-item:not([hidden])").dataset.target'), 'cond-agarrado')
+                self.assertFalse(js('document.querySelector("#cond-agarrado").hidden'))
+                self.assertTrue(js('document.querySelector("#cond-amedrontado").hidden'))
+                self.assertLessEqual(js('document.documentElement.scrollWidth'), js('document.documentElement.clientWidth'))
+            finally:
+                if ws:
+                    ws.close()
+                process.terminate()
+                try:
+                    process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait(timeout=5)
