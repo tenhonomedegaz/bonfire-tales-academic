@@ -157,6 +157,24 @@ class CharacterSlotRedemptionTests(TestCase):
         self.assertEqual(TbUsuarioCosmetico.objects.filter(user=self.user).count(), 2)
         self.assertContains(self.client.get(reverse('character_slots')), '+1 permanente')
 
+    @patch('home.permissions.is_mestre', return_value=False)
+    def test_existing_lifetime_right_survives_loss_of_master_eligibility(self, _is_mestre):
+        purchase = TbTransacaoMestre.objects.create(
+            mestre=self.user, tipo='assinatura', valor_mm=-5000,
+            saldo_mm=6000, descricao='Compra vitalicia anterior')
+        right = MestreOuroDireito.objects.create(
+            user=self.user, primeira_compra=purchase, adquirido_em=purchase.criado_em)
+
+        response = self.client.post(self.url, follow=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'já possui este slot permanente')
+        self.assertContains(response, '+1 permanente')
+        self.assertEqual(MestreOuroDireito.objects.get(user=self.user), right)
+        self.assertEqual(TbTransacaoMestre.objects.filter(mestre=self.user).count(), 1)
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.moedas_mestragem, 6000)
+
     @patch('home.permissions.is_mestre', return_value=True)
     def test_legacy_or_insufficient_balance_never_debits(self, _is_mestre):
         self.profile.moedas_mestragem = 4999

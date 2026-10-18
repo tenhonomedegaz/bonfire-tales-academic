@@ -59,11 +59,13 @@ def buy_character_slot_with_mm(user_id):
     from .permissions import is_mestre
 
     user = get_user_model().objects.select_for_update().get(pk=user_id)
-    if not user.is_active or not is_mestre(user):
+    if not user.is_active:
         raise ValueError('not eligible for MM redemption')
     existing = MestreOuroDireito.objects.filter(user=user).first()
     if existing:
         return existing, False
+    if not is_mestre(user):
+        raise ValueError('not eligible for MM redemption')
     profile, _ = UserProfile.objects.get_or_create(user=user)
     profile = UserProfile.objects.select_for_update().get(pk=profile.pk)
     if has_unreconciled_mestre_ouro_history(user_id, profile):
