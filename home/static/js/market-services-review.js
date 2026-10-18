@@ -1,15 +1,16 @@
 (() => {
-  const dialog = document.querySelector('#loan-review');
+  const dialog = document.querySelector('#service-review');
   if (!dialog || typeof dialog.showModal !== 'function') return;
-  const parties = dialog.querySelector('[data-loan-parties]');
-  const amount = dialog.querySelector('[data-loan-amount]');
-  const note = dialog.querySelector('[data-loan-note]');
-  const title = dialog.querySelector('#loan-review-title');
-  const confirm = dialog.querySelector('[data-loan-confirm]');
+  const subjectLabel = dialog.querySelector('[data-service-subject-label]');
+  const subject = dialog.querySelector('[data-service-subject]');
+  const amount = dialog.querySelector('[data-service-amount]');
+  const note = dialog.querySelector('[data-service-note]');
+  const title = dialog.querySelector('#service-review-title');
+  const confirm = dialog.querySelector('[data-service-confirm]');
   let pending = null;
   let approved = null;
 
-  document.querySelectorAll('form[data-loan-review]').forEach(form => {
+  document.querySelectorAll('form[data-service-review]').forEach(form => {
     form.addEventListener('submit', event => {
       if (approved === form) { approved = null; return; }
       event.preventDefault();
@@ -17,16 +18,24 @@
       const button = event.submitter || form.querySelector('button[type="submit"], button:not([type])');
       if (!button) return;
       const action = button.value || button.textContent.trim();
-      if (form.classList.contains('loan-proposal')) {
+      subjectLabel.textContent = 'Personagens';
+      if (form.classList.contains('training-start')) {
+        const training = form.querySelector('#training-choice').selectedOptions[0];
+        subjectLabel.textContent = 'Personagem e treinamento';
+        title.textContent = 'Revisar treinamento';
+        subject.textContent = `${form.dataset.character} · ${training.textContent.trim()}`;
+        amount.textContent = form.dataset.cost;
+        note.textContent = 'O custo será debitado agora da ficha selecionada. A proficiência será creditada após 30 dias.';
+      } else if (form.classList.contains('loan-proposal')) {
         const own = form.dataset.character;
         const other = form.querySelector('#loan-player').selectedOptions[0]?.textContent.trim() || '';
         const requesting = form.querySelector('#loan-role').value === 'solicitar';
         title.textContent = 'Revisar proposta de empréstimo';
-        parties.textContent = requesting ? `${own} solicita a ${other}` : `${own} oferece a ${other}`;
+        subject.textContent = requesting ? `${own} solicita a ${other}` : `${own} oferece a ${other}`;
         amount.textContent = `${form.querySelector('#loan-value').value} PO`;
         note.textContent = 'A proposta será enviada. O ouro só será transferido se a outra pessoa aceitar.';
       } else {
-        parties.textContent = form.dataset.counterpart || '';
+        subject.textContent = form.dataset.counterpart || '';
         const balance = form.dataset.balance || '';
         if (form.classList.contains('loan-payment')) {
           const full = button.name === 'valor_po';
@@ -49,7 +58,7 @@
     });
   });
 
-  dialog.querySelector('[data-loan-back]').addEventListener('click', () => dialog.close());
+  dialog.querySelector('[data-service-back]').addEventListener('click', () => dialog.close());
   dialog.addEventListener('close', () => {
     const button = pending?.button;
     pending = null;

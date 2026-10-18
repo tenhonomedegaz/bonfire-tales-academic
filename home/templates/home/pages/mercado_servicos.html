@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="{% static 'css/pages/mercado_servicos.css' %}?v=4">
 <link rel="stylesheet" href="{% static 'css/pages/treinamentos.css' %}?v=3">
 <script defer src="{% static 'js/treinamentos.js' %}?v=1"></script>
-<script defer src="{% static 'js/market-loan-review.js' %}?v=1"></script>
+<script defer src="{% static 'js/market-services-review.js' %}?v=1"></script>
 {% endblock %}
 
 {% block content %}
@@ -67,7 +67,7 @@
         <div class="service-deadline"><span>Conclusão</span><time datetime="{{ treinamento_ativo.conclui_em|date:'c' }}" data-service-countdown>{{ treinamento_ativo.conclui_em|date:'d/m/Y H:i' }}</time></div>
       </div>
     {% elif treinamentos_disponiveis %}
-      <form method="post" action="{% url 'mercado_iniciar_treinamento' mercado_ativo.id_personagem %}" class="service-form training-start">
+      <form method="post" action="{% url 'mercado_iniciar_treinamento' mercado_ativo.id_personagem %}" class="service-form training-start" data-service-review data-character="{{ mercado_ativo.nome }}" data-cost="{{ treinamento_custo }}">
         {% csrf_token %}
         <div class="training-filters">
           <div><label for="training-search">Buscar treinamento</label><input id="training-search" type="search" autocomplete="off" placeholder="Digite o nome" aria-controls="training-choice"></div>
@@ -101,7 +101,7 @@
     {% if mercado_ativo %}
       {% if emprestimo_mesas < 2 %}<p class="service-warning">Este personagem participou de {{ emprestimo_mesas }} mesa{{ emprestimo_mesas|pluralize }}. São necessárias pelo menos 2.</p>{% endif %}
       {% if not emprestimo_ativo and emprestimo_candidatos %}
-      <form method="post" action="{% url 'mercado_propor_emprestimo' mercado_ativo.id_personagem %}" class="service-form loan-proposal" data-loan-review data-character="{{ mercado_ativo.nome }}">
+      <form method="post" action="{% url 'mercado_propor_emprestimo' mercado_ativo.id_personagem %}" class="service-form loan-proposal" data-service-review data-character="{{ mercado_ativo.nome }}">
         {% csrf_token %}
         <label for="loan-role">Operação</label>
         <select id="loan-role" name="papel"><option value="solicitar">Solicitar empréstimo</option><option value="oferecer">Oferecer empréstimo</option></select>
@@ -119,9 +119,9 @@
           <header><div><small>{{ loan.get_status_display }}</small><strong>{% if loan.sou_devedor %}De {{ loan.credor.nome }}{% else %}Para {{ loan.devedor.nome }}{% endif %}</strong></div><b>{{ loan.saldo_display }}</b></header>
           <p>{{ loan.valor_display }} contratados{% if loan.multa_aplicada %} · total com multa {{ loan.total_display }}{% endif %} · {{ loan.pago_display }} pagos</p>
           {% if loan.status == 'ativo' %}<div class="service-deadline"><span>{% if loan.inadimplente %}Vencido{% else %}Vence em{% endif %}</span><time datetime="{{ loan.vence_em|date:'c' }}"{% if not loan.inadimplente %} data-service-countdown{% endif %}>{{ loan.vence_em|date:'d/m/Y H:i' }}</time></div>{% endif %}
-          {% if loan.aguarda_minha_resposta %}<form method="post" action="{% url 'mercado_responder_emprestimo' loan.id_emprestimo %}" class="loan-actions" data-loan-review data-counterpart="{% if loan.sou_devedor %}{{ loan.credor.nome }}{% else %}{{ loan.devedor.nome }}{% endif %}" data-balance="{{ loan.saldo_display }}">{% csrf_token %}<input type="hidden" name="personagem" value="{{ mercado_ativo.id_personagem }}"><button name="acao" value="recusar" class="is-muted">Recusar</button><button name="acao" value="aceitar">Aceitar</button></form>
-          {% elif loan.status == 'pendente' and loan.sou_proponente %}<form method="post" action="{% url 'mercado_cancelar_emprestimo' loan.id_emprestimo %}" class="loan-actions" data-loan-review data-counterpart="{% if loan.sou_devedor %}{{ loan.credor.nome }}{% else %}{{ loan.devedor.nome }}{% endif %}" data-balance="{{ loan.saldo_display }}">{% csrf_token %}<input type="hidden" name="personagem" value="{{ mercado_ativo.id_personagem }}"><button class="is-muted">Cancelar proposta</button></form>
-          {% elif loan.status == 'ativo' and loan.sou_devedor %}<form method="post" action="{% url 'mercado_pagar_emprestimo' loan.id_emprestimo %}" class="loan-actions loan-payment" data-loan-review data-counterpart="{{ loan.credor.nome }}" data-balance="{{ loan.saldo_display }}">{% csrf_token %}<input type="hidden" name="personagem" value="{{ mercado_ativo.id_personagem }}"><input name="valor_po" type="number" min="1" step="1" placeholder="Valor em PO" aria-label="Valor do pagamento em PO"><button type="submit">Pagar valor</button><button type="submit" name="valor_po" value="" class="is-muted">Quitar tudo</button></form>{% endif %}
+          {% if loan.aguarda_minha_resposta %}<form method="post" action="{% url 'mercado_responder_emprestimo' loan.id_emprestimo %}" class="loan-actions" data-service-review data-counterpart="{% if loan.sou_devedor %}{{ loan.credor.nome }}{% else %}{{ loan.devedor.nome }}{% endif %}" data-balance="{{ loan.saldo_display }}">{% csrf_token %}<input type="hidden" name="personagem" value="{{ mercado_ativo.id_personagem }}"><button name="acao" value="recusar" class="is-muted">Recusar</button><button name="acao" value="aceitar">Aceitar</button></form>
+          {% elif loan.status == 'pendente' and loan.sou_proponente %}<form method="post" action="{% url 'mercado_cancelar_emprestimo' loan.id_emprestimo %}" class="loan-actions" data-service-review data-counterpart="{% if loan.sou_devedor %}{{ loan.credor.nome }}{% else %}{{ loan.devedor.nome }}{% endif %}" data-balance="{{ loan.saldo_display }}">{% csrf_token %}<input type="hidden" name="personagem" value="{{ mercado_ativo.id_personagem }}"><button class="is-muted">Cancelar proposta</button></form>
+          {% elif loan.status == 'ativo' and loan.sou_devedor %}<form method="post" action="{% url 'mercado_pagar_emprestimo' loan.id_emprestimo %}" class="loan-actions loan-payment" data-service-review data-counterpart="{{ loan.credor.nome }}" data-balance="{{ loan.saldo_display }}">{% csrf_token %}<input type="hidden" name="personagem" value="{{ mercado_ativo.id_personagem }}"><input name="valor_po" type="number" min="1" step="1" placeholder="Valor em PO" aria-label="Valor do pagamento em PO"><button type="submit">Pagar valor</button><button type="submit" name="valor_po" value="" class="is-muted">Quitar tudo</button></form>{% endif %}
         </article>
       {% empty %}<p class="service-empty">Nenhuma proposta ou empréstimo registrado para este personagem.</p>{% endfor %}
       </div>
@@ -157,7 +157,7 @@
           <time datetime="{{ loan.vence_em|date:'c' }}"{% if not loan.inadimplente %} data-service-countdown{% endif %}>{{ loan.vence_em|date:'d/m/Y H:i' }}</time>
         </div>
         {% endif %}
-        <form method="post" action="{% url 'mercado_staff_emprestimo' loan.id_emprestimo %}" class="loan-actions staff-loan-actions" data-loan-review data-counterpart="{{ loan.credor.nome }} → {{ loan.devedor.nome }}" data-balance="{{ loan.saldo_display }}">
+        <form method="post" action="{% url 'mercado_staff_emprestimo' loan.id_emprestimo %}" class="loan-actions staff-loan-actions" data-service-review data-counterpart="{{ loan.credor.nome }} → {{ loan.devedor.nome }}" data-balance="{{ loan.saldo_display }}">
           {% csrf_token %}
           {% if loan.status == 'pendente' %}<button name="acao" value="cancelar" class="is-muted">Cancelar proposta</button>{% endif %}
           {% if loan.status == 'ativo' and not loan.multa_aplicada %}<button name="acao" value="prorrogar" class="is-muted">Prorrogar 30 dias</button>{% endif %}
@@ -170,11 +170,11 @@
   {% endif %}
 </div>
 
-<dialog id="loan-review" class="loan-review" aria-labelledby="loan-review-title" aria-describedby="loan-review-note">
-  <h2 id="loan-review-title">Revisar empréstimo</h2>
-  <dl><div><dt>Personagens</dt><dd data-loan-parties></dd></div><div><dt>Valor</dt><dd data-loan-amount></dd></div></dl>
-  <p id="loan-review-note" data-loan-note></p>
-  <div class="loan-review-actions"><button type="button" data-loan-back class="is-muted">Voltar</button><button type="button" data-loan-confirm>Confirmar</button></div>
+<dialog id="service-review" class="loan-review" aria-labelledby="service-review-title" aria-describedby="service-review-note">
+  <h2 id="service-review-title">Revisar serviço</h2>
+  <dl><div><dt data-service-subject-label>Personagens</dt><dd data-service-subject></dd></div><div><dt>Valor</dt><dd data-service-amount></dd></div></dl>
+  <p id="service-review-note" data-service-note></p>
+  <div class="loan-review-actions"><button type="button" data-service-back class="is-muted">Voltar</button><button type="button" data-service-confirm>Confirmar</button></div>
 </dialog>
 
 <script>
