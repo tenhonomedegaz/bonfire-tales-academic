@@ -30,7 +30,7 @@
     <form method="post" action="{% url 'personagem_arquivar' c.obj.id_personagem %}" data-character-archive-action="archive" data-character-name="{{ c.obj.nome }}">{% csrf_token %}<button type="submit">Arquivar e retirar publicação</button></form>
     {% endif %}
     {% if not c.obj.arquivado %}
-    <form method="post" action="{% url 'personagem_publicacao' c.obj.id_personagem %}">{% csrf_token %}
+    <form method="post" action="{% url 'personagem_publicacao' c.obj.id_personagem %}" data-character-publication-action="{% if c.obj.publico %}unpublish{% else %}publish{% endif %}" data-character-name="{{ c.obj.nome }}" data-character-description="{% if c.obj.descricao_publica %}true{% else %}false{% endif %}" data-character-attributes="{% if c.obj.mostrar_atributos_publicos %}true{% else %}false{% endif %}" data-character-skills="{% if c.obj.mostrar_pericias_publicas %}true{% else %}false{% endif %}" data-character-summary="{% if c.obj.mostrar_resumo_mecanico_publico %}true{% else %}false{% endif %}" data-character-preview-url="{% url 'ficha_publica' c.obj.id_personagem %}?preview=1">{% csrf_token %}
       <input type="hidden" name="action" value="{% if c.obj.publico %}unpublish{% else %}publish{% endif %}">
       <button class="text-[var(--ember)] hover:underline">{% if c.obj.publico %}Retirar publicação{% else %}Publicar ficha{% endif %}</button>
     </form>

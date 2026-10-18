@@ -12,6 +12,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.db import connection
+from django.test import Client
 from django.urls import reverse
 
 from home.models import TbPersonagem
@@ -35,7 +36,8 @@ class CharacterSlotsBrowserTests(StaticLiveServerTestCase):
         user = get_user_model().objects.create_user('slots-mobile-owner')
         character = TbPersonagem.objects.create(
             dono=user, nome='Personagem de campanha com nome extenso ' * 3,
-            nivel=13, arquivado=False)
+            nivel=13, arquivado=False, descricao_publica='Crônica compartilhada',
+            mostrar_atributos_publicos=True)
         self.client.force_login(user)
 
         with tempfile.TemporaryDirectory(prefix='bonfire-slots-mobile-', ignore_cleanup_errors=True) as profile:
@@ -144,6 +146,56 @@ class CharacterSlotsBrowserTests(StaticLiveServerTestCase):
                     time.sleep(.1)
                 self.assertFalse(character.arquivado)
                 self.assertFalse(character.publico)
+                for _ in range(80):
+                    if js('document.readyState === "complete" && !!document.querySelector(".cw-character-card:not(.is-vault) [data-character-publication-action=publish]")'):
+                        break
+                    time.sleep(.1)
+                public = reverse('ficha_publica', args=[character.pk])
+                visitor = Client()
+                self.assertEqual(visitor.get(public).status_code, 404)
+                call('Emulation.setDeviceMetricsOverride', {
+                    'width': 360, 'height': 800,
+                    'deviceScaleFactor': 1, 'mobile': True,
+                })
+                js('document.querySelector(".cw-character-card:not(.is-vault) summary").click()')
+                js('document.querySelector("[data-character-publication-action=publish] button").click()')
+                publication = json.loads(js('JSON.stringify({open:document.querySelector("[data-character-publication-review]").open,title:document.querySelector("[data-character-publication-title]").textContent,description:document.querySelector("[data-character-publication-description]").textContent,visibility:document.querySelector("[data-character-publication-visibility]").textContent,preview:document.querySelector("[data-character-publication-preview]").getAttribute("href")})'))
+                self.assertTrue(publication['open'], publication)
+                self.assertTrue(js('document.querySelector("[data-character-publication-review]").getBoundingClientRect().width <= innerWidth'))
+                self.assertIn(character.nome, publication['description'])
+                self.assertIn('descrição', publication['visibility'])
+                self.assertIn('atributos', publication['visibility'])
+                self.assertNotIn('perícias', publication['visibility'])
+                self.assertEqual(publication['preview'], public + '?preview=1')
+                js('document.querySelector("[data-character-publication-cancel]").click()')
+                character.refresh_from_db()
+                self.assertFalse(character.publico)
+                self.assertEqual(visitor.get(public).status_code, 404)
+                js('document.querySelector("[data-character-publication-action=publish] button").click()')
+                js('document.querySelector("[data-character-publication-confirm]").click()')
+                for _ in range(80):
+                    character.refresh_from_db()
+                    if character.publico:
+                        break
+                    time.sleep(.1)
+                self.assertTrue(character.publico)
+                self.assertEqual(visitor.get(public).status_code, 200)
+                for _ in range(80):
+                    if js('document.readyState === "complete" && !!document.querySelector("[data-character-publication-action=unpublish]")'):
+                        break
+                    time.sleep(.1)
+                js('document.querySelector(".cw-character-card:not(.is-vault) summary").click()')
+                js('document.querySelector("[data-character-publication-action=unpublish] button").click()')
+                self.assertIn('Retirar publicação', js('document.querySelector("[data-character-publication-title]").textContent'))
+                self.assertTrue(js('document.querySelector("[data-character-publication-preview]").hidden'))
+                js('document.querySelector("[data-character-publication-confirm]").click()')
+                for _ in range(80):
+                    character.refresh_from_db()
+                    if not character.publico:
+                        break
+                    time.sleep(.1)
+                self.assertFalse(character.publico)
+                self.assertEqual(visitor.get(public).status_code, 404)
             finally:
                 if ws:
                     ws.close()
