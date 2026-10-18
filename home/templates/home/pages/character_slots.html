@@ -1,7 +1,7 @@
 {% extends 'home/base.html' %}{% load static %}
 {% block body_class %}bft-slots{% endblock %}
 {% block main_class %}flex-1 w-full min-w-0{% endblock %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/character-slots.css' %}?v=3">{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/character-slots.css' %}?v=3"><link rel="stylesheet" href="{% static 'css/pages/character-archive-review.css' %}?v=1"><script src="{% static 'js/character-archive-review.js' %}?v=1" defer></script>{% endblock %}
 {% block content %}
 <section class="bf-slots" aria-labelledby="slots-title">
   <a class="bs-back" href="{% url 'personagens' %}">← Meus Personagens</a>
@@ -38,10 +38,10 @@
             <span class="bs-character-info"><a href="{% url 'ficha_detail' character.pk %}">{{ character.nome }}</a><strong>Nível {{ character.nivel }} · {% if character.arquivado %}No cofre{% else %}Ativa{% endif %}</strong></span>
             {% if character.arquivado %}
               {% if slot_details.ilimitado or active_count < slot_limit %}
-              <form method="post" action="{% url 'personagem_restaurar' character.pk %}">{% csrf_token %}<button type="submit">Restaurar ficha</button></form>
+              <form method="post" action="{% url 'personagem_restaurar' character.pk %}" data-character-archive-action="restore" data-character-name="{{ character.nome }}">{% csrf_token %}<button type="submit">Restaurar ficha</button></form>
               {% else %}<span class="bs-character-limit">Arquive uma ficha ativa para liberar espaço.</span>{% endif %}
             {% else %}
-              <form method="post" action="{% url 'personagem_arquivar' character.pk %}">{% csrf_token %}<button type="submit">Arquivar ficha</button></form>
+              <form method="post" action="{% url 'personagem_arquivar' character.pk %}" data-character-archive-action="archive" data-character-name="{{ character.nome }}">{% csrf_token %}<button type="submit">Arquivar ficha</button></form>
             {% endif %}
           </li>
           {% empty %}<li>Você ainda não possui personagens.</li>{% endfor %}
@@ -57,5 +57,6 @@
       <p class="bs-help">Este resgate usa MM da sua conta; não inicia pagamento em reais.</p>
     </aside>
   </div>
+  {% include 'home/partials/character_archive_review.html' %}
 </section>
 {% endblock %}

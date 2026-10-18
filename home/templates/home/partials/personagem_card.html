@@ -22,12 +22,12 @@
     <a href="{% url 'character_slots' %}" class="text-[var(--ember)] hover:underline">Ver capacidade e direitos</a>
     {% if cofre %}
       {% if pode_criar %}
-      <form method="post" action="{% url 'personagem_restaurar' c.obj.id_personagem %}">{% csrf_token %}<button type="submit">Restaurar ficha ativa</button></form>
+      <form method="post" action="{% url 'personagem_restaurar' c.obj.id_personagem %}" data-character-archive-action="restore" data-character-name="{{ c.obj.nome }}">{% csrf_token %}<button type="submit">Restaurar ficha ativa</button></form>
       {% else %}
       <p class="cw-manage-limit">Limite de fichas ativas atingido. Arquive outra ficha antes de restaurar esta.</p>
       {% endif %}
     {% else %}
-    <form method="post" action="{% url 'personagem_arquivar' c.obj.id_personagem %}">{% csrf_token %}<button type="submit">Arquivar e retirar publicação</button></form>
+    <form method="post" action="{% url 'personagem_arquivar' c.obj.id_personagem %}" data-character-archive-action="archive" data-character-name="{{ c.obj.nome }}">{% csrf_token %}<button type="submit">Arquivar e retirar publicação</button></form>
     {% endif %}
     {% if not c.obj.arquivado %}
     <form method="post" action="{% url 'personagem_publicacao' c.obj.id_personagem %}">{% csrf_token %}

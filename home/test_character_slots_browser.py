@@ -100,6 +100,19 @@ class CharacterSlotsBrowserTests(StaticLiveServerTestCase):
                     self.assertLessEqual(metrics['scroll'], metrics['client'], metrics)
                     self.assertGreaterEqual(metrics['button'], 44, metrics)
                 js('document.querySelector(".bs-character-row button").click()')
+                review = json.loads(js('JSON.stringify({open:document.querySelector("[data-character-archive-review]").open,title:document.querySelector("[data-character-archive-title]").textContent,description:document.querySelector("[data-character-archive-description]").textContent})'))
+                self.assertTrue(review['open'], review)
+                self.assertIn('Arquivar', review['title'])
+                self.assertIn(character.nome, review['description'])
+                self.assertIn('preservada', review['description'])
+                character.refresh_from_db()
+                self.assertFalse(character.arquivado)
+                js('document.querySelector("[data-character-archive-cancel]").click()')
+                self.assertFalse(js('document.querySelector("[data-character-archive-review]").open'))
+                character.refresh_from_db()
+                self.assertFalse(character.arquivado)
+                js('document.querySelector(".bs-character-row button").click()')
+                js('document.querySelector("[data-character-archive-confirm]").click()')
                 destination = reverse('personagens')
                 for _ in range(80):
                     if js('location.pathname === ' + json.dumps(destination)
@@ -109,6 +122,28 @@ class CharacterSlotsBrowserTests(StaticLiveServerTestCase):
                 self.assertEqual(js('location.pathname'), destination)
                 character.refresh_from_db()
                 self.assertTrue(character.arquivado)
+                self.assertFalse(character.publico)
+                for _ in range(80):
+                    if js('!!document.querySelector(".cw-character-card.is-vault [data-character-archive-action=restore]")'):
+                        break
+                    time.sleep(.1)
+                self.assertTrue(js('!!document.querySelector(".cw-character-card.is-vault [data-character-archive-action=restore]")'))
+                js('document.querySelector(".cw-character-card.is-vault summary").click()')
+                js('document.querySelector(".cw-character-card.is-vault [data-character-archive-action=restore] button").click()')
+                review = json.loads(js('JSON.stringify({open:document.querySelector("[data-character-archive-review]").open,title:document.querySelector("[data-character-archive-title]").textContent,description:document.querySelector("[data-character-archive-description]").textContent})'))
+                self.assertTrue(review['open'], review)
+                self.assertIn('Restaurar', review['title'])
+                self.assertIn(character.nome, review['description'])
+                character.refresh_from_db()
+                self.assertTrue(character.arquivado)
+                js('document.querySelector("[data-character-archive-confirm]").click()')
+                for _ in range(80):
+                    character.refresh_from_db()
+                    if not character.arquivado:
+                        break
+                    time.sleep(.1)
+                self.assertFalse(character.arquivado)
+                self.assertFalse(character.publico)
             finally:
                 if ws:
                     ws.close()
