@@ -442,6 +442,87 @@
     feedback.classList.toggle('is-err', !ok);
   }
 
+  var review = root.querySelector('[data-shop-review]');
+  var pendingTrade = null;
+  var reviewOpener = null;
+  if (review && typeof review.showModal === 'function') {
+    review.querySelector('[data-shop-review-cancel]').addEventListener('click', function () { review.close(); });
+    review.addEventListener('close', function () {
+      pendingTrade = null;
+      if (folhaAberta && folha) folha.setAttribute('aria-modal', 'true');
+      if (reviewOpener && document.contains(reviewOpener)) reviewOpener.focus({ preventScroll: true });
+      reviewOpener = null;
+    });
+    review.querySelector('[data-shop-review-confirm]').addEventListener('click', function () {
+      var form = pendingTrade;
+      review.close();
+      if (form && document.contains(form) && form.reportValidity()) executarNegocio(form);
+    });
+  }
+
+  function mostrarRevisao(form) {
+    var vendendo = form.hasAttribute('data-shop-sell');
+    var card = form.closest('.mkt-card');
+    var quantity = form.elements.namedItem('qtd');
+    var base = form.elements.namedItem('base_item');
+    var character = root.querySelector('[data-shop-personagem]');
+    review.querySelector('[data-shop-review-title]').textContent = vendendo ? 'Revisar venda' : 'Revisar compra';
+    review.querySelector('[data-shop-review-item]').textContent = card.querySelector('.mkt-card-name').textContent.trim();
+    review.querySelector('[data-shop-review-quantity]').textContent = quantity ? quantity.value : '1';
+    review.querySelector('[data-shop-review-price-label]').textContent = vendendo ? 'Crédito por unidade' : 'Preço por unidade';
+    review.querySelector('[data-shop-review-price]').textContent = card.querySelector('.mkt-price').textContent.trim();
+    var total = !vendendo && card.querySelector('[data-market-total]');
+    review.querySelector('[data-shop-review-total-row]').hidden = !total;
+    review.querySelector('[data-shop-review-total]').textContent = total ? total.textContent.trim() : '';
+    review.querySelector('[data-shop-review-base-row]').hidden = !base;
+    review.querySelector('[data-shop-review-base]').textContent = base ? base.selectedOptions[0].textContent.trim() : '';
+    review.querySelector('[data-shop-review-character]').textContent = character.selectedOptions[0].textContent.trim();
+    review.querySelector('[data-shop-review-note]').textContent = vendendo
+      ? 'Ao confirmar, os itens saem da mochila e o crédito é registrado na carteira da ficha.'
+      : 'Ao confirmar, o servidor verifica saldo e disponibilidade antes de debitar a carteira da ficha.';
+    review.querySelector('[data-shop-review-confirm]').textContent = vendendo ? 'Confirmar venda' : 'Confirmar compra';
+    pendingTrade = form;
+    reviewOpener = form.querySelector('button[type="submit"]');
+    if (folhaAberta && folha) folha.removeAttribute('aria-modal');
+    review.showModal();
+  }
+
+  function executarNegocio(form) {
+    if (trocaPendente) return;
+    var vendendo = form.hasAttribute('data-shop-sell');
+    var btn = form.querySelector('button[type="submit"]');
+    var nome = btn ? (btn.getAttribute('data-nome') || 'mercadoria') : 'mercadoria';
+    if (btn) btn.disabled = true;
+    var fd = new FormData(form);
+    fetch(form.action, {
+      method: 'POST',
+      headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': fd.get('csrfmiddlewaretoken') || '' },
+      body: fd,
+      credentials: 'same-origin'
+    }).then(function (r) {
+      return r.json().catch(function () { return { ok: false, msg: 'erro' }; });
+    }).then(function (data) {
+      if (btn && document.body.contains(btn)) btn.disabled = false;
+      if (!data || !data.ok) {
+        avisar(MSG[data && data.msg] || 'Não foi possível concluir o negócio.', false);
+        return;
+      }
+      if (carteira && data.carteira_display) carteira.textContent = data.carteira_display;
+      if (vendaBox && typeof data.venda_html === 'string') {
+        // O painel VENDER volta re-renderizado (linhas + templates da prévia): a linha
+        // vendida sumiu, então o destaque precisa reassumir o que sobrou.
+        vendaBox.innerHTML = data.venda_html;
+        if (vendendo) garantirSelecao();
+      }
+      avisar(vendendo
+        ? 'Vendido: ' + nome + ' por ' + (data.credito_display || '') + '. Carteira: ' + (data.carteira_display || '')
+        : 'Comprado: ' + nome + '. Carteira: ' + (data.carteira_display || ''), true);
+    }).catch(function () {
+      if (btn) btn.disabled = false;
+      avisar('Falha de rede — o negócio não foi concluído.', false);
+    });
+  }
+
   root.addEventListener('submit', function (ev) {
     var form = ev.target.closest('form[data-item-editor]');
     if (!form) return;
@@ -521,39 +602,9 @@
     var form = ev.target.closest('form[data-shop-buy], form[data-shop-sell]');
     if (!form) return;
     ev.preventDefault();
-    if (trocaPendente) return;
-    var vendendo = form.hasAttribute('data-shop-sell');
-    var btn = form.querySelector('button[type="submit"]');
-    var nome = btn ? (btn.getAttribute('data-nome') || 'mercadoria') : 'mercadoria';
-    if (btn) btn.disabled = true;
-    var fd = new FormData(form);
-    fetch(form.action, {
-      method: 'POST',
-      headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': fd.get('csrfmiddlewaretoken') || '' },
-      body: fd,
-      credentials: 'same-origin'
-    }).then(function (r) {
-      return r.json().catch(function () { return { ok: false, msg: 'erro' }; });
-    }).then(function (data) {
-      if (btn && document.body.contains(btn)) btn.disabled = false;
-      if (!data || !data.ok) {
-        avisar(MSG[data && data.msg] || 'Não foi possível concluir o negócio.', false);
-        return;
-      }
-      if (carteira && data.carteira_display) carteira.textContent = data.carteira_display;
-      if (vendaBox && typeof data.venda_html === 'string') {
-        // O painel VENDER volta re-renderizado (linhas + templates da prévia): a linha
-        // vendida sumiu, então o destaque precisa reassumir o que sobrou.
-        vendaBox.innerHTML = data.venda_html;
-        if (vendendo) garantirSelecao();
-      }
-      avisar(vendendo
-        ? 'Vendido: ' + nome + ' por ' + (data.credito_display || '') + '. Carteira: ' + (data.carteira_display || '')
-        : 'Comprado: ' + nome + '. Carteira: ' + (data.carteira_display || ''), true);
-    }).catch(function () {
-      if (btn) btn.disabled = false;
-      avisar('Falha de rede — o negócio não foi concluído.', false);
-    });
+    if (trocaPendente || !form.reportValidity()) return;
+    if (review && typeof review.showModal === 'function') mostrarRevisao(form);
+    else executarNegocio(form);
   });
 
   restaurarNavegacao();      // recupera filtros e destaque de URLs compartilhadas

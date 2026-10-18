@@ -1,0 +1,12 @@
+.mkt-review{border:1px solid #a75c39;border-radius:8px;background:#1b1512;color:#f2eee8;padding:24px;width:min(440px,calc(100vw - 32px));max-height:calc(100vh - 32px);overflow:auto;box-shadow:0 24px 60px #000b}
+.mkt-review::backdrop{background:#000b}
+.mkt-review h2{font:600 1.6rem Georgia,serif;margin:0 0 16px}
+.mkt-review dl{display:grid;gap:10px;margin:0}
+.mkt-review dl>div{display:flex;justify-content:space-between;gap:16px;border-bottom:1px solid #594038;padding-bottom:9px}
+.mkt-review [hidden]{display:none}
+.mkt-review dt{color:#cbb8ab}.mkt-review dd{margin:0;text-align:right;font-weight:700;overflow-wrap:anywhere}
+.mkt-review p{font-size:.9rem;line-height:1.55;color:#ddc9b8;margin:18px 0}
+.mkt-review-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.mkt-review-actions button{min-height:44px;padding:9px 16px;border:1px solid #98513a;border-radius:4px;background:#2e1b17;color:#f2eee8;cursor:pointer}
+.mkt-review-actions [data-shop-review-confirm]{background:#b31515;border-color:#cf6340;font-weight:700}
+.mkt-review-actions button:focus-visible{outline:2px solid #ff9c66;outline-offset:3px}

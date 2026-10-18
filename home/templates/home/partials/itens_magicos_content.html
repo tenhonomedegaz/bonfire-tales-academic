@@ -1,5 +1,6 @@
 {% load %}
 <div class="shop" data-shop-root data-shop-kind="magico">
+  {% include 'home/partials/market_transaction_review.html' %}
   {% include 'home/partials/_mercado_balcao.html' with balcao_titulo='Balcão do Mercado' mundano_redesign=True %}
   <div class="mkt-browse">
     {% if mercado_ativo %}<div class="mkt-tabs" role="tablist" aria-label="Comprar ou vender"><button type="button" class="mkt-tab is-active" role="tab" data-shop-tab="comprar" aria-selected="true">Comprar</button><button type="button" class="mkt-tab" role="tab" data-shop-tab="vender" aria-selected="false">Vender</button></div>{% endif %}
