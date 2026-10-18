@@ -12,6 +12,8 @@ from home.models import (MestreOuroDireito, MestreOuroRevisao, TbConquista,
                          TbEventoConquista, TbPersonagem, TbTransacaoMestre,
                          TbUsuarioConquista, UserProfile)
 
+MILESTONE_LEVELS = (5, 9, 13, 20)
+
 
 def configured_level_achievements():
     """Expose existing site milestone definitions without inferring token policy."""
@@ -24,7 +26,7 @@ def configured_level_achievements():
         if not isinstance(rule, dict):
             continue
         level = rule.get('target')
-        if type(level) is not int or level not in (5, 9, 13, 20):
+        if type(level) is not int or level not in MILESTONE_LEVELS:
             continue
         filters = rule.get('filters') or {}
         if not isinstance(filters, dict):
@@ -49,12 +51,12 @@ def configured_level_achievements():
 
 def preview():
     """Classify candidates; a level alone never grants a right here."""
-    owners = set(TbPersonagem.objects.filter(nivel__gte=13).values_list('dono_id', flat=True))
+    owners = set(TbPersonagem.objects.filter(nivel__gte=5).values_list('dono_id', flat=True))
     owners.update(MestreOuroDireito.objects.values_list('user_id', flat=True))
     owners.update(MestreOuroRevisao.objects.values_list('user_id', flat=True))
     owners.update(UserProfile.objects.filter(mestre_ouro_ativo=True).values_list('user_id', flat=True))
     owners.update(TbEventoConquista.objects.filter(
-        origem='site', tipo='character_level_up', payload_json__level_after__gte=13,
+        origem='site', tipo='character_level_up', payload_json__level_after__gte=5,
     ).values_list('conta_id', flat=True))
     owners.update(TbTransacaoMestre.objects.filter(
         tipo__in=('assinatura', 'mensalidade'), valor_mm__lt=0,
@@ -65,17 +67,23 @@ def preview():
     ).values_list('mestre_id', flat=True))
     rows = []
     for user in get_user_model().objects.filter(pk__in=owners).order_by('pk').iterator():
-        levels = list(TbPersonagem.objects.filter(dono=user, nivel__gte=13)
+        levels = list(TbPersonagem.objects.filter(dono=user, nivel__gte=5)
                       .order_by('-nivel', 'pk').values_list('nivel', flat=True))
         proven = _marcos_rank_comprovados(user)
         profile = UserProfile.objects.filter(user=user).first()
         lifetime_right = MestreOuroDireito.objects.filter(user=user).exists()
+        milestone_candidates = {
+            f'current_level_{level}_candidate': any(value >= level for value in levels)
+            for level in MILESTONE_LEVELS
+        }
+        milestone_proof = {
+            f'proven_level_{level}': any(value >= level for value, _ in proven)
+            for level in MILESTONE_LEVELS
+        }
         rows.append({
             'user_id': user.pk,
-            'current_level_13_candidate': bool(levels),
-            'current_level_20_candidate': any(level >= 20 for level in levels),
-            'proven_level_13': any(level >= 13 for level, _ in proven),
-            'proven_level_20': any(level >= 20 for level, _ in proven),
+            **milestone_candidates,
+            **milestone_proof,
             'existing_lifetime_slot': lifetime_right,
             'legacy_gold_review_needed': has_unreconciled_mestre_ouro_history(user.pk, profile),
             'slot_redemption_without_right': (
@@ -101,7 +109,7 @@ class Command(BaseCommand):
             achievements = configured_level_achievements()
         settings = connection.settings_dict
         self.stdout.write(json.dumps({
-            'policy': 'level 13 candidate only; level 20 not authorized for grant',
+            'policy': 'levels 5/9/13/20 are candidates only; this command never grants',
             'database': {key: str(settings.get(key) or '')
                          for key in ('ENGINE', 'NAME', 'HOST', 'PORT', 'USER')},
             'count': len(rows), 'accounts': rows,
