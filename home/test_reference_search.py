@@ -5,10 +5,27 @@ from urllib.parse import quote
 from django.test import TestCase
 from django.urls import reverse
 
-from .models import TbBestiario, TbCondicao, TbItemMagico, TbItemMundano, TbRegra
+from .models import (TbAntecedente, TbArmadilha, TbBestiario, TbCondicao,
+                     TbItemMagico, TbItemMundano, TbRegra)
 
 
 class ReferenceSearchRoutesTests(TestCase):
+    def test_global_search_opens_filtered_background_trap_and_glossary_catalogs(self):
+        background = TbAntecedente.objects.create(
+            slug='vigia-das-brumas', nome='Vigia das Brumas', descricao='Vigia as passagens.')
+        trap = TbArmadilha.objects.create(
+            slug='sino-das-brumas', nome='Sino das Brumas', efeito='O sino soa.')
+        rule = TbRegra.objects.create(slug='chamado-das-brumas', nome='Chamado das Brumas')
+        for entry, route in (
+            (background, 'jogador_antecedentes'),
+            (trap, 'mestre_armadilhas'),
+            (rule, 'sistemas_glossario'),
+        ):
+            url = reverse(route)
+            response = self.client.get(reverse('busca'), {'q': entry.nome})
+            self.assertContains(response, f'href="{url}?q={quote(entry.nome)}"')
+            self.assertEqual(self.client.get(url, {'q': entry.nome}).status_code, 200)
+
     def test_global_search_opens_filtered_market_and_bestiary_catalogs(self):
         mundane = TbItemMundano.objects.create(
             slug='corda-trinta-pes', nome='Corda 30 pés', preco='1 PO')

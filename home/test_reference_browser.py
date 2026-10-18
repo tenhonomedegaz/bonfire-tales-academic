@@ -4,17 +4,18 @@ import subprocess
 import tempfile
 import time
 from pathlib import Path
+from urllib.parse import quote
 from urllib.request import urlopen
 
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.db import connection
 from django.urls import reverse
 
-from .models import TbCondicao
+from .models import TbAntecedente, TbArmadilha, TbCondicao, TbRegra
 
 
-class ConditionCatalogBrowserTests(StaticLiveServerTestCase):
-    def test_glossary_link_and_condition_search_on_mobile(self):
+class ReferenceCatalogBrowserTests(StaticLiveServerTestCase):
+    def test_search_destinations_and_condition_link_on_mobile(self):
         if connection.vendor != 'postgresql' or not connection.settings_dict['NAME'].startswith('test_'):
             self.skipTest('Requer PostgreSQL de teste isolado.')
         try:
@@ -32,6 +33,17 @@ class ConditionCatalogBrowserTests(StaticLiveServerTestCase):
                                   efeitos_json=[{'titulo': 'Movimento', 'texto': 'Deslocamento zero.'}])
         TbCondicao.objects.create(slug='amedrontado', nome='Amedrontado',
                                   efeitos_json=[{'titulo': 'Ataque', 'texto': 'Desvantagem.'}])
+        background = TbAntecedente.objects.create(
+            slug='vigia-das-brumas', nome='Vigia das Brumas', descricao='Vigia as passagens.')
+        TbAntecedente.objects.create(
+            slug='escriba-do-vale', nome='Escriba do Vale', descricao='Registra as viagens.')
+        trap = TbArmadilha.objects.create(
+            slug='sino-das-brumas', nome='Sino das Brumas', efeito='O sino soa.')
+        TbArmadilha.objects.create(
+            slug='fosso-do-vale', nome='Fosso do Vale', efeito='O chão cede.')
+        rule = TbRegra.objects.create(
+            slug='chamado-das-brumas', nome='Chamado das Brumas')
+        TbRegra.objects.create(slug='eco-do-vale', nome='Eco do Vale')
         with tempfile.TemporaryDirectory(prefix='bonfire-conditions-', ignore_cleanup_errors=True) as scratch:
             profile = Path(scratch) / 'profile'
             process = subprocess.Popen([
@@ -91,6 +103,25 @@ class ConditionCatalogBrowserTests(StaticLiveServerTestCase):
                 self.assertFalse(js('document.querySelector("#cond-agarrado").hidden'))
                 self.assertTrue(js('document.querySelector("#cond-amedrontado").hidden'))
                 self.assertLessEqual(js('document.documentElement.scrollWidth'), js('document.documentElement.clientWidth'))
+
+                for entry, route, selected, count in (
+                    (background, 'jogador_antecedentes',
+                     'document.querySelector("[data-background=vigia-das-brumas]")?.hidden === false',
+                     'document.querySelector("#backgroundResultCount")?.textContent.startsWith("1 ")'),
+                    (trap, 'mestre_armadilhas',
+                     'document.querySelector("#armadilha-%s")?.hidden === false' % trap.pk,
+                     'document.querySelector("#ar-count")?.textContent === "1"'),
+                    (rule, 'sistemas_glossario',
+                     '!document.querySelector("#regra-chamado-das-brumas")?.classList.contains("hidden")',
+                     'document.querySelector("#glo-count")?.textContent === "1"'),
+                ):
+                    cdp('Page.navigate', {'url': self.live_server_url + reverse('busca') + '?q=' + quote(entry.nome)})
+                    result_link = 'Array.from(document.querySelectorAll(".cp-result-group a")).find(a => a.textContent.includes(%s))' % json.dumps(entry.nome)
+                    wait_for(result_link + ' !== undefined')
+                    js(result_link + '.click()')
+                    wait_for('location.pathname === %s && %s && %s' % (json.dumps(reverse(route)), selected, count))
+                    self.assertEqual(js('new URLSearchParams(location.search).get("q")'), entry.nome)
+                    self.assertLessEqual(js('document.documentElement.scrollWidth'), js('document.documentElement.clientWidth'))
             finally:
                 if ws:
                     ws.close()
