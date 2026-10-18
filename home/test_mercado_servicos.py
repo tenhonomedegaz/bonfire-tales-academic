@@ -205,6 +205,7 @@ class MercadoServicosTests(TestCase):
         response = self.client.get(
             reverse('mercado_servicos') + f'?personagem={self.borrower.pk}')
         self.assertContains(response, 'data-balance-pc="9800"')
+        self.assertContains(response, 'data-character="Devedor" data-counterpart="Credor"')
         self.assertContains(response, 'name="valor_po" value="" formnovalidate')
 
     def test_payment_above_remaining_balance_debits_only_the_balance(self):

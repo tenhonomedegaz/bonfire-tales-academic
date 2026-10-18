@@ -35,7 +35,12 @@
         amount.textContent = `${form.querySelector('#loan-value').value} PO`;
         note.textContent = 'A proposta será enviada. O ouro só será transferido se a outra pessoa aceitar.';
       } else {
-        subject.textContent = form.dataset.counterpart || '';
+        const character = form.dataset.character;
+        const counterpart = form.dataset.counterpart || '';
+        subjectLabel.textContent = character
+          ? (form.classList.contains('loan-payment') ? 'Ficha debitada e credor' : 'Ficha selecionada e contraparte')
+          : 'Personagens';
+        subject.textContent = character ? `${character} → ${counterpart}` : counterpart;
         const balance = form.dataset.balance || '';
         if (form.classList.contains('loan-payment')) {
           const full = button.name === 'valor_po';
