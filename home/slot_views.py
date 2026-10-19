@@ -4,11 +4,14 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_safe, require_POST
+from django.http import Http404
+from django.shortcuts import get_object_or_404
 
 from . import permissions
 from .mestre_ouro import (CHARACTER_SLOT_PRICE_MM, buy_character_slot_with_mm,
                           has_unreconciled_mestre_ouro_history)
-from .models import UserProfile
+from .models import TbPersonagem, UserProfile
+from .conquistas import solicitar_token_ficha, confirmar_consumo_token
 
 
 @login_required(login_url='/login/')
@@ -35,6 +38,38 @@ def character_slots(request):
                                    and not details['mestre_ouro'] and not legacy_pending),
         'slot_legacy_pending': legacy_pending,
     })
+
+
+@login_required(login_url='/login/')
+@require_POST
+def request_character_token(request, pk, grant_id):
+    """Guarda a solicitação da dona da ficha; publicação virá em outra entrega."""
+    get_object_or_404(TbPersonagem, pk=pk, dono=request.user)
+    try:
+        solicitar_token_ficha(pk, grant_id, request.user)
+    except ValueError as exc:
+        messages.error(request, str(exc))
+    else:
+        messages.success(request, 'Pedido registrado para esta ficha. Aguarde a missão da staff.')
+    return redirect('ficha_detail', pk=pk)
+
+
+@login_required(login_url='/login/')
+@require_POST
+def confirm_character_token(request, pk, grant_id):
+    """Confirma o consumo depois do lançamento da missão atribuído à ficha."""
+    if not permissions.is_staff_user(request.user):
+        raise Http404
+    try:
+        mission_id = int(request.POST.get('mission_ledger_id', ''))
+        if mission_id <= 0:
+            raise ValueError('Informe um lançamento de missão válido.')
+        confirmar_consumo_token(pk, grant_id, mission_id, request.user)
+    except (ValueError, TypeError) as exc:
+        messages.error(request, str(exc))
+    else:
+        messages.success(request, 'Consumo confirmado e auditado nesta ficha.')
+    return redirect('ficha_detail', pk=pk)
 
 
 @login_required(login_url='/login/')
