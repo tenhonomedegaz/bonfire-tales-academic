@@ -17465,8 +17465,9 @@ def _oficina_casting_resource(personagem, caster, spell, slot_level):
         caster['pc'].id_classe, level=int(caster['pc'].nivel or 1),
         subclass=_caster_subclasse(caster['pc'])) or 0
     classes = list(personagem.classes.select_related('id_classe', 'id_subclasse'))
+    from .character_engine import _resource_key
     tracked = next((row for row in _recursos_consumiveis(personagem, classes)
-                    if row.get('slug') == resource_slug), None)
+                    if _resource_key(row.get('slug')) == _resource_key(resource_slug)), None)
     contract_resource = tracked or {
         'db_chave': 'class:%s:%s:%s' % (
             caster['pc'].id_classe_id, caster['pc'].id_subclasse_id or 0,
