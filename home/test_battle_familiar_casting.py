@@ -256,6 +256,10 @@ class BattleFamiliarCastingTests(TestCase):
         resource = self.personagem.recursos.get(nome='Pontos')
         self.assertEqual(resource.atual, 6)
         self.assertEqual(resource.chave, 'class:%s:0:pontos_de_misticismo' % self.classe.pk)
+        rest = reverse('personagem_descansar', args=[self.personagem.pk])
+        self.assertEqual(self.client.post(rest, {'tipo': 'curto'}).status_code, 302)
+        resource.refresh_from_db()
+        self.assertEqual(resource.atual, 10)
 
     def test_explicit_existing_familiar_registration_rolls_back_on_missing_material(self):
         self.base(complete=False).delete()
