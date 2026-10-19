@@ -604,7 +604,11 @@
         detailContainer.classList.remove('talent-detail-enter');
         void detailContainer.offsetWidth;
         detailContainer.classList.add('talent-detail-enter');
-        if (focusDetail) detailContainer.querySelector('[data-talent-title]').focus({ preventScroll: true });
+        if (focusDetail) {
+            const heading = detailContainer.querySelector('[data-talent-title]');
+            heading.focus({ preventScroll: true });
+            heading.scrollIntoView({ block: 'start' });
+        }
         const currentLink = listItemsContainer.querySelector('[aria-current]');
         if (currentLink) {
             const row = currentLink.getBoundingClientRect();
@@ -928,7 +932,10 @@
         }
         const exactMatch = restoredQuery.trim() && filteredTalentos.find(item => normalizeSearch(item.nome) === normalizeSearch(restoredQuery.trim()));
         const selected = talent || exactMatch || filteredTalentos[0];
-        if (selected) selectTalento(selected.id, { historyMode: talent ? 'none' : 'replace' });
+        if (selected) selectTalento(selected.id, {
+            historyMode: talent ? 'none' : 'replace',
+            focusDetail: Boolean(talent || exactMatch),
+        });
     }
     restoreTalentFromHash();
     window.addEventListener('popstate', restoreTalentFromHash);

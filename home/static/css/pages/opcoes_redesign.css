@@ -58,7 +58,7 @@ body.bft-options {
 .bft-options .option-detail-heading { min-width:0; flex:1; position:relative; z-index:1; }
 .bft-options .option-eyebrow { font-size:.7rem; letter-spacing:.13em; text-transform:uppercase; color:#e19a83; margin:0 0 5px; }
 .bft-options .option-detail h2[data-option-title] { font-family:'Frank Ruhl Libre',Georgia,serif; margin:0; font-weight:500; color:#f7e9df; line-height:1.15; letter-spacing:-.015em; font-size:clamp(1.85rem,2.5vw,2.4rem); overflow-wrap:anywhere; scroll-margin-top:90px; }
-.bft-options [data-option-title]:focus { outline:none !important; }
+.bft-options [data-option-title]:focus { outline:2px solid #ff9c66; outline-offset:4px; }
 .bft-options .option-detail-header .wiki-edit-button { position:relative; z-index:1; flex-shrink:0; }
 .bft-options .option-detail-body { padding:20px 26px 27px; }
 .bft-options .option-tags { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:15px; }

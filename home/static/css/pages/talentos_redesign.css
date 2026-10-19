@@ -120,7 +120,7 @@ body.bft-talents {
 .bft-talents #filterClose { min-width: 40px; min-height: 40px; }
 .bft-talents .wiki-editor { background: #191113; border-color: #693034; }
 .bft-talents :is(button, input, select, textarea, a, summary):focus-visible { outline: 2px solid #ff9c66; outline-offset: 3px; }
-.bft-talents #talentoDetail [data-talent-title]:focus, .bft-talents #talentoDetail [data-talent-title]:focus-visible { outline: none !important; }
+.bft-talents #talentoDetail [data-talent-title]:focus { outline: 2px solid #ff9c66; outline-offset: 4px; }
 .bft-talents.talent-modal-open #main-content { z-index: 80; }
 .bft-talents .talent-detail-panel noscript section { padding: 20px; border-bottom: 1px solid #693034; }
 @media (min-width: 1101px) {

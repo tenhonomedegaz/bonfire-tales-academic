@@ -442,6 +442,11 @@
     selectedOpcaoId = selectedFromHash();
     applyFilters();
     handleLayout();
+    if (selectedOpcaoId !== null && (location.hash || searchInput.value.trim())) {
+        const heading = detailContainer.querySelector('[data-option-title]');
+        heading?.focus({preventScroll: true});
+        heading?.scrollIntoView({block: 'start'});
+    }
     searchInput.addEventListener('input', applyFilters);
     category.addEventListener('change', () => { activeFilters.type = category.value; applyFilters(); });
     reset.addEventListener('click', resetFilters);
@@ -474,6 +479,11 @@
         searchInput.value = new URL(location.href).searchParams.get('q') || '';
         selectedOpcaoId = selectedFromHash();
         applyFilters();
+        if (selectedOpcaoId !== null && (location.hash || searchInput.value.trim())) {
+            const heading = detailContainer.querySelector('[data-option-title]');
+            heading?.focus({preventScroll: true});
+            heading?.scrollIntoView({block: 'start'});
+        }
     };
     window.addEventListener('popstate', restoreFromURL);
     window.addEventListener('hashchange', restoreFromURL);

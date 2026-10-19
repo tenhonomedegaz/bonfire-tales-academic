@@ -104,6 +104,7 @@ class ReferenceCatalogBrowserTests(StaticLiveServerTestCase):
                 cdp('Emulation.setDeviceMetricsOverride', {
                     'width': 360, 'height': 800, 'deviceScaleFactor': 1, 'mobile': True,
                 })
+                cdp('Emulation.setFocusEmulationEnabled', {'enabled': True})
                 cdp('Page.navigate', {'url': self.live_server_url + reverse('sistemas_glossario')})
                 target_link = 'Array.from(document.querySelectorAll("a")).find(a => a.getAttribute("href")?.endsWith("#cond-amedrontado"))'
                 wait_for(target_link + ' !== undefined')
@@ -156,6 +157,23 @@ class ReferenceCatalogBrowserTests(StaticLiveServerTestCase):
                     wait_for(result_link + ' !== undefined')
                     js(result_link + '.click()')
                     wait_for('location.pathname === %s && %s && %s' % (json.dumps(reverse(route)), selected, count))
+                    if route in ('jogador_talentos', 'jogador_idiomas', 'jogador_opcoes'):
+                        heading = {
+                            'jogador_talentos': '[data-talent-title]',
+                            'jogador_idiomas': '[data-language-detail]:not([hidden]) h2',
+                            'jogador_opcoes': '[data-option-title]',
+                        }[route]
+                        wait_for('document.activeElement === document.querySelector(%s)' % json.dumps(heading))
+                        state = js('''(() => {
+                            const heading = document.querySelector(%s);
+                            const box = heading.getBoundingClientRect();
+                            return {focused: document.activeElement === heading,
+                                top: box.top, bottom: box.bottom, height: innerHeight,
+                                outline: getComputedStyle(heading).outlineStyle};
+                        })()''' % json.dumps(heading))
+                        self.assertTrue(state['focused'] and state['top'] < state['height'] and
+                                        state['bottom'] > 0 and state['outline'] != 'none',
+                                        f'{route}: {state}')
                     if route == 'sistemas_glossario':
                         self.assertTrue(js('''(() => {
                             const box = document.querySelector('#regra-chamado-das-brumas').getBoundingClientRect();
@@ -165,6 +183,13 @@ class ReferenceCatalogBrowserTests(StaticLiveServerTestCase):
                     self.assertLessEqual(js('document.documentElement.scrollWidth'), js('document.documentElement.clientWidth'))
                     cdp('Page.reload', {'ignoreCache': True})
                     wait_for('location.pathname === %s && %s && %s' % (json.dumps(reverse(route)), selected, count))
+                    if route in ('jogador_talentos', 'jogador_idiomas', 'jogador_opcoes'):
+                        wait_for('document.activeElement === document.querySelector(%s)' % json.dumps(heading))
+                        self.assertTrue(js('''(() => {
+                            const heading = document.querySelector(%s);
+                            const box = heading.getBoundingClientRect();
+                            return document.activeElement === heading && box.top < innerHeight && box.bottom > 0;
+                        })()''' % json.dumps(heading)), route)
                 for entry, route in ((mundane, 'mercado_itens_mundanos'),
                                      (magic, 'mercado_itens_magicos')):
                     cdp('Page.navigate', {'url': self.live_server_url + reverse('busca') + '?q=' + quote(entry.nome)})
