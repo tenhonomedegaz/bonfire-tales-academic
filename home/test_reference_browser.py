@@ -210,3 +210,69 @@ class ReferenceCatalogBrowserTests(StaticLiveServerTestCase):
                 except subprocess.TimeoutExpired:
                     process.kill()
                     process.wait(timeout=5)
+
+    def test_language_filter_keeps_reader_and_transcriber_in_sync_on_mobile(self):
+        if connection.vendor != 'postgresql' or not connection.settings_dict['NAME'].startswith('test_'):
+            self.skipTest('Requer PostgreSQL de teste isolado.')
+        try:
+            from selenium import webdriver
+            from selenium.webdriver.chrome.options import Options
+            from selenium.webdriver.common.by import By
+            from selenium.webdriver.support.ui import WebDriverWait
+        except ImportError:
+            self.skipTest('Selenium indisponível.')
+
+        TbIdioma.objects.create(slug='fala-das-brumas', nome='Fala das Brumas')
+        TbIdioma.objects.create(slug='antiga-fala-das-brumas', nome='Antiga Fala das Brumas')
+        options = Options()
+        options.add_argument('--headless=new')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-gpu')
+        options.add_argument('--window-size=360,800')
+        driver = webdriver.Chrome(options=options)
+        try:
+            driver.get(self.live_server_url + reverse('jogador_idiomas') +
+                       '?q=Fala%20das%20Brumas#fala-das-brumas')
+            wait = WebDriverWait(driver, 15)
+            wait.until(lambda browser: browser.execute_script(
+                'return document.querySelector("#languageTarget")?.value') == 'fala-das-brumas')
+            driver.execute_script('''
+                const source = document.querySelector('#languageSource');
+                source.value = 'Brumas';
+                source.dispatchEvent(new Event('input', {bubbles: true}));
+                document.querySelector('#languageMobileMenu').click();
+                const search = document.querySelector('#languageSearch');
+                search.focus();
+                search.value = 'Antiga Fala das Brumas';
+                search.dispatchEvent(new Event('input', {bubbles: true}));
+            ''')
+            wait.until(lambda browser: browser.execute_script(
+                'return document.querySelector("#languageTarget")?.value') == 'antiga-fala-das-brumas')
+            state = driver.execute_script('''
+                const search = document.querySelector('#languageSearch');
+                return {
+                    drawer: document.body.classList.contains('language-menu-open'),
+                    focused: document.activeElement === search,
+                    detail: !document.querySelector('[data-language-detail=antiga-fala-das-brumas]').hidden,
+                    oldDetailHidden: document.querySelector('[data-language-detail=fala-das-brumas]').hidden,
+                    label: document.querySelector('#languageResultLabel').textContent,
+                    result: document.querySelector('#languageResult').textContent,
+                    hash: location.hash,
+                    query: new URLSearchParams(location.search).get('q'),
+                };
+            ''')
+            self.assertTrue(state['drawer'] and state['focused'] and state['detail'] and
+                            state['oldDetailHidden'] and state['result'] and
+                            state['label'].endswith('Antiga Fala das Brumas') and
+                            state['hash'] == '#antiga-fala-das-brumas' and
+                            state['query'] == 'Antiga Fala das Brumas', state)
+            driver.find_element(By.ID, 'languageCloseMenu').click()
+            driver.refresh()
+            wait.until(lambda browser: browser.execute_script(
+                'return document.querySelector("#languageTarget")?.value') == 'antiga-fala-das-brumas')
+            self.assertFalse(driver.execute_script(
+                'return document.querySelector("[data-language-detail=antiga-fala-das-brumas]").hidden'))
+            self.assertTrue(driver.execute_script(
+                'return document.documentElement.scrollWidth <= document.documentElement.clientWidth'))
+        finally:
+            driver.quit()

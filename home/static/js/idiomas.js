@@ -68,7 +68,7 @@
     return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
   }
 
-  function filter() {
+  function filter({selectVisible = true} = {}) {
     const query = normalize(search.value.trim());
     let visible = 0;
     rows.forEach(row => {
@@ -86,6 +86,9 @@
     if (search.value.trim()) url.searchParams.set('q', search.value.trim());
     else url.searchParams.delete('q');
     if (url.href !== window.location.href) history.replaceState(null, '', url);
+    if (selectVisible && visible && selectedSlug && rows.find(row => row.dataset.languageSlug === selectedSlug)?.hidden) {
+      selectLanguage(rows.find(row => !row.hidden).dataset.languageSlug, {historyMode: 'replace', closeDrawer: false});
+    }
   }
 
   function resetFilters() {
@@ -145,7 +148,7 @@
 
   function restoreFromHash() {
     search.value = new URL(window.location.href).searchParams.get('q') || '';
-    filter();
+    filter({selectVisible: false});
     let slug = '';
     try { slug = decodeURIComponent(window.location.hash.replace(/^#(?:idioma-)?/, '')); }
     catch { /* Malformed links must not interrupt the transcriber. */ }
