@@ -1,7 +1,7 @@
 {% extends 'home/base.html' %}{% load static %}
 {% block body_class %}bft-slots{% endblock %}
 {% block main_class %}flex-1 w-full min-w-0{% endblock %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/character-slots.css' %}?v=3"><link rel="stylesheet" href="{% static 'css/pages/character-archive-review.css' %}?v=1"><script src="{% static 'js/character-archive-review.js' %}?v=1" defer></script>{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/character-slots.css' %}?v=3"><link rel="stylesheet" href="{% static 'css/pages/character-archive-review.css' %}?v=1"><script src="{% static 'js/character-archive-review.js' %}?v=1" defer></script><script src="{% static 'js/character-slot-redemption-review.js' %}?v=1" defer></script>{% endblock %}
 {% block content %}
 <section class="bf-slots" aria-labelledby="slots-title">
   <a class="bs-back" href="{% url 'personagens' %}">← Meus Personagens</a>
@@ -58,5 +58,10 @@
     </aside>
   </div>
   {% include 'home/partials/character_archive_review.html' %}
+  {% if slot_purchase_eligible %}<dialog class="character-archive-review" data-slot-redemption-dialog aria-labelledby="slot-redemption-title" aria-describedby="slot-redemption-description">
+    <h2 id="slot-redemption-title">Revisar resgate permanente</h2>
+    <p id="slot-redemption-description">Sua conta receberá mais um slot ativo permanente por {{ slot_price_mm }} MM. Saldo exibido: {{ saldo_mm }} MM. Confira antes de enviar; o servidor validará novamente o saldo e o direito.</p>
+    <div class="character-archive-review-actions"><button type="button" data-slot-redemption-cancel>Voltar sem resgatar</button><button type="button" data-slot-redemption-confirm>Resgatar slot por {{ slot_price_mm }} MM</button></div>
+  </dialog>{% endif %}
 </section>
 {% endblock %}
