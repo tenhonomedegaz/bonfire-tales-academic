@@ -322,6 +322,7 @@ class MercadoServicosBrowserTests(StaticLiveServerTestCase):
                     target = next(item for item in json.load(response) if item['type'] == 'page')
                 ws = websocket.create_connection(target['webSocketDebuggerUrl'], timeout=10)
                 sequence = 0
+                exceptions = []
 
                 def call(method, params=None):
                     nonlocal sequence
@@ -329,6 +330,9 @@ class MercadoServicosBrowserTests(StaticLiveServerTestCase):
                     ws.send(json.dumps({'id': sequence, 'method': method, 'params': params or {}}))
                     while True:
                         result = json.loads(ws.recv())
+                        if result.get('method') == 'Runtime.exceptionThrown':
+                            details = result['params']['exceptionDetails']
+                            exceptions.append(details.get('text', 'JavaScript exception'))
                         if result.get('id') == sequence:
                             self.assertNotIn('error', result, method)
                             return result['result']
@@ -346,6 +350,7 @@ class MercadoServicosBrowserTests(StaticLiveServerTestCase):
                     self.fail(f'Tempo esgotado: {expression}')
 
                 call('Network.enable')
+                call('Runtime.enable')
                 call('Network.setCookie', {
                     'name': settings.SESSION_COOKIE_NAME,
                     'value': self.client.cookies[settings.SESSION_COOKIE_NAME].value,
@@ -355,7 +360,8 @@ class MercadoServicosBrowserTests(StaticLiveServerTestCase):
                     'width': 360, 'height': 800, 'deviceScaleFactor': 1, 'mobile': True,
                 })
                 call('Page.navigate', {'url': self.live_server_url + reverse('mercado_servicos')})
-                wait_for('document.querySelector("#training-choice") !== null')
+                wait_for('document.querySelector("#training-choice") !== null && document.readyState === "complete"')
+                self.assertEqual(exceptions, [])
                 self.assertEqual(js('Array.from(document.querySelectorAll("#training-choice optgroup")).map(group => group.label).join(",")'), 'Idiomas,Ferramentas,Instrumentos,Jogos')
                 self.assertTrue(js('document.querySelector("#treinamentos").textContent.includes("instrumento ou jogo")'))
                 self.assertTrue(js('document.querySelector("#emprestimos").hidden'))
