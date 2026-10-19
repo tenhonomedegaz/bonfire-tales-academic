@@ -4,7 +4,9 @@ const path = require('node:path');
 const { chromium } = require(process.env.BONFIRE_PLAYWRIGHT_MODULE);
 
 (async () => {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ headless: true,
+    ...(process.env.BONFIRE_CHROMIUM_EXECUTABLE_PATH
+      ? { executablePath: process.env.BONFIRE_CHROMIUM_EXECUTABLE_PATH } : {}) });
   try {
     const origin = process.env.PRIMAL_ORIGIN;
     const paths = JSON.parse(process.env.PRIMAL_PATHS);
