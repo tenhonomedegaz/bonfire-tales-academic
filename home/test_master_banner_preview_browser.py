@@ -1,4 +1,4 @@
-"""The master announcement preview follows the existing upload/removal contract."""
+"""Master announcement and portfolio previews follow their upload/removal contracts."""
 
 import json
 import shutil
@@ -14,7 +14,7 @@ from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.db import connection
 from django.urls import reverse
 
-from .models import TbMesaAnuncio, TbPerfilMestre
+from .models import TbMesaAnuncio, TbPerfilMestre, TbTrabalhoMestre
 
 
 class MasterBannerPreviewBrowserTests(StaticLiveServerTestCase):
@@ -38,6 +38,10 @@ class MasterBannerPreviewBrowserTests(StaticLiveServerTestCase):
             mestre=master, titulo='A torre das cinzas', descricao='Aventura de teste.',
             agenda_combinar=True, rank='Obsidiana', ranks=['Obsidiana'],
             estado='rascunho', revisao=1, banner_url='/static/assets/logo.png',
+        )
+        work = TbTrabalhoMestre.objects.create(
+            mestre=master, titulo='Mapa do vale', categoria='mapa', texto='Rotas seguras',
+            imagem_url='/static/assets/logo.png', estado='rascunho', revisao=1,
         )
         self.client.force_login(master)
 
@@ -124,6 +128,31 @@ class MasterBannerPreviewBrowserTests(StaticLiveServerTestCase):
                 self.assertLessEqual(js('document.documentElement.scrollWidth'), 360)
                 table.refresh_from_db()
                 self.assertEqual(table.banner_url, '/static/assets/logo.png')
+
+                call('Page.navigate', {'url': self.live_server_url + reverse('master_work_edit', args=[work.pk])})
+                for _ in range(100):
+                    if js('document.querySelector("[data-master-work-image-preview] img")?.src.includes("logo.png")'):
+                        break
+                    time.sleep(.1)
+                self.assertTrue(js('document.querySelector("[data-master-work-image-preview] img")?.src.includes("logo.png")'))
+                self.assertEqual(js('getComputedStyle(document.querySelector("[data-master-work-image-preview] img")).objectFit'), 'contain')
+                js('''(() => { const checkbox = document.querySelector('[name=remover_imagem]');
+                    checkbox.checked = true; checkbox.dispatchEvent(new Event('change', {bubbles:true})); })()''')
+                self.assertIn('imagem atual será removida', js('document.querySelector("[data-master-work-image-preview]").textContent'))
+                self.assertFalse(js('!!document.querySelector("[data-master-work-image-preview] img")'))
+                js('''(() => { const input = document.querySelector('[name=imagem]');
+                    const files = new DataTransfer();
+                    files.items.add(new File(['new image'], 'mapa.png', {type:'image/png'}));
+                    input.files = files.files; input.dispatchEvent(new Event('change', {bubbles:true})); })()''')
+                self.assertTrue(js('document.querySelector("[data-master-work-image-preview] img")?.src.startsWith("blob:")'))
+                self.assertFalse(js('document.querySelector("[name=remover_imagem]").checked'))
+                js('''(() => { const checkbox = document.querySelector('[name=remover_imagem]');
+                    checkbox.checked = true; checkbox.dispatchEvent(new Event('change', {bubbles:true})); })()''')
+                self.assertEqual(js('document.querySelector("[name=imagem]").files.length'), 0)
+                self.assertIn('imagem atual será removida', js('document.querySelector("[data-master-work-image-preview]").textContent'))
+                self.assertLessEqual(js('document.documentElement.scrollWidth'), 360)
+                work.refresh_from_db()
+                self.assertEqual(work.imagem_url, '/static/assets/logo.png')
             finally:
                 if ws:
                     ws.close()
@@ -145,3 +174,10 @@ class MasterBannerPreviewBrowserTests(StaticLiveServerTestCase):
         self.assertEqual(response.status_code, 302, response.content[:500])
         table.refresh_from_db()
         self.assertEqual(table.banner_url, '')
+        response = self.client.post(reverse('master_work_edit', args=[work.pk]), {
+            'titulo': work.titulo, 'categoria': work.categoria, 'texto': work.texto,
+            'revisao': str(work.revisao), 'remover_imagem': 'on', 'acao': 'rascunho',
+        })
+        self.assertEqual(response.status_code, 302, response.content[:500])
+        work.refresh_from_db()
+        self.assertEqual(work.imagem_url, '')

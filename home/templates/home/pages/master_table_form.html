@@ -17,4 +17,4 @@
   {% endfor %}</div>
   <div class="mh-notice"><p>Rascunhos ficam privados. O envio solicita revisão da equipe antes da divulgação no site. Este formulário não executa o comando do bot: vagas, prioridade e confirmações oficiais continuam no Discord.</p></div>
   <div class="mh-actions"><button class="mh-button" name="acao" value="enviar"{% if master_demo %} disabled{% endif %}>Enviar para revisão</button><button class="mh-button mh-button-ghost" name="acao" value="rascunho"{% if master_demo %} disabled{% endif %}>Salvar rascunho</button><a class="mh-text-link" href="{% url 'profile' %}?aba=mestre{% if master_demo %}&demo=1{% endif %}#minhas-missoes">Voltar ao perfil</a></div>
-</form>{% include 'home/partials/master_eligibility.html' %}<script src="{% static 'js/master-mission.js' %}?v=1" defer></script><script src="{% static 'js/master-offer.js' %}?v=1" defer></script>{% endblock %}
+</form>{% include 'home/partials/master_eligibility.html' %}<script src="{% static 'js/master-mission.js' %}?v=2" defer></script><script src="{% static 'js/master-offer.js' %}?v=1" defer></script>{% endblock %}
