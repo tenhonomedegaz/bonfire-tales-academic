@@ -6,6 +6,7 @@
   const description = dialog.querySelector('[data-master-moderation-description]');
   const action = dialog.querySelector('[data-master-moderation-action]');
   const content = dialog.querySelector('[data-master-moderation-content]');
+  const noteLabel = dialog.querySelector('[data-master-moderation-note-label]');
   const note = dialog.querySelector('[data-master-moderation-note]');
   const detail = dialog.querySelector('[data-master-moderation-detail]');
   const cancel = dialog.querySelector('[data-master-moderation-cancel]');
@@ -21,11 +22,35 @@
     const selectedAction = submitter?.value;
     action.textContent = submitter?.textContent.trim() || 'Revisar';
     content.textContent = article?.querySelector('h2, h3')?.textContent.trim() || 'Conteúdo selecionado';
-    note.textContent = form.elements.namedItem('nota')?.value.trim() || 'Nenhum retorno preenchido.';
-    description.textContent = selectedAction === 'aprovar'
-      ? 'A aprovação publica este conteúdo após a validação atual do servidor.'
-      : 'O pedido de ajustes devolve este conteúdo ao autor sem publicá-lo.';
-    const link = article?.querySelector('a.mh-text-link[href]');
+    const kind = form.dataset.masterModeration;
+    noteLabel.textContent = {verificacao: 'Evidência registrada', vitrine: 'Motivo da decisão'}[kind] || 'Retorno privado';
+    note.textContent = (form.elements.namedItem('nota') || form.elements.namedItem('observacao'))?.value.trim() || 'Nenhum retorno preenchido.';
+    const descriptions = {
+      mesa: selectedAction === 'aprovar'
+        ? 'A aprovação publica este anúncio após a validação atual do servidor.'
+        : 'O pedido de ajustes devolve este anúncio ao autor sem publicá-lo.',
+      trabalho: selectedAction === 'aprovar'
+        ? 'A aprovação publica este trabalho após a validação atual do servidor.'
+        : 'O pedido de ajustes devolve este trabalho ao autor sem publicá-lo.',
+      permissao: {
+        autorizar: 'Autorizar libera a apresentação pública do mestre no site.',
+        recusar: 'A solicitação será recusada no site.',
+        suspender: 'A apresentação pública do mestre será suspensa no site.',
+      }[selectedAction],
+      verificacao: {
+        validar: 'Esta mesa será registrada como verificada para a elegibilidade da vitrine.',
+        invalidar: 'A evidência desta mesa deixará de contar para a elegibilidade da vitrine.',
+      }[selectedAction],
+      vitrine: selectedAction === 'autorizar'
+        ? 'Esta autorização permite enviar anúncios demonstrativos à revisão; não libera cobrança.'
+        : 'A autorização de envio de anúncios demonstrativos será revogada.',
+    };
+    description.textContent = descriptions[kind] || 'Revise esta decisão antes de enviar.';
+    if (kind === 'verificacao') {
+      description.textContent += ` Divulgação aberta: ${form.elements.namedItem('aberta')?.checked ? 'sim' : 'não'}.`;
+    }
+    const link = kind === 'mesa' || kind === 'trabalho'
+      ? article?.querySelector('a.mh-text-link[href]') : null;
     detail.hidden = !link;
     if (link) detail.href = link.href;
     pending = {form, submitter};

@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import tempfile
 import time
+from datetime import timedelta
 from pathlib import Path
 from urllib.request import urlopen
 
@@ -14,8 +15,10 @@ from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.db import connection
 from django.test import Client
 from django.urls import reverse
+from django.utils import timezone
 
-from .models import TbMesaAnuncio, TbPerfilMestre, TbTrabalhoMestre
+from .models import (TbAutorizacaoVitrine, TbAventuraMestre, TbMesaAnuncio,
+                     TbPerfilMestre, TbTrabalhoMestre, TbVerificacaoMesa)
 
 
 class MasterModerationReviewBrowserTests(StaticLiveServerTestCase):
@@ -35,8 +38,14 @@ class MasterModerationReviewBrowserTests(StaticLiveServerTestCase):
 
         users = get_user_model()
         master = users.objects.create_user('reviewed-master')
+        applicant = users.objects.create_user('applicant-master')
         staff = users.objects.create_superuser('moderation-review-staff', 'moderation@example.test', 'test')
         TbPerfilMestre.objects.create(user=master, modo='mestre', status_mestre='aprovado', listado=True)
+        applicant_profile = TbPerfilMestre.objects.create(
+            user=applicant, modo='mestre', status_mestre='pendente')
+        adventure = TbAventuraMestre.objects.create(
+            mestre=master, nome='Mesa concluída', data=timezone.localdate()-timedelta(days=1),
+            jogadores=4, recompensa_mm=0)
         table = TbMesaAnuncio.objects.create(
             mestre=master, titulo='A torre das cinzas', descricao='Aventura de teste.',
             agenda_combinar=True, rank='Obsidiana', ranks=['Obsidiana'],
@@ -163,6 +172,90 @@ class MasterModerationReviewBrowserTests(StaticLiveServerTestCase):
                 self.assertEqual((work.estado, work.nota_revisao, work.revisor_id),
                                  ('ajustes', 'Ajustar legenda', staff.pk))
                 self.assertEqual(Client().get(reverse('master_work_detail', args=[work.pk])).status_code, 404)
+
+                navigate('master_dashboard', 'permissao')
+                js('''(() => {
+                    const form = [...document.querySelectorAll('form[data-master-moderation="permissao"]')]
+                        .find(item => item.querySelector('button[value="recusar"]'));
+                    form.elements.namedItem('nota').value = 'Precisa atualizar o perfil';
+                    form.elements.namedItem('confirmar').checked = true;
+                    form.querySelector('button[value="recusar"]').click();
+                })()''')
+                state = json.loads(js('''JSON.stringify((() => {
+                    const dialog = document.querySelector('[data-master-moderation-dialog]');
+                    return {open:dialog.open, text:dialog.textContent};
+                })())'''))
+                self.assertTrue(state['open'], state)
+                self.assertIn(applicant.username, state['text'])
+                self.assertIn('Precisa atualizar o perfil', state['text'])
+                self.assertIn('solicitação será recusada', state['text'])
+                js('document.querySelector("[data-master-moderation-cancel]").click()')
+                applicant_profile.refresh_from_db()
+                self.assertEqual(applicant_profile.status_mestre, 'pendente')
+                js('[...document.querySelectorAll("form[data-master-moderation=permissao]")].find(item => item.querySelector("button[value=recusar]")).querySelector("button[value=recusar]").click()')
+                js('document.querySelector("[data-master-moderation-confirm]").click()')
+                for _ in range(100):
+                    applicant_profile.refresh_from_db()
+                    if applicant_profile.status_mestre == 'recusado':
+                        break
+                    time.sleep(.1)
+                self.assertEqual((applicant_profile.status_mestre, applicant_profile.nota_avaliacao),
+                                 ('recusado', 'Precisa atualizar o perfil'))
+
+                navigate('master_dashboard', 'verificacao')
+                js('''(() => {
+                    const form = document.querySelector('form[data-master-moderation="verificacao"]');
+                    form.elements.namedItem('observacao').value = 'Registro público conferido';
+                    form.elements.namedItem('aberta').checked = true;
+                    form.elements.namedItem('confirmar').checked = true;
+                    form.querySelector('button[value="validar"]').click();
+                })()''')
+                state = json.loads(js('''JSON.stringify((() => {
+                    const dialog = document.querySelector('[data-master-moderation-dialog]');
+                    return {open:dialog.open, text:dialog.textContent};
+                })())'''))
+                self.assertTrue(state['open'], state)
+                self.assertIn(adventure.nome, state['text'])
+                self.assertIn('Registro público conferido', state['text'])
+                self.assertIn('Divulgação aberta: sim', state['text'])
+                js('document.querySelector("[data-master-moderation-cancel]").click()')
+                self.assertFalse(TbVerificacaoMesa.objects.filter(aventura=adventure).exists())
+                js('document.querySelector("form[data-master-moderation=verificacao] button[value=validar]").click()')
+                js('document.querySelector("[data-master-moderation-confirm]").click()')
+                for _ in range(100):
+                    if TbVerificacaoMesa.objects.filter(aventura=adventure, validada=True).exists():
+                        break
+                    time.sleep(.1)
+                verification = TbVerificacaoMesa.objects.get(aventura=adventure)
+                self.assertEqual((verification.validada, verification.aberta, verification.observacao),
+                                 (True, True, 'Registro público conferido'))
+
+                navigate('master_dashboard', 'vitrine')
+                js('''(() => {
+                    const form = document.querySelector('form[data-master-moderation="vitrine"]');
+                    form.elements.namedItem('observacao').value = 'Piloto demonstrativo autorizado';
+                    form.elements.namedItem('confirmar').checked = true;
+                    form.querySelector('button[value="autorizar"]').click();
+                })()''')
+                state = json.loads(js('''JSON.stringify((() => {
+                    const dialog = document.querySelector('[data-master-moderation-dialog]');
+                    return {open:dialog.open, text:dialog.textContent};
+                })())'''))
+                self.assertTrue(state['open'], state)
+                self.assertIn(master.username, state['text'])
+                self.assertIn('Piloto demonstrativo autorizado', state['text'])
+                self.assertIn('não libera cobrança', state['text'])
+                js('document.querySelector("[data-master-moderation-cancel]").click()')
+                self.assertFalse(TbAutorizacaoVitrine.objects.filter(user=master).exists())
+                js('document.querySelector("form[data-master-moderation=vitrine] button[value=autorizar]").click()')
+                js('document.querySelector("[data-master-moderation-confirm]").click()')
+                for _ in range(100):
+                    if TbAutorizacaoVitrine.objects.filter(user=master, autorizada=True).exists():
+                        break
+                    time.sleep(.1)
+                listing = TbAutorizacaoVitrine.objects.get(user=master)
+                self.assertEqual((listing.autorizada, listing.observacao),
+                                 (True, 'Piloto demonstrativo autorizado'))
             finally:
                 if ws:
                     ws.close()
