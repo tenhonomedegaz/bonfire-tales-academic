@@ -62,7 +62,7 @@ class VersionedSpellSheetTests(TestCase):
         self.cl.tags_json = ['spellcasting{ability:cha, slots{progression:pact, resource:pact_points}, list:pinned-derive, mode:known, spell_level_limit{resource:pact_cycle}}']
         self.cl.save()
         points = TbRecursoclasse.objects.create(id_classe=self.cl, nome='Pact points',
-            slug='pact_points', tipo='consumable', valores_json={'1':'2', '3':'4'})
+            slug='pact-points', tipo='consumable', valores_json={'1':'2', '3':'4'})
         cycle = TbRecursoclasse.objects.create(id_classe=self.cl, nome='Pact cycle',
             slug='pact_cycle', tipo='table-only', valores_json={'1':'1', '3':'2'})
         signature = TbPersonagemMagiaAssinatura.objects.create(
