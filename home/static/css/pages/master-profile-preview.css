@@ -1,0 +1,6 @@
+.mh-profile-preview { max-width:800px; min-width:0; margin:24px 0; padding:20px; border:1px solid #703b37; background:#171114; }
+.mh-profile-preview [hidden] { display:none !important; }
+.mh-profile-preview .mh-section-head { flex-wrap:wrap; }
+.mh-profile-preview .mh-preview-note { color:#c6aea4; font-size:11px; }
+.mh-profile-preview [data-master-preview-field] { white-space:pre-line; overflow-wrap:anywhere; }
+@media(max-width:760px) { .mh-profile-preview { padding:16px; } }

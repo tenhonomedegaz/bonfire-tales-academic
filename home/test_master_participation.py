@@ -66,6 +66,29 @@ class MasterParticipationFlowTests(TestCase):
             'acao': 'autorizar', 'confirmar': 'sim', 'versao': '0',
         }).status_code, 403)
 
+    def test_public_portfolio_shows_saved_stories_only_while_listed_and_approved(self):
+        profile = TbPerfilMestre.objects.create(
+            user=self.player, modo='mestre', status_mestre='aprovado', listado=True,
+            experiencia='Três campanhas narradas', combinados='Respeito à mesa',
+        )
+        url = reverse('public_profile', args=[self.player.username]) + '?aba=mestre'
+        public = self.client.get(url)
+        self.assertContains(public, 'Três campanhas narradas')
+        self.assertContains(public, 'Respeito à mesa')
+
+        profile.listado = False
+        profile.save(update_fields=['listado'])
+        private = self.client.get(url)
+        self.assertNotContains(private, 'Três campanhas narradas')
+        self.assertNotContains(private, 'Respeito à mesa')
+
+        profile.listado = True
+        profile.status_mestre = 'suspenso'
+        profile.save(update_fields=['listado', 'status_mestre'])
+        suspended = self.client.get(url)
+        self.assertNotContains(suspended, 'Três campanhas narradas')
+        self.assertNotContains(suspended, 'Respeito à mesa')
+
     def test_visitor_can_return_from_master_profile_and_find_empty_announcements(self):
         TbPerfilMestre.objects.create(
             user=self.player, modo='mestre', status_mestre='aprovado',

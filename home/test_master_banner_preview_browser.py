@@ -153,6 +153,52 @@ class MasterBannerPreviewBrowserTests(StaticLiveServerTestCase):
                 self.assertLessEqual(js('document.documentElement.scrollWidth'), 360)
                 work.refresh_from_db()
                 self.assertEqual(work.imagem_url, '/static/assets/logo.png')
+
+                call('Page.navigate', {'url': self.live_server_url + reverse('participation_edit')})
+                for _ in range(100):
+                    if js('document.querySelector("[data-master-preview-state]")?.textContent'):
+                        break
+                    time.sleep(.1)
+                self.assertEqual(js('document.querySelector("[data-master-preview-state]").textContent'), 'Fora da vitrine')
+                self.assertTrue(js('document.querySelector("[data-master-preview-group=experiencia]").hidden'))
+                js('''(() => {
+                    const form = document.querySelector('[data-master-profile-form]');
+                    const values = {apresentacao:'Histórias novas\\nCom mistério', estilo:'Investigação',
+                        disponibilidade:'Sábados', experiencia:'Três campanhas',
+                        combinados:'Respeito à mesa'};
+                    for (const [name, value] of Object.entries(values)) {
+                        form.elements.namedItem(name).value = value;
+                        form.elements.namedItem(name).dispatchEvent(new Event('input', {bubbles:true}));
+                    }
+                    form.elements.namedItem('listado').checked = true;
+                    form.elements.namedItem('listado').dispatchEvent(new Event('change', {bubbles:true}));
+                })()''')
+                self.assertEqual(js('document.querySelector("[data-master-preview-state]").textContent'), 'Visível após salvar')
+                self.assertEqual(js('document.querySelector("[data-master-preview-field=estilo]").textContent'), 'Investigação')
+                self.assertEqual(js('document.querySelector("[data-master-preview-field=experiencia]").textContent'), 'Três campanhas')
+                self.assertFalse(js('document.querySelector("[data-master-preview-group=experiencia]").hidden'))
+                js('''(() => { const field = document.querySelector('[name=estilo]');
+                    field.value = '<img src=x onerror=alert(1)>';
+                    field.dispatchEvent(new Event('input', {bubbles:true})); })()''')
+                self.assertFalse(js('!!document.querySelector("[data-master-preview-field=estilo] img")'))
+                js('''(() => { const field = document.querySelector('[name=estilo]');
+                    field.value = 'Investigação';
+                    field.dispatchEvent(new Event('input', {bubbles:true})); })()''')
+                self.assertLessEqual(js('document.documentElement.scrollWidth'), 360)
+                master_profile = TbPerfilMestre.objects.get(user=master)
+                self.assertFalse(master_profile.listado)
+                js('document.querySelector("[data-master-profile-form] button[type=submit]").click()')
+                for _ in range(100):
+                    master_profile.refresh_from_db()
+                    if master_profile.listado:
+                        break
+                    time.sleep(.1)
+                self.assertTrue(master_profile.listado)
+                self.assertEqual(master_profile.apresentacao.replace('\r\n', '\n'), 'Histórias novas\nCom mistério')
+                self.assertEqual(master_profile.estilo, 'Investigação')
+                self.assertEqual(master_profile.experiencia, 'Três campanhas')
+                self.assertContains(self.client.get(reverse('masters_directory')), 'Investigação')
+                self.assertContains(self.client.get(reverse('public_profile', args=[master.username]) + '?aba=mestre'), 'Três campanhas')
             finally:
                 if ws:
                     ws.close()
