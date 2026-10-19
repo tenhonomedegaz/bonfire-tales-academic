@@ -1471,6 +1471,23 @@ class TbPersonagem(models.Model):
         return self.nome
 
 
+class TbFeitoLenda(models.Model):
+    personagem = models.ForeignKey('TbPersonagem', models.CASCADE, related_name='feitos_lenda')
+    titulo = models.CharField(max_length=180)
+    descricao = models.TextField(max_length=4000)
+    data = models.DateField(blank=True, null=True)
+    ordem = models.PositiveIntegerField(default=0)
+    publicado = models.BooleanField(default=False, help_text='Publicar no memorial do personagem Lenda.')
+
+    class Meta:
+        ordering = ['ordem', 'data', 'pk']
+        verbose_name = 'Feito de Lenda'
+        verbose_name_plural = 'Feitos de Lendas'
+
+    def __str__(self):
+        return self.titulo
+
+
 class TbPersonagemClasse(models.Model):
     id = models.AutoField(db_column='Id', primary_key=True)
     id_personagem = models.ForeignKey('TbPersonagem', models.CASCADE, db_column='Id_Personagem', related_name='classes')

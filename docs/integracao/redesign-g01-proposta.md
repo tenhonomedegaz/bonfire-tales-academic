@@ -172,6 +172,8 @@ ou preço acionável.
 
 ## Lote G01-C — fichas, slots, lenda e limites de conta
 
+**Decisão posterior do PO (19/10/2026):** aprovados separadamente o fluxo mínimo de tokens/slot por ficha, inicialmente sem migração e sem retroatividade, e a página pública de Lenda com `TbFeitoLenda` e migration própria. Tokens de quest, item raro e item muito raro servem para solicitar missões; não entregam item automaticamente. A rota de publicação de solicitação de missão privada fica fora desta entrega. Origens e saldos de conta e de ficha permanecem separados; G00 e G02 continuam necessários. A descrição histórica abaixo registra o pedido original e não substitui esse esclarecimento; o contrato vigente está em `redesign-g01-c-tokens-proposta.md`.
+
 **Arquivos.** `home/migrations/0156_tbfeitolenda.py`,
 `0157_character_slot_rights.py`, `home/models.py`, `home/character_slots.py`,
 `home/slot_views.py`, `home/slots.py`, `home/permissions.py`,

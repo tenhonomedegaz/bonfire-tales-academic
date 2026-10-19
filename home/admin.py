@@ -63,6 +63,7 @@ from .models import (
     TbPersonagemTreinamento,
     TbSolicitacaoTranscricao,
     TbPersonagem,
+    TbFeitoLenda,
     TbPersonagemAventura,
     TbPersonagemRevisao,
     TbRecompensaMestre,
@@ -2623,6 +2624,14 @@ class TbPersonagemAdmin(BonfireAdminMixin, admin.ModelAdmin):
     @admin.display(description="Raca", ordering="id_raca__nome")
     def raca_display(self, obj):
         return obj.id_raca.nome if obj.id_raca_id else "-"
+
+
+@admin.register(TbFeitoLenda)
+class TbFeitoLendaAdmin(BonfireAdminMixin, admin.ModelAdmin):
+    list_display = ('titulo', 'personagem', 'data', 'publicado', 'ordem')
+    list_filter = ('publicado',)
+    search_fields = ('titulo', 'personagem__nome', 'personagem__dono__username')
+    raw_id_fields = ('personagem',)
 
 
 @admin.register(TbPersonagemAventura)

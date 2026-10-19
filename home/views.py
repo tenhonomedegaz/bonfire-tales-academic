@@ -10270,6 +10270,7 @@ def ficha_publica_view(request, pk):
     """Projeção de leitura pública; não deriva nem sincroniza a ficha operacional."""
     from .models import TbPersonagem
     from .character_engine import derive
+    from .ranks import character_rank
     p = get_object_or_404(
         TbPersonagem.objects.select_related('dono', 'id_raca', 'id_linhagem', 'id_essencia')
         .prefetch_related('classes__id_classe', 'classes__id_subclasse'), pk=pk)
@@ -10324,6 +10325,7 @@ def ficha_publica_view(request, pk):
         'noindex': preview,
         'mechanics': mechanics,
         'preview': preview, 'published': p.publico and not p.arquivado,
+        'rank': character_rank(p), 'character_pk': p.pk,
         'appearance': _appearance_context(
             _appearance_validated(p.dono, 'theme', p.ficha_theme, 'ficha'),
             _appearance_validated(p.dono, 'frame', p.foto_frame, 'ficha'),
