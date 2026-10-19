@@ -97,9 +97,9 @@ class LegendBrowserTests(unittest.TestCase):
             with tempfile.TemporaryDirectory(prefix='bonfire-legend-', ignore_cleanup_errors=True) as scratch:
                 profile = Path(scratch) / 'profile'
                 process = subprocess.Popen([
-                    str(edge), '--headless=new', '--no-first-run', '--no-sandbox',
+                    str(edge), '--headless=new', '--no-first-run',
                     '--disable-gpu', '--remote-debugging-port=0',
-                    '--remote-allow-origins=*', f'--user-data-dir={profile}',
+                    '--remote-allow-origins=http://localhost', f'--user-data-dir={profile}',
                     'about:blank',
                 ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 ws = None
@@ -113,7 +113,8 @@ class LegendBrowserTests(unittest.TestCase):
                     port = port_file.read_text(encoding='utf-8').splitlines()[0]
                     with urlopen(f'http://127.0.0.1:{port}/json', timeout=5) as response:
                         target = next(item for item in json.load(response) if item['type'] == 'page')
-                    ws = websocket.create_connection(target['webSocketDebuggerUrl'], timeout=10)
+                    ws = websocket.create_connection(target['webSocketDebuggerUrl'],
+                                                     timeout=10, origin='http://localhost')
                     sequence = 0
 
                     def call(method, params=None):
