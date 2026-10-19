@@ -491,7 +491,7 @@ def direito_marco_ativo(grant):
 
 def direitos_ficha(personagem):
     """Lista direitos da ficha viva, incluindo pedido e consumo auditáveis."""
-    from .models import TbEventoConquista
+    from .models import TbEventoConquista, TbPersonagemAventura
 
     grants = TbEventoConquista.objects.filter(
         origem='site', tipo='character_milestone_granted',
@@ -513,8 +513,14 @@ def direitos_ficha(personagem):
         consume = TbEventoConquista.objects.filter(
             origem='site', tipo='character_token_consumed',
             chave_origem=f'direito:{grant.pk}:consumo').first()
+        mission = (TbPersonagemAventura.objects.filter(
+            pk=(consume.payload_json or {}).get('mission_ledger_id'),
+            id_personagem=personagem).values('revertido').first()
+            if consume else None)
         rows.append({'grant': grant, 'level': level, 'benefit': benefit,
-                     'request': request, 'consume': consume})
+                     'request': request, 'consume': consume,
+                     'consume_needs_review': bool(consume and
+                                                  (mission is None or mission['revertido']))})
     return sorted(rows, key=lambda row: (row['level'], row['benefit']))
 
 
@@ -566,9 +572,7 @@ def confirmar_consumo_token(personagem_id, grant_id, lancamento_id, operador):
                 if str(row['grant'].pk) == str(grant_id) and row['benefit'] != 'slot'), None)
     if row is None or row['request'] is None:
         raise ValueError('Pedido ou direito indisponível.')
-    if row['consume'] is not None:
-        if row['consume'].payload_json.get('mission_ledger_id') == lancamento_id:
-            return row['consume']
+    if row['consume'] is not None and row['consume'].payload_json.get('mission_ledger_id') != lancamento_id:
         raise ValueError('Token já consumido em outra missão.')
     mission = TbPersonagemAventura.objects.select_for_update().filter(
         pk=lancamento_id, id_personagem_id=personagem.pk,
@@ -589,6 +593,8 @@ def confirmar_consumo_token(personagem_id, grant_id, lancamento_id, operador):
             fact.payload_json.get('bot_quest_proof') == details['bot_quest_proof']
             for fact in comprovadas):
         raise ValueError('Missão sem fato confirmado para esta ficha e pedido.')
+    if row['consume'] is not None:
+        return row['consume']
     if TbEventoConquista.objects.filter(
             origem='site', tipo='character_token_consumed',
             payload_json__mission_ledger_id=lancamento_id).exists():

@@ -57,7 +57,7 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
     <ul>{% for direito in direitos_tokens %}
       <li>Nível {{ direito.level }} — {% if direito.benefit == 'quest' %}token de quest{% elif direito.benefit == 'item_rare' %}token de missão de item raro{% elif direito.benefit == 'item_very_rare' %}token de missão de item muito raro{% else %}slot de personagem{% endif %}:
         {% if direito.benefit == 'slot' %}ativo no limite de fichas
-        {% elif direito.consume %}consumido na missão #{{ direito.consume.payload_json.mission_ledger_id }}
+        {% elif direito.consume %}{% if direito.consume_needs_review %}missão estornada ou indisponível; consumo em revisão pela staff{% else %}consumido na missão #{{ direito.consume.payload_json.mission_ledger_id }}{% endif %}
         {% elif direito.request %}pedido registrado; aguardando confirmação da staff
           {% if is_staff %}<form method="post" action="{% url 'confirm_character_token' p.pk direito.grant.pk %}">{% csrf_token %}<label>Lançamento da missão nesta ficha <input type="number" min="1" required name="mission_ledger_id"></label><button type="submit">Confirmar consumo</button></form>{% endif %}
         {% elif p.dono_id == request.user.pk %}<form method="post" action="{% url 'request_character_token' p.pk direito.grant.pk %}">{% csrf_token %}<button type="submit">Solicitar missão</button></form>

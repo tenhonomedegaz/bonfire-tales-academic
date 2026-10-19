@@ -137,6 +137,23 @@ class CharacterMilestoneTokenTests(TestCase):
         with self.assertRaises(ValueError):
             confirmar_consumo_token(self.one.pk, grant.pk, mission.pk, self.staff)
 
+    def test_replay_refuses_reverted_mission_and_keeps_consumption_audit(self):
+        self.grant(self.one, 9)
+        grant = direitos_ficha(self.one)[0]['grant']
+        solicitar_token_ficha(self.one.pk, grant.pk, self.owner)
+        mission = self.record_mission(self.one, 'item_rare', 'q-reverted')
+        receipt = confirmar_consumo_token(self.one.pk, grant.pk, mission.pk, self.staff)
+        mission.revertido = True
+        mission.revertido_em = timezone.now()
+        mission.save(update_fields=['revertido', 'revertido_em'])
+        with self.assertRaisesRegex(ValueError, 'Missão sem referência comprovada'):
+            confirmar_consumo_token(self.one.pk, grant.pk, mission.pk, self.staff)
+        self.assertTrue(direitos_ficha(self.one)[0]['consume_needs_review'])
+        self.assertEqual(TbEventoConquista.objects.get(pk=receipt.pk).payload_json['mission_ledger_id'],
+                         mission.pk)
+        self.assertEqual(TbEventoConquista.objects.filter(
+            tipo='character_token_consumed', personagem=self.one).count(), 1)
+
     def test_routes_keep_owner_and_staff_boundaries(self):
         self.grant(self.one, 5)
         grant = direitos_ficha(self.one)[0]['grant']
