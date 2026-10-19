@@ -62,14 +62,22 @@ def is_rank_esmeralda(user):
     try:
         from django.db import transaction
         from .models import TbEventoConquista
+        from .conquistas import direito_marco_ativo
 
         with transaction.atomic():
-            if TbEventoConquista.objects.filter(
+            markers = TbEventoConquista.objects.filter(
                 conta=user, origem='site', tipo='rank_slot_13_granted',
                 chave_origem=f'conta:{user.pk}:slot-esmeralda-nivel-13',
                 payload_json__threshold=13,
-            ).exists():
-                return True
+            )
+            for marker in markers:
+                source_id = (marker.payload_json or {}).get('source_event_id')
+                new_grant = TbEventoConquista.objects.filter(
+                    conta=user, origem='site', tipo='character_milestone_granted',
+                    payload_json__benefit='slot',
+                    payload_json__source_event_id=source_id).first() if source_id else None
+                if new_grant is None or new_grant.personagem_id is None or direito_marco_ativo(new_grant):
+                    return True
     except Exception:
         pass
     try:
@@ -170,10 +178,26 @@ def is_mestre_ouro(user):
 def limite_detalhe(user):
     """Breakdown do limite, p/ o template explicar o cálculo ao jogador."""
     esmeralda = is_rank_esmeralda(user)
+    from .models import TbEventoConquista
+    from .conquistas import direito_marco_ativo
+    grants = TbEventoConquista.objects.filter(
+        conta=user, origem='site', tipo='character_milestone_granted',
+        payload_json__level=13, payload_json__benefit='slot',
+        personagem__isnull=False)
+    slot_ficha = sum(
+        1 for grant in grants
+        if direito_marco_ativo(grant)
+        and (grant.payload_json or {}).get('character_id') == grant.personagem_id
+        and grant.chave_origem ==
+        f'personagem:{grant.personagem_id}:nivel:13:direito:slot')
     colaborador = is_colaborador(user)
     mestre_ouro = is_mestre_ouro(user)
-    total = LIMITE_BASE + (1 if esmeralda else 0) + (1 if colaborador else 0) + (1 if mestre_ouro else 0)
+    # O primeiro slot de nível 13 coincide com o Esmeralda de conta; outras
+    # fichas de nível 13 acrescentam direitos sem duplicar esse primeiro slot.
+    slots_nivel = max(int(esmeralda), slot_ficha)
+    total = LIMITE_BASE + slots_nivel + int(colaborador) + int(mestre_ouro)
     return {'base': LIMITE_BASE, 'esmeralda': esmeralda, 'colaborador': colaborador,
+            'slots_ficha_13': slot_ficha, 'slots_nivel': slots_nivel,
             'mestre_ouro': mestre_ouro, 'total': total, 'ilimitado': is_staff_user(user)}
 
 

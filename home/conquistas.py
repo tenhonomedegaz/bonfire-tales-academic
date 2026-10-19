@@ -318,7 +318,8 @@ def registrar_criacao_personagem(personagem):
 
 
 @transaction.atomic
-def registrar_fato_level_up(revisao, *, estorno=False, proxima_revisao=None):
+def registrar_fato_level_up(revisao, *, estorno=False, proxima_revisao=None,
+                            novos_direitos=True):
     """Registra a revisão e atualiza marcos de nível na mesma transação."""
     from .models import TbEventoConquista
 
@@ -389,7 +390,7 @@ def registrar_fato_level_up(revisao, *, estorno=False, proxima_revisao=None):
             payload = {'revision_id': revisao.pk, 'level_before': revisao.nivel_antes,
                        'level_after': revisao.nivel_depois,
                        'classes_before': classes_before, 'classes_after': classes_after}
-    evento, _ = TbEventoConquista.objects.get_or_create(
+    evento, criado = TbEventoConquista.objects.get_or_create(
         origem='site', chave_origem=key,
         defaults={'tipo': tipo, 'conta_id': personagem.dono_id,
                   'personagem': personagem, 'agregado_id': revisao.pk,
@@ -403,10 +404,200 @@ def registrar_fato_level_up(revisao, *, estorno=False, proxima_revisao=None):
             payload.get('level_before') != (revisao.nivel_depois if estorno else revisao.nivel_antes) or
             payload.get('level_after') != (revisao.nivel_antes if estorno else revisao.nivel_depois)):
         raise ValueError('Identidade do fato de nível inconsistente.')
+    # Só a revisão criada no fluxo normal recebe direitos novos. Reprocessamento
+    # administrativo e fatos anteriores permanecem históricos, sem retroatividade.
+    if not estorno and criado and novos_direitos:
+        conceder_direitos_marco(revisao, evento)
     from .event_deliveries import enqueue_level_event
     enqueue_level_event(evento)
     avaliar_nivel_personagem(personagem.dono)
     return evento
+
+
+MARCOS_FICHA = {5: 'quest', 9: 'item_rare', 13: 'item_very_rare'}
+
+
+def _chave_direito(personagem_id, nivel, beneficio):
+    return f'personagem:{personagem_id}:nivel:{nivel}:direito:{beneficio}'
+
+
+def conceder_direitos_marco(revisao, fato):
+    """Materializa direitos somente quando o fato de subida acaba de nascer."""
+    from .models import TbEventoConquista
+
+    nivel = revisao.nivel_depois
+    if nivel not in MARCOS_FICHA or revisao.nivel_antes != nivel - 1:
+        return
+    personagem = revisao.id_personagem
+    for beneficio in (MARCOS_FICHA[nivel], 'slot' if nivel == 13 else None):
+        if beneficio is None:
+            continue
+        key = _chave_direito(personagem.pk, nivel, beneficio)
+        grant, created = TbEventoConquista.objects.get_or_create(
+            origem='site', chave_origem=key,
+            defaults={'tipo': 'character_milestone_granted', 'conta_id': personagem.dono_id,
+                      'personagem': personagem, 'agregado_id': revisao.pk,
+                      'ocorrido_em': fato.ocorrido_em,
+                      'payload_json': {'character_id': personagem.pk, 'level': nivel,
+                                       'benefit': beneficio, 'source_event_id': str(fato.pk)}},
+        )
+        if (grant.tipo != 'character_milestone_granted' or
+                grant.conta_id != personagem.dono_id or
+                grant.personagem_id != personagem.pk or
+                grant.chave_origem != key or
+                (grant.payload_json or {}).get('character_id') != personagem.pk or
+                (grant.payload_json or {}).get('level') != nivel or
+                (grant.payload_json or {}).get('benefit') != beneficio):
+            raise ValueError('Direito de marco inconsistente.')
+        if not created and grant.agregado_id != revisao.pk:
+            from .models import TbPersonagemRevisao
+            if not TbPersonagemRevisao.objects.filter(
+                    pk=grant.agregado_id, id_personagem=personagem,
+                    revertida=True).exists():
+                raise ValueError('Marco já concedido por outra revisão ativa.')
+            TbEventoConquista.objects.get_or_create(
+                origem='site', chave_origem=f'{key}:restaurado:{revisao.pk}',
+                defaults={'tipo': 'character_milestone_restored',
+                          'conta_id': personagem.dono_id, 'personagem': personagem,
+                          'agregado_id': revisao.pk, 'ocorrido_em': fato.ocorrido_em,
+                          'payload_json': {'character_id': personagem.pk,
+                                           'grant_id': str(grant.pk), 'level': nivel,
+                                           'benefit': beneficio,
+                                           'source_event_id': str(fato.pk)}},
+            )
+
+
+def direito_marco_ativo(grant):
+    """Aceita o marco original ou uma nova subida após estorno comprovado."""
+    from .models import TbEventoConquista, TbPersonagemRevisao
+
+    data = grant.payload_json or {}
+    level = data.get('level')
+    if (grant.personagem_id is None or level not in MARCOS_FICHA or
+            grant.chave_origem != _chave_direito(
+                grant.personagem_id, level, data.get('benefit'))):
+        return False
+    proofs = TbPersonagemRevisao.objects.filter(
+        id_personagem_id=grant.personagem_id, tipo='level_up',
+        nivel_antes=level - 1, nivel_depois=level, revertida=False)
+    if proofs.filter(pk=grant.agregado_id).exists():
+        return True
+    restored_ids = TbEventoConquista.objects.filter(
+        origem='site', tipo='character_milestone_restored',
+        conta_id=grant.conta_id, personagem_id=grant.personagem_id,
+        payload_json__grant_id=str(grant.pk)).values_list('agregado_id', flat=True)
+    return proofs.filter(pk__in=restored_ids).exists()
+
+
+def direitos_ficha(personagem):
+    """Lista direitos da ficha viva, incluindo pedido e consumo auditáveis."""
+    from .models import TbEventoConquista
+
+    grants = TbEventoConquista.objects.filter(
+        origem='site', tipo='character_milestone_granted',
+        conta_id=personagem.dono_id, personagem_id=personagem.pk)
+    rows = []
+    for grant in grants:
+        data = grant.payload_json or {}
+        level, benefit = data.get('level'), data.get('benefit')
+        if (level not in MARCOS_FICHA or
+                benefit not in {MARCOS_FICHA[level], 'slot'} or
+                (benefit == 'slot' and level != 13) or
+                data.get('character_id') != personagem.pk or
+                grant.chave_origem != _chave_direito(personagem.pk, level, benefit) or
+                not direito_marco_ativo(grant)):
+            continue
+        request = TbEventoConquista.objects.filter(
+            origem='site', tipo='character_token_requested',
+            chave_origem=f'direito:{grant.pk}:pedido').first()
+        consume = TbEventoConquista.objects.filter(
+            origem='site', tipo='character_token_consumed',
+            chave_origem=f'direito:{grant.pk}:consumo').first()
+        rows.append({'grant': grant, 'level': level, 'benefit': benefit,
+                     'request': request, 'consume': consume})
+    return sorted(rows, key=lambda row: (row['level'], row['benefit']))
+
+
+@transaction.atomic
+def solicitar_token_ficha(personagem_id, grant_id, user):
+    """Registra pedido único sem consumir o direito nem publicar uma missão."""
+    from django.utils import timezone
+    from .models import TbEventoConquista, TbPersonagem
+
+    personagem = TbPersonagem.objects.select_for_update().get(pk=personagem_id)
+    if personagem.dono_id != user.pk:
+        raise ValueError('Ficha de outra conta.')
+    row = next((row for row in direitos_ficha(personagem)
+                if str(row['grant'].pk) == str(grant_id) and row['benefit'] != 'slot'), None)
+    if row is None or row['consume'] is not None:
+        raise ValueError('Token indisponível nesta ficha.')
+    grant = row['grant']
+    request, _ = TbEventoConquista.objects.get_or_create(
+        origem='site', chave_origem=f'direito:{grant.pk}:pedido',
+        defaults={'tipo': 'character_token_requested', 'conta_id': personagem.dono_id,
+                  'personagem': personagem, 'agregado_id': personagem.pk,
+                  'ocorrido_em': timezone.now(),
+                  'payload_json': {'character_id': personagem.pk,
+                                   'grant_id': str(grant.pk), 'benefit': row['benefit'],
+                                   'requested_by': user.pk}},
+    )
+    if (request.tipo != 'character_token_requested' or
+            request.personagem_id != personagem.pk or
+            request.payload_json != {'character_id': personagem.pk,
+                                     'grant_id': str(grant.pk),
+                                     'benefit': row['benefit'],
+                                     'requested_by': user.pk}):
+        raise ValueError('Pedido inconsistente.')
+    return request
+
+
+@transaction.atomic
+def confirmar_consumo_token(personagem_id, grant_id, lancamento_id, operador):
+    """Consome uma vez após staff vincular missão comprovada à ficha solicitante."""
+    from django.utils import timezone
+    from django.contrib.auth import get_user_model
+    from .models import TbEventoConquista, TbPersonagem, TbPersonagemAventura
+
+    if not (operador.is_staff or operador.is_superuser):
+        raise ValueError('Somente staff pode confirmar.')
+    personagem = TbPersonagem.objects.select_for_update().get(pk=personagem_id)
+    get_user_model().objects.select_for_update().get(pk=personagem.dono_id)
+    row = next((row for row in direitos_ficha(personagem)
+                if str(row['grant'].pk) == str(grant_id) and row['benefit'] != 'slot'), None)
+    if row is None or row['request'] is None:
+        raise ValueError('Pedido ou direito indisponível.')
+    if row['consume'] is not None:
+        if row['consume'].payload_json.get('mission_ledger_id') == lancamento_id:
+            return row['consume']
+        raise ValueError('Token já consumido em outra missão.')
+    mission = TbPersonagemAventura.objects.select_for_update().filter(
+        pk=lancamento_id, id_personagem_id=personagem.pk,
+        origem='mesa', revertido=False).first()
+    details = mission.detalhes_json if mission else None
+    expected_category = 'bg_token' if row['benefit'] == 'quest' else row['benefit']
+    if (not mission or not isinstance(details, dict) or
+            not details.get('bot_quest_id') or not details.get('bot_quest_proof') or
+            details.get('quest_category') != expected_category or
+            not details.get('quest_confirmed_by') or
+            mission.criado_em < row['request'].ocorrido_em):
+        raise ValueError('Missão sem referência comprovada para esta ficha e pedido.')
+    if TbEventoConquista.objects.filter(
+            origem='site', tipo='character_token_consumed',
+            payload_json__mission_ledger_id=lancamento_id).exists():
+        raise ValueError('Missão já usada em outro consumo.')
+    grant = row['grant']
+    consume, _ = TbEventoConquista.objects.get_or_create(
+        origem='site', chave_origem=f'direito:{grant.pk}:consumo',
+        defaults={'tipo': 'character_token_consumed', 'conta_id': personagem.dono_id,
+                  'personagem': personagem, 'agregado_id': lancamento_id,
+                  'ocorrido_em': timezone.now(),
+                  'payload_json': {'character_id': personagem.pk,
+                                   'grant_id': str(grant.pk), 'request_id': str(row['request'].pk),
+                                   'benefit': row['benefit'], 'mission_ledger_id': lancamento_id,
+                                   'bot_quest_id': details['bot_quest_id'],
+                                   'confirmed_by': operador.pk}},
+    )
+    return consume
 
 
 def _historico_classe_unica(character, class_id):

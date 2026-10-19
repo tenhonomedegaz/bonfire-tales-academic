@@ -10384,6 +10384,7 @@ def ficha_detail_view(request, pk):
         raise Http404()
     is_staff = perms.is_staff_user(request.user)
     pode_editar = p.dono_id == request.user.id or is_staff
+    direitos_tokens = _conquistas.direitos_ficha(p) if pode_editar else []
     try:
         ruleset = _resource_ruleset(p)
         ficha = derive(p, ruleset=ruleset)
@@ -10472,6 +10473,7 @@ def ficha_detail_view(request, pk):
         'pode_recriar_nivel1': pode_recriar_nivel1,
         'recriar_nivel1_motivo': recriar_nivel1_motivo,
         'pode_editar': pode_editar,
+        'direitos_tokens': direitos_tokens,
         'is_staff': is_staff,
         'levelup_status': levelup_status,
         'appearance': _appearance_context(p.ficha_theme, p.foto_frame, p.ficha_effect,

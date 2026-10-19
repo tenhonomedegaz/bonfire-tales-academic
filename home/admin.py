@@ -4479,7 +4479,8 @@ class TbConquistaAdmin(admin.ModelAdmin):
                 try:
                     with transaction.atomic():
                         registrar_fato_level_up(
-                            revision, proxima_revisao=following if not existed else None)
+                            revision, proxima_revisao=following if not existed else None,
+                            novos_direitos=False)
                 except ValueError:
                     ignorados += 1
                 else:
