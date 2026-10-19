@@ -71,5 +71,61 @@
   search.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();search.value='';filter(true);}});
   clears.forEach(link=>link.addEventListener('click',event=>{if(native(event))return;event.preventDefault();search.value='';kind.value='';filter(true);search.focus();}));
   window.addEventListener('popstate',()=>{const url=new URL(location.href);search.value=url.searchParams.get('q')||'';kind.value=url.searchParams.get('tipo')||'';selected=url.searchParams.get('recompensa')||'';setArea(url.searchParams.get('area'));filter();});
+  const review=document.getElementById('mm-review');
+  const details=document.getElementById('mm-review-details');
+  const title=document.getElementById('mm-review-title');
+  const back=document.getElementById('mm-review-back');
+  const confirm=document.getElementById('mm-review-confirm');
+  if(review&&details&&title&&back&&confirm&&typeof review.showModal==='function'){
+    let pending=null;
+    let sending=false;
+    const value=(form,name)=>form.elements.namedItem(name)?.value.trim()||'';
+    function append(label,value){
+      const dt=document.createElement('dt'),dd=document.createElement('dd');
+      dt.textContent=label;dd.textContent=value||'Não informado';details.append(dt,dd);
+    }
+    root.querySelectorAll('form[data-mm-review]').forEach(form=>form.addEventListener('submit',event=>{
+      if(sending)return;
+      if(!form.reportValidity())return;
+      event.preventDefault();
+      const submitter=event.submitter||form.querySelector('button[type="submit"]');
+      details.replaceChildren();
+      if(form.dataset.mmReview==='eventos'){
+        title.textContent='Revisar troca por Braseiros';
+        append('Personagem',form.elements.namedItem('personagem').selectedOptions[0]?.textContent.trim());
+        append('Moedas de Evento',value(form,'moedas'));
+      }else if(form.dataset.mmReview==='registro'){
+        title.textContent='Revisar registro de mesa';
+        append('Aventura',value(form,'nome'));
+        append('Data',value(form,'data'));
+        append('Jogadores',value(form,'jogadores'));
+        append('Crédito em MM',value(form,'recompensa_mm'));
+        append('Observação',value(form,'observacao'));
+      }else{
+        title.textContent='Revisar recompensa';
+        const reward=form.closest('.mm-reward');
+        append('Ação',submitter?.textContent.trim());
+        append('Recompensa',reward?.querySelector('h2')?.textContent.trim());
+        append('Custo exibido',reward?.querySelector('.mm-price')?.textContent.trim());
+      }
+      pending={form,submitter};
+      review.showModal();
+    }));
+    back.addEventListener('click',()=>review.close());
+    review.addEventListener('click',event=>{if(event.target===review)review.close();});
+    review.addEventListener('close',()=>{
+      const submitter=pending?.submitter;
+      pending=null;
+      if(!sending)submitter?.focus();
+    });
+    confirm.addEventListener('click',()=>{
+      if(!pending)return;
+      const {form,submitter}=pending;
+      if(!form.reportValidity()){review.close();return;}
+      sending=true;
+      confirm.disabled=true;
+      form.requestSubmit(submitter);
+    });
+  }
   filter();
 })();
