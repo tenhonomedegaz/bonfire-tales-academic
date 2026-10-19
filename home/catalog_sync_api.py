@@ -175,6 +175,95 @@ def catalog_upload_sync_operation(raw, payload, actor):
     return _sync_operation(payload, actor, raw)
 
 
+_BESTIARY_PATCH_FIELDS = {
+    15: frozenset({'tipo', 'tamanho', 'alinhamento', 'ca', 'pv',
+                   'statblock_json', 'descricao_markdown'}),
+    40: frozenset({'tamanho', 'ca', 'pv', 'statblock_json'}),
+}
+
+
+def _bestiary_patch_preview(payload):
+    """Validate a two-record, in-place repair without touching other catalog rows."""
+    if not _local_postgres():
+        raise ApiProblem(503, 'local_postgres_required', 'PostgreSQL local obrigatorio.')
+    rows = payload.get('rows')
+    if (not isinstance(rows, list) or len(rows) != 2 or
+            not all(isinstance(row, dict) and type(row.get('pk')) is int for row in rows) or
+            {row['pk'] for row in rows} != set(_BESTIARY_PATCH_FIELDS)):
+        raise ApiProblem(400, 'invalid_bestiary_patch', 'Apenas os PK 15 e 40 sao permitidos.')
+    normalized = []
+    model = _m('TbBestiario')
+    changes = []
+    for row in sorted(rows, key=lambda item: item['pk']):
+        pk = row['pk']
+        fields = row.get('fields')
+        if (set(row) != {'pk', 'slug', 'fields'} or
+                not isinstance(fields, dict) or
+                set(fields) != _BESTIARY_PATCH_FIELDS[pk] or
+                not isinstance(row['slug'], str)):
+            raise ApiProblem(400, 'invalid_bestiary_patch', 'Campos do pacote invalidos.')
+        current = model.objects.filter(pk=pk, comunidade=False, autor__isnull=True).first()
+        if current is None or current.slug != row['slug']:
+            raise ApiProblem(409, 'bestiary_base_changed', 'PK, slug ou titularidade divergente.')
+        for name, value in fields.items():
+            setattr(current, name, value)
+        try:
+            current.full_clean()
+        except Exception:
+            raise ApiProblem(400, 'invalid_bestiary_patch', 'Campos invalidos para a criatura.') from None
+        old = model.objects.get(pk=pk)
+        changed = sorted(name for name, value in fields.items() if getattr(old, name) != value)
+        changes.append({'pk': pk, 'slug': row['slug'], 'changed_fields': changed})
+        normalized.append({'pk': pk, 'slug': row['slug'], 'fields': fields})
+    digest = hashlib.sha256(json.dumps(normalized, sort_keys=True, ensure_ascii=False,
+                                       separators=(',', ':')).encode('utf-8')).hexdigest()
+    base_version, _models = _state()
+    return {'package_sha256': digest, 'base_version': base_version,
+            'changes': changes, 'backup_ready': _backup_ready(),
+            'changed_records': sum(bool(item['changed_fields']) for item in changes),
+            'new': 0, 'removed': 0}
+
+
+def bestiary_patch_preview_operation(payload, _api_key):
+    if set(payload) != {'rows'}:
+        raise ApiProblem(400, 'invalid_bestiary_patch', 'Informe apenas rows.')
+    return _bestiary_patch_preview(payload)
+
+
+def bestiary_patch_operation(payload, api_key):
+    if set(payload) != {'rows', 'base_version', 'package_sha256'}:
+        raise ApiProblem(400, 'invalid_bestiary_patch', 'Pacote e versao base obrigatorios.')
+    with connection.cursor() as cursor:
+        cursor.execute('SELECT pg_advisory_xact_lock(%s)', [GLOBAL_LOCK_KEY])
+    preview = _bestiary_patch_preview({'rows': payload['rows']})
+    if payload['base_version'] != preview['base_version']:
+        raise ApiProblem(409, 'catalog_state_changed', 'Catalogo mudou desde a previa.')
+    if payload['package_sha256'] != preview['package_sha256']:
+        raise ApiProblem(409, 'catalog_package_changed', 'Pacote mudou desde a previa.')
+    if not preview['backup_ready']:
+        raise ApiProblem(409, 'catalog_backup_unavailable', 'Backup PostgreSQL indisponivel.')
+    try:
+        folder = _protected_directory()
+        backup = _fresh_backup(folder, 'bestiary-' + preview['package_sha256'][:12])
+        model = _m('TbBestiario')
+        for row in payload['rows']:
+            updated = model.objects.filter(pk=row['pk'], slug=row['slug'],
+                                           comunidade=False, autor__isnull=True).update(**row['fields'])
+            if updated != 1:
+                raise RuntimeError('PK ou titularidade mudou durante a aplicacao.')
+        for row in payload['rows']:
+            current = model.objects.get(pk=row['pk'])
+            if any(getattr(current, name) != value for name, value in row['fields'].items()):
+                raise RuntimeError('Conteudo aplicado diverge do pacote.')
+        after_version, _models = _state()
+        return {'package_sha256': preview['package_sha256'],
+                'before_version': preview['base_version'], 'after_version': after_version,
+                'backup_file': backup.name, 'updated': preview['changed_records'],
+                'inserted': 0, 'removed': 0}
+    except (OSError, ValueError, RuntimeError):
+        raise ApiProblem(409, 'bestiary_patch_failed', 'Backup ou reparo falhou.') from None
+
+
 def _sync_operation(payload, api_key, raw=None):
     if (set(payload) != {'base_version', 'package_sha256'} or
             not all(isinstance(payload[k], str) and payload[k]
