@@ -32,6 +32,26 @@ class CharacterMilestoneTokenTests(TestCase):
         conceder_direitos_marco(revision, fact)
         return revision
 
+    def record_mission(self, character, category, bot_id):
+        mission = TbPersonagemAventura.objects.create(
+            id_personagem=character, nome_aventura='Missão confirmada',
+            qtd_aventuras=1, data_missao=timezone.localdate(), id_mestre=self.staff,
+            criado_por=self.staff,
+            detalhes_json={'bot_quest_id': bot_id,
+                           'bot_quest_proof': {'ok': True},
+                           'quest_category': category,
+                           'quest_confirmed_by': self.staff.pk})
+        TbEventoConquista.objects.create(
+            origem='site_ledger', chave_origem=f'aventura-ledger:{mission.pk}:registrada',
+            tipo='adventure_recorded', conta=self.owner, personagem=character,
+            agregado_id=mission.pk, ocorrido_em=mission.criado_em,
+            payload_json={'ledger_id': mission.pk, 'quantidade': 1,
+                          'quest_category': category,
+                          'quest_confirmed_by': self.staff.pk,
+                          'bot_quest_id': bot_id,
+                          'bot_quest_proof': {'ok': True}})
+        return mission
+
     def test_new_grants_are_per_character_and_replay_is_idempotent(self):
         revision = self.grant(self.one, 13)
         self.grant(self.two, 13)
@@ -70,18 +90,10 @@ class CharacterMilestoneTokenTests(TestCase):
                          request.pk)
         with self.assertRaises(ValueError):
             confirmar_consumo_token(self.one.pk, grant.pk, 99999, self.staff)
-        wrong = TbPersonagemAventura.objects.create(
-            id_personagem=self.two, nome_aventura='Outra',
-            detalhes_json={'bot_quest_id': 'q-other', 'bot_quest_proof': {'ok': True},
-                           'quest_category': 'item_rare',
-                           'quest_confirmed_by': self.staff.pk})
+        wrong = self.record_mission(self.two, 'item_rare', 'q-other')
         with self.assertRaises(ValueError):
             confirmar_consumo_token(self.one.pk, grant.pk, wrong.pk, self.staff)
-        mission = TbPersonagemAventura.objects.create(
-            id_personagem=self.one, nome_aventura='Missão confirmada',
-            detalhes_json={'bot_quest_id': 'q-one', 'bot_quest_proof': {'ok': True},
-                           'quest_category': 'item_rare',
-                           'quest_confirmed_by': self.staff.pk})
+        mission = self.record_mission(self.one, 'item_rare', 'q-one')
         consumed = confirmar_consumo_token(self.one.pk, grant.pk, mission.pk, self.staff)
         self.assertEqual(consumed.payload_json['confirmed_by'], self.staff.pk)
         self.assertEqual(consumed.payload_json['bot_quest_id'], 'q-one')
@@ -109,6 +121,21 @@ class CharacterMilestoneTokenTests(TestCase):
         self.assertIsNone(grant.personagem_id)
         with self.assertRaises(TbPersonagem.DoesNotExist):
             solicitar_token_ficha(self.one.pk, grant_id, self.owner)
+
+    def test_mission_requires_matching_recorded_fact(self):
+        self.grant(self.one, 9)
+        grant = direitos_ficha(self.one)[0]['grant']
+        solicitar_token_ficha(self.one.pk, grant.pk, self.owner)
+        mission = TbPersonagemAventura.objects.create(
+            id_personagem=self.one, nome_aventura='Sem fato', qtd_aventuras=1,
+            data_missao=timezone.localdate(), id_mestre=self.staff,
+            criado_por=self.staff,
+            detalhes_json={'bot_quest_id': 'q-unrecorded',
+                           'bot_quest_proof': {'ok': True},
+                           'quest_category': 'item_rare',
+                           'quest_confirmed_by': self.staff.pk})
+        with self.assertRaises(ValueError):
+            confirmar_consumo_token(self.one.pk, grant.pk, mission.pk, self.staff)
 
     def test_routes_keep_owner_and_staff_boundaries(self):
         self.grant(self.one, 5)

@@ -581,6 +581,14 @@ def confirmar_consumo_token(personagem_id, grant_id, lancamento_id, operador):
             not details.get('quest_confirmed_by') or
             mission.criado_em < row['request'].ocorrido_em):
         raise ValueError('Missão sem referência comprovada para esta ficha e pedido.')
+    comprovadas = _quests_comprovadas(personagem.dono)[expected_category]
+    if not any(
+            fact.agregado_id == mission.pk and
+            fact.personagem_id == personagem.pk and
+            fact.payload_json.get('bot_quest_id') == details['bot_quest_id'] and
+            fact.payload_json.get('bot_quest_proof') == details['bot_quest_proof']
+            for fact in comprovadas):
+        raise ValueError('Missão sem fato confirmado para esta ficha e pedido.')
     if TbEventoConquista.objects.filter(
             origem='site', tipo='character_token_consumed',
             payload_json__mission_ledger_id=lancamento_id).exists():
