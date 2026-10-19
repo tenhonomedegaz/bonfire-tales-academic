@@ -10,9 +10,32 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.db import connection
+from django.template.loader import render_to_string
+from django.test import SimpleTestCase
 from django.urls import reverse
 
 from home.models import MarketItemFavorite, TbItemMagico, TbItemMundano
+
+
+class MarketConsultPresentationTests(SimpleTestCase):
+    def test_reference_text_uses_approved_display_without_changing_price_or_sale(self):
+        rendered = render_to_string('home/partials/market_consultation_cards.html', {
+            'market_extra_entries': [{
+                'id': 'reference-test', 'name': 'Corda 30 pés', 'type': 'reference',
+                'category': {'label': 'Consulta'}, 'icon': 'guide', 'price': '5 PO',
+                'paragraphs': ['Alcance 9 m; faça uma salvaguarda.'],
+                'notes': [{'section': 'Detalhes', 'row': {
+                    'description': [{'label': 'Uso', 'text': 'A 30 pés do alvo.'}],
+                    'continuation': ['Outra salvaguarda a 9 m.'],
+                }}],
+            }],
+        })
+        self.assertIn('Corda 9 metros [30 pés]', rendered)
+        self.assertIn('Alcance 9 metros [30 pés]; faça um teste de resistência.', rendered)
+        self.assertIn('A 9 metros [30 pés] do alvo.', rendered)
+        self.assertIn('Outro teste de resistência a 9 metros [30 pés].', rendered)
+        self.assertIn('<strong>5 PO</strong>', rendered)
+        self.assertNotIn('data-shop-buy', rendered)
 
 
 class MarketFavoriteBrowserTests(StaticLiveServerTestCase):
@@ -33,7 +56,7 @@ class MarketFavoriteBrowserTests(StaticLiveServerTestCase):
         user = get_user_model().objects.create_user('market-favorite-browser')
         mundane = TbItemMundano.objects.create(
             nome='Corda de favorita 30 pés', slug='corda-browser', preco='1 PO',
-            imagem_url='//external.example/item.svg')
+            imagem_url='//external.example/item.svg', tags_json=['maestrias{minar_sap}'])
         mundane_other = TbItemMundano.objects.create(nome='Tocha comum', slug='tocha-browser', preco='1 PC')
         magic = TbItemMagico.objects.create(
             nome='Anel de favorita', slug='anel-browser', preco=1,
@@ -110,6 +133,7 @@ class MarketFavoriteBrowserTests(StaticLiveServerTestCase):
                    'document.querySelector("[data-shop-search]").dispatchEvent(new Event("input", {bubbles:true}))')
                 js(f'document.querySelector(\'[data-mkt-row][data-target="mu-{mundane.pk}"]\').click()')
                 self.assertTrue(js('document.querySelector("[data-shop-detail] .mkt-sigil-letter") !== null'))
+                self.assertIn('Minar (Sap)', js('document.querySelector("[data-shop-detail]").textContent'))
                 self.assertFalse(js('document.querySelector("[data-shop-detail] img") !== null'))
                 self.assertLessEqual(js('document.documentElement.scrollWidth - innerWidth'), 1)
                 js(f'document.querySelector(\'[data-mkt-row][data-target="mu-{mundane_other.pk}"]\').click()')

@@ -66,7 +66,7 @@ missão" no lugar do botão — a mesma guarda existe no backend.{% endcomment %
                   data-name="{{ entry.name }}" data-favorite="false"
                   data-search="{{ entry.name|lower }} {{ entry.category.label|lower }} {{ entry.search|lower }}">
             <svg class="market-row-icon" aria-hidden="true"><use href="#mkt-icon-{{ entry.icon|market_symbol }}"></use></svg>
-            <span class="mkt-row-name">{{ entry.name }}</span>
+            <span class="mkt-row-name">{{ entry.name|dual_distance }}</span>
             <span class="mkt-row-meta">{{ entry.category.label }}</span>
             <span class="mkt-row-price">guia</span>
           </button>
@@ -137,7 +137,7 @@ missão" no lugar do botão — a mesma guarda existe no backend.{% endcomment %
         </dl>
         {% endif %}
         {% if item.mec_propriedades %}<p class="mkt-card-line"><strong>Propriedades:</strong> {{ item.mec_propriedades }}</p>{% endif %}
-        {% if item.mec_maestrias %}<p class="mkt-card-line"><strong>Maestria:</strong> {{ item.mec_maestrias }}</p>{% endif %}
+        {% if item.mec_maestrias %}<p class="mkt-card-line"><strong>Maestria:</strong> {{ item.mec_maestrias|mastery_labels }}</p>{% endif %}
         {% if item.mec_furtividade %}<p class="mkt-card-line is-warn"><strong>Desvantagem em Furtividade</strong></p>{% endif %}
         {% if item.descricao_markdown %}
         <div class="bonfire-markdown mkt-desc" data-markdown-source>{{ item.descricao_markdown|dual_distance|escape }}</div>
