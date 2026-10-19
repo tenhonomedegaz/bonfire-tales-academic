@@ -44,6 +44,7 @@ class ReferenceCatalogBrowserTests(StaticLiveServerTestCase):
             slug='antigo-sino-das-brumas', nome='Antigo Sino das Brumas', efeito='O chão cede.')
         rule = TbRegra.objects.create(
             slug='chamado-das-brumas', nome='Chamado das Brumas')
+        TbRegra.objects.create(slug='antigo-chamado-das-brumas', nome='Antigo Chamado das Brumas')
         TbRegra.objects.create(slug='eco-do-vale', nome='Eco do Vale')
         talent = TbTalento.objects.create(
             slug='guarda-das-brumas', nome='Guarda das Brumas', descricao='Protege a vigília.')
@@ -138,8 +139,8 @@ class ReferenceCatalogBrowserTests(StaticLiveServerTestCase):
                      'document.querySelector("#armadilha-%s")?.hidden === false' % trap.pk,
                      'document.querySelector("#ar-count")?.textContent === "2"'),
                     (rule, 'sistemas_glossario',
-                     '!document.querySelector("#regra-chamado-das-brumas")?.classList.contains("hidden")',
-                     'document.querySelector("#glo-count")?.textContent === "1"'),
+                     'location.hash === "#regra-chamado-das-brumas" && document.activeElement?.id === "regra-chamado-das-brumas"',
+                     'document.querySelector("#glo-count")?.textContent === "2"'),
                     (talent, 'jogador_talentos',
                      'document.querySelector("[data-talent-title]")?.textContent === "Guarda das Brumas"',
                      'document.querySelector("#talentResultCount")?.textContent.startsWith("2 de ")'),
@@ -155,6 +156,11 @@ class ReferenceCatalogBrowserTests(StaticLiveServerTestCase):
                     wait_for(result_link + ' !== undefined')
                     js(result_link + '.click()')
                     wait_for('location.pathname === %s && %s && %s' % (json.dumps(reverse(route)), selected, count))
+                    if route == 'sistemas_glossario':
+                        self.assertTrue(js('''(() => {
+                            const box = document.querySelector('#regra-chamado-das-brumas').getBoundingClientRect();
+                            return box.top < innerHeight && box.bottom > 0;
+                        })()'''))
                     self.assertEqual(js('new URLSearchParams(location.search).get("q")'), entry.nome)
                     self.assertLessEqual(js('document.documentElement.scrollWidth'), js('document.documentElement.clientWidth'))
                     cdp('Page.reload', {'ignoreCache': True})
