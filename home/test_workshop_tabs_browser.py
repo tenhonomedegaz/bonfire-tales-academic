@@ -91,6 +91,17 @@ class WorkshopTabsBrowserTests(StaticLiveServerTestCase):
                 wait_for('document.querySelector("[data-workshop-tab=transcription][aria-pressed=true]") !== null')
                 self.assertEqual(js('innerWidth'), 360)
                 self.assertTrue(js('!document.querySelector("[data-workshop-panel=transcription]").hidden'))
+                self.assertEqual(js('document.querySelector(".workshop-tabs").getAttribute("role")'), 'tablist')
+                self.assertEqual(js('document.querySelector("[data-workshop-tab=transcription]").getAttribute("aria-selected")'), 'true')
+                js('''(() => {
+                    const tab = document.querySelector('[data-workshop-tab=transcription]');
+                    tab.focus();
+                    tab.dispatchEvent(new KeyboardEvent('keydown', {key: 'ArrowRight', bubbles: true}));
+                })()''')
+                self.assertEqual(js('document.activeElement.dataset.workshopTab'), 'casting')
+                self.assertEqual(js('document.querySelector("[data-workshop-tab=casting]").getAttribute("aria-selected")'), 'true')
+                self.assertTrue(js('!document.querySelector("[data-workshop-panel=casting]").hidden'))
+                self.assertLessEqual(js('document.documentElement.scrollWidth'), js('document.documentElement.clientWidth'))
                 js('document.querySelector("[data-workshop-tab=components]").click()')
                 self.assertTrue(js('location.search.includes("tab=components")'))
                 self.assertEqual(js('document.querySelector("[data-shop-picker] [name=tab]").value'), 'components')

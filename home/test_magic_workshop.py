@@ -218,6 +218,9 @@ class MagicWorkshopTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Pergaminho de Fogo de Teste')
         self.assertContains(response, 'Grimório')
+        self.assertContains(response, f'href="{reverse("magias_listas")}?magia=fogo-de-teste"')
+        self.assertContains(response, 'role="tablist"')
+        self.assertContains(response, 'aria-controls="workshop-panel-scrolls"')
 
     def test_conjuracao_consumivel_e_preserva_foco(self):
         spell = TbMagia.objects.create(

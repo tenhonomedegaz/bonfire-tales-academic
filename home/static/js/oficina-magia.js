@@ -19,6 +19,8 @@
       var active = tab.dataset.workshopTab === name;
       tab.classList.toggle('is-active', active);
       tab.setAttribute('aria-pressed', active ? 'true' : 'false');
+      tab.setAttribute('aria-selected', active ? 'true' : 'false');
+      tab.tabIndex = active ? 0 : -1;
     });
     panels.forEach(function (panel) {
       var active = panel.dataset.workshopPanel === name;
@@ -68,6 +70,16 @@
         url.searchParams.set('tab', name);
         window.history.pushState(null, '', url);
       }
+    });
+    tab.addEventListener('keydown', function (event) {
+      var index = tabs.indexOf(tab);
+      var next = event.key === 'ArrowRight' ? (index + 1) % tabs.length :
+        event.key === 'ArrowLeft' ? (index - 1 + tabs.length) % tabs.length :
+        event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : -1;
+      if (next < 0) return;
+      event.preventDefault();
+      tabs[next].focus();
+      tabs[next].click();
     });
   });
   window.addEventListener('popstate', function () { show(urlTab()); });
