@@ -113,7 +113,11 @@
         if (!outsideInert.has(element)) outsideInert.set(element, element.inert);
         element.inert = true;
       });
-      search.focus();
+      window.setTimeout(() => {
+        if (document.body.classList.contains('language-menu-open') && !sidebar.contains(document.activeElement)) {
+          search.focus();
+        }
+      }, 220);
     } else {
       outsideInert.forEach((inert, element) => { element.inert = inert; });
       outsideInert.clear();

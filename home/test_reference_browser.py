@@ -258,6 +258,8 @@ class ReferenceCatalogBrowserTests(StaticLiveServerTestCase):
             ''')
             wait.until(lambda browser: browser.execute_script(
                 'return document.querySelector("#languageTarget")?.value') == 'antiga-fala-das-brumas')
+            wait.until(lambda browser: browser.execute_script(
+                'return document.activeElement === document.querySelector("#languageSearch")'))
             state = driver.execute_script('''
                 const search = document.querySelector('#languageSearch');
                 return {
