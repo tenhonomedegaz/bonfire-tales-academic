@@ -43,3 +43,13 @@ class JornalPaginationTests(TestCase):
         listing = reverse('mundo_jornal')
         self.assertEqual(self.client.get(listing, {'page': 'invalid'}).context['page_obj'].number, 1)
         self.assertEqual(self.client.get(listing, {'page': '999'}).context['page_obj'].number, 2)
+
+
+class JornalEmptyStateTests(TestCase):
+    def test_empty_archive_offers_real_world_and_chronicle_routes(self):
+        response = self.client.get(reverse('mundo_jornal'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'A próxima notícia ainda está por ser escrita.')
+        self.assertContains(response, f'href="{reverse("mundo_regioes")}"')
+        self.assertContains(response, f'href="{reverse("mundo_cronicas")}"')
+        self.assertNotContains(response, 'href="/mundo/jornal/artigo-')

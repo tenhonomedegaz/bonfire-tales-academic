@@ -221,7 +221,11 @@
   </a>
   {% empty %}
   <div class="jornal-empty">
-    <p>Nenhum artigo publicado ainda. As prensas estão silenciosas...</p>
+    <span class="journal-empty-mark">{% include 'home/partials/journal_mark.html' %}</span>
+    <p class="journal-kicker">As prensas estão silenciosas… por enquanto.</p>
+    <h3>A próxima notícia ainda está por ser escrita.</h3>
+    <p>Quando uma nova reportagem for publicada, ela aparecerá aqui. Enquanto isso, conheça os lugares e as histórias de Cinéria.</p>
+    <div class="journal-empty-links"><a href="{% url 'mundo_regioes' %}">Explorar territórios →</a><a href="{% url 'mundo_cronicas' %}">Ler crônicas</a></div>
   </div>
   {% endfor %}
 </div>

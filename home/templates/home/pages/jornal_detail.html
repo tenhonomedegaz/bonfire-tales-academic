@@ -20,7 +20,7 @@
 {% include 'home/partials/journal_imprint.html' %}
 {% if artigo.layout != 'atlas' %}
 <header class="artigo-hero{% if not artigo.safe_image_url %} artigo-hero--text{% endif %}">
-  <span class="artigo-eyebrow">Jornal de Cinéria</span>
+  <span class="artigo-eyebrow">{% if artigo.destaque %}Em destaque{% else %}Reportagem{% endif %} <span aria-hidden="true">◆</span> Cinéria</span>
   <h1 class="artigo-title">{{ artigo.titulo }}</h1>
   <div class="artigo-meta">
     <span class="author">{{ artigo.autor.username|default:"Redação" }}</span>
@@ -41,6 +41,7 @@
     <span class="artigo-atlas-kicker">Jornal de Cinéria</span>
     <h1>{{ artigo.titulo }}</h1>
     <p>Por {{ artigo.autor.username|default:"Redação" }} · {{ artigo.data_publicacao|date:"d/m/Y" }}{% if has_recorded_edit %} · Editado em {{ artigo.data_edicao|date:"d/m/Y" }}{% endif %}</p>
+    {% if artigo.resumo %}<p class="journal-article-summary">{{ artigo.resumo }}</p>{% endif %}
   </header>
   {% endif %}
   <div class="artigo-body{% if artigo.layout == 'colunas' %} artigo-body--colunas{% endif %}{% if artigo.layout == 'atlas' %} artigo-body--atlas{% endif %}">
@@ -153,6 +154,7 @@
   })();
   </script>
   {% endif %}
+<footer class="journal-paper-footer"><span>Bonfire Tales RPG</span><span aria-hidden="true">◆</span><span>Jornal de Cinéria</span></footer>
 </article>
 <aside class="journal-reading-aside" aria-label="Apoio à leitura"><div class="journal-reading-time"><span class="journal-kicker">Tempo de leitura</span><p id="journalReadingTime">Reportagem</p></div><details class="journal-toc" id="journalToc" hidden open><summary>Nesta reportagem <span aria-hidden="true">⌄</span></summary><nav id="journalTocLinks" aria-label="Seções da reportagem"></nav></details><div class="journal-explore"><span class="journal-kicker">O mundo além da notícia</span><a href="{% url 'mundo_regioes' %}">Regiões e Territórios <span aria-hidden="true">→</span></a><a href="{% url 'mapa' %}">Mapa de Cinéria <span aria-hidden="true">↗</span></a><a href="{% url 'mundo_cronicas' %}">Crônicas do mundo <span aria-hidden="true">→</span></a></div></aside>
 </div>

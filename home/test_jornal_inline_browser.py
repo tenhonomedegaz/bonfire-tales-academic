@@ -40,7 +40,8 @@ class JornalInlineBrowserTests(StaticLiveServerTestCase):
         original_date = timezone.make_aware(datetime(2024, 4, 15, 10, 30, 47))
         article = TbJornal.objects.create(
             titulo='Jornal no navegador', slug='jornal-no-navegador',
-            layout='padrao', conteudo_markdown='Texto publicado', data_publicacao=original_date,
+            layout='padrao', resumo='Resumo da edição no Atlas',
+            conteudo_markdown='Texto publicado', data_publicacao=original_date,
         )
         self.client.force_login(editor)
 
@@ -139,6 +140,14 @@ class JornalInlineBrowserTests(StaticLiveServerTestCase):
                 self.assertEqual(timezone.localtime(article.data_publicacao).replace(tzinfo=None),
                                  datetime(2024, 5, 20, 12, 0))
                 self.assertIn('Texto publicado', js("document.querySelector('[data-jornal-markdown]').textContent"))
+                self.assertIn('Resumo da edição no Atlas', js("document.querySelector('.artigo-atlas-meta .journal-article-summary').textContent"))
+                self.assertIn('Jornal de Cinéria', js("document.querySelector('article .journal-paper-footer').textContent"))
+                for width in (360, 1280):
+                    call('Emulation.setDeviceMetricsOverride', {
+                        'width': width, 'height': 900, 'deviceScaleFactor': 1, 'mobile': width == 360,
+                    })
+                    self.assertLessEqual(js('document.documentElement.scrollWidth'),
+                                         js('document.documentElement.clientWidth'))
 
                 call('Page.navigate', {'url': self.live_server_url + reverse('mundo_jornal')})
                 until("document.readyState === 'complete' && !!document.querySelector('a[href*=jornal-no-navegador]')")
