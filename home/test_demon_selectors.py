@@ -46,6 +46,9 @@ class DemonSelectorPreviewTests(TestCase):
             self.assertEqual((public_page.status_code, creature.status_code,
                               card.status_code), (200, 200, 200))
             self.assertFalse(creature.json()['statblock_incompleto'])
+            public_html = public_page.content.decode()
+            for ref in refs:
+                self.assertIn('href="?q=%s"' % ref['slug'], public_html)
             for html in (public_page.content.decode(),
                          creature.json()['statblock_html'], card.json()['card_html']):
                 self.assertIn('Ficha variavel', html)

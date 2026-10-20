@@ -56,6 +56,13 @@
         {% if c.statblock_incompleto %}<p class="be-incomplete" role="note">Statblock incompleto: atributos e ações ainda não foram cadastrados.</p>{% endif %}
         {% if c.imagem|safe_profile_image %}<div class="be-view-switch" role="group" aria-label="Visualização de {{ c.nome }}" hidden><button type="button" data-creature-view="sheet" aria-pressed="true" aria-controls="monster-{{ c.id }}-sheet">Ficha da criatura</button><button type="button" data-creature-view="art" aria-pressed="false" aria-controls="monster-{{ c.id }}-art">Ilustração</button></div>{% endif %}
         <div class="monster-sheet-inner" id="monster-{{ c.id }}-sheet" data-creature-content="sheet">
+          {% if c.variant_selector %}<section class="monster-section" aria-label="Ficha variável">
+            <h3 class="monster-section-title">Ficha variavel</h3>
+            <p>{{ c.variant_selector.selection_note }}</p>
+            <p>Exemplos de fichas:
+              {% for ref in c.variant_selector.variant_refs %}<a href="?q={{ ref.slug|urlencode }}" class="bonfire-card-trigger" data-table="tbBestiario" data-args="{{ ref.slug }}">{{ ref.name }} (ND {{ ref.cr|default:'?' }})</a>{% endfor %}
+            </p>
+          </section>{% endif %}
           <dl class="monster-vitals">
             <div><dt>Classe de Armadura</dt><dd>{{ sb.ca|default:'Não informada' }}</dd></div>
             <div><dt>Pontos de Vida</dt><dd>{{ sb.pv|default:'Não informados' }}</dd></div>

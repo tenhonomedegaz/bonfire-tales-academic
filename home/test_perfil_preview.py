@@ -405,7 +405,8 @@ class PartialUnificadoTests(PerfilPreviewBase):
         for marca in ('--profile-surface:%s' % _ABISSAL_SURFACE,
                       'data-fx-particula="flutuar"',
                       'data-fx-vel="lenta"',
-                      'Mesma bio nos dois lados.',
-                      '<h1>gaz</h1>'):
+                      'Mesma bio nos dois lados.'):
             self.assertIn(marca, publico, 'faltou no perfil público: %s' % marca)
             self.assertIn(marca, previa, 'faltou na prévia: %s' % marca)
+        self.assertIn('<h1>gaz</h1>', publico)
+        self.assertIn('<h2 class="public-profile-preview-name">gaz</h2>', previa)
