@@ -2,10 +2,11 @@
 
 ADMIN_GROUPS = (
     ("Comunidade", "comunidade", {
-        "TbAventuraMestre", "TbConteudoEstatico", "TbReiDaColina",
+        "TbAutorizacaoVitrine", "TbAventuraMestre", "TbConteudoEstatico",
+        "TbReiDaColina", "TbVerificacaoMesa",
     }),
     ("Personagens", "personagens", {
-        "TbPersonagem", "TbPersonagemAventura", "TbPersonagemRevisao",
+        "TbFeitoLenda", "TbPersonagem", "TbPersonagemAventura", "TbPersonagemRevisao",
         "TbSolicitacaoTranscricao",
     }),
     ("Regras e conteúdo", "regras", {
