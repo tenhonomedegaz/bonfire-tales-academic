@@ -44,12 +44,14 @@ body.bft-training { --bg0:#0a0a0a; --bg1:#151112; --stroke:#4a292d; --text:#f2ee
 .bft-training .training-category-shortcuts button:hover { border-color:#b56740; background:#2b191a; }
 .bft-training .training-category-shortcuts button[aria-pressed=true] { background:linear-gradient(105deg,#4b0d0d,#2c1818); border-color:#d07742; box-shadow:inset 0 -2px #e5652e; color:#fff0dd; }
 .training-workbench { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr); gap:20px; align-items:start; }
+.services-shell:not(.training-enhanced) .training-workbench { display:block; }
 .training-browse { min-width:0; padding:17px; border:1px solid #4e2d30; border-top:2px solid #84332e; background:#141012; }
 .bft-training .training-filters { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,.7fr) auto; gap:9px; padding:0; }
 .bft-training .service-form label { font-size:.71rem; color:#c6ada1; letter-spacing:.03em; }
 .bft-training .training-filters :is(input,select) { border-color:#654035; border-radius:2px; background:#0c0b0c; font-size:.83rem; width:100%; }
 .training-enhanced .training-filters { grid-template-columns:minmax(0,1fr) auto; }
 .training-enhanced .training-category-native, .training-enhanced .training-native-choice { display:none; }
+.training-enhanced .training-native-submit { display:none; }
 .bft-training .training-filters .training-clear { background:#211519; color:#e5be9f; border-color:#79503c; border-radius:2px; font-size:.74rem; padding-inline:10px; }
 .bft-training .training-search-status { font-size:.74rem; color:#baaaa0; margin:11px 0; }
 .training-native-choice { display:grid; gap:6px; }
