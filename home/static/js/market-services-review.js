@@ -81,6 +81,9 @@
     pending = null;
     dialog.close();
     approved = form;
+    if (form.classList.contains('loan-payment') && button.name === 'valor_po') {
+      form.querySelector('input[name="valor_po"]').value = '';
+    }
     form.requestSubmit(button);
   });
 })();
