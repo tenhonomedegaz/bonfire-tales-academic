@@ -901,6 +901,9 @@
             document.querySelectorAll('[data-step-tab]').forEach(function (tab) {
                 var index = Number(tab.dataset.stepTab);
                 tab.classList.toggle('is-current', index === step);
+                if (index === step) tab.setAttribute('aria-current', 'step');
+                else tab.removeAttribute('aria-current');
+                tab.setAttribute('aria-label', 'Etapa ' + (index + 1) + ': ' + STEPS[index]);
                 var pending = stepPending(index);
                 tab.classList.toggle('is-error', pending > 0);
                 tab.classList.toggle('is-complete', pending === 0 && index !== step &&

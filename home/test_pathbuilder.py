@@ -62,6 +62,17 @@ class PathbuilderContratoClienteTests(_CriadorBase):
                        'data-picker-list', 'data-step-prev', 'data-step-next'):
             self.assertIn(gancho, html, gancho)
 
+    def test_privacidade_e_etapa_ativa_sao_explicitas(self):
+        creator = self.client.get(reverse('pathbuilder')).content.decode('utf-8')
+        laboratory = self.client.get(reverse('pathbuilder_laboratorio')).content.decode('utf-8')
+        js = _texto(_JS)
+        self.assertIn('enviadas ao servidor para calcular a prévia', creator)
+        self.assertIn('Cada prévia envia a base e a build ao servidor', laboratory)
+        self.assertIn('nenhuma ficha é salva', laboratory)
+        self.assertIn('data-step-tab="0" role="button" tabindex="0" aria-current="step"', laboratory)
+        self.assertIn("tab.setAttribute('aria-current', 'step')", js)
+        self.assertIn("tab.removeAttribute('aria-current')", js)
+
     def test_classes_emitidas_pelo_js_estao_estilizadas(self):
         """Nenhum cartao do laboratorio sai sem CSS (era o cheiro de 'CSS genérico de IA':
         markup novo no JS e folha de estilo desatualizada)."""
@@ -3324,6 +3335,24 @@ class PathbuilderTests(_CriadorBase):
         self.assertContains(response, "Pathbuilder")
         self.assertContains(response, "pb-catalogs")
 
+    def test_personagens_existentes_nao_entram_na_simulacao(self):
+        existing = TbPersonagem.objects.create(dono=self.user, nome='Ficha existente privada')
+        other = self._novo_usuario('pathbuilder-other')
+        foreign = TbPersonagem.objects.create(dono=other, nome='Ficha de outra pessoa')
+        before = list(TbPersonagem.objects.order_by('pk').values_list('pk', 'nome'))
+
+        page = self.client.get(reverse('pathbuilder_laboratorio'))
+        self.assertEqual(page.status_code, 200)
+        self.assertNotIn(existing.nome, page.content.decode('utf-8'))
+        self.assertNotIn(foreign.nome, page.content.decode('utf-8'))
+
+        response = self._post_preview(self._payload('guerreiro'), self._build('guerreiro'))
+        self.assertEqual(response.status_code, 200, response.content[:300])
+        sheet = response.json()['build']['ficha_html']
+        self.assertNotIn(existing.nome, sheet)
+        self.assertNotIn(foreign.nome, sheet)
+        self.assertEqual(list(TbPersonagem.objects.order_by('pk').values_list('pk', 'nome')), before)
+
     def test_q10_magia_incompativel_mantem_previa_e_impede_validacao(self):
         base = self._payload('mago')
         spell = TbMagia.objects.filter(nivel=9).first()
@@ -3663,6 +3692,39 @@ class PathbuilderTests(_CriadorBase):
                     set(TbSubclasse.objects.filter(id_classe=classe).values_list('slug', flat=True)),
                 )
         self.assertGreater(with_asi, 1)
+
+    def test_matriz_real_de_classes_subclasses_e_progressao_sem_persistencia(self):
+        """Exercita cada subclasse no desbloqueio e os extremos de cada classe."""
+        from home.pathbuilder import catalogos
+
+        rows = catalogos()['classes']
+        self.assertEqual(len(rows), 13)
+        self.assertEqual(sum(len(row['subclasses']) for row in rows), 111)
+        before = TbPersonagem.objects.count()
+        for row in rows:
+            if row['slug'] == 'cacador' and not row['ruleset_checksum']:
+                continue  # Depende da publicação do Caçador, fora desta frente.
+            base = self._payload(row['slug'])
+            for level in (1, 20):
+                with self.subTest(classe=row['slug'], nivel=level):
+                    response = self._post_preview(base, self._build(row['slug'], classes=[{
+                        'slug': row['slug'], 'nivel': level, 'subclasse': '',
+                    }]))
+                    self.assertEqual(response.status_code, 200, response.content[:300])
+                    self.assertEqual(response.json()['build']['nivel'], level)
+            unlock = row['subclasse_nivel']
+            for subclass in row['subclasses']:
+                with self.subTest(classe=row['slug'], subclasse=subclass['slug']):
+                    self.assertIsNotNone(unlock)
+                    response = self._post_preview(base, self._build(row['slug'], classes=[{
+                        'slug': row['slug'], 'nivel': unlock, 'subclasse': subclass['slug'],
+                    }]))
+                    self.assertEqual(response.status_code, 200, response.content[:300])
+                    result = response.json()['build']
+                    self.assertEqual(result['nivel'], unlock)
+                    self.assertEqual(result['classes'][0]['subclasse'], subclass['nome'])
+                    self.assertIn(subclass['nome'], result['ficha_html'])
+        self.assertEqual(TbPersonagem.objects.count(), before)
 
     def test_primeiro_asi_de_cada_classe_com_subclasse_nao_duplica_orcamento(self):
         from home.pathbuilder import catalogos
