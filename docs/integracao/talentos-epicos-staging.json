@@ -1,0 +1,400 @@
+{
+  "estado": "staging_para_revisao",
+  "fonte": {
+    "arquivo": "ref/talentos épicos/Talentos in Bonfire Tales RPG.html",
+    "secao": "Talentos Épicos",
+    "linhas": [
+      1295,
+      1327
+    ]
+  },
+  "contexto_secao_markdown": "**Talentos Épicos** são raros e ligados a feitos grandiosos, juramentos, bênçãos, pactos ou conquistas que mudam a escala da sua lenda e concedem efeitos marcantes, com impacto real no rumo de uma aventura.\n\nA regra do **Aumento de Atributo** para esse talento é alterada para oferecer **+2** em um atributo, e ele não pode passar de **22**. Usos por descanso, ações, reações, CDs e exceções funcionam exatamente como escrito, e não se acumulam fora do que o texto permite.",
+  "metadados_revisao": {
+    "publicado_no_dev": false,
+    "publicacao_139_talentos": "não verificada; não presumir publicação",
+    "tags_mecanicas_explicitas": "Transcrição literal do aumento comum a cada entrada; não são tags_json executáveis.",
+    "incompatibilidades_tb_talento": [
+      "TbTalento.tipo oferece apenas origem/geral; não há tipo épico.",
+      "Os seis campos atrib_* representam +1 por atributo; não representam +2 em atributo à escolha nem teto 30.",
+      "TbTalento.etiqueta não possui categoria épica; as categorias da fonte foram preservadas como referência, sem mapear para valor persistido.",
+      "TbTalento.pre_requisito é texto livre; os dois pré-requisitos explícitos não possuem validação estrutural no modelo.",
+      "TbTalento.tags_json pode armazenar tags, mas a fonte HTML não fornece sintaxe do motor para os efeitos épicos; nenhum efeito foi convertido em tag executável."
+    ],
+    "divergencia_na_fonte": "A introdução da seção informa +2 até 22; cada um dos 31 talentos informa +2 até 30. Ambos os textos foram preservados para revisão, sem resolver a divergência.",
+    "limites": "Catálogo de revisão; sem importação, regras inferidas, nível presumido, mudança de PK, builder, contrato ou banco."
+  },
+  "talentos": [
+    {
+      "titulo": "Dádiva da Aptidão de Batalha",
+      "categoria_fonte": "Combate",
+      "referencia_secao": "Talentos Épicos > Combate",
+      "linha_fonte": 1301,
+      "ancora_fonte": "#spoiler-63CPfw",
+      "pre_requisito": null,
+      "descricao_markdown": "**Aumento de Atributo:** +2 em um atributo à sua escolha, até o máximo de 30.\n\n*“A guerra termina quando técnica e vontade se tornam a mesma coisa.”*\n\nSua técnica elimina a incerteza dos ataques e impede que circunstâncias adversas prejudiquem sua precisão.\n\n- **Precisão Inigualável:** Ao errar uma rolagem de ataque, você pode escolher acertar. Ao utilizar este benefício, ele não poderá ser utilizado novamente até o início de seu próximo turno.\n- **Mão Firme:** Você não pode sofrer desvantagem em suas jogadas de ataque.",
+      "tags_mecanicas_explicitas": [
+        "Aumento de Atributo: +2 em um atributo à sua escolha, até o máximo de 30."
+      ]
+    },
+    {
+      "titulo": "Dádiva da Carnificina",
+      "categoria_fonte": "Combate",
+      "referencia_secao": "Talentos Épicos > Combate",
+      "linha_fonte": 1301,
+      "ancora_fonte": "#spoiler-63CPfw",
+      "pre_requisito": null,
+      "descricao_markdown": "**Aumento de Atributo:** +2 em um atributo à sua escolha, até o máximo de 30.\n\n*“Quando a batalha exige um monstro, sobreviver significa decidir de que lado ele ficará.”*\n\nQuanto mais perto você está do limite, mais letal se torna, alimentando violência com cada queda.\n\n- **Fortuna do Assassino:** Quando uma criatura que você puder ver é reduzida a 0 Pontos de Vida, você recebe vantagem em sua próxima jogada de ataque feita até o fim do seu próximo turno.\n- **Momento de Violência:** Uma vez por turno, ao realizar uma jogada de ataque enquanto estiver Sangrando (Bloodied), você pode causar dano extra ao alvo igual ao seu nível. O dano extra é o mesmo tipo de dano do ataque realizado.\n- **Sede de Sangue:** Enquanto você estiver Sangrando (Bloodied), sua margem de crítico é reduzida em 1.",
+      "tags_mecanicas_explicitas": [
+        "Aumento de Atributo: +2 em um atributo à sua escolha, até o máximo de 30."
+      ]
+    },
+    {
+      "titulo": "Dádiva da Tempestade",
+      "categoria_fonte": "Combate",
+      "referencia_secao": "Talentos Épicos > Combate",
+      "linha_fonte": 1301,
+      "ancora_fonte": "#spoiler-63CPfw",
+      "pre_requisito": null,
+      "descricao_markdown": "**Aumento de Atributo:** +2 em um atributo à sua escolha, até o máximo de 30.\n\n*“Quem carrega a Tormenta não teme o trovão; reconhece nele a própria voz.”*\n\nA tormenta vive em você, protegendo-o de seus elementos e tornando sua magia quase impossível de resistir.\n\n- **Olho da Tormenta:** Você tem resistência aos danos de Relâmpago e Trovejante. Enquanto Sangrando (Bloodied), você é imune a esses 2 danos.\n- **Força na Tempestade:** Criaturas tem Desvantagem em testes de resistência contra suas magias que causam dano trovejante e de Relâmpago.",
+      "tags_mecanicas_explicitas": [
+        "Aumento de Atributo: +2 em um atributo à sua escolha, até o máximo de 30."
+      ]
+    },
+    {
+      "titulo": "Dádiva das Sombras Vivas",
+      "categoria_fonte": "Combate",
+      "referencia_secao": "Talentos Épicos > Combate",
+      "linha_fonte": 1301,
+      "ancora_fonte": "#spoiler-63CPfw",
+      "pre_requisito": null,
+      "descricao_markdown": "**Aumento de Atributo:** +2 em um atributo à sua escolha, até o máximo de 30.\n\n*“Na Penumbra, sua sombra deixa de segui-lo e passa a lutar ao seu lado.”*\n\nSua sombra prolonga seus golpes e acompanha cada movimento com uma graça impossível de alcançar.\n\n- **Extensão Sombria:** Ao realizar uma ação de ataque, o alcance de seus ataques com armas corpo a corpo aumenta em 3 metros [10 pés] até o fim de seu turno.\n- **Silhueta Dançante:** Você pode realizar a ação de Esquiva (Dodge) como uma Ação Bônus.",
+      "tags_mecanicas_explicitas": [
+        "Aumento de Atributo: +2 em um atributo à sua escolha, até o máximo de 30."
+      ]
+    },
+    {
+      "titulo": "Dádiva do Ataque Implacável",
+      "categoria_fonte": "Combate",
+      "referencia_secao": "Talentos Épicos > Combate",
+      "linha_fonte": 1301,
+      "ancora_fonte": "#spoiler-63CPfw",
+      "pre_requisito": null,
+      "descricao_markdown": "**Aumento de Atributo:** +2 em um atributo à sua escolha, até o máximo de 30.\n\n*“Toda defesa é uma promessa. Seu golpe é a prova de que promessas também quebram.”*\n\nSeus ataques atravessam defesas físicas e transformam golpes críticos em impactos ainda mais severos.\n\n- **Superar Defesas:** Ataques que causam dano concussivo, cortante e perfurante realizados por você sempre ignoram resistência\n- **Ataque Subjugador:** Ao rolar um acerto crítico em uma rolagem de ataque, você causa dano extra igual ao atributo aumentado por este talento. O dano extra é igual ao dano da arma.",
+      "tags_mecanicas_explicitas": [
+        "Aumento de Atributo: +2 em um atributo à sua escolha, até o máximo de 30."
+      ]
+    },
+    {
+      "titulo": "Dádiva do Ceifador de Almas",
+      "categoria_fonte": "Combate",
+      "referencia_secao": "Talentos Épicos > Combate",
+      "linha_fonte": 1301,
+      "ancora_fonte": "#spoiler-63CPfw",
+      "pre_requisito": null,
+      "descricao_markdown": "**Aumento de Atributo:** +2 em um atributo à sua escolha, até o máximo de 30.\n\n*“Cessira registra cada fim; o verdadeiro ceifador apenas impede que a Umbra falsifique a última linha.”*\n\nVocê transcendeu a fragilidade mortal e aprendeu a selar a morte com uma autoridade que alcança a própria alma.\n\n- **Corpo do Ceifador:** Seu corpo já não se submete às mesmas limitações dos mortais. Você possui Imunidade a dano de Veneno e à condição Envenenado. Além disso, você possui Vantagem em Testes de Resistência contra a morte.\n- **Finitude da Vida:** A morte causada por você é absoluta. Uma criatura que morrer como resultado de um dano causado por você não pode ser ressuscitada nem transformada em um morto-vivo. Apenas as magias Desejo ou Ressurreição Verdadeira podem restaurar uma criatura cuja morte tenha sido selada dessa forma.\n- **Ceifa da Alma:** Quando você rolar dados de dano contra uma criatura por meio de um ataque, magia ou característica, você pode escolher um dos tipos de dano que estiver causando. Em vez de rolar os dados correspondentes ao tipo de dano escolhido, considere que todos esses dados obtiveram seus valores máximos possíveis. Por exemplo, se um efeito causar 3d8 de dano Cortante + 2d6 de dano Necrótico, você pode escolher o dano Necrótico e tratá-lo automaticamente como 12, enquanto os dados de dano Cortante são rolados normalmente. Após usar esta característica contra uma criatura, você não pode usá-la novamente até que essa criatura seja reduzida a 0 Pontos de Vida e morra, ou até que você termine um Descanso Curto ou Longo, o que ocorrer primeiro.",
+      "tags_mecanicas_explicitas": [
+        "Aumento de Atributo: +2 em um atributo à sua escolha, até o máximo de 30."
+      ]
+    },
+    {
+      "titulo": "Dádiva do Conjurador de Combate",
+      "categoria_fonte": "Combate",
+      "referencia_secao": "Talentos Épicos > Combate",
+      "linha_fonte": 1301,
+      "ancora_fonte": "#spoiler-63CPfw",
+      "pre_requisito": null,
+      "descricao_markdown": "**Aumento de Atributo:** +2 em um atributo à sua escolha, até o máximo de 30.\n\n*“Sob aço e trovão, sua concentração permanece firme como uma linha de ley cravada no mundo.”*\n\nSua magia destrutiva alcança consistência brutal, e sua concentração resiste ao caos da batalha.\n\n- **Destruição Mágica Refinada:** Quando você conjura uma magia de 1° Ciclo ou maior e que cause dano, você trata rolagens de 1 ou 2 nos dados de dano da magia como 3.\n- **Foco Inquebrável:** Quando você está mantendo concentração em uma magia ou efeito, você só perde a sua concentração se utilizar outra magia ou efeito que requeira concentração, ser afetado pelas condições Petrificado ou Inconsciente, ou morrer.",
+      "tags_mecanicas_explicitas": [
+        "Aumento de Atributo: +2 em um atributo à sua escolha, até o máximo de 30."
+      ]
+    },
+    {
+      "titulo": "Dádiva da Maestria de Escola Arcana",
+      "categoria_fonte": "Conjuração",
+      "referencia_secao": "Talentos Épicos > Conjuração",
+      "linha_fonte": 1305,
+      "ancora_fonte": "#spoiler-keBfEw",
+      "pre_requisito": null,
+      "descricao_markdown": "**Aumento de Atributo:** +2 em um atributo à sua escolha, até o máximo de 30.\n\n*“O aprendiz conhece fórmulas; o mestre conhece a lei que obriga cada fórmula a existir.”*\n\nVocê domina uma escola de magia a ponto de transformar duas de suas fórmulas em assinaturas pessoais.\n\n- **Tradição Dominada. Escolha uma das escolas de magia:** Abjuração, Adivinhação, Conjuração, Encantamento, Evocação, Ilusão, Necromancia ou Transmutação. Sua escolha lhe concede os seguintes benefícios: Magia de Assinatura Menor. Escolha uma magia de 1° Ciclo da escola escolhida e que pertença à sua lista de magias. Você sempre possui essa magia preparada e pode conjurá-la à vontade sem gastar espaços de magia ou componentes. Rúbrica Arcana. Escolha uma magia de 7° Ciclo ou menor da escola escolhida. Você sempre possui a magia preparada e pode conjurá-la uma vez sem gastar um espaço de magia. Uma vez que você conjure a magia desta maneira, você só pode conjurá-la novamente ao finalizar um Descanso Longo. Você também pode conjurar estas magias escolhidas com qualquer outro espaço de magia que possua e que seja do nível apropriado.",
+      "tags_mecanicas_explicitas": [
+        "Aumento de Atributo: +2 em um atributo à sua escolha, até o máximo de 30."
+      ]
+    },
+    {
+      "titulo": "Dádiva da Marca Arcana Superior",
+      "categoria_fonte": "Conjuração",
+      "referencia_secao": "Talentos Épicos > Conjuração",
+      "linha_fonte": 1305,
+      "ancora_fonte": "#spoiler-keBfEw",
+      "pre_requisito": "Marca Arcana Maior e Marca Potente.",
+      "descricao_markdown": "**Pré-requisito:** Marca Arcana Maior e Marca Potente.\n\n**Aumento de Atributo:** +2 em um atributo à sua escolha, até o máximo de 30.\n\n*“A marca não é tinta sobre a pele; é um decreto que a própria Trama aprendeu a obedecer.”*\n\nSua Marca Arcana atinge a expressão definitiva, concedendo um decreto maior e uma reserva própria de poder.\n\n- **Decreto Definitivo:** Você aprende uma magia adicional de acordo com sua Marca Arcana conforme listado na tabela abaixo. A magia respectiva à sua Marca está sempre preparada e você pode conjurá-la uma vez sem gastar espaços de magia ou componentes. Uma vez que a magia seja conjurada desta maneira, ela só pode ser conjurá-la novamente ao finalizar um Descanso Longo.\n\n| Marca Arcana | Magia de Decreto Definitivo |\n| --- | --- |\n| **Marca Anômala (Aberrant)** | Retraçar o Destino (Reweave Fate) |\n| **Marca da Revelação (Detection)** | Visão Verdadeira (True Seeing) |\n| **Marca da Busca (Finding)** | Teleporte (Teleport) |\n| **Marca do Pastoreio (Handling)** | Formas Animais (Animal Shapes) |\n| **Marca da Restauração (Healing)** | Regeneração (Regenerate) |\n| **Marca do Refúgio (Hospitality)** | Banquete dos Heróis (Heroes' Feast) |\n| **Marca da Criação (Making)** | Demiplano (Demiplane) |\n| **Marca da Travessia (Passage)** | Viagem Planar (Plane Shift) |\n| **Marca da Escrita (Scribing)** | Símbolo (Symbol) |\n| **Marca da Vigília (Sentinel)** | Mente Vazia (Mind Blank) |\n| **Marca do Véu (Shadow)** | Imagem Projetada (Project Image) |\n| **Marca da Tormenta (Storm)** | Controlar o Clima (Control Weather) |\n| **Marca da Proteção (Warding)** | Labirinto (Maze) |\n\n- **Potência Secundária:** Você ganha um espaço de magia adicional de 3° Ciclo. Você pode usar esse espaço de magia apenas para conjurar uma magia que você tenha preparado por causa dos seus talentos de Marca. Você recupera esse espaço de magia gasto ao terminar um Descanso Curto ou Descanso Longo.",
+      "tags_mecanicas_explicitas": [
+        "Aumento de Atributo: +2 em um atributo à sua escolha, até o máximo de 30."
+      ]
+    },
+    {
+      "titulo": "Dádiva da Memória Arcana",
+      "categoria_fonte": "Conjuração",
+      "referencia_secao": "Talentos Épicos > Conjuração",
+      "linha_fonte": 1305,
+      "ancora_fonte": "#spoiler-keBfEw",
+      "pre_requisito": null,
+      "descricao_markdown": "**Aumento de Atributo:** +2 em um atributo à sua escolha, até o máximo de 30.\n\n*“A Trama nunca esquece uma fórmula perfeita, e agora tampouco você.”*\n\nSeu domínio de Arcana e sua sintonia com a Trama permitem conjurações de eficiência excepcional.\n\n- **Presciência Mística:** Você ganha proficiência na perícia de Arcana, caso já possua proficiência nesta perícia, você ganha Aptidão (Expertise). Caso já possua Aptidão nesta perícia, você pode escolher outra perícia que tenha proficiência e passa a ter Aptidão na perícia escolhida.\n- **Conjuração Livre:** Sempre que conjurar uma magia de nível 1 a 4, role 1d4. Caso o número rolado seja do mesmo nível da magia conjurada, você não gasta o espaço de magia.",
+      "tags_mecanicas_explicitas": [
+        "Aumento de Atributo: +2 em um atributo à sua escolha, até o máximo de 30."
+      ]
+    },
+    {
+      "titulo": "Dádiva do Reforço Místico",
+      "categoria_fonte": "Conjuração",
+      "referencia_secao": "Talentos Épicos > Conjuração",
+      "linha_fonte": 1305,
+      "ancora_fonte": "#spoiler-keBfEw",
+      "pre_requisito": null,
+      "descricao_markdown": "**Aumento de Atributo:** +2 em um atributo à sua escolha, até o máximo de 30.\n\n*“Um vínculo prende o artefato à alma; uma alma verdadeiramente vasta encontra espaço para outro.”*\n\nSua alma comporta vínculos mágicos adicionais e reconhece propriedades arcanas com facilidade.\n\n- **Reforço de Alma:** Você é capaz de Sintonizar (Attunement) um item extra.\n- **Identificação Arcana:** Você é capaz de conjurar a magia Identificar sem gastar espaços de magia ou componentes materiais. Ao utilizar esta característica, você deve realizar um Descanso Longo antes de utilizá-la novamente.",
+      "tags_mecanicas_explicitas": [
+        "Aumento de Atributo: +2 em um atributo à sua escolha, até o máximo de 30."
+      ]
+    },
+    {
+      "titulo": "Dádiva da Manipulação Corpórea",
+      "categoria_fonte": "Exploração",
+      "referencia_secao": "Talentos Épicos > Exploração",
+      "linha_fonte": 1309,
+      "ancora_fonte": "#spoiler-de4Mrz",
+      "pre_requisito": null,
+      "descricao_markdown": "**Aumento de Atributo:** +2 em um atributo à sua escolha, até o máximo de 30.\n\n*“A carne é apenas a primeira forma que a natureza lhe ofereceu, nunca a última.”*\n\nVocê remodela o corpo em formas poderosas sem abandonar a identidade, a mente ou a magia.\n\n- **Metamorfo:** Você pode utilizar uma Ação Mágica para trocar sua forma para uma Besta, Humanoide ou Monstruosidade cujo nível de desafio não seja maior do que 10. Ao alterar sua forma, você recebe Pontos de Vida Temporários iguais aos pontos de Vida da criatura. Os efeitos de transmutação se mantém por 1 hora, até seus Pontos de Vida temporários acabarem, ou até você realizar uma Ação Mágica para reverter à sua forma novamente, o que acontecer primeiro. Seus atributos e estatísticas são substituídos pelos da criatura, mas você mantém seu tipo de criatura; seu alinhamento; personalidade; valores de Inteligência, Sabedoria e Carisma; Pontos de Vida; Dados de Vida; Proficiências e habilidade de se comunicar. Caso você tenha a característica de Conjuração ou Magia de Pacto, você ainda é capaz de conjurar de forma alterada Enquanto de forma alterada, todos seus itens são absorvidos pelo seu corpo, ainda mantendo suas capacidades mágicas. Uma vez utilizando este benefício, ele não poderá ser utilizado novamente até o fim de um Descanso Longo\n- **Transformação Resiliente:** Ao receber Pontos de Vida temporários através de alterações corpóreas, incluindo a transformação do próprio talento, aumente este número de Pontos de Vida temporários em 20.",
+      "tags_mecanicas_explicitas": [
+        "Aumento de Atributo: +2 em um atributo à sua escolha, até o máximo de 30."
+      ]
+    },
+    {
+      "titulo": "Dádiva da Velocidade",
+      "categoria_fonte": "Exploração",
+      "referencia_secao": "Talentos Épicos > Exploração",
+      "linha_fonte": 1309,
+      "ancora_fonte": "#spoiler-de4Mrz",
+      "pre_requisito": null,
+      "descricao_markdown": "**Aumento de Atributo:** +2 em um atributo à sua escolha, até o máximo de 30.\n\n*“O relâmpago de Tempestus não corre: o mundo é que chega tarde demais para acompanhá-lo.”*\n\nVocê se move além dos limites do corpo, deixando contenções e hesitação para trás.\n\n- **Encarnação da Celeridade:** Sua velocidade de Caminhada aumenta em 9 metros [30 pés].\n- **Aceleração Definitiva:** Você pode conjurar a magia Velocidade (Haste) uma vez sem gastar espaços de magia e sem componentes. Quando você conjura a magia desta maneira, ela não causa letargia ao ser encerrada. Uma vez que você conjure a magia desta maneira, você só pode conjurá-la novamente ao finalizar um Descanso Curto ou Longo. Movimento sem Amarras. Você é imune às condições Paralisado e Restringido e, ao estar Agarrado, pode gastar 1,5 metro [5 pés] do seu movimento para sair do agarrão no seu turno.",
+      "tags_mecanicas_explicitas": [
+        "Aumento de Atributo: +2 em um atributo à sua escolha, até o máximo de 30."
+      ]
+    },
+    {
+      "titulo": "Dádiva da Viagem Dimensional",
+      "categoria_fonte": "Exploração",
+      "referencia_secao": "Talentos Épicos > Exploração",
+      "linha_fonte": 1309,
+      "ancora_fonte": "#spoiler-de4Mrz",
+      "pre_requisito": null,
+      "descricao_markdown": "**Aumento de Atributo:** +2 em um atributo à sua escolha, até o máximo de 30.\n\n*“Asterios teceu caminhos entre os planos; alguns poucos aprenderam a caminhar também entre dois instantes.”*\n\nVocê atravessa as costuras da realidade com naturalidade, abrindo passagens onde outros enxergam barreiras.\n\n- **Passos Lampejantes:** Imediatamente antes ou após tomar uma ação de ataque ou Ação Mágica (sua escolha), você pode se teleportar em até 9 metros [30 pés] para um espaço desocupado em que você possa ver\n- **Janela Espacial:** Você pode conjurar a magia Porta Dimensional (Dimension Door) uma vez sem gastar espaços de magia e sem componentes. Uma vez que você conjure a magia desta maneira, você só pode conjurá-la novamente ao finalizar um Descanso Curto ou Longo.",
+      "tags_mecanicas_explicitas": [
+        "Aumento de Atributo: +2 em um atributo à sua escolha, até o máximo de 30."
+      ]
+    },
+    {
+      "titulo": "Dádiva da Visão Verdadeira",
+      "categoria_fonte": "Exploração",
+      "referencia_secao": "Talentos Épicos > Exploração",
+      "linha_fonte": 1309,
+      "ancora_fonte": "#spoiler-de4Mrz",
+      "pre_requisito": null,
+      "descricao_markdown": "**Aumento de Atributo:** +2 em um atributo à sua escolha, até o máximo de 30.\n\n*“A Trama pode vestir mil véus, mas nenhum deles sobrevive ao olhar que recorda a Criação.”*\n\nSeu olhar atravessa ilusões, transformações e ocultações, revelando a realidade como ela é.\n\n- **Visão Verdadeira:** Você tem Visão Verdadeira (True Sight) de 36 metros [120 pés].",
+      "tags_mecanicas_explicitas": [
+        "Aumento de Atributo: +2 em um atributo à sua escolha, até o máximo de 30."
+      ]
+    },
+    {
+      "titulo": "Dádiva do Domínio do Céu",
+      "categoria_fonte": "Exploração",
+      "referencia_secao": "Talentos Épicos > Exploração",
+      "linha_fonte": 1309,
+      "ancora_fonte": "#spoiler-de4Mrz",
+      "pre_requisito": null,
+      "descricao_markdown": "**Aumento de Atributo:** +2 em um atributo à sua escolha, até o máximo de 30.\n\n*“Os céus de Cinéria não pertencem às aves, mas a quem deixou de pedir licença ao chão.”*\n\nO céu se torna seu território natural, permitindo voo, quedas controladas e viagens sobre os ventos.\n\n- **Caminhante das Nuvens:** Você recebe deslocamento de voo igual ao seu deslocamento de caminhada e pode planar (Hover).\n- **Queda Graciosa:** Caso caia mais do que 1,5 metro [5 pés], sua velocidade de queda é reduzida para 18 metros [60 pés] por turno até atingir o solo.\n- **Cortejo das Alturas:** Você pode conjurar a magia Caminhar Sobre os Ventos (Wind Walk) sem componentes e sem gastar um espaço de magia. Uma vez que você conjure a magia desta maneira, você só pode o fazer novamente ao finalizar um Descanso Longo.",
+      "tags_mecanicas_explicitas": [
+        "Aumento de Atributo: +2 em um atributo à sua escolha, até o máximo de 30."
+      ]
+    },
+    {
+      "titulo": "Dádiva da Fortitude",
+      "categoria_fonte": "Sobrevivência",
+      "referencia_secao": "Talentos Épicos > Sobrevivência",
+      "linha_fonte": 1313,
+      "ancora_fonte": "#spoiler-EgCgzJ",
+      "pre_requisito": null,
+      "descricao_markdown": "**Aumento de Atributo:** +2 em um atributo à sua escolha, até o máximo de 30.\n\n*“As montanhas de Volgran não se apressam, não se curvam e não perguntam quanto ainda precisam suportar.”*\n\nSeu corpo abriga uma reserva colossal de vida e extrai vigor adicional de toda cura recebida.\n\n- **Sangue Denso:** Seus Pontos de Vida aumentam em 40. Adicionalmente, ao recuperar vida, você recupera Pontos de Vida adicionais em um valor igual ao seu modificador de Constituição. Uma vez recuperando vida desta maneira, você não poderá utilizar novamente deste benefício até o início de seu próximo turno.",
+      "tags_mecanicas_explicitas": [
+        "Aumento de Atributo: +2 em um atributo à sua escolha, até o máximo de 30."
+      ]
+    },
+    {
+      "titulo": "Dádiva da Recuperação",
+      "categoria_fonte": "Sobrevivência",
+      "referencia_secao": "Talentos Épicos > Sobrevivência",
+      "linha_fonte": 1313,
+      "ancora_fonte": "#spoiler-EgCgzJ",
+      "pre_requisito": null,
+      "descricao_markdown": "**Aumento de Atributo:** +2 em um atributo à sua escolha, até o máximo de 30.\n\n*“A morte estendeu a mão; sua alma respondeu que ainda havia trabalho a fazer.”*\n\nSua reserva vital desafia a morte e restaura ferimentos com velocidade extraordinária.\n\n- **Sobrevivência do Mais Forte:** Ao ser reduzido a 0 Pontos de Vida, você poderá se manter com 1 ponto de vida em vez disso e recuperar Pontos de Vida iguais à metade de sua vida máxima. Uma vez utilizando este benefício, você só poderá utilizá-lo novamente ao fim de um Descanso Longo\n- **Recuperar Vitalidade:** Você tem uma reserva de 10d10s. Como uma Ação Bônus, você poderá gastar dados desta reserva para recuperar vida igual ao valor rolado. Você recupera os dados gastos ao fim de um Descanso Curto ou Longo.",
+      "tags_mecanicas_explicitas": [
+        "Aumento de Atributo: +2 em um atributo à sua escolha, até o máximo de 30."
+      ]
+    },
+    {
+      "titulo": "Dádiva da Resiliência Sangrenta",
+      "categoria_fonte": "Sobrevivência",
+      "referencia_secao": "Talentos Épicos > Sobrevivência",
+      "linha_fonte": 1313,
+      "ancora_fonte": "#spoiler-EgCgzJ",
+      "pre_requisito": null,
+      "descricao_markdown": "**Aumento de Atributo:** +2 em um atributo à sua escolha, até o máximo de 30.\n\n*“Quando o sangue toca o chão, a carne se recorda das muralhas que sobreviveram ao Crepúsculo.”*\n\nÀ beira da derrota, corpo e mente se fecham contra quase toda forma de dano.\n\n- **Defesa de Corpo e Mente:** Enquanto estiver Sangrando (Bloodied), você recebe Resistência a todos os danos exceto de Energia (Force)",
+      "tags_mecanicas_explicitas": [
+        "Aumento de Atributo: +2 em um atributo à sua escolha, até o máximo de 30."
+      ]
+    },
+    {
+      "titulo": "Dádiva da Resistência Heróica",
+      "categoria_fonte": "Sobrevivência",
+      "referencia_secao": "Talentos Épicos > Sobrevivência",
+      "linha_fonte": 1313,
+      "ancora_fonte": "#spoiler-EgCgzJ",
+      "pre_requisito": null,
+      "descricao_markdown": "**Aumento de Atributo:** +2 em um atributo à sua escolha, até o máximo de 30.\n\n*“Heróis não ignoram a queda. Eles a recusam quando todos os outros já a aceitaram.”*\n\nSua determinação lendária converte derrota em triunfo e preserva a inspiração mesmo diante do fracasso.\n\n- **Resistência Lendária:** Ao falhar em um teste de resistência, você poderá escolher passar em vez disso. Uma vez utilizado este benefício, só poderá ser utilizado novamente ao fim de um Descanso Curto ou Longo.\n- **Inspiração Interminável:** Quando você utiliza uma Inspiração Heróica em uma rolagem e ela ainda assim resulta em uma falha, você mantém a Inspiração Heróica.",
+      "tags_mecanicas_explicitas": [
+        "Aumento de Atributo: +2 em um atributo à sua escolha, até o máximo de 30."
+      ]
+    },
+    {
+      "titulo": "Dádiva da Resistência Implacável",
+      "categoria_fonte": "Sobrevivência",
+      "referencia_secao": "Talentos Épicos > Sobrevivência",
+      "linha_fonte": 1313,
+      "ancora_fonte": "#spoiler-EgCgzJ",
+      "pre_requisito": null,
+      "descricao_markdown": "**Aumento de Atributo:** +2 em um atributo à sua escolha, até o máximo de 30.\n\n*“Entre Lúmen e Umbra, você aprendeu a receber a ruína, dar-lhe outro nome e devolvê-la.”*\n\nVocê adapta suas defesas às ameaças do dia e devolve parte da ruína a outro corpo.\n\n- **Ruína de Lúmen e Umbra:** Você ganha resistência a 2 tipos de dano à sua escolha: Ácido, Gelo, Energia, Fogo, Raio, Necrótico, Veneno, Psíquico, Radiante ou Trovejante. Caso você já possua resistência ao dano escolhido, você ganha imunidade ao dano no lugar. Sempre que terminar um Descanso Longo, você pode alterar suas escolhas.\n- **Alterar Ruína:** Ao receber dano de um dos tipos escolhidos de resistência, você pode gastar sua reação para redirecionar o dano para outra criatura que você possa ver dentro de 18 metros [60 pés] de você em que não esteja se beneficiando de cobertura total. Caso utilize desta habilidade, o alvo deverá realizar um teste de resistência de Destreza (CD 8 + seu Bônus de Proficiência + seu modificador de Conjuração ou Constituição), recebendo 3d12 + seu modificador de Conjuração ou Constituição de dano em uma falha. Você pode usar esta habilidade uma vez por rodada sem gastar a sua reação.",
+      "tags_mecanicas_explicitas": [
+        "Aumento de Atributo: +2 em um atributo à sua escolha, até o máximo de 30."
+      ]
+    },
+    {
+      "titulo": "Dádiva da Saúde Abundante",
+      "categoria_fonte": "Sobrevivência",
+      "referencia_secao": "Talentos Épicos > Sobrevivência",
+      "linha_fonte": 1313,
+      "ancora_fonte": "#spoiler-EgCgzJ",
+      "pre_requisito": null,
+      "descricao_markdown": "**Aumento de Atributo:** +2 em um atributo à sua escolha, até o máximo de 30.\n\n*“Há corpos nos quais a centelha vital arde como uma forja de Karag-Dum: alimentar a chama só a torna maior.”*\n\nSua vitalidade aproveita ao máximo toda proteção e todo instante dedicado à recuperação.\n\n- **Saúde Aprimorada:** Sempre que receber Pontos de Vida temporários, aumente o valor recebido em 5.\n- **Recuperação Superior:** Quando utilizar 1 ou mais Dados de Vida para recuperar Pontos de Vida, você pode recuperar o valor máximo para cada dado.",
+      "tags_mecanicas_explicitas": [
+        "Aumento de Atributo: +2 em um atributo à sua escolha, até o máximo de 30."
+      ]
+    },
+    {
+      "titulo": "Dádiva da Sorte Tola",
+      "categoria_fonte": "Sobrevivência",
+      "referencia_secao": "Talentos Épicos > Sobrevivência",
+      "linha_fonte": 1313,
+      "ancora_fonte": "#spoiler-EgCgzJ",
+      "pre_requisito": null,
+      "descricao_markdown": "**Aumento de Atributo:** +2 em um atributo à sua escolha, até o máximo de 30.\n\n*“Os oráculos chamam de destino; os tolos de Árvoria chamam de mais uma oportunidade.”*\n\nSua sorte desafia toda prudência, transformando fracassos inevitáveis em novas oportunidades.\n\n- **Hoje não, Hoje não, Hoje Sim?:** Sempre que você falhar em um teste de resistência (isto inclui testes de resistência contra morte), você poderá rolar novamente o valor e utilizar o novo resultado. Uma vez utilizando este benefício, você não poderá utilizá-lo novamente até o início de seu próximo turno.",
+      "tags_mecanicas_explicitas": [
+        "Aumento de Atributo: +2 em um atributo à sua escolha, até o máximo de 30."
+      ]
+    },
+    {
+      "titulo": "Dádiva do Devorador de Almas",
+      "categoria_fonte": "Sobrevivência",
+      "referencia_secao": "Talentos Épicos > Sobrevivência",
+      "linha_fonte": 1313,
+      "ancora_fonte": "#spoiler-EgCgzJ",
+      "pre_requisito": null,
+      "descricao_markdown": "**Aumento de Atributo:** +2 em um atributo à sua escolha, até o máximo de 30.\n\n*“No Submundo, toda alma tem peso; em suas mãos, algumas também têm sabor.”*\n\nA energia umbral protege seu corpo, enquanto a queda de inimigos alimenta sua própria vida.\n\n- **Resistência Umbral:** Você tem resistência aos danos de Frio e Necrótico, caso já possua resistência em qualquer um destes danos, você ganha imunidade ao dano no lugar.\n- **Sifão de Alma:** Quando um inimigo dentro de 36 metros [120 pés] de você é reduzido a 0 Pontos de Vida, você poderá utilizar sua Reação para recuperar 50 Pontos de Vida. Você pode utilizar este benefício um número de vezes igual ao seu Bônus de Proficiência, recuperando todos os usos ao finalizar um Descanso Longo.",
+      "tags_mecanicas_explicitas": [
+        "Aumento de Atributo: +2 em um atributo à sua escolha, até o máximo de 30."
+      ]
+    },
+    {
+      "titulo": "Dádiva do Espírito Noturno",
+      "categoria_fonte": "Sobrevivência",
+      "referencia_secao": "Talentos Épicos > Sobrevivência",
+      "linha_fonte": 1313,
+      "ancora_fonte": "#spoiler-EgCgzJ",
+      "pre_requisito": null,
+      "descricao_markdown": "**Aumento de Atributo:** +2 em um atributo à sua escolha, até o máximo de 30.\n\n*“Velmourn ensina que a noite não é ausência de luz, mas uma presença que escolhe quem pode vê-la.”*\n\nNa penumbra e na escuridão, você se dissolve nas sombras e assume sua resistência sobrenatural.\n\n- **Um com as Sombras:** Enquanto estiver em Penumbra ou Escuridão, você pode utilizar sua Ação Bônus para lhe conceder a condição Invisível. A condição se encerra imediatamente ao realizar uma ação, Ação Bônus ou reação.\n- **Forma Sombria:** Enquanto estiver em Penumbra ou Escuridão, você tem resistência aos danos Concussivo, Cortante e Perfurante.",
+      "tags_mecanicas_explicitas": [
+        "Aumento de Atributo: +2 em um atributo à sua escolha, até o máximo de 30."
+      ]
+    },
+    {
+      "titulo": "Dádiva da Folia",
+      "categoria_fonte": "Social",
+      "referencia_secao": "Talentos Épicos > Social",
+      "linha_fonte": 1317,
+      "ancora_fonte": "#spoiler-DlXuY3",
+      "pre_requisito": null,
+      "descricao_markdown": "**Aumento de Atributo:** +2 em um atributo à sua escolha, até o máximo de 30.\n\n*“Em Árvoria, as grandes sagas não descrevem o impossível: elas o convencem a subir ao palco.”*\n\nSua arte alcança a força das sagas, sustentando acordes de poder e inspirando feitos extraordinários.\n\n- **Menestrel Adepto:** Você ganha proficiência na perícia de Atuação, caso já possua proficiência nesta perícia, você ganha Aptidão (Expertise). Caso já possua Aptidão nesta perícia, você pode escolher outra perícia que tenha proficiência e passa a ter Aptidão na perícia escolhida.\n- **Apresentação de Saga:** Você aprende um Acorde do Poder dentre aqueles descritos na classe Bardo e que seja de 1° ou 2° Grau, você segue todas as regras de Apresentação e Sustentação conforme descritas na classe. Você não precisa concentrar no Acorde escolhido por esta característica. Você pode alterar o Acorde escolhido ao realizar um Descanso Curto ou Longo.\n- **Folia Inspiradora:** Você ganha dois dados de Inspiração Bárdica, que são d8s e que podem ser utilizados conforme descrito na classe. Caso você possua quaisquer níveis em Bardo, você pode optar que estes dados se tornem iguais aos outros dados das Inspirações Bárdicas que você possui. Você recupera os usos destas Inspirações Bárdicas ao realizar um Descanso Curto ou Longo.",
+      "tags_mecanicas_explicitas": [
+        "Aumento de Atributo: +2 em um atributo à sua escolha, até o máximo de 30."
+      ]
+    },
+    {
+      "titulo": "Dádiva do Horror",
+      "categoria_fonte": "Social",
+      "referencia_secao": "Talentos Épicos > Social",
+      "linha_fonte": 1317,
+      "ancora_fonte": "#spoiler-DlXuY3",
+      "pre_requisito": null,
+      "descricao_markdown": "**Aumento de Atributo:** +2 em um atributo à sua escolha, até o máximo de 30.\n\n*“A Umbra não precisa mostrar um rosto quando encontra alguém capaz de emprestar-lhe o próprio.”*\n\nVocê se torna imune ao medo e projeta uma presença capaz de quebrar a coragem de seus inimigos.\n\n- **Destemido:** Você tem imunidade à condição Amedrontado (Frightened).\n- **Verdadeiro Horror:** Uma vez por turno, ao causar dano em uma criatura inimiga, você pode sobrepujá-la com um horror inexplicável. A criatura deve ser bem-sucedida em um teste de resistência de Sabedoria (CD = 8 + Proficiência + Modificador de Conjuração ou Carisma) ou terá Desvantagem em todas as jogadas de ataque e testes de habilidade até o início do seu próximo turno, bem como deverá utilizar todo o seu movimento para se afastar de você da maneira mais eficiente e rápida possível.\n- **Presença Aterradora:** Você recebe proficiência na perícia de Intimidação. Caso já seja proficiente na perícia, você recebe Aptidão (Expertise) em vez disto.",
+      "tags_mecanicas_explicitas": [
+        "Aumento de Atributo: +2 em um atributo à sua escolha, até o máximo de 30."
+      ]
+    },
+    {
+      "titulo": "Dádiva do Alvorecer Ardente",
+      "categoria_fonte": "Suporte",
+      "referencia_secao": "Talentos Épicos > Suporte",
+      "linha_fonte": 1321,
+      "ancora_fonte": "#spoiler-419GPo",
+      "pre_requisito": null,
+      "descricao_markdown": "**Aumento de Atributo:** +2 em um atributo à sua escolha, até o máximo de 30.\n\n*“Quando a Luz Primordial se levanta em um mortal, até a noite de Velmourn se lembra de recuar.”*\n\nVocê manifesta a força do primeiro alvorecer, dissipando trevas e envolvendo seus aliados em luz restauradora.\n\n- **Presença Áurea:** Como uma Ação Bônus, você irradia em uma aura de 9 metros [30 pés] de si mesmo Luz Plena que é considerada Luz Solar. Caso esta emanação sobreponha qualquer tipo de escuridão mágica, a magia é automaticamente dissipada, enquanto Presença Áurea estiver ativa você recebe Resistência a Dano Radiante, caso você já tenha, você recebe Imunidade. Esta emanação se mantém até você dissipá-la (não requer ação) ou até você ter a condição Incapacitado,\n- **Reforço da Luz Primordial:** Enquanto a Presença Áurea estiver ativa, no início de cada um de seus turnos, você e quaisquer aliados que você possa ver dentro da Aura recebem 10 Pontos de Vida Temporários.\n- **Golpe Ardente:** Ao atingir uma criatura com um ataque de Arma ou Desarmado, todo o dano causado pode ser transformado em dano radiante, Além disso, uma vez por turno quando você causa dano, você pode adicionar seu nível como dano bônus Radiante.",
+      "tags_mecanicas_explicitas": [
+        "Aumento de Atributo: +2 em um atributo à sua escolha, até o máximo de 30."
+      ]
+    },
+    {
+      "titulo": "Dádiva do Destino",
+      "categoria_fonte": "Suporte",
+      "referencia_secao": "Talentos Épicos > Suporte",
+      "linha_fonte": 1321,
+      "ancora_fonte": "#spoiler-419GPo",
+      "pre_requisito": null,
+      "descricao_markdown": "**Aumento de Atributo:** +2 em um atributo à sua escolha, até o máximo de 30.\n\n*“As Nornas escrevem possibilidades; você aprendeu a borrar a tinta antes que ela seque.”*\n\nVocê interfere no curso das possibilidades e recupera esse poder quando os extremos do acaso se manifestam.\n\n- **Alterar Destino:** Quando você ou uma criatura dentro de 18 metros [60 pés] de você ter sucesso ou uma falha em um teste que envolva um D20, você pode rolar 2d4 e aplicar o total rolado como um bônus ou penalidade à rolagem realizada. Quando utilizar esta habilidade, você não poderá utilizá-la novamente até rolar iniciativa ou realizar um Descanso Curto ou Longo.\n- **Causalidade Reverberante:** Quando você obtém um sucesso ou uma falha crítica natural em uma rolagem, você imediatamente recupera o uso do Alterar Destino. Caso você tenha obtido um sucesso crítico natural, o uso recuperado do Alterar Destino só pode ser utilizado para reduzir uma rolagem de D20. Caso você tenha obtido uma falha crítica natural, o uso recuperado só pode ser utilizado para aumentar uma rolagem de D20.",
+      "tags_mecanicas_explicitas": [
+        "Aumento de Atributo: +2 em um atributo à sua escolha, até o máximo de 30."
+      ]
+    },
+    {
+      "titulo": "Dádiva da Mente Desperta",
+      "categoria_fonte": "Utilidade",
+      "referencia_secao": "Talentos Épicos > Utilidade",
+      "linha_fonte": 1325,
+      "ancora_fonte": "#spoiler-WCvPQd",
+      "pre_requisito": "Possuir Telepatia originada de Raça, Classe ou Talento.",
+      "descricao_markdown": "**Pré-requisito:** Possuir Telepatia originada de Raça, Classe ou Talento.\n\n**Aumento de Atributo:** +2 em um atributo à sua escolha, até o máximo de 30.\n\n*“No Onírico, pensamentos não são segredos: são portas, e toda porta revela quem aprendeu a escutar.”*\n\nSua consciência ultrapassa linguagem, mentira e distância, convertendo pensamento em percepção e força.\n\n- **Compreensão Aprimorada:** Você compreende o significado literal de qualquer linguagem que você possa ouvir ou que consiga ver sendo falado através de língua de sinais, além disso, você consegue compreender o significado literal de qualquer linguagem escrita que você possa ler.\n- **Telepatia Aprimorada:** O alcance da sua Telepatia aumenta para 36 metros [120 pés]. Você consegue discernir imediatamente se uma criatura presente no alcance da sua telepatia está mentindo.\n- **Defesas Psíquicas:** Você ganha resistência a dano psíquico, caso já possua resistência, você passa a ganhar imunidade. Adicionalmente, seus pensamentos não podem ser lidos contra a sua vontade.\n- **Sondar Mente:** Você consegue conjurar a magia Detectar Pensamentos (Detect Thoughts) sem componentes e sem gastar espaços de magia. Você pode utilizar as opções Pressentir Pensamentos (Sense Thoughts) e Ler Pensamentos (Read Thoughts) como ação bônus em vez de Ação Mágica no seu turno e pode afetar qualquer criatura que esteja na área da sua Telepatia com estas opções.\n- **Psicocinese:** Você pode conjurar a magia Telecinese (Telekinesis) sem gastar espaços de magia ou componentes materiais. Quando você conjura a magia com esta habilidade, pode usar as opções de Criatura e Objeto como ação bônus. Uma vez que você conjura a magia desta maneira, você pode conjurá-la novamente ao finalizar um Descanso Curto ou Longo.",
+      "tags_mecanicas_explicitas": [
+        "Aumento de Atributo: +2 em um atributo à sua escolha, até o máximo de 30."
+      ]
+    },
+    {
+      "titulo": "Dádiva do Erudito",
+      "categoria_fonte": "Utilidade",
+      "referencia_secao": "Talentos Épicos > Utilidade",
+      "linha_fonte": 1325,
+      "ancora_fonte": "#spoiler-WCvPQd",
+      "pre_requisito": null,
+      "descricao_markdown": "**Aumento de Atributo:** +2 em um atributo à sua escolha, até o máximo de 30.\n\n*“Os arquivos de Lunaris guardam séculos de respostas; você aprendeu a fazer a pergunta certa antes de abri-los.”*\n\nSeu conhecimento não reconhece fronteiras, concedendo domínio sobre todo campo de perícia.\n\n- **Polivalente:** Você recebe proficiência em todas as perícias.\n- **Aptidão Lendária:** Você ganha Aptidão (Expertise) em todas as perícias que você possuía proficiência originalmente.",
+      "tags_mecanicas_explicitas": [
+        "Aumento de Atributo: +2 em um atributo à sua escolha, até o máximo de 30."
+      ]
+    }
+  ]
+}
