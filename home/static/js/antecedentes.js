@@ -16,6 +16,33 @@
   const mobile = window.matchMedia('(max-width: 1100px)');
   const links = Array.from(document.querySelectorAll('.background-index-item'));
   const articles = new Map(Array.from(document.querySelectorAll('[data-background]')).map(el => [el.dataset.background, el]));
+  const illustrated = new Set([
+    'acolito', 'antropologista', 'arqueologista', 'artista', 'assombrado',
+    'astronomo', 'campeao', 'cavaleiro', 'charlatao', 'criminoso', 'detetive',
+    'espiao', 'espiritualista', 'estudante-de-arcanofisica',
+    'estudante-de-arqueomancia', 'estudante-de-biomancia',
+    'estudante-de-estequiomancia', 'estudante-de-nanquinomancia',
+    'guardiao-da-natureza', 'heroi', 'legionario', 'marcado-pelas-fadas',
+    'mercenario', 'mestre-artesao', 'nobre', 'pescador', 'pesquisador',
+    'soldado', 'viajante', 'viajante-do-mar',
+  ]);
+  const shell = document.querySelector('.background-shell');
+  function showIcon(container, slug, base, size) {
+    if (!container || !illustrated.has(slug)) return;
+    const fallback = container.querySelector('svg');
+    if (!fallback) return;
+    const image = document.createElement('img');
+    image.src = `${base}${slug}.png`;
+    image.width = size;
+    image.height = size;
+    image.alt = '';
+    image.decoding = 'async';
+    if (size === 64) image.loading = 'lazy';
+    image.onerror = () => image.replaceWith(fallback);
+    fallback.replaceWith(image);
+  }
+  for (const link of links) showIcon(link.querySelector('.background-index-symbol'), link.dataset.slug, shell.dataset.iconSmall, 24);
+  for (const [slug, article] of articles) showIcon(article.querySelector('.background-detail-emblem'), slug, shell.dataset.iconLarge, 64);
   const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
   const textIndex = new Map(items.map(item => [item.slug, normalize([
     item.nome, item.tipo, item.resumo, item.descricao, ...(item.tags || []), ...Object.values(item.meta || {})

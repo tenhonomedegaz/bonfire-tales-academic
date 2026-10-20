@@ -153,6 +153,8 @@ class BackgroundCatalogBrowserTests(StaticLiveServerTestCase):
                 while json.loads(ws.recv()).get('id') != sequence:
                     pass
                 wait_for('document.querySelector(".background-detail:not([hidden]) .detail-title")?.textContent === "Artesão"')
+                self.assertFalse(js('!!document.querySelector(".background-index-item[data-slug=artesao] img")'))
+                self.assertTrue(js('!!document.querySelector(".background-index-item[data-slug=artesao] svg")'))
                 self.assertEqual(js('document.querySelectorAll(".background-index-item[aria-current=true]").length'), 1)
                 self.assertTrue(js('document.querySelector("#catalogSidebar").inert'))
                 self.assertEqual(js('document.querySelector("#catalogSidebar").getAttribute("aria-hidden")'), 'true')
@@ -169,10 +171,16 @@ class BackgroundCatalogBrowserTests(StaticLiveServerTestCase):
                 self.assertTrue(js('document.body.classList.contains("background-menu-open")'))
                 js('document.querySelector(".background-index-item[data-slug=viajante]").click()')
                 wait_for('location.hash === "#viajante" && document.querySelector(".background-detail:not([hidden]) .detail-title")?.textContent === "Viajante"')
+                wait_for('document.querySelector(".background-index-item[data-slug=viajante] img")?.naturalWidth > 0')
+                wait_for('document.querySelector(".background-detail:not([hidden]) .background-detail-emblem img")?.naturalWidth > 0')
+                self.assertIn('/icons/antecedentes/24/viajante.png',
+                              js('document.querySelector(".background-index-item[data-slug=viajante] img").src'))
                 self.assertFalse(js('document.body.classList.contains("background-menu-open")'))
                 self.assertTrue(js('document.activeElement.classList.contains("detail-title")'))
                 js('document.querySelector("#catalogSearch").value = "Eremita"; document.querySelector("#catalogSearch").dispatchEvent(new Event("input", {bubbles:true}))')
                 wait_for('document.querySelectorAll(".background-index-item:not([hidden])").length === 1 && document.querySelector(".background-detail:not([hidden]) .detail-title")?.textContent === "Eremita"')
+                self.assertFalse(js('!!document.querySelector(".background-index-item[data-slug=eremita] img")'))
+                self.assertTrue(js('!!document.querySelector(".background-index-item[data-slug=eremita] svg")'))
                 self.assertTrue(js('location.search.includes("q=Eremita") && location.hash === "#eremita"'))
                 js('history.back()')
                 wait_for('location.hash === "#artesao" && document.querySelector(".background-detail:not([hidden]) .detail-title")?.textContent === "Artesão"')
