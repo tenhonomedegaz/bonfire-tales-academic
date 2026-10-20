@@ -2,7 +2,7 @@
 {% load static %}
 {% block body_class %}bft-conditions{% endblock %}
 {% block main_class %}co-main{% endblock %}
-{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/pages/conditions.css' %}?v=1"><script defer src="{% static 'js/conditions.js' %}?v=2"></script>{% endblock %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/pages/conditions.css' %}?v=1"><script defer src="{% static 'js/conditions.js' %}?v=3"></script>{% endblock %}
 {% block content %}
 <section class="co-page" aria-labelledby="co-title">
   <header class="co-heading">
@@ -17,10 +17,11 @@
         <input type="hidden" id="co-active" name="condicao" value="{{ request.GET.condicao|default:'' }}">
         <label for="co-search" class="co-eyebrow">Encontrar condição</label>
         <div class="co-search-field"><input type="search" name="q" id="co-search" value="{{ request.GET.q|default:'' }}" placeholder="Nome ou efeito…" maxlength="160" autocomplete="off"><button type="submit" aria-label="Buscar condições"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg></button></div>
+        <label for="co-category" class="co-category-label" hidden>Categoria</label><select id="co-category" name="categoria" disabled hidden><option value="">Todas as categorias</option></select>
       </form>
       <div class="co-list-head"><p><strong id="co-count">{{ condicoes|length }}</strong> de {{ condicoes|length }} condições</p><a href="{% url 'mestre_condicoes' %}" class="co-clear"{% if not request.GET.q %} hidden{% endif %}>Limpar busca</a></div>
       <nav class="co-list" id="co-list" aria-label="Escolher condição">
-        {% for c in condicoes %}<a href="{% url 'mestre_condicoes' %}#cond-{{ c.slug }}" class="co-item{% if forloop.first %} is-active{% endif %}" data-target="cond-{{ c.slug }}" data-search="{{ c.nome }} {{ c.nome_en|default:'' }} {{ c.resumo|default:'' }} {{ c.definicao|default:'' }} {% for effect in c.efeitos_json %}{{ effect.titulo }} {{ effect.texto }} {% endfor %}" aria-controls="cond-{{ c.slug }}"{% if forloop.first %} aria-current="true"{% endif %}><span class="co-list-symbol">{% include 'home/partials/condition_symbol.html' with kind=c.slug %}</span><span><strong>{{ c.nome }}</strong>{% if c.categoria != '5e' %}<small>{{ c.categoria|title }}</small>{% endif %}</span><span class="co-list-arrow" aria-hidden="true">›</span></a>{% endfor %}
+        {% for c in condicoes %}<a href="{% url 'mestre_condicoes' %}#cond-{{ c.slug }}" class="co-item{% if forloop.first %} is-active{% endif %}" data-target="cond-{{ c.slug }}" data-category="{{ c.categoria }}" data-search="{{ c.nome }} {{ c.nome_en|default:'' }} {{ c.resumo|default:'' }} {{ c.definicao|default:'' }} {% for effect in c.efeitos_json %}{{ effect.titulo }} {{ effect.texto }} {% endfor %}" aria-controls="cond-{{ c.slug }}"{% if forloop.first %} aria-current="true"{% endif %}><span class="co-list-symbol">{% include 'home/partials/condition_symbol.html' with kind=c.slug %}</span><span><strong>{{ c.nome }}</strong>{% if c.categoria != '5e' %}<small>{{ c.categoria|title }}</small>{% endif %}</span><span class="co-list-arrow" aria-hidden="true">›</span></a>{% endfor %}
       </nav>
       <p id="co-list-empty" class="co-list-empty"{% if condicoes %} hidden{% endif %}>Nenhuma condição encontrada.</p>
       <footer class="co-catalog-footer"><a href="{% url 'sistemas_glossario' %}#glo-condicoes">Glossário do sistema ↗</a><a href="#co-reader">Ir para a leitura ↓</a></footer>

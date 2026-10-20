@@ -30,10 +30,10 @@ class ReferenceCatalogBrowserTests(StaticLiveServerTestCase):
         if not browser:
             self.skipTest('Chrome ou Edge indisponível.')
 
-        TbCondicao.objects.create(slug='agarrado', nome='Agarrado',
+        TbCondicao.objects.create(slug='agarrado', nome='Agarrado', categoria='homebrew',
                                   efeitos_json=[{'titulo': 'Movimento', 'texto': 'Deslocamento zero.'}])
         condition = TbCondicao.objects.create(slug='amedrontado', nome='Amedrontado',
-                                              efeitos_json=[{'titulo': 'Ataque', 'texto': 'Desvantagem.'}])
+                                              efeitos_json=[{'titulo': 'Ataque', 'texto': 'Desvantagem enquanto Agarrado.'}])
         background = TbAntecedente.objects.create(
             slug='vigia-das-brumas', nome='Vigia das Brumas', descricao='Vigia as passagens.')
         TbAntecedente.objects.create(
@@ -111,7 +111,17 @@ class ReferenceCatalogBrowserTests(StaticLiveServerTestCase):
                 js(target_link + '.click()')
                 wait_for('location.hash === "#cond-amedrontado" && document.querySelector("#cond-amedrontado")?.hidden === false')
                 self.assertEqual(js('document.querySelector("#co-count").textContent'), '2')
-                self.assertTrue(js('document.querySelector("#cond-amedrontado").textContent.includes("Desvantagem.")'))
+                self.assertTrue(js('document.querySelector("#cond-amedrontado").textContent.includes("Desvantagem enquanto Agarrado.")'))
+                related='document.querySelector("#cond-amedrontado [data-condition-reference]")'
+                wait_for(related+'?.textContent.includes("Agarrado")')
+                js(related+'.click()')
+                wait_for('location.hash === "#cond-agarrado" && document.querySelector("#cond-agarrado")?.hidden === false')
+                self.assertFalse(js('document.querySelector("#co-category").hidden'))
+                js('document.querySelector("#co-category").value = "homebrew"; document.querySelector("#co-category").dispatchEvent(new Event("change", {bubbles:true}))')
+                wait_for('document.querySelector("#co-count").textContent === "1" && location.search.includes("categoria=homebrew")')
+                self.assertTrue(js('document.querySelector("#cond-amedrontado").hidden'))
+                js('document.querySelector(".co-clear").click()')
+                wait_for('document.querySelector("#co-count").textContent === "2" && document.querySelector("#co-category").value === ""')
                 js('document.querySelector("#co-search").value = "Deslocamento"; document.querySelector("#co-search").dispatchEvent(new Event("input", {bubbles:true}))')
                 wait_for('document.querySelector("#co-count").textContent === "1"')
                 self.assertEqual(js('document.querySelector(".co-item:not([hidden])").dataset.target'), 'cond-agarrado')
