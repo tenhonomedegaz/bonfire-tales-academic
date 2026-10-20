@@ -159,4 +159,8 @@ body.bft-world-regions{--world-line:#563025;--world-muted:#bcae9e;--world-paper:
  .bft-world-reader .region-hero-inner{padding-right:46px}
 }
 @media(max-width:390px){.bft-world-regions .regions-summary{grid-template-columns:minmax(0,1fr)}.bft-world-reader .stats-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:600px){
+ .bft-world-regions #newRegionModal .grid.grid-cols-2{grid-template-columns:minmax(0,1fr)}
+ .bft-world-regions #newRegionModal :is(input:not([type=color]),select,textarea){min-width:0;max-width:100%;width:100%;box-sizing:border-box}
+}
 @media(prefers-reduced-motion:reduce){.bft-world-regions *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}

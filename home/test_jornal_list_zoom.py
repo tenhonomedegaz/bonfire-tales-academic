@@ -109,7 +109,7 @@ class JornalListZoomTests(StaticLiveServerTestCase):
                     if js("document.readyState") == "complete" and js('document.querySelectorAll(".jornal-card").length') == 20:
                         break
                     time.sleep(.1)
-                metrics = json.loads(js("JSON.stringify({outer:outerWidth,dpr:devicePixelRatio,scale:visualViewport.scale,scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth,cards:document.querySelectorAll('.jornal-card').length,featured:document.querySelectorAll('.jornal-card.is-destaque').length,bg:getComputedStyle(document.querySelector('.jornal-hero')).backgroundImage})"))
+                metrics = json.loads(js("JSON.stringify({outer:outerWidth,dpr:devicePixelRatio,scale:visualViewport.scale,scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth,cards:document.querySelectorAll('.jornal-card').length,featured:document.querySelectorAll('.jornal-card.is-destaque').length,bg:getComputedStyle(document.querySelector('.journal-edition')).backgroundImage,heroBg:getComputedStyle(document.querySelector('.jornal-hero')).backgroundImage})"))
                 self.assertEqual(metrics["outer"], 800, metrics)
                 self.assertAlmostEqual(metrics["dpr"], 2, delta=.05, msg=metrics)
                 self.assertEqual(metrics["scale"], 1, metrics)
@@ -117,7 +117,7 @@ class JornalListZoomTests(StaticLiveServerTestCase):
                 self.assertEqual(metrics["featured"], 1, metrics)
                 self.assertLessEqual(metrics["scroll"], metrics["client"], metrics)
                 self.assertIn("radial-gradient", metrics["bg"])
-                self.assertNotIn("url(", metrics["bg"])
+                self.assertEqual(metrics["heroBg"], "none", metrics)
                 self.assertTrue(js("[...document.querySelectorAll('.jornal-card')].every(card => card.getBoundingClientRect().right <= document.documentElement.clientWidth)"))
                 self.assertEqual(js("document.querySelector('.jornal-card[href$=\"capa-antiga/\"] .jornal-card-cover').style.getPropertyValue('color')"), "")
                 self.assertEqual(js("document.querySelector('.jornal-card[href$=\"capa-antiga/\"] .jornal-card-cover').style.getPropertyValue('--evil')"), "")
