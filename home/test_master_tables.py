@@ -1,6 +1,7 @@
 """Moderation and public visibility of site listings on an isolated database."""
 
 from datetime import datetime, time, timedelta, timezone as datetime_timezone
+from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 from django.contrib.auth import get_user_model
@@ -36,6 +37,22 @@ class MasterTableFlowTests(TestCase):
         }
         data.update(updates)
         return data
+
+    def test_missions_navigation_clears_filters_and_opens_existing_master_flow(self):
+        missions_url = reverse('sistemas_missoes')
+        with patch('home.views.logger.exception'):
+            response = self.client.get(missions_url, {'q': 'cinzas', 'status': 'finished'})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f'href="{missions_url}"')
+        self.assertContains(response, 'Limpar filtros')
+        self.assertContains(response, 'href="#anuncios"')
+        self.assertContains(response, f'href="{reverse("profile")}?aba=mestre"')
+        with patch('home.views.logger.exception'):
+            cleared = self.client.get(missions_url)
+        self.assertEqual(cleared.status_code, 200)
+        self.assertNotContains(cleared, 'Limpar filtros')
+        self.assertEqual(cleared.context['search'], '')
+        self.assertEqual(cleared.context['status'], '')
 
     def test_free_listing_requires_owner_staff_review_and_current_revision(self):
         discord_url = 'https://discord.com/channels/123/456'

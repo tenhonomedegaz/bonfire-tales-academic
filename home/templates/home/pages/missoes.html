@@ -11,6 +11,11 @@
       <p class="mt-2 max-w-3xl text-sm leading-relaxed text-[var(--muted)]">
         Encontre mesas abertas, acompanhe sua inscrição e acesse o canal em que a aventura será organizada.
       </p>
+      <nav class="mh-actions mt-3" aria-label="Nesta página">
+        <a class="mh-button" href="#missoes">Encontrar missão ↓</a>
+        <a class="mh-button mh-button-ghost" href="#anuncios">Mesas anunciadas ↓</a>
+        <a class="mh-button mh-button-ghost" href="{% url 'profile' %}?aba=mestre">Quero anunciar uma mesa ↗</a>
+      </nav>
     </div>
     <span class="mh-hero-mark" aria-hidden="true">✦</span>
   </header>
@@ -33,6 +38,7 @@
       <button type="submit" class="rounded bg-[var(--flame)] px-3 py-1.5 text-sm font-bold uppercase tracking-wider text-white transition-colors hover:bg-[var(--ember)]">
         Filtrar
       </button>
+      {% if search or status %}<a class="mh-text-link self-center" href="{% url 'sistemas_missoes' %}">Limpar filtros</a>{% endif %}
     </form>
 
   {% if user.is_authenticated and not discord_linked %}
@@ -123,6 +129,7 @@
   <section class="mh-empty rounded border border-[var(--stroke)] bg-[var(--bg1)] p-5 text-center">
     <h2 class="font-rpg text-2xl font-bold text-[var(--text)]">Nenhuma missão encontrada</h2>
     <p class="mt-2 text-sm text-[var(--muted)]">Tente outro filtro ou volte quando novas aventuras forem publicadas.</p>
+    {% if search or status %}<a class="mh-text-link" href="{% url 'sistemas_missoes' %}">Ver missões ativas</a>{% endif %}
   </section>
   {% endif %}
   </section>
