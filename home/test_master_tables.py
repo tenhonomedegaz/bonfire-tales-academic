@@ -1,6 +1,8 @@
 """Moderation and public visibility of site listings on an isolated database."""
 
 from datetime import datetime, time, timedelta, timezone as datetime_timezone
+from types import SimpleNamespace
+from unittest.mock import MagicMock
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
@@ -53,6 +55,29 @@ class MasterTableFlowTests(TestCase):
         self.assertNotContains(cleared, 'Limpar filtros')
         self.assertEqual(cleared.context['search'], '')
         self.assertEqual(cleared.context['status'], '')
+
+    def test_official_mission_uses_brasilia_schedule_and_collapsed_synopsis(self):
+        quest = SimpleNamespace(
+            id='qa-official-quest', name='Travessia das Brumas',
+            description='Primeiro trecho.\nSegundo trecho.',
+            questDate=datetime(2026, 11, 5, 1, 30, tzinfo=datetime_timezone.utc),
+            playersAmount=4, questPlayers=[], participationRequests=[], subscribedPlayers=[],
+            mandatoryPlayers=[], highPriorityPlayers=[], status='idle', type='Aventura',
+            tags=[], questMaster='Mestre QA', tableUrl='', guildId='', channelId='',
+        )
+        queryset = MagicMock()
+        queryset.exclude.return_value = queryset
+        queryset.order_by.return_value.__getitem__.return_value = [quest]
+        with patch('home.models.BotQuest.objects.filter', return_value=queryset):
+            response = self.client.get(reverse('sistemas_missoes'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Travessia das Brumas')
+        self.assertContains(response, '04/11/2026 · 22:30 · Brasília')
+        self.assertContains(response, 'datetime="2026-11-05T01:30:00+00:00"')
+        self.assertContains(response, '<details class="mh-synopsis">', html=False)
+        self.assertContains(response, 'Apresentação da missão')
+        self.assertContains(response, 'Primeiro trecho.<br>Segundo trecho.')
+        self.assertNotContains(response, '05/11/2026 · 01:30')
 
     def test_free_listing_requires_owner_staff_review_and_current_revision(self):
         discord_url = 'https://discord.com/channels/123/456'

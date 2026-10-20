@@ -79,15 +79,15 @@
           </div>
         </div>
         {% if quest.quest_date %}
-        <time class="shrink-0 text-right text-xs font-bold uppercase tracking-wider text-[var(--spark)]">
-          {{ quest.quest_date|date:"d/m/Y H:i" }}
+        <time datetime="{{ quest.quest_date|date:'c' }}" class="shrink-0 text-right text-xs font-bold uppercase tracking-wider text-[var(--spark)]">
+          {{ quest.quest_date|timezone:'America/Sao_Paulo'|date:'d/m/Y · H:i' }} · Brasília
         </time>
         {% endif %}
       </header>
 
       <div class="space-y-2.5 p-3">
         {% if quest.description %}
-        <p class="text-sm leading-relaxed text-[var(--muted)]">{{ quest.description|linebreaksbr }}</p>
+        <details class="mh-synopsis"><summary>Apresentação da missão</summary><p>{{ quest.description|linebreaksbr }}</p></details>
         {% endif %}
 
         <dl class="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
