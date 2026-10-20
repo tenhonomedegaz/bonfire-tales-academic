@@ -11,7 +11,7 @@
     <div class="character-hero-mark" aria-hidden="true"><img src="{% static 'brand/icon.png' %}" alt=""></div>
     <p class="character-eyebrow">Uma nova história começa aqui</p>
     <h1 class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">{% if pathbuilder %}Pathbuilder{% elif recriar_personagem %}Recriar nível 1{% else %}Criar personagem{% endif %}</h1>
-    <p class="mt-1 text-[var(--muted)] text-sm">{% if pathbuilder %}Monte a base de nível 1 para abrir o laboratório. A build ficará apenas nesta aba e não criará uma ficha.{% elif recriar_personagem %}Refaça as escolhas iniciais de {{ recriar_personagem.nome }} usando o mesmo criador e as regras atuais.{% else %}Monte seu personagem de nível 1, passo a passo — a prévia da ficha acompanha cada escolha.{% endif %}</p>
+    <p class="mt-1 text-[var(--muted)] text-sm">{% if pathbuilder %}Monte a base de nível 1 para abrir o laboratório. As escolhas ficam neste navegador e são enviadas ao servidor para calcular a prévia; nenhuma ficha é criada.{% elif recriar_personagem %}Refaça as escolhas iniciais de {{ recriar_personagem.nome }} usando o mesmo criador e as regras atuais.{% else %}Monte seu personagem de nível 1, passo a passo — a prévia da ficha acompanha cada escolha.{% endif %}</p>
     {% if not pathbuilder and not recriar_personagem %}<a href="{% url 'pathbuilder' %}" class="mt-2 inline-flex items-center rounded border border-[var(--stroke)] px-3 py-1.5 text-xs font-semibold text-[var(--muted)] hover:border-[var(--ember)] hover:text-[var(--text)]">Testar uma build de nível 1 a 20 sem salvar</a>{% endif %}
     {% if hunter_creator_available %}
       {% if hunter_creator_page %}

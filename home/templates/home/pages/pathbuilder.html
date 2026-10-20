@@ -40,12 +40,15 @@ markup de ficha nenhum — é impossível haver drift.{% endcomment %}
     </div>
   </header>
   <p class="pb-muted pb-save-status" id="pb-save-status" role="status" aria-live="polite"></p>
+  <p class="pb-muted">As builds ficam no armazenamento deste navegador e podem ser exportadas.
+    Cada prévia envia a base e a build ao servidor para calcular a ficha; a simulação não salva personagem.</p>
 
   {# ---------- sem base nesta aba: não é beco sem saída, é um convite ---------- #}
   <div class="pb-empty" id="pb-empty" hidden>
     <h2>Este laboratório precisa de uma base</h2>
     <p>A base é o nível 1 do personagem: atributos, raça, classe e antecedente. Ela é montada
-       no criador e fica só neste navegador — nenhuma ficha é salva.</p>
+       no criador e fica no armazenamento deste navegador. A prévia é calculada no servidor;
+       nenhuma ficha é salva.</p>
     <a href="{% url 'pathbuilder' %}" class="pb-btn pb-btn-primary">Montar base no criador</a>
   </div>
 
@@ -57,7 +60,7 @@ markup de ficha nenhum — é impossível haver drift.{% endcomment %}
       {# stepper (mesmo padrão do criador: etapa clicável, badge de estado, erro na etapa) #}
       <nav class="pb-stepper" aria-label="Etapas da build">
         <ol id="pb-stepper">
-          <li class="pb-step-tab" data-step-tab="0" role="button" tabindex="0"><span class="pb-step-badge"><span>1</span></span><span class="pb-step-name">Base</span></li>
+          <li class="pb-step-tab" data-step-tab="0" role="button" tabindex="0" aria-current="step" aria-label="Etapa 1: Base"><span class="pb-step-badge"><span>1</span></span><span class="pb-step-name">Base</span></li>
           <li class="pb-step-tab" data-step-tab="1" role="button" tabindex="0"><span class="pb-step-badge"><span>2</span></span><span class="pb-step-name">Progressão</span></li>
           <li class="pb-step-tab" data-step-tab="2" role="button" tabindex="0"><span class="pb-step-badge"><span>3</span></span><span class="pb-step-name">Escolhas</span></li>
           <li class="pb-step-tab" data-step-tab="3" role="button" tabindex="0"><span class="pb-step-badge"><span>4</span></span><span class="pb-step-name">Aumentos</span></li>
@@ -74,8 +77,8 @@ markup de ficha nenhum — é impossível haver drift.{% endcomment %}
             <h2>Base de nível 1</h2>
             <a href="{% url 'pathbuilder' %}" class="pb-text-btn">Trocar base →</a>
           </div>
-          <p class="pb-card-hint">Montada no criador e guardada neste navegador. Todo preview
-             parte daqui e é desfeito no fim do request.</p>
+          <p class="pb-card-hint">Montada no criador e guardada neste navegador. A prévia
+             é calculada no servidor e desfeita ao fim da requisição.</p>
           <div class="pb-base-grid" id="pb-base-grid"></div>
         </div>
         <div class="pb-card">
