@@ -2,6 +2,7 @@
 (() => {
   const root=document.querySelector('.mm-page');
   if(!root)return;
+  root.querySelector('[data-mm-notice]')?.focus();
   const tabs=Array.from(root.querySelectorAll('[data-mm-area]'));
   const areas=Array.from(root.querySelectorAll('.mm-area'));
   const links=Array.from(root.querySelectorAll('.mm-item'));

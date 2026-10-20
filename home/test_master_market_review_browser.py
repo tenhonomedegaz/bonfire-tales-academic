@@ -78,6 +78,18 @@ class MasterMarketReviewBrowserTests(StaticLiveServerTestCase):
                     self.assertNotIn('exceptionDetails', result, expression)
                     return result['result'].get('value')
 
+                def notice(role, message):
+                    expression = '''(() => {
+                        const node = document.querySelector('[data-mm-notice]');
+                        return !!node && node === document.activeElement &&
+                            node.getAttribute('role') === %s && node.textContent.includes(%s);
+                    })()''' % (json.dumps(role), json.dumps(message))
+                    for _ in range(100):
+                        if js(expression):
+                            return
+                        time.sleep(.1)
+                    self.fail('Result notice was not focused: %s' % message)
+
                 call('Network.enable')
                 call('Network.setCookie', {
                     'name': settings.SESSION_COOKIE_NAME,
@@ -93,6 +105,11 @@ class MasterMarketReviewBrowserTests(StaticLiveServerTestCase):
                         break
                     time.sleep(.1)
                 self.assertTrue(js('!!document.querySelector("form[data-mm-review=registro]")'))
+                self.assertTrue(js('''(() => {
+                    const guide = document.querySelector('#mm-area-eventos .mm-guide');
+                    return guide && guide.textContent.includes('100 MM') &&
+                        guide.textContent.includes('BP dele');
+                })()'''))
 
                 for kind, expected in (
                     ('eventos', ['Aventureira', '2']),
@@ -136,6 +153,7 @@ class MasterMarketReviewBrowserTests(StaticLiveServerTestCase):
                         break
                     time.sleep(.1)
                 self.assertTrue(js('location.search.includes("m=aventura")'))
+                notice('status', 'Aventura registrada')
                 self.assertEqual(TbAventuraMestre.objects.filter(mestre=user, nome='Mesa de teste',
                                                                 jogadores=4, recompensa_mm=120).count(), 1)
                 profile.refresh_from_db()
@@ -158,6 +176,7 @@ class MasterMarketReviewBrowserTests(StaticLiveServerTestCase):
                         break
                     time.sleep(.1)
                 self.assertTrue(js('location.search.includes("m=braseiros")'))
+                notice('status', 'Braseiros creditados')
                 profile.refresh_from_db()
                 self.assertEqual(profile.moedas_evento, coins_after_table - 2)
                 self.assertGreater(TbPersonagem.objects.get(dono=user).braseiros, 0)
@@ -176,8 +195,12 @@ class MasterMarketReviewBrowserTests(StaticLiveServerTestCase):
                         break
                     time.sleep(.1)
                 self.assertTrue(js('location.search.includes("m=resgatado")'))
+                notice('status', 'Recompensa resgatada')
                 profile.refresh_from_db()
                 self.assertEqual(profile.moedas_mestragem, 160)
+
+                call('Page.navigate', {'url': self.live_server_url + reverse('mestre_mercado') + '?m=sem_evento'})
+                notice('alert', 'Você não tem Moedas de Evento')
             finally:
                 if ws:
                     ws.close()

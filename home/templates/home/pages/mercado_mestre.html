@@ -4,7 +4,7 @@
 {% block main_class %}mm-main{% endblock %}
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/master-market.css' %}?v=4">
-<script defer src="{% static 'js/master-market.js' %}?v=3"></script>
+<script defer src="{% static 'js/master-market.js' %}?v=4"></script>
 {% endblock %}
 
 {% block content %}
@@ -22,15 +22,15 @@
     <div class="mm-progress"><div><span>Rei da Colina</span><strong>{% if rei_colina.holder %}{{ rei_colina.holder.username }}{% if sou_rei %} · você{% endif %}{% else %}Cargo vago{% endif %}</strong></div><p>Próximo lance: {{ rei_colina.preco_atual }} MM</p><div><span>Mestre Ouro</span><strong>{% if mestre_ouro_ativo %}Vitalício ativo{% elif mestre_ouro_legado_pendente %}Histórico em revisão{% else %}Não adquirido{% endif %}</strong></div></div>
   </div>
 
-  {% if msg == 'aventura' %}<p class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Aventura registrada — MM creditadas!</p>
-  {% elif msg == 'resgatado' %}<p class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Recompensa resgatada! A staff cumpre o efeito pelo seu histórico.</p>
-  {% elif msg == 'rei' %}<p class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Você é o novo Rei da Colina! 👑</p>
-  {% elif msg == 'braseiros' %}<p class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Braseiros creditados no personagem! 🔥</p>
-  {% elif msg == 'sem_evento' %}<p class="mb-2.5 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-2 text-sm text-[var(--flame)]">Você não tem Moedas de Evento.</p>
-  {% elif msg == 'sem_personagem' %}<p class="mb-2.5 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-2 text-sm text-[var(--flame)]">Selecione um personagem seu.</p>
-  {% elif msg == 'saldo' %}<p class="mb-2.5 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-2 text-sm text-[var(--flame)]">MM insuficientes.</p>
-  {% elif msg == 'ja_rei' %}<p class="mb-2.5 rounded border border-[var(--stroke)] bg-[var(--bg1)] px-3 py-2 text-sm text-[var(--muted)]">Você já é o Rei da Colina.</p>
-  {% elif msg == 'nome' %}<p class="mb-2.5 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-2 text-sm text-[var(--flame)]">Informe o nome da aventura.</p>{% endif %}
+  {% if msg == 'aventura' %}<p data-mm-notice role="status" tabindex="-1" class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Aventura registrada — MM creditadas!</p>
+  {% elif msg == 'resgatado' %}<p data-mm-notice role="status" tabindex="-1" class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Recompensa resgatada! A staff cumpre o efeito pelo seu histórico.</p>
+  {% elif msg == 'rei' %}<p data-mm-notice role="status" tabindex="-1" class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Você é o novo Rei da Colina! 👑</p>
+  {% elif msg == 'braseiros' %}<p data-mm-notice role="status" tabindex="-1" class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Braseiros creditados no personagem! 🔥</p>
+  {% elif msg == 'sem_evento' %}<p data-mm-notice role="alert" tabindex="-1" class="mb-2.5 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-2 text-sm text-[var(--flame)]">Você não tem Moedas de Evento.</p>
+  {% elif msg == 'sem_personagem' %}<p data-mm-notice role="alert" tabindex="-1" class="mb-2.5 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-2 text-sm text-[var(--flame)]">Selecione um personagem seu.</p>
+  {% elif msg == 'saldo' %}<p data-mm-notice role="alert" tabindex="-1" class="mb-2.5 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-2 text-sm text-[var(--flame)]">MM insuficientes.</p>
+  {% elif msg == 'ja_rei' %}<p data-mm-notice role="status" tabindex="-1" class="mb-2.5 rounded border border-[var(--stroke)] bg-[var(--bg1)] px-3 py-2 text-sm text-[var(--muted)]">Você já é o Rei da Colina.</p>
+  {% elif msg == 'nome' %}<p data-mm-notice role="alert" tabindex="-1" class="mb-2.5 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-2 text-sm text-[var(--flame)]">Informe o nome da aventura.</p>{% endif %}
 
   <nav class="mm-tabs" aria-label="Áreas do Mercado de Mestre">
     <a href="?area=recompensas" data-mm-area="recompensas"{% if not request.GET.area or request.GET.area == 'recompensas' %} class="is-active" aria-current="page"{% endif %}>Recompensas</a>
@@ -61,7 +61,7 @@
   <p class="mm-notice">Crie um personagem para receber Braseiros. <a href="{% url 'profile' %}">Ir ao meu perfil</a></p>
   {% endif %}
   </div>
-  <aside class="mm-guide"><p class="mm-eyebrow">Como funciona</p><h3>Da mesa para o personagem</h3><p>As Moedas de Evento são trocadas por Braseiros no personagem selecionado. Confira a quantidade antes de resgatar.</p></aside>
+  <aside class="mm-guide"><p class="mm-eyebrow">Como funciona</p><h3>Da mesa para o personagem</h3><p>A cada 100 MM ganhas, você recebe 1 Moeda de Evento. Gastar MM não reduz o total ganho. Cada moeda resgatada concede ao personagem escolhido uma quantidade de Braseiros igual ao BP dele.</p><p>Confira personagem e quantidade na revisão antes de confirmar.</p></aside>
   </section>
 
   <!-- Registrar aventura conduzida -->
@@ -83,7 +83,7 @@
     <div class="sm:col-span-2"><button type="submit" class="rounded bg-bonfire-gradient px-3 py-1.5 text-sm font-bold text-white hover:opacity-90">Registrar e creditar MM</button></div>
   </form>
   </div>
-  <aside class="mm-guide"><p class="mm-eyebrow">Antes de registrar</p><h3>Confira sua mesa</h3><p>Revise nome, data, jogadores e recompensa antes de enviar. O registro credita MM pelo fluxo atual.</p></aside>
+  <aside class="mm-guide"><p class="mm-eyebrow">Antes de registrar</p><h3>Confira sua mesa</h3><p>Registre apenas mesas já conduzidas. Revise nome, data, jogadores e recompensa antes de confirmar; o registro credita MM pelo fluxo atual. Evite registrar a mesma mesa duas vezes.</p></aside>
   </section>
 
   <!-- Catálogo de recompensas -->
