@@ -146,7 +146,8 @@ class PublicPresentationTests(TestCase):
         TbConteudoEstatico.objects.filter(chave__in=('home-hero', 'home-atlas')).update(imagem_url=bad_image)
         response = self.client.get(reverse('home'))
         self.assertNotContains(response, bad_image)
-        self.assertContains(response, 'src="%s"' % static('assets/cineria.jpg'))
+        self.assertContains(response, 'src="%s"' % static('brand/arrival.webp'))
+        self.assertContains(response, 'src="%s"' % static('brand/cineria-preview.webp'))
 
         TbConteudoEstatico.objects.filter(chave='home-hero').update(imagem_url='/static/assets/cineria.jpg')
         TbConteudoEstatico.objects.filter(chave='home-atlas').update(imagem_url='https://example.com/atlas%20map.png')

@@ -64,7 +64,8 @@ class SpellEditorPayloadIntegrityTests(TestCase):
         self.assertTrue(spell_has_base_access(self.spell, ['mago-editorial']))
         self.assertEqual(self.audit_count(), 1)
         self.client.logout()
-        self.assertContains(self.client.get(reverse('magias_listas')), 'Descrição revisada.')
+        self.assertContains(self.client.get(reverse('magias_listas') + '?magia=' + self.spell.slug),
+                            'Descrição revisada.')
 
     def test_bad_class_shape_is_rejected_but_explicit_empty_list_is_allowed(self):
         rejected = self.client.post(

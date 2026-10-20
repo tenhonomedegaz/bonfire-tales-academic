@@ -351,7 +351,7 @@ class EventCosmeticShopTests(TestCase):
         self.assertNotIn('Resgatar cosmético', page.content.decode())
         EventCosmeticOffer.objects.filter(pk=self.offer.pk).update(cost_braseiros=0)
         free_page = self.client.get(self.url)
-        self.assertContains(free_page, 'Resgatar cosmético')
+        self.assertContains(free_page, 'Resgatar gratuitamente')
         self.assertNotIn('name="character"', free_page.content.decode())
 
     def test_already_owned_right_is_not_charged_and_receipt_is_private(self):
@@ -365,8 +365,9 @@ class EventCosmeticShopTests(TestCase):
         self.assertEqual(self.client.post(self.url, form).status_code, 302)
         receipt = EventCosmeticRedemption.objects.get()
         self.client.force_login(self.other)
-        self.assertNotContains(self.client.get(self.url + f'?resgate={receipt.pk}'),
-                               'desbloqueado')
+        other_page = self.client.get(self.url + f'?resgate={receipt.pk}')
+        self.assertNotContains(other_page, 'co-feedback-success')
+        self.assertNotContains(other_page, 'Saldo após o resgate:')
 
     def test_inventory_failure_rolls_back_debit_and_offer_remains_local_content(self):
         self.assertIn('EventCosmeticOffer', PRODUCTION_PRESERVED_MODELS)

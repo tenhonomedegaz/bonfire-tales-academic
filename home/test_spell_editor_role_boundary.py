@@ -81,4 +81,5 @@ class SpellEditorRoleBoundaryTests(TestCase):
             object_id=str(spell.pk),
         ).exists())
         self.client.logout()
-        self.assertContains(self.client.get(reverse('magias_listas')), 'Versão revisada.')
+        self.assertContains(self.client.get(reverse('magias_listas') + '?magia=' + spell.slug),
+                            'Versão revisada.')

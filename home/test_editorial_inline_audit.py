@@ -90,7 +90,7 @@ class EditorialInlineAuditTests(TestCase):
         self.assertIn(spell.nome, entry.change_message)
 
         self.client.logout()
-        public = self.client.get(reverse('magias_listas'))
+        public = self.client.get(reverse('magias_listas') + '?magia=' + spell.slug)
         self.assertEqual(public.status_code, 200)
         self.assertContains(public, 'Descrição revisada no catálogo.')
 
