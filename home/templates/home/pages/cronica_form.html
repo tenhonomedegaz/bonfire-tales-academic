@@ -41,7 +41,8 @@
       </div>
       <div class="editor-field">
         <label for="edTerritorio">Territórios</label>
-        <select id="edTerritorio" name="territorio" multiple>
+        <p class="editor-help" id="edTerritorioHelp">Selecione os territórios onde o relato se passa. Use Ctrl ou ⌘ para escolher mais de um.</p>
+        <select id="edTerritorio" name="territorio" multiple aria-describedby="edTerritorioHelp">
           {% for t in territorios %}
           <option value="{{ t }}" {% if t in selected_territorios %}selected{% endif %}>{{ t }}</option>
           {% endfor %}
@@ -49,7 +50,8 @@
       </div>
       <div class="editor-field">
         <label for="edRegiao">Regiões (opcional)</label>
-        <select id="edRegiao" name="regiao" multiple>
+        <p class="editor-help" id="edRegiaoHelp">As opções acompanham os territórios selecionados. Use Ctrl ou ⌘ para escolher mais de uma.</p>
+        <select id="edRegiao" name="regiao" multiple aria-describedby="edRegiaoHelp">
           {% for nome, terr in regioes %}
           <option value="{{ nome }}" data-territory="{{ terr|default:'' }}" {% if nome in selected_regioes %}selected{% endif %}>{{ nome }}{% if terr %} - {{ terr }}{% endif %}</option>
           {% endfor %}
@@ -67,8 +69,8 @@
     </div>
 
     <div class="editor-toolbar">
-      <button type="button" class="editor-tool" data-wrap="bold" title="Ctrl+B">B</button>
-      <button type="button" class="editor-tool" data-wrap="italic" title="Ctrl+I"><em>I</em></button>
+      <button type="button" class="editor-tool" data-wrap="bold" aria-label="Negrito" title="Ctrl+B">B</button>
+      <button type="button" class="editor-tool" data-wrap="italic" aria-label="Itálico" title="Ctrl+I"><em>I</em></button>
       <button type="button" class="editor-tool" data-wrap="link" title="Ctrl+K">Link</button>
       <button type="button" class="editor-tool" data-wrap="image" title="Ctrl+Alt+I">Imagem</button>
       <button type="button" class="editor-tool" data-wrap="code" title="Ctrl+`">Código</button>
@@ -87,14 +89,14 @@
     <div class="editor-split">
       <div class="editor-panel">
         <div class="editor-panel-header">
-          <h2>Texto</h2>
+          <h2><label for="edMarkdown">Seu manuscrito</label></h2>
           <span id="edCounter">0 caracteres</span>
         </div>
         <textarea id="edMarkdown" class="editor-textarea" placeholder="Narre sua crônica em Markdown...">{{ cronica.conteudo_markdown|default:'' }}</textarea>
       </div>
       <div class="editor-panel">
         <div class="editor-panel-header">
-          <h2>Preview</h2>
+          <h2>Prévia da leitura</h2>
           <span>Mesmo leitor do site</span>
         </div>
         <div id="edPreview" class="editor-preview bonfire-markdown"></div>

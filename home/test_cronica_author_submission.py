@@ -110,6 +110,18 @@ class ChronicleAuthorSubmissionTests(StaticLiveServerTestCase):
                         self.assertEqual(js('visualViewport.scale'), 1)
                         self.assertLessEqual(js('document.documentElement.scrollWidth'), js('document.documentElement.clientWidth'))
                         self.assertTrue(js('!!document.querySelector("#cronicaEditorForm [name=csrfmiddlewaretoken]").value'))
+                        self.assertEqual(js('document.querySelector("#edMarkdown").labels[0].textContent.trim()'),
+                                         'Seu manuscrito')
+                        for field in ('edTerritorio', 'edRegiao'):
+                            self.assertTrue(js(f'''(() => {{
+                                const select = document.getElementById('{field}');
+                                const help = document.getElementById(select.getAttribute('aria-describedby'));
+                                return !!select.labels.length && !!help && help.textContent.includes('Ctrl');
+                            }})()'''))
+                        self.assertEqual(js('document.querySelector("[data-wrap=bold]").getAttribute("aria-label")'),
+                                         'Negrito')
+                        self.assertEqual(js('document.querySelector("[data-wrap=italic]").getAttribute("aria-label")'),
+                                         'Itálico')
                         js('''(() => {
                             document.querySelector('#edTitulo').value=%s;
                             document.querySelector('#edMarkdown').value=%s;
