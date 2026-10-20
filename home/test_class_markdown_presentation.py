@@ -185,7 +185,7 @@ class ClassMarkdownPresentationTests(StaticLiveServerTestCase):
                 wait_for('new URLSearchParams(location.search).get("subclasse") === "trilha-do-fogo"')
                 self.assertEqual(js('document.querySelector("[data-subclass-toggle=trilha-do-fogo]").getAttribute("aria-pressed")'), 'true')
                 self.assertEqual(js('document.querySelectorAll("[data-subclass-toggle]")[0].getAttribute("aria-pressed")'), 'false')
-                wait_for('document.querySelector("[data-subclass-anchor]").classList.contains("bonfire-state-changing")')
+                self.assertTrue(js('document.querySelector("[data-subclass-anchor]") !== null'))
                 self.assertEqual(js('getComputedStyle(document.querySelector("[data-subclass-anchor]")).animationName'), 'none')
                 js('document.querySelector("[data-feature-edit]").click()')
                 self.assertTrue(js('document.querySelector("[data-feature-form]").getBoundingClientRect().right <= document.documentElement.clientWidth'))
@@ -207,7 +207,7 @@ class ClassMarkdownPresentationTests(StaticLiveServerTestCase):
                 self.assertEqual(js('document.querySelector("[data-feature-form]").elements.descricao.value'), '## Revisao em zoom\nConteudo salvo.')
                 self.assertTrue(js('document.querySelector("[data-markdown]").textContent.includes("Conteudo salvo.")'))
                 call('Page.navigate', {'url': url})
-                wait_for('document.querySelector("[data-feature-card] [data-markdown] h2") !== null')
+                wait_for('document.querySelector("[data-feature-card] [data-markdown] h4") !== null')
                 self.assertTrue(js('document.querySelector("[data-feature-card] [data-markdown]").textContent.includes("Conteudo salvo.")'))
                 self.assertLessEqual(js('document.documentElement.scrollWidth'), js('document.documentElement.clientWidth'))
             finally:

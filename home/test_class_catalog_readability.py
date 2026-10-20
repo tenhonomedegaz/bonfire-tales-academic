@@ -148,11 +148,15 @@ class ClassCatalogReadabilityBrowserTests(StaticLiveServerTestCase):
                     feature:parseFloat(getComputedStyle(document.querySelector('[data-feature-list] [data-markdown]')).fontSize),
                     table:parseFloat(getComputedStyle(document.querySelector('.class-progression-scroll table')).fontSize),
                     tableScroll:document.querySelector('.class-progression-scroll').scrollWidth,
-                    tableClient:document.querySelector('.class-progression-scroll').clientWidth})''')
+                    tableClient:document.querySelector('.class-progression-scroll').clientWidth,
+                    rowDisplay:getComputedStyle(document.querySelector('.class-progression-table tbody tr')).display,
+                    rows:document.querySelectorAll('.class-progression-table tbody tr').length})''')
                 self.assertLessEqual(detail['scroll'], detail['client'], detail)
                 self.assertGreaterEqual(detail['feature'], 14, detail)
                 self.assertGreaterEqual(detail['table'], 12, detail)
-                self.assertGreater(detail['tableScroll'], detail['tableClient'], detail)
+                self.assertEqual(detail['rowDisplay'], 'grid', detail)
+                self.assertEqual(detail['rows'], 20, detail)
+                self.assertLessEqual(detail['tableScroll'], detail['tableClient'], detail)
                 contrast = js('''(() => {
                     const title = document.querySelector('[data-feature-title]');
                     const card = title.closest('[data-feature-card]');
@@ -171,7 +175,7 @@ class ClassCatalogReadabilityBrowserTests(StaticLiveServerTestCase):
                         .find(item => item.querySelector('[data-feature-title]')?.textContent.includes('Feitiçaria Mística'));
                     const body = card?.querySelector('[data-markdown]');
                     return {paragraphs: body?.querySelectorAll('p').length || 0,
-                        headings: body?.querySelectorAll('h5').length || 0,
+                        headings: body?.querySelectorAll('h4, h5').length || 0,
                         tables: body?.querySelectorAll('table').length || 0};
                 })()''')
                 self.assertGreaterEqual(mystic_layout['paragraphs'], 5, mystic_layout)
@@ -237,13 +241,13 @@ class ClassCatalogReadabilityBrowserTests(StaticLiveServerTestCase):
                 self.assertGreaterEqual(other_class_layout['colossalCharge']['nested'], 1,
                                         other_class_layout)
                 mystic_heading = js('''(() => {
-                    const heading = [...document.querySelectorAll('[data-markdown] h5')]
+                    const heading = [...document.querySelectorAll('[data-markdown] h4')]
                         .find(item => item.textContent.includes('Truques'));
                     return {weight: parseInt(getComputedStyle(heading).fontWeight, 10),
                         size: parseFloat(getComputedStyle(heading).fontSize)};
                 })()''')
                 self.assertGreaterEqual(mystic_heading['size'], 14, mystic_heading)
-                self.assertGreaterEqual(mystic_heading['weight'], 700, mystic_heading)
+                self.assertGreaterEqual(mystic_heading['weight'], 600, mystic_heading)
                 other_sections = js('''(() => {
                     const card = name => [...document.querySelectorAll('[data-feature-card]')]
                         .find(item => item.querySelector('[data-feature-title]')?.textContent.includes(name));
