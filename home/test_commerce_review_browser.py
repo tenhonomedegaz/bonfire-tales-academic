@@ -97,6 +97,8 @@ class CommerceReviewBrowserTests(StaticLiveServerTestCase):
                 })
                 call('Page.navigate', {'url': self.live_server_url + reverse('colaborador')})
                 wait_for('document.readyState === "complete" && document.querySelector("form[data-purchase-review]") !== null')
+                self.assertIn('token para solicitar missão', js('document.querySelector("#co-plans > .co-micro").textContent'))
+                self.assertIn('sem participação automática', js('document.querySelector(".co-token:has([name=product][value=token-missao]) p").textContent'))
                 js('''(() => {
                     const form = document.querySelector('form[data-purchase-review]');
                     window.reviewSubmits = [];
@@ -128,6 +130,15 @@ class CommerceReviewBrowserTests(StaticLiveServerTestCase):
                 js('document.querySelector("[data-co-proceed]").click()')
                 wait_for('window.reviewSubmits.length === 2')
                 self.assertEqual(js('JSON.stringify(window.reviewSubmits)'), '[true,false]')
+                self.assertFalse(AsaasCheckoutOrder.objects.filter(user=user).exists())
+
+                js('document.querySelector(".co-token:has([name=product][value=token-missao]) button").click()')
+                wait_for('document.querySelector("#co-review").open')
+                self.assertIn('Token para solicitar Missão Especial', js('document.querySelector("[data-co-note]").textContent'))
+                self.assertIn('nenhuma missão é marcada automaticamente', js('document.querySelector("[data-co-note]").textContent'))
+                self.assertEqual(js('document.querySelector("[data-co-amount]").textContent'), 'R$ 14,90')
+                js('document.querySelector(".co-dialog-actions [data-co-close]").click()')
+                wait_for('!document.querySelector("#co-review").open')
                 self.assertFalse(AsaasCheckoutOrder.objects.filter(user=user).exists())
 
                 payload = {'discord_id': '987654321', 'discord_name': 'Discord Buyer',
