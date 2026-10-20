@@ -30,6 +30,14 @@ G01 aprovados e resultados de S09/S10 antes do aceite de S11 ou do push S12.
    `loaddata` por PK para transportar catálogo entre DEV e produção; seguir
    [deploy-sync-conteudo.md](../deploy-sync-conteudo.md) somente quando houver
    lote de conteúdo aprovado.
+   Testar **restauração completa** em banco temporário, além de `pg_restore -l`.
+   No ensaio do banco isolado, o arquivo produzido por `pg_dump` 18 continha
+   `SET transaction_timeout = 0;`, rejeitado pelo servidor local. A recuperação
+   usou `pg_restore --no-owner --no-acl -f restore.sql <arquivo>`, removeu
+   **somente essa diretiva** da cópia SQL e executou `psql -v ON_ERROR_STOP=1`
+   no banco temporário. Preservar o arquivo original e confirmar a migration,
+   as PKs e as FKs após restaurar; não aplicar essa adaptação sem observar o
+   mesmo erro no servidor de destino.
 4. Executar os testes regionais dos lotes aplicados. Em S10, executar a suite
    geral e a matriz do charbuilder, além de teclado, privacidade, pagamentos e
    screenshots nas larguras 360/390/768/1024/1440 px. Registrar comandos,
