@@ -11,6 +11,70 @@ from .test_criador import _CriadorBase
 class HunterPublicCreatorTests(_CriadorBase):
     setup_creation = CreatorHunterBindingTests.setup_creation
     valid_payload = CreatorHunterBindingTests.valid_payload
+
+    def test_s10_published_hunter_orders_preview_without_persistence(self):
+        from .class_revision_editor import create_class_revision
+        from .hunter_rework import catalog
+        from .models import TbClassehabilidade, TbRecursoclasse, TbSubclasse
+        from .pathbuilder import catalogos, default_build
+        from .versioned_classes import VersionedClassCatalog
+
+        orders = catalog()['orders']
+        expected = {order['id']: order['name'] for order in orders}
+        self.assertEqual(len(expected), 8)
+        self.setup_creation()
+        frozen = VersionedClassCatalog(self.ruleset, self.classe.pk)
+        legacy = {row.pk for row in frozen.collections[TbSubclasse]
+                  if row.slug not in expected}
+        changes = [
+            {'model': model._meta.label_lower, 'action': 'remove', 'pk': row.pk}
+            for model in (TbClassehabilidade, TbRecursoclasse)
+            for row in frozen.collections[model] if row.id_subclasse_id in legacy
+        ] + [
+            {'model': TbSubclasse._meta.label_lower, 'action': 'remove', 'pk': pk}
+            for pk in sorted(legacy)
+        ]
+        existing = {row.slug for row in frozen.collections[TbSubclasse]}
+        for slug, name in expected.items():
+            if slug not in existing:
+                row = TbSubclasse.objects.create(id_classe=self.classe, slug=slug, nome=name)
+                changes.append({'model': TbSubclasse._meta.label_lower,
+                                'action': 'add', 'pk': row.pk})
+
+        self.ruleset = create_class_revision(self.ruleset.checksum, self.classe.pk,
+                                             changes, presentation_source='catalog')
+        self.assertEqual(TbSubclasse.objects.filter(pk__in=legacy).count(), len(legacy))
+        TbClassPublication.objects.create(id_classe=self.classe, ruleset=self.ruleset)
+        self.client.force_login(self.user)
+        before = TbPersonagem.objects.count()
+        with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=self.ruleset.checksum):
+            published = next(row for row in catalogos()['classes']
+                             if row['slug'] == 'cacador')
+            self.assertEqual({row['slug'] for row in published['subclasses']}, set(expected))
+            for level in (1, 20):
+                with self.subTest(level=level):
+                    build = default_build(self.payload)
+                    build['classes'][0].update(nivel=level,
+                        subclasse='' if level == 1 else orders[0]['id'])
+                    response = self.client.post(reverse('pathbuilder_preview'),
+                        data=json.dumps({'base': self.payload, 'build': build}),
+                        content_type='application/json')
+                    self.assertEqual(response.status_code, 200, response.content[:500])
+                    self.assertEqual(response.json()['build']['nivel'], level)
+            for slug, name in expected.items():
+                with self.subTest(order=slug):
+                    build = default_build(self.payload)
+                    build['classes'][0].update(nivel=3, subclasse=slug)
+                    response = self.client.post(reverse('pathbuilder_preview'),
+                        data=json.dumps({'base': self.payload, 'build': build}),
+                        content_type='application/json')
+                    self.assertEqual(response.status_code, 200, response.content[:500])
+                    preview = response.json()['build']
+                    self.assertEqual(preview['nivel'], 3)
+                    self.assertEqual(preview['classes'][0]['subclasse'], name)
+                    self.assertIn(name, preview['ficha_html'])
+        self.assertEqual(TbPersonagem.objects.count(), before)
+
     def test_pathbuilder_hunter_entry_and_preview_keep_published_class(self):
         from .class_revision_editor import create_class_revision
         from .pathbuilder import default_build
