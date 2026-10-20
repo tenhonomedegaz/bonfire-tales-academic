@@ -112,6 +112,7 @@ class TrapCatalogBrowserTests(StaticLiveServerTestCase):
                     input.value='sem resultado';input.dispatchEvent(new Event('input', {bubbles:true}));})()''')
                 self.assertEqual(js('document.querySelectorAll(".ar-panel:not([hidden])").length'), 0)
                 self.assertTrue(js('!document.querySelector("#ar-reader-empty").hidden'))
+                self.assertIn('Tente outro nome', js('document.querySelector("#ar-reader-empty p").textContent'))
                 js('''(() => {const input=document.querySelector('#ar-busca');
                     input.value='';input.dispatchEvent(new Event('input', {bubbles:true}));})()''')
                 self.assertEqual(js('document.querySelectorAll(".ar-item:not([hidden])").length'), 2)
@@ -123,6 +124,24 @@ class TrapCatalogBrowserTests(StaticLiveServerTestCase):
                     time.sleep(.1)
                 self.assertEqual(js('document.querySelector(".ar-panel:not([hidden]) h2")?.textContent'), community.nome)
                 self.assertEqual(js('document.querySelector("#ar-origin")?.value'), 'comunidade')
+
+                call('Page.navigate', {'url': self.live_server_url + reverse('mestre_armadilhas') + '?f=comunidade&nd=2'})
+                for _ in range(80):
+                    if js('document.readyState === "complete" && location.search.includes("nd=2")'):
+                        break
+                    time.sleep(.1)
+                self.assertEqual(js('document.querySelectorAll(".ar-item").length'), 0)
+                self.assertIn('Nenhum resultado', js('document.querySelector("#ar-list-empty").textContent'))
+                self.assertIn('limpe a busca e os filtros', js('document.querySelector("#ar-reader-empty p").textContent'))
+                self.assertTrue(js('!document.querySelector("#ar-reader-empty .ar-text-link").hidden'))
+                self.assertLessEqual(js('document.documentElement.scrollWidth'), 360)
+                js('document.querySelector("#ar-reader-empty .ar-text-link").click()')
+                for _ in range(80):
+                    if js('document.readyState === "complete" && location.search === "" && document.querySelectorAll(".ar-item").length === 2'):
+                        break
+                    time.sleep(.1)
+                self.assertEqual(js('document.querySelectorAll(".ar-item").length'), 2)
+                self.assertEqual(js('document.querySelectorAll(".ar-panel:not([hidden])").length'), 1)
             finally:
                 if ws:
                     ws.close()
