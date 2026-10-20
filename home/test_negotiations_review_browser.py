@@ -93,6 +93,26 @@ class NegotiationReviewBrowserTests(StaticLiveServerTestCase):
                 })
                 call('Page.navigate', {'url': self.live_server_url + reverse('mercado_comunidade')})
                 wait_for(f'document.querySelector("#nt-offer-{listing.pk} .nt-buy-form") !== null')
+                wait_for('document.querySelector("#nt-announcement").textContent.length > 0')
+                js('''(() => { const search = document.querySelector('#nt-search');
+                    search.value = 'espada'; search.dispatchEvent(new Event('input', {bubbles:true})); })()''')
+                self.assertEqual(js('document.querySelector("#nt-count").textContent'), '1')
+                self.assertFalse(js(f'document.querySelector("#nt-offer-{listing.pk}").hidden'))
+                self.assertIn('q=espada', js('location.search'))
+                js('''(() => { const search = document.querySelector('#nt-search');
+                    search.value = 'sem resultado'; search.dispatchEvent(new Event('input', {bubbles:true})); })()''')
+                self.assertFalse(js('document.querySelector("#nt-list-empty").hidden'))
+                self.assertFalse(js('document.querySelector("#nt-reader-empty").hidden'))
+                self.assertTrue(js(f'document.querySelector("#nt-offer-{listing.pk}").hidden'))
+                js('document.querySelector(".nt-clear").click()')
+                self.assertFalse(js(f'document.querySelector("#nt-offer-{listing.pk}").hidden'))
+                js('document.querySelector("[data-nt-area=meus]").click()')
+                self.assertFalse(js(f'document.querySelector("#nt-offer-{own_listing.pk}").hidden'))
+                self.assertTrue(js(f'document.querySelector("#nt-offer-{listing.pk}").hidden'))
+                self.assertIn('area=meus', js('location.search'))
+                js('history.back()')
+                wait_for('document.querySelector("[data-nt-area=venda]").getAttribute("aria-current") === "page"')
+                self.assertFalse(js(f'document.querySelector("#nt-offer-{listing.pk}").hidden'))
                 js('''window.reviewSubmits = [];
                     document.querySelectorAll('form[data-nt-review]').forEach(form => form.addEventListener('submit', event => {
                         window.reviewSubmits.push([form.dataset.ntReview, event.defaultPrevented]);
