@@ -3,7 +3,9 @@ const fs=require('node:fs');
 const path=require('node:path');
 const {chromium}=require(process.env.BONFIRE_PLAYWRIGHT_MODULE);
 (async()=>{
-  const browser=await chromium.launch({headless:true});
+  const browser=await chromium.launch({headless:true,
+    ...(process.env.BONFIRE_CHROMIUM_EXECUTABLE_PATH
+      ? {executablePath:process.env.BONFIRE_CHROMIUM_EXECUTABLE_PATH} : {})});
   try {
     const origin=process.env.PATHBUILDER_E2E_URL;
     const base=JSON.parse(process.env.PATHBUILDER_E2E_BASE);

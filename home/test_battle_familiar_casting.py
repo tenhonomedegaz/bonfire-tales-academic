@@ -242,18 +242,24 @@ class BattleFamiliarCastingTests(TestCase):
     def test_mystic_resource_contract_charges_actual_upcast_circle(self):
         feature = TbClassehabilidade.objects.get(id_classe=self.classe)
         feature.tags_json = [
-            'spellcasting{ability:int, slots{progression:pact, resource:pontos, cost:spell_level}, '
+            'spellcasting{ability:int, slots{progression:pact, resource:pontos_de_misticismo, cost:spell_level}, '
             'list:arquivista, mode:known, spell_level_limit{resource:ciclo}, pool:class_list}',
-            'resource{pontos}', 'resource_restore:pontos=all(reset:short_rest)']
+            'resource{pontos_de_misticismo}', 'resource_restore:pontos_de_misticismo=all(reset:short_rest)']
         feature.save()
-        TbRecursoclasse.objects.create(id_classe=self.classe, nome='Pontos', slug='pontos',
-                                      valores_json={'1': '10'}, tipo='consumable')
+        TbRecursoclasse.objects.create(id_classe=self.classe, nome='Pontos', slug='pontos-de-misticismo',
+                                      valores_json={'1': '10'}, tipo='consumable', reset='short-rest')
         TbRecursoclasse.objects.create(id_classe=self.classe, nome='Ciclo', slug='ciclo',
                                       valores_json={'1': '4'}, tipo='table-only')
         self.assertIn('conjurada', self.cast(slot='4').url)
         self.assertEqual(self.state().payload_json['spending']['cost'], 4)
         self.assertEqual(self.state().payload_json['block']['circle'], 4)
-        self.assertEqual(self.personagem.recursos.get(nome='Pontos').atual, 6)
+        resource = self.personagem.recursos.get(nome='Pontos')
+        self.assertEqual(resource.atual, 6)
+        self.assertEqual(resource.chave, 'class:%s:0:pontos_de_misticismo' % self.classe.pk)
+        rest = reverse('personagem_descansar', args=[self.personagem.pk])
+        self.assertEqual(self.client.post(rest, {'tipo': 'curto'}).status_code, 302)
+        resource.refresh_from_db()
+        self.assertEqual(resource.atual, 10)
 
     def test_explicit_existing_familiar_registration_rolls_back_on_missing_material(self):
         self.base(complete=False).delete()

@@ -8,7 +8,9 @@ const { chromium } = require(process.env.BONFIRE_PLAYWRIGHT_MODULE || 'playwrigh
   const trace = stage => console.log(`[slots-e2e ${Date.now() - started}ms] ${stage}`);
   const origin = process.env.SLOTS_E2E_ORIGIN;
   const url = origin + process.env.SLOTS_E2E_PATH;
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ headless: true,
+    ...(process.env.BONFIRE_CHROMIUM_EXECUTABLE_PATH
+      ? { executablePath: process.env.BONFIRE_CHROMIUM_EXECUTABLE_PATH } : {}) });
   trace('browser aberto');
   try {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });

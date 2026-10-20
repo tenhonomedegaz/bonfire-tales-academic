@@ -149,4 +149,8 @@ class HomeAccessibilityBrowserTests(StaticLiveServerTestCase):
                 if ws:
                     ws.close()
                 process.terminate()
-                process.wait(timeout=10)
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait(timeout=10)

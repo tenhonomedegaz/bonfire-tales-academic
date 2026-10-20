@@ -4,7 +4,9 @@ const path = require('node:path');
 const { chromium } = require(process.env.BONFIRE_PLAYWRIGHT_MODULE || 'playwright');
 
 (async () => {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ headless: true,
+    ...(process.env.BONFIRE_CHROMIUM_EXECUTABLE_PATH
+      ? { executablePath: process.env.BONFIRE_CHROMIUM_EXECUTABLE_PATH } : {}) });
   try {
     const origin = process.env.PICKER_ORIGIN;
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });

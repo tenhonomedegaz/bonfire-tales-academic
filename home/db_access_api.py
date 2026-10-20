@@ -16,7 +16,10 @@ from .db_access import (
 from .db_access_models import DbAccessIdempotency, ManagedApiKey
 from .class_revision_editor import class_revision_operation, class_revision_preview_operation
 from .class_publication import class_publication_operation, class_publication_preview_operation
-from .catalog_sync_api import catalog_sync_operation, catalog_sync_preview_operation
+from .catalog_sync_api import (
+    bestiary_patch_operation, bestiary_patch_preview_operation,
+    catalog_sync_operation, catalog_sync_preview_operation,
+)
 
 
 register_operation_handler('class-revision', class_revision_operation)
@@ -29,6 +32,9 @@ register_operation_handler('class-publication', class_publication_operation,
 register_operation_handler('catalog-sync-preview', catalog_sync_preview_operation,
                            require_base_version=False, scope='read')
 register_operation_handler('catalog-sync', catalog_sync_operation, scope='publish')
+register_operation_handler('bestiary-patch-preview', bestiary_patch_preview_operation,
+                           require_base_version=False, scope='read')
+register_operation_handler('bestiary-patch', bestiary_patch_operation, scope='publish')
 
 
 def _response(payload, status=200, *, version=None):

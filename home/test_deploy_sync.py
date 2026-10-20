@@ -21,12 +21,33 @@ from home.models import (
     TbPersonagemMagia,
     TbRegiao,
     TbMagia,
+    TbRegra,
     TbClasse,
     TbSubclasse,
 )
 
 
 class DeploySyncContractTests(TestCase):
+    def test_bestiary_only_fixture_preserves_other_replace_tables_and_pk(self):
+        rule = TbRegra.objects.create(
+            slug='regra-seletiva-sync', nome='Regra preservada', categoria='core')
+        creature = TbBestiario.objects.create(
+            slug='demonio-menor-seletivo', nome='Demônio Menor',
+            statblock_json={'name': 'Demônio Menor'})
+        fixture = json.loads(serializers.serialize('json', [creature]))
+        fixture[0]['fields']['statblock_json']['selection_note'] = 'Escolha a espécie concreta.'
+
+        report = deploy_sync.sincronizar_conteudo(json.dumps(fixture))
+
+        creature.refresh_from_db()
+        rule.refresh_from_db()
+        self.assertEqual(creature.pk, fixture[0]['pk'])
+        self.assertEqual(creature.statblock_json['selection_note'], 'Escolha a espécie concreta.')
+        self.assertEqual(rule.nome, 'Regra preservada')
+        self.assertTrue(TbRegra.objects.filter(pk=rule.pk).exists())
+        self.assertIn(('TbRegra', 'modelo ausente no fixture; tabela preservada'),
+                      report['pass2_skipped'])
+
     def test_fixture_pk_collision_preserves_dev_only_subclass_and_cosmetic(self):
         hunter = TbClasse.objects.create(nome='Caçador', slug='cacador-sync-only')
         extra_subclass = TbSubclasse.objects.create(
