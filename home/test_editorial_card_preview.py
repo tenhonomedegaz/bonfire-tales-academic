@@ -117,7 +117,7 @@ class EditorialCardPreviewTests(StaticLiveServerTestCase):
                 js('''window.fetch = async () => ({ ok: true, json: async () => ({
                     success: true, title: 'Carta externa', description: 'Texto', url: 'javascript:alert(1)'
                 }) })''')
-                open_card('tbClasseHabilidade', 'classe-da-carta,carta-segura')
+                open_card('tbClasseHabilidade', 'classe-da-carta,carta-segura-url-insegura')
                 self.assertTrue(js('document.querySelector(".bonfire-preview-card-more") === null'))
             finally:
                 if ws:

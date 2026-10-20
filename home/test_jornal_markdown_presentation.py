@@ -178,7 +178,7 @@ class JornalMarkdownPresentationTests(StaticLiveServerTestCase):
                 self.assertEqual(created.imagem_url, '/static/assets/logo.png')
                 self.assertTrue(created.destaque)
                 self.assertEqual(created.data_publicacao.year, 2024)
-                self.assertIn('/static/assets/logo.png', js('getComputedStyle(document.querySelector(".artigo-hero")).backgroundImage'))
+                self.assertEqual(js('document.querySelector(".journal-article-figure .journal-print-image")?.getAttribute("src")'), '/static/assets/logo.png')
                 self.assertIn('2024', js('document.querySelector(".artigo-meta").textContent'))
                 self.assertContains(self.client.get(reverse('mundo_jornal')), 'jornal-badge-destaque')
 
