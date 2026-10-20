@@ -79,7 +79,12 @@ class MarketTransactionReviewBrowserTests(StaticLiveServerTestCase):
                         if js(expression):
                             return
                         time.sleep(.2)
-                    self.fail(f'Timed out waiting for {expression}; page=' + str(js('location.href + " " + document.readyState')))
+                    state = js('''({page:location.href, ready:document.readyState,
+                        calls:window.tradeCalls, reviewOpen:document.querySelector('[data-shop-review]')?.open,
+                        feedback:document.querySelector('[data-shop-feedback]')?.textContent,
+                        formPresent:!!document.querySelector('[data-shop-detail] [data-shop-buy]'),
+                        formValid:document.querySelector('[data-shop-detail] [data-shop-buy]')?.checkValidity()})''')
+                    self.fail(f'Timed out waiting for {expression}; state={state}')
 
                 def intercept_trades():
                     js('''(() => {
