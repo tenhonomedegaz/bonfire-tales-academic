@@ -41,7 +41,8 @@ class JornalInlineBrowserTests(StaticLiveServerTestCase):
         article = TbJornal.objects.create(
             titulo='Jornal no navegador', slug='jornal-no-navegador',
             layout='padrao', resumo='Resumo da edição no Atlas',
-            conteudo_markdown='Texto publicado', data_publicacao=original_date,
+            conteudo_markdown='## Primeira seção\n\nTexto publicado\n\n### Segunda seção\n\nMais histórias.',
+            data_publicacao=original_date,
         )
         self.client.force_login(editor)
 
@@ -104,6 +105,17 @@ class JornalInlineBrowserTests(StaticLiveServerTestCase):
                 detail_url = self.live_server_url + reverse('jornal_detail', args=[article.slug])
                 call('Page.navigate', {'url': detail_url})
                 until("document.readyState === 'complete' && !!document.querySelector('#articleForm')")
+                until("document.querySelectorAll('#journalTocLinks a').length === 2")
+                self.assertFalse(js("document.querySelector('#journalToc').hidden"))
+                for width in (360, 1280):
+                    call('Emulation.setDeviceMetricsOverride', {
+                        'width': width, 'height': 900, 'deviceScaleFactor': 1, 'mobile': width == 360,
+                    })
+                    self.assertLessEqual(js('document.documentElement.scrollWidth'),
+                                         js('document.documentElement.clientWidth'))
+                    js("document.querySelector('#journalTocLinks a').click()")
+                    self.assertEqual(js("document.activeElement.textContent"), 'Primeira seção')
+                    self.assertTrue(js("location.hash.startsWith('#journal-section-')"))
                 self.assertTrue(js("document.querySelector('.artigo-hero').classList.contains('artigo-hero--text')"))
                 self.assertLess(js("document.querySelector('.artigo-hero').getBoundingClientRect().height"), 250)
                 self.assertNotIn('Editado em', js("document.querySelector('.artigo-meta').textContent"))
@@ -132,9 +144,12 @@ class JornalInlineBrowserTests(StaticLiveServerTestCase):
                 self.assertEqual(article.data_publicacao, original_date)
                 self.assertIn('Editado em', js("document.querySelector('.artigo-meta').textContent"))
 
+                until("document.readyState === 'complete'")
                 open_editor()
                 js("document.querySelector('[name=layout]').value = 'atlas'; document.querySelector('[name=data_publicacao]').value = '2024-05-20T12:00'; document.querySelector('#articleForm').requestSubmit()")
-                until("document.querySelector('[data-artigo-layout]')?.dataset.artigoLayout === 'atlas'")
+                until("document.querySelector('[data-artigo-layout]')?.dataset.artigoLayout === 'atlas' || (document.querySelector('#articleSaveError') && !document.querySelector('#articleSaveError').hidden)")
+                self.assertEqual(js("document.querySelector('[data-artigo-layout]')?.dataset.artigoLayout"), 'atlas',
+                                 js("document.querySelector('#articleSaveError')?.textContent"))
                 article.refresh_from_db()
                 self.assertEqual(article.layout, 'atlas')
                 self.assertEqual(timezone.localtime(article.data_publicacao).replace(tzinfo=None),
