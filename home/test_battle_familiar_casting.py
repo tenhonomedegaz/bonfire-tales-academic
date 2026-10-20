@@ -224,7 +224,7 @@ class BattleFamiliarCastingTests(TestCase):
         self.cast(familiar_form='espreitador')
         response = self.client.get(reverse('oficina_magia'), {'personagem': self.personagem.pk})
         self.assertContains(response, 'Espreitar:')
-        self.assertContains(response, 'salvaguardas acima já incluem')
+        self.assertContains(response, 'testes de resistência acima já incluem')
         self.assertContains(response, 'Registrar PV restantes')
 
     def test_higher_slot_scales_from_paid_circle(self):
