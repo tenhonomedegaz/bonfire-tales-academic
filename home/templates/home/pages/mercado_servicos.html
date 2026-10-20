@@ -61,9 +61,10 @@
     {% if not mercado_ativo %}
       <p class="service-empty">Escolha um personagem no balcão.</p>
     {% elif treinamento_ativo %}
-      <div class="training-active">
+      <div class="training-active" data-training-start="{{ treinamento_ativo.iniciado_em|date:'c' }}" data-training-end="{{ treinamento_ativo.conclui_em|date:'c' }}">
         <div><small>{{ treinamento_ativo.get_tipo_display }}</small><strong>{{ treinamento_ativo.nome }}</strong></div>
         <div class="service-deadline"><span>Conclusão</span><time datetime="{{ treinamento_ativo.conclui_em|date:'c' }}" data-service-countdown>{{ treinamento_ativo.conclui_em|date:'d/m/Y H:i' }}</time></div>
+        <div class="training-progress-block"><p><span>Prazo decorrido</span><strong data-training-progress-text>Em andamento</strong></p><div class="training-progress" role="progressbar" aria-label="Prazo decorrido do treinamento" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-training-progress><span></span></div><p class="training-finish-date">Conclusão prevista em <time datetime="{{ treinamento_ativo.conclui_em|date:'c' }}">{{ treinamento_ativo.conclui_em|date:'d/m/Y H:i' }}</time>. A proficiência será creditada ao concluir o prazo no servidor.</p></div>
       </div>
     {% elif treinamentos_disponiveis %}
       <form method="post" action="{% url 'mercado_iniciar_treinamento' mercado_ativo.id_personagem %}" class="service-form training-start" data-service-review data-character="{{ mercado_ativo.nome }}" data-cost="{{ treinamento_custo }}">
@@ -276,6 +277,25 @@
   const nodes = [...document.querySelectorAll('[data-service-countdown]')];
   nodes.forEach(render);
   if (nodes.length) window.setInterval(() => nodes.forEach(render), 60000);
+
+  const activeTraining = document.querySelector('[data-training-start][data-training-end]');
+  if (activeTraining) {
+    const start = Date.parse(activeTraining.dataset.trainingStart);
+    const end = Date.parse(activeTraining.dataset.trainingEnd);
+    const bar = activeTraining.querySelector('[data-training-progress]');
+    const label = activeTraining.querySelector('[data-training-progress-text]');
+    if (Number.isFinite(start) && Number.isFinite(end) && end > start && bar && label) {
+      const updateProgress = () => {
+        const percent = Math.max(0, Math.min(100, (Date.now() - start) / (end - start) * 100));
+        const rounded = Math.round(percent);
+        bar.setAttribute('aria-valuenow', String(rounded));
+        bar.firstElementChild.style.width = `${percent}%`;
+        label.textContent = `${rounded}% do prazo`;
+      };
+      updateProgress();
+      window.setInterval(updateProgress, 60000);
+    }
+  }
 })();
 </script>
 {% endblock %}
