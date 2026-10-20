@@ -25,8 +25,8 @@
       </p>
 
       <div class="flex flex-wrap justify-center gap-2.5 mt-6">
-        <a href="https://docs.google.com/forms/d/1Ok5splhYVUN8kZXstskq0Uwa1yse3TXsjA3HDNgOOjw/viewform?edit_requested=true" class="px-5 py-2 rounded bg-[var(--flame)] hover:bg-[var(--ember)] text-white font-bold transition-all shadow-lg hover:-translate-y-0.5">
-          Quero Mestrar
+        <a href="{% url 'profile' %}?aba=mestre" class="px-5 py-2 rounded bg-[var(--flame)] hover:bg-[var(--ember)] text-white font-bold transition-all shadow-lg hover:-translate-y-0.5">
+          Solicitar permissão no perfil
         </a>
         <a href="https://discord.gg/eyqe7rj2AX" target="_blank" class="px-5 py-2 rounded border border-[var(--stroke)] text-[var(--text)] hover:bg-[var(--bg1)] font-bold transition-all">
           Abrir Missão (Bot)
@@ -37,7 +37,24 @@
 </div>
 
 <div class="container mx-auto px-4 mt-10 flex justify-center pb-14">
-  
+  <aside class="mh-guide-index" aria-label="Navegação do guia de mestres">
+    <p class="mh-eyebrow">Seu guia de mestragem</p>
+    <h2>Prepare sua jornada</h2>
+    <a href="#boas-vindas">Princípios e segurança</a>
+    <a href="#requisitos">Requisitos e candidatura</a>
+    <a href="#fluxo-de-aprovacao">Avaliação e aprovação</a>
+    <a href="#ferramentas">Ferramentas</a>
+    <a href="#publicacao">Publicação e sessão</a>
+    <a href="#divisao">Missões múltiplas</a>
+    <a href="#hierarquia">Hierarquia de mestres</a>
+    <a href="#penalidades">Procedimentos</a>
+    <div class="mh-guide-next">
+      <strong>Já tem uma história?</strong>
+      <p>Prepare sua apresentação e organize seus convites.</p>
+      <a class="mh-button" href="{% url 'profile' %}?aba=mestre">Meu perfil · Mestre →</a>
+      <p class="mh-footnote">A administração concede a permissão após avaliar o pedido. Os requisitos deste guia continuam válidos.</p>
+    </div>
+  </aside>
   <article class="w-full max-w-4xl">
     
     
@@ -162,10 +179,10 @@
       
       <div class="my-4 border border-[var(--stroke)] rounded overflow-hidden">
         <div class="bg-[var(--bg1)] px-3 py-1.5 border-b border-[var(--stroke)] flex justify-between items-center text-sm font-bold text-[var(--text)]">
-          <span>Mensagem Sugerida para Candidatura</span>
+          <span>Como solicitar a avaliação</span>
         </div>
         <div class="p-3 bg-[var(--bg0)] overflow-x-auto">
-          <pre class="text-[var(--muted)] font-mono text-sm leading-relaxed" style="white-space: pre-wrap;">Olá! Preenchi o Formulário de Candidatura a Mestre agora há pouco. Fico à disposição para os próximos passos.</pre>
+          <p class="text-[var(--muted)] text-sm leading-relaxed">Abra a aba <a class="mh-text-link" href="{% url 'profile' %}?aba=mestre">Mestre no seu perfil</a> e envie o pedido de participação. A equipe avaliará os requisitos antes de conceder a permissão.</p>
         </div>
       </div>
     </section>
