@@ -1,7 +1,7 @@
 # S10 — aceite local do Pathbuilder
 
-Base: `2368953bebe375c2247724c8c5be08ba771c10d1`. Execução restrita ao
-worktree da frente S10; sem produção, migração aplicada manualmente ou deploy.
+Base de integração: `b061c66`. Execução restrita ao banco PostgreSQL de teste;
+sem produção, migração aplicada manualmente ou deploy.
 
 ## Matriz executada
 
@@ -16,7 +16,7 @@ prévia criou `TbPersonagem`.
 | Artífice | 6 | prévia no desbloqueio e progressão 1/20 passaram |
 | Bárbaro | 7 | prévia no desbloqueio e progressão 1/20 passaram |
 | Bardo | 8 | prévia no desbloqueio e progressão 1/20 passaram |
-| Caçador | 6 | pendente de revisão publicada no fixture isolado |
+| Caçador | 6 legadas no fixture; 8 na revisão canônica | prévias das 8 ordens no nível 3 e progressão 1/20 passaram com revisão publicada apenas no teste |
 | Clérigo | 12 | prévia no desbloqueio e progressão 1/20 passaram |
 | Druida | 7 | prévia no desbloqueio e progressão 1/20 passaram |
 | Feiticeiro | 7 | prévia no desbloqueio e progressão 1/20 passaram |
@@ -27,8 +27,13 @@ prévia criou `TbPersonagem`.
 | Monge | 10 | prévia no desbloqueio e progressão 1/20 passaram |
 | Paladino | 9 | prévia no desbloqueio e progressão 1/20 passaram |
 
-Total: 13 classes e 111 subclasses no catálogo; 12 classes e 105 subclasses
-exercitadas ponta a ponta. Os seis casos do Caçador não contam como aceitos.
+O fixture original contém 13 classes e 111 subclasses. A matriz geral exercitou
+12 classes e 105 subclasses; ela omite o Caçador quando não há publicação.
+Uma matriz separada montou, dentro da transação de teste, a revisão publicada
+com as oito ordens de `home/rules/hunter_rework.json`. As seis entradas legadas
+do fixture permaneceram no banco; quatro não pertencem à revisão canônica.
+Esses resultados não demonstram que um catálogo de Caçador já foi publicado
+no banco DEV ou em produção.
 
 ## Interface e privacidade
 
@@ -40,6 +45,7 @@ exercitadas ponta a ponta. Os seis casos do Caçador não contam como aceitos.
 - Enter e Espaço ativam etapas; `aria-current="step"` acompanha a etapa ativa.
   Em navegador real, editor, controles e ficha couberam em 360, 390, 768,
   1024 e 1440 px, sem rolagem horizontal global.
+- As cinco capturas reais estão em `evidencias/s10/pathbuilder-{largura}.png`.
 
 ## Evidências locais
 
@@ -52,19 +58,19 @@ exercitadas ponta a ponta. Os seis casos do Caçador não contam como aceitos.
 | `py -3.14 manage.py test home.test_pathbuilder_spells --keepdb` | 10 testes, OK |
 | `node --test home/js_tests/pathbuilder.browser.cjs` | 37 testes, OK |
 | `node --check home/static/js/pathbuilder.js` | OK |
-| `py -3.14 manage.py test home --keepdb --failfast` | 46 executados de 2265 descobertos; 1 falha em `home.test_admin_navigation.AdminNavigationTests.test_groups_cover_visible_models_once_in_stable_task_order` |
+| `py -3.14 manage.py test home.test_hunter_public_creator.HunterPublicCreatorTests.test_s10_published_hunter_orders_preview_without_persistence --keepdb` | 1 teste OK; oito ordens canônicas, níveis 1/3/20, zero personagem criado, registros legados preservados |
+| `py -3.14 manage.py test home.test_pathbuilder_e2e.PathbuilderRealE2ETests.test_s10_teclado_e_larguras_da_matriz --keepdb` | 1 teste Edge OK; cinco capturas em `evidencias/s10/` |
+| `py -3.14 manage.py test home.test_class_page_options --keepdb` | 6 testes OK após corrigir duas expectativas textuais legadas |
 
-Os comandos Django usaram `DB_ENGINE=postgresql`, porta `55479` e cluster
-temporário exclusivo da S10. Os testes de navegador usaram Chromium local.
-A suíte geral não passou: `MODEL_GROUP` não contém `TbAutorizacaoVitrine`,
-`TbFeitoLenda` e `TbVerificacaoMesa`, esperados pelo teste em arquivo fora do
-escopo S10. Nenhum aceite geral é declarado com essa falha.
+Os comandos novos usaram `DB_ENGINE=postgresql` e o banco de teste
+`test_bonfire_redesign_6113ea68`. O teste de navegador usou Edge local.
+A falha anterior de `MODEL_GROUP` foi corrigida em `a6c8e4c`. A suíte geral
+iniciada sobre `b061c66` ainda não tem resultado final; não há aceite S10.
 
 ## Limites do aceite
 
-- O handoff `redesign-s09-handoff.md` descreve integrações pendentes, mas não
-  registra um aceite S09. A dependência S09 aceita permanece sem evidência
-  nesta frente.
-- G01 não foi alterado. G00 permanece reservado à S12 e G02 à produção.
-- A matriz não substitui uma auditoria de personagens reais nem valida o
-  Caçador sem revisão publicada. Essas verificações dependem de outra frente.
+- S09 foi aceita separadamente. G00 foi reconciliado localmente para S12;
+  G02 permanece reservado à produção.
+- A matriz não substitui auditoria de personagens reais nem publicação de
+  conteúdo em DEV/produção. A revisão canônica do Caçador foi simulada somente
+  no banco de teste; nenhuma alteração de G01 foi aplicada.
