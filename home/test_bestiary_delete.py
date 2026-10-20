@@ -17,7 +17,7 @@ class BestiaryDeleteReferencesTests(TestCase):
                                tags_json=['summon:bestiary{espirito_elemental}'])
         response = self.client.post(self.url, follow=True)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Remova a referencia antes de exclui-la')
+        self.assertContains(response, 'Remova a referência antes de excluí-la')
         self.assertTrue(TbBestiario.objects.filter(pk=self.creature.pk).exists())
 
     def test_statblock_feature_reference_blocks_delete(self):
