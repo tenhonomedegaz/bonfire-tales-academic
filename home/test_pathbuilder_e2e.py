@@ -133,6 +133,8 @@ class PathbuilderRealE2ETests(StaticLiveServerTestCase):
             PATHBUILDER_E2E_BUILDS=json.dumps([build, build]))
         script = r"""
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const { chromium } = require(process.env.BONFIRE_PLAYWRIGHT_MODULE);
 (async () => {
   const browser = await chromium.launch({ headless: true,
@@ -175,6 +177,13 @@ const { chromium } = require(process.env.BONFIRE_PLAYWRIGHT_MODULE);
         const box = await page.locator(selector).boundingBox();
         assert.ok(box && box.x >= -1 && box.x + box.width <= width + 1,
           `${width}px: ${selector} fora da tela`);
+      }
+      if (process.env.S10_SCREENSHOT_DIR) {
+        fs.mkdirSync(process.env.S10_SCREENSHOT_DIR, { recursive: true });
+        await page.screenshot({
+          path: path.join(process.env.S10_SCREENSHOT_DIR, `pathbuilder-${width}.png`),
+          fullPage: true,
+        });
       }
     }
     assert.deepEqual(errors, []);
