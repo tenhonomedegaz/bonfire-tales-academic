@@ -117,11 +117,17 @@ class ItemEditorRecoveryTests(StaticLiveServerTestCase):
                     with self.subTest(route=route):
                         url = self.live_server_url + reverse(route)
                         call('Page.navigate', {'url': url})
-                        until('document.readyState==="complete" && !!document.querySelector("[data-shop-detail] [data-item-editor]")')
+                        until('document.readyState==="complete" && !!document.querySelector("[data-mkt-row]")')
                         self.assertAlmostEqual(js('devicePixelRatio'), 2, delta=.05)
                         self.assertEqual(js('visualViewport.scale'), 1)
                         self.assertLessEqual(js('document.documentElement.scrollWidth'), js('document.documentElement.clientWidth'))
-                        js('document.querySelector("[data-mkt-row]").click()')
+                        if route == 'mercado_itens_magicos':
+                            js('''const stock = document.querySelector('[data-shop-stock]');
+                                stock.value = 'catalogo';
+                                stock.dispatchEvent(new Event('change', {bubbles:true}));''')
+                        target = ('mi-' if route == 'mercado_itens_magicos' else 'mu-') + str(item.pk)
+                        js('document.querySelector(`[data-mkt-row][data-target="%s"]`).click()' % target)
+                        until('!!document.querySelector("[data-shop-detail] [data-item-editor]")')
                         self.assertTrue(js('document.querySelector("[data-shop-root]").classList.contains("is-sheet-open")'))
                         js('''window.qaDetails=document.querySelector('[data-shop-detail] .mkt-inline-editor');
                             window.qaForm=window.qaDetails.querySelector('[data-item-editor]');
@@ -182,14 +188,14 @@ class ItemEditorRecoveryTests(StaticLiveServerTestCase):
                             '[ruim](javascript:alert(1)) [bom](https://example.org)'
                         )
                         item.save(update_fields=['descricao_markdown'])
-                        call('Page.navigate', {'url': url})
+                        call('Page.navigate', {'url': url + '?item=' + target})
                         until('document.readyState==="complete" && !!document.querySelector("[data-shop-detail] .mkt-desc")')
                         self.assertTrue(js('!!document.querySelector("[data-shop-detail] .mkt-desc strong")'))
                         self.assertTrue(js('!!Array.from(document.querySelectorAll("[data-shop-detail] .mkt-desc a")).find(a=>a.href==="https://example.org/")'))
                         self.assertFalse(js('!!document.querySelector("[data-shop-detail] .mkt-desc [onerror], [data-shop-detail] .mkt-desc svg, [data-shop-detail] .mkt-desc a[href^=javascript]")'))
                         self.assertFalse(js('window.__marketInjected===1'))
                         js('''window.renderBonfireMarkdownElement=undefined;
-                            document.querySelector('[data-mkt-row]').click();''')
+                            document.querySelector('[data-mkt-row][data-target="%s"]').click();''' % target)
                         self.assertTrue(js('document.querySelector("[data-shop-detail] .mkt-desc").textContent.includes("**Seguro**")'))
                         self.assertFalse(js('!!document.querySelector("[data-shop-detail] .mkt-desc strong, [data-shop-detail] .mkt-desc img")'))
             finally:

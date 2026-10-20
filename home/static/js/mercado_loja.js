@@ -79,7 +79,7 @@
       campo.value = valor;
     });
     if (soFavoritos) soFavoritos.checked = params.get('favoritos') === '1';
-    var alvo = params.get('item');
+    var alvo = params.get('item') || params.get('editado');
     var linhasCompra = linhasDe(paneDe('comprar'));
     var linhaDoLink = alvo && linhasCompra.find(function (r) {
       return r.getAttribute('data-target') === alvo || r.getAttribute('data-magic-slug') === alvo;

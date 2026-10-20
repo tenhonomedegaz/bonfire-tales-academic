@@ -56,6 +56,7 @@
     </dl>
     {% if item.descricao_markdown %}<div class="bonfire-markdown mkt-desc" data-markdown-source>{{ item.descricao_markdown|escape }}</div>
     {% else %}<p class="mkt-card-line">Sem descrição catalogada.</p>{% endif %}
+    {% if request.user.is_superuser %}{% include 'home/partials/magic_market_editor.html' %}{% endif %}
   </article>
 </template>
 {% endfor %}
