@@ -76,7 +76,18 @@
       });
       if (root.dataset.spellGroup) {
         root.querySelectorAll(root.dataset.spellGroup).forEach(group => {
-          group.hidden = !!(query || (level && level.value)) && !all.some(row => group.contains(row) && !row.hidden);
+          const filtering = !!(query || (level && level.value));
+          const hasMatch = all.some(row => group.contains(row) && !row.hidden);
+          group.hidden = filtering && !hasMatch;
+          if (group.tagName === 'DETAILS') {
+            if (filtering && hasMatch && !group.open) {
+              group.open = true;
+              group.dataset.spellPickerAutoOpen = '1';
+            } else if (!filtering && group.dataset.spellPickerAutoOpen === '1') {
+              group.open = false;
+              delete group.dataset.spellPickerAutoOpen;
+            }
+          }
         });
       }
       status.textContent = (shown ? shown + ' de ' + all.length + ' resultados.' : 'Nenhum resultado.') + ' ' + chosen.length + ' selecionada(s).';

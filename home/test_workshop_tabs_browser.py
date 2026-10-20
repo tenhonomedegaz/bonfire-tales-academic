@@ -150,6 +150,33 @@ class WorkshopTabsBrowserTests(StaticLiveServerTestCase):
                 wait_for('location.search.includes("status=invalida")')
                 wait_for('document.querySelector("[data-workshop-tab=transcription][aria-pressed=true]") !== null')
                 self.assertTrue(js('location.search.includes("tab=transcription")'))
+
+                # A busca precisa expor magias dentro dos grimórios recolhidos.
+                js('''(() => {
+                    const root = document.querySelector('[data-workshop-panel=transcription] [data-spell-picker]');
+                    const books = document.createElement('div');
+                    books.innerHTML = '<details class="workshop-book"><summary>Primeiro grimório</summary><div class="workshop-book-spell" data-spell-name="Bênção Bless" data-spell-level="1">Bênção</div></details>' +
+                        '<details class="workshop-book"><summary>Segundo grimório</summary><div class="workshop-book-spell" data-spell-name="Luz Light" data-spell-level="0">Luz</div></details>';
+                    root.append(...books.children);
+                })()''')
+                wait_for('document.querySelectorAll("[data-workshop-panel=transcription] .workshop-book").length === 2')
+                js('''(() => {
+                    const root = document.querySelector('[data-workshop-panel=transcription] [data-spell-picker]');
+                    const search = root.previousElementSibling.querySelector('input[type=search]');
+                    search.value = 'bless';
+                    search.dispatchEvent(new Event('input', {bubbles: true}));
+                })()''')
+                wait_for('document.querySelector("[data-workshop-panel=transcription] .workshop-book").open')
+                self.assertFalse(js('document.querySelector("[data-workshop-panel=transcription] .workshop-book").hidden'))
+                self.assertTrue(js('document.querySelectorAll("[data-workshop-panel=transcription] .workshop-book")[1].hidden'))
+                js('''(() => {
+                    const root = document.querySelector('[data-workshop-panel=transcription] [data-spell-picker]');
+                    const search = root.previousElementSibling.querySelector('input[type=search]');
+                    search.value = '';
+                    search.dispatchEvent(new Event('input', {bubbles: true}));
+                })()''')
+                wait_for('!document.querySelector("[data-workshop-panel=transcription] .workshop-book").open')
+                self.assertFalse(js('document.querySelectorAll("[data-workshop-panel=transcription] .workshop-book")[1].hidden'))
             finally:
                 if ws:
                     ws.close()
