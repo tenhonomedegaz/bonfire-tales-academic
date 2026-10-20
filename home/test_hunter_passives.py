@@ -33,7 +33,7 @@ class HunterPassiveTests(TestCase):
             self.assertEqual('Possessão' in sheet['imunidades'],level>=15)
             self.assertEqual(any(c['slug']=='enfeiticado' for c in sheet['imunidades_condicao']),level>=15)
         self.assertContains(self.client.get(self.url),'Ataques por ação 2')
-        self.assertContains(self.client.get(self.url),'Vantagem nas salvaguardas contra Amedrontado')
+        self.assertContains(self.client.get(self.url),'Vantagem nos testes de resistência contra Amedrontado')
 
     def test_replaces_same_feature_once_and_preserves_other_source(self):
         TbClassehabilidade.objects.create(id_classe=self.cl,nome='Caçador Implacável',

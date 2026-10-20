@@ -23,7 +23,7 @@ class HunterLinkedSheetTests(TestCase):
         expected = derive(self.person, ruleset=self.ruleset)
         with CaptureQueriesContext(connection) as queries:
             response = self.client.get(self.url)
-        self.assertContains(response, 'Atributos e salvaguardas')
+        self.assertContains(response, 'Atributos e testes de resistência')
         self.assertContains(response, 'Ataques disponíveis')
         self.assertContains(response, 'Maestrias escolhidas')
         self.assertEqual(response.context['sheet'], expected)

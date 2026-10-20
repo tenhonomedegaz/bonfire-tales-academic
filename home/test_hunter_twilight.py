@@ -83,7 +83,7 @@ class HunterTwilightTests(_CriadorBase):
             self.client.force_login(self.user)
             url = reverse('hunter_preparation', args=[self.person.pk])
             page = self.client.get(url)
-            self.assertContains(page, 'Escolha outra salvaguarda')
+            self.assertContains(page, 'Escolha outro teste de resistência')
             response = self.client.post(url, dict(action='twilight_save', ability='FOR', version=0))
             self.assertEqual(response.status_code, 302)
             self.profile.refresh_from_db()
