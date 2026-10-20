@@ -36,9 +36,9 @@ class ClassPageOptionWidgetTests(_CriadorBase):
         section = next(item for item in response.context['habilidade_sections']
                        if item['habilidade'].pk == alias.pk)
         self.assertEqual(section['display_name'], 'Aprimoramento de Atributo ou Talento')
-        self.assertContains(response, 'Nivel 6: Aprimoramento de Atributo ou Talento')
+        self.assertContains(response, 'Nível 6: Aprimoramento de Atributo ou Talento')
         partial = self.client.get(reverse('classe_detail', args=['guerreiro']) + '?ajax=1')
-        self.assertContains(partial, 'Nivel 6: Aprimoramento de Atributo ou Talento')
+        self.assertContains(partial, 'Nível 6: Aprimoramento de Atributo ou Talento')
         alias.refresh_from_db()
         self.assertEqual(alias.nome, 'Incremento de Atributo ou Talento')
 
