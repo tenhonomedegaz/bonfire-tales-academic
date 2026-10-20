@@ -126,7 +126,8 @@
   territorioSelect.addEventListener('change', () => {
     const selectedTerritories = Array.from(territorioSelect.selectedOptions).map(opt => opt.value);
     allRegionOptions.forEach(opt => {
-      opt.hidden = selectedTerritories.length && !selectedTerritories.includes(opt.dataset.territory);
+      opt.hidden = selectedTerritories.length > 0 && !selectedTerritories.includes(opt.dataset.territory);
+      if (opt.hidden) opt.selected = false;
     });
   });
   // Trigger on load

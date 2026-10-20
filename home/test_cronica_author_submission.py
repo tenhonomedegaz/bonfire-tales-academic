@@ -15,7 +15,7 @@ from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.db import connection
 from django.urls import reverse
 
-from home.models import TbCronica
+from home.models import TbCronica, TbRegiao, TbTerritorio
 from home.views import _cronica_author_snapshot
 
 
@@ -35,6 +35,10 @@ class ChronicleAuthorSubmissionTests(StaticLiveServerTestCase):
             self.skipTest('Chrome ou Edge indisponivel.')
 
         author = get_user_model().objects.create_user('chronicle-author-qa', password='test-pass')
+        TbTerritorio.objects.create(nome='Norte', slug='norte')
+        TbTerritorio.objects.create(nome='Sul', slug='sul')
+        TbRegiao.objects.create(nome='Serra', slug='serra', territorio='Norte')
+        TbRegiao.objects.create(nome='Costa', slug='costa', territorio='Sul')
         published = TbCronica.objects.create(
             titulo='Publicada', slug='publicada-autor-qa', conteudo_markdown='Texto público',
             autor=author, status='aprovada',
@@ -122,6 +126,20 @@ class ChronicleAuthorSubmissionTests(StaticLiveServerTestCase):
                                          'Negrito')
                         self.assertEqual(js('document.querySelector("[data-wrap=italic]").getAttribute("aria-label")'),
                                          'Itálico')
+                        if failure == 'network':
+                            js('''(() => {
+                                const territory = document.querySelector('#edTerritorio');
+                                const region = document.querySelector('#edRegiao');
+                                territory.querySelector('[value="Norte"]').selected = true;
+                                territory.dispatchEvent(new Event('change'));
+                                region.querySelector('[value="Serra"]').selected = true;
+                                territory.querySelector('[value="Norte"]').selected = false;
+                                territory.querySelector('[value="Sul"]').selected = true;
+                                territory.dispatchEvent(new Event('change'));
+                            })()''')
+                            self.assertTrue(js('document.querySelector("#edRegiao [value=Serra]").hidden'))
+                            self.assertFalse(js('document.querySelector("#edRegiao [value=Serra]").selected'))
+                            js('document.querySelector("#edRegiao [value=Costa]").selected = true')
                         js('''(() => {
                             document.querySelector('#edTitulo').value=%s;
                             document.querySelector('#edMarkdown').value=%s;
@@ -153,7 +171,9 @@ class ChronicleAuthorSubmissionTests(StaticLiveServerTestCase):
                         js('window.fetch=window.qaFetch;document.querySelector("#cronicaEditorForm").requestSubmit()')
                         until('location.pathname==="%s"' % reverse('mundo_cronicas'))
                         if failure == 'network':
-                            self.assertEqual(TbCronica.objects.filter(titulo=title, status='pendente').count(), 1)
+                            story = TbCronica.objects.get(titulo=title, status='pendente')
+                            self.assertEqual(story.territorio, 'Sul')
+                            self.assertEqual(story.regiao, 'Costa')
                         else:
                             published.refresh_from_db()
                             self.assertEqual(published.conteudo_markdown, 'Texto público')
