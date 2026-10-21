@@ -1,21 +1,21 @@
 # Redesign Bonfire: release e reversão
 
-## Estado e referências em 20/10/2026
+## Estado e referências em 21/10/2026
 
 | Referência | SHA / estado |
 | --- | --- |
 | Fonte visual fixada | `BonfireSite-redesign@7289711136e340afe5a13ba397ecce978071896d` |
 | Base comum com `dev` | `7e4c13b12f93f1e9678a7826b87ee897a0230a8f` |
 | Base desta frente S11 | `2368953bebe375c2247724c8c5be08ba771c10d1`, branch `jarvis/parallel-2959a1cf-96d6-4c7f-99fa-fe9bc113c3ff/2` |
-| `dev` local observado na preparação | `2a0c65048c93e3625f7726d786ec00db12304202`; confirmar de novo antes de S12 |
+| `dev` remoto conferido para S12 | `2a0c65048c93e3625f7726d786ec00db12304202`; ancestral do HEAD `e087a2061f2260ddc076506a446d9fbe77464f37`; conferir de novo antes do push |
 
 S09 foi aceita para prosseguir com S11. O handoff compartilhado está em
 [redesign-s09-handoff.md](redesign-s09-handoff.md); a cobertura versionada de
 rotas inclui `18b1373` (matriz aprovada), `b27fa4f` (inventário original) e
 `789c04b` (limites dinâmicos legados). Isso não substitui o aceite de S10:
 suite geral, matriz completa do charbuilder e QA visual/funcional ainda precisam
-de resultado consolidado. S11 é o guia; esta revisão não conclui S10, não integra
-`dev` e não autoriza S12 ou produção.
+de resultado consolidado. G00 foi reconciliado localmente no merge `ca41838`;
+esta revisão não conclui S10, não envia `dev` e não autoriza produção.
 
 ## Gates efetivos
 
@@ -28,7 +28,7 @@ de resultado consolidado. S11 é o guia; esta revisão não conclui S10, não in
 | G01-E/F | E apenas nas adaptações necessárias aos lotes aprovados; F adiado. | Sem importação de fixtures, regras ou mecânicas. |
 | G01-sync | [Política dos seis modelos](redesign-g01-deploy-sync-proposta.md) aprovada pelo PO, condicionada a não enviar perfis de teste para produção. | Perfis, anúncios, revisões e feitos permanecem no próprio ambiente; conferir o artefato de catálogo antes de qualquer envio. G02 continua separado. |
 | S10 | Aceite consolidado ainda exigido: suite geral, charbuilder, QA e regressões abaixo. | Sem esse aceite, S12 permanece pendente. |
-| G00 | Reconciliação da entrega predecessora com `dev`, preservando conteúdo local, ainda exigida antes de S12. | Sem G00, não integrar nem fazer push de S12. |
+| G00 | Reconciliação local concluída no merge `ca41838`; `git merge-base --is-ancestor dev HEAD` retornou 0 e `origin/dev` foi conferido em `2a0c650` em 21/10/2026. | Revalidar o SHA remoto antes do push de S12; se houver avanço, reconciliar primeiro. |
 | G02 | PO ainda precisa autorizar e executar a atualização de produção. | Só depois ocorre smoke S13 no site/API; push em `dev` não comprova deploy. |
 
 As decisões vigentes e o histórico da proposta estão em
@@ -41,8 +41,9 @@ Não aplicar a cadeia da fonte, usar `--fake` ou editar migration já aplicada.
 ## Sequência DEV até S12
 
 1. Registrar os SHAs de origem e `dev` novamente, branch, `git status --short`,
-   diff e sublotes G01 efetivamente incluídos. Concluir G00 antes da integração
-   final; não sobrescrever `main` nem tomar o SHA acima como `dev` imutável.
+   diff e sublotes G01 efetivamente incluídos. Revalidar G00 contra o `dev`
+   remoto antes da integração final; não sobrescrever `main` nem tomar o SHA
+   acima como `dev` imutável.
 2. Identificar o PostgreSQL **DEV isolado** e conferir integridade de PK/FK,
    `git diff --check`, `py -3 manage.py check`,
    `py -3 manage.py makemigrations --check --dry-run` e
