@@ -86,6 +86,10 @@ MEMORY_MODELS = [
     # Direitos financeiros, chaves e trilhas de API são estado operacional local.
     "CosmeticCheckoutPurchase", "CosmeticMMRedemption", "MestreOuroDireito", "MestreOuroRevisao",
     "ManagedApiKey", "DbAccessIdempotency", "DbAccessAudit",
+    # G01 redesign: perfis, anuncios, revisoes e feitos pertencem ao ambiente.
+    # Perfis de teste da dev nunca sao importados pelo sync de catalogo.
+    "TbPerfilMestre", "TbMesaAnuncio", "TbTrabalhoMestre",
+    "TbVerificacaoMesa", "TbAutorizacaoVitrine", "TbFeitoLenda",
 ]
 CONTENT_MODELS = UPSERT_POR_SLUG + SUBSTITUI
 RESTORE_GUARDED_MODELS = CONTENT_MODELS + PRODUCTION_PRESERVED_MODELS

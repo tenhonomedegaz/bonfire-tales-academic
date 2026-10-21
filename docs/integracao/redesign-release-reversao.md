@@ -26,6 +26,7 @@ de resultado consolidado. S11 é o guia; esta revisão não conclui S10, não in
 | G01-C | Aprovados o resgate de slot por 5.000 MM, o fluxo mínimo de tokens/slot por ficha para novos marcos e a Lenda pública com migration própria, conforme [proposta C](redesign-g01-c-tokens-proposta.md). | Preservar direitos históricos; sem token retroativo, entrega automática de item, conversão de saldo de conta ou publicação de solicitação privada de missão. |
 | G01-D | Piloto de temas e economia aprovado apenas em DEV isolado, com inventário e reversão prévios. | Oferta demonstrativa não cobra; preservar recibos, direitos, saldo e posses. |
 | G01-E/F | E apenas nas adaptações necessárias aos lotes aprovados; F adiado. | Sem importação de fixtures, regras ou mecânicas. |
+| G01-sync | [Política dos seis modelos](redesign-g01-deploy-sync-proposta.md) aprovada pelo PO, condicionada a não enviar perfis de teste para produção. | Perfis, anúncios, revisões e feitos permanecem no próprio ambiente; conferir o artefato de catálogo antes de qualquer envio. G02 continua separado. |
 | S10 | Aceite consolidado ainda exigido: suite geral, charbuilder, QA e regressões abaixo. | Sem esse aceite, S12 permanece pendente. |
 | G00 | Reconciliação da entrega predecessora com `dev`, preservando conteúdo local, ainda exigida antes de S12. | Sem G00, não integrar nem fazer push de S12. |
 | G02 | PO ainda precisa autorizar e executar a atualização de produção. | Só depois ocorre smoke S13 no site/API; push em `dev` não comprova deploy. |
@@ -69,7 +70,9 @@ Não aplicar a cadeia da fonte, usar `--fake` ou editar migration já aplicada.
    testes regionais dos comportamentos alterados. Não usar `loaddata` por PK
    para transportar catálogo; para conteúdo aprovado, seguir
    [deploy-sync-conteudo.md](../deploy-sync-conteudo.md) com chaves naturais e
-   PKs/FKs existentes preservadas.
+   PKs/FKs existentes preservadas. No lote G01-sync, conferir que o artefato de
+   catálogo exclui os seis modelos de memória, em especial perfis de teste,
+   antes de qualquer envio à produção; backups integrais não são fixtures de catálogo.
 6. Em S10, registrar SHA, ambiente, comando, saída/código de retorno e achados
    da suite geral, matriz completa do charbuilder, rotas de S09, login/CSRF,
    permissões e privacidade, pagamentos/Asaas, publicidade e fluxos legados.

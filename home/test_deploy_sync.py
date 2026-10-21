@@ -2,6 +2,8 @@
 import json
 from decimal import Decimal
 from io import StringIO
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from django.apps import apps
@@ -108,6 +110,42 @@ class DeploySyncContractTests(TestCase):
             if model._meta.managed and model.__name__ not in classified
         )
         self.assertEqual(unclassified, [])
+
+    def test_redesign_profiles_and_records_are_memory_not_catalog(self):
+        protected = (
+            'TbPerfilMestre', 'TbMesaAnuncio', 'TbTrabalhoMestre',
+            'TbVerificacaoMesa', 'TbAutorizacaoVitrine', 'TbFeitoLenda',
+        )
+        for name in protected:
+            self.assertIn(name, deploy_sync.MEMORY_MODELS)
+            self.assertNotIn(name, deploy_sync.CONTENT_MODELS)
+
+        Profile = apps.get_model('home', 'TbPerfilMestre')
+        local_user = User.objects.create_user(username='mestre-local-sync')
+        test_user = User.objects.create_user(username='mestre-teste-dev-sync')
+        local = Profile.objects.create(
+            user=local_user, modo='mestre', apresentacao='Perfil local preservado')
+        test_profile = Profile.objects.create(
+            user=test_user, modo='jogador', apresentacao='Perfil de teste da dev')
+        rule = TbRegra.objects.create(
+            slug='regra-redesign-sync', nome='Regra de catalogo', categoria='core')
+        with TemporaryDirectory() as directory:
+            output = Path(directory) / 'conteudo.json'
+            call_command('dump_conteudo', output=str(output), stdout=StringIO())
+            exported = json.loads(output.read_text(encoding='utf-8'))
+        self.assertFalse(any(row['model'] == 'home.tbperfilmestre' for row in exported))
+        self.assertTrue(any(row['model'] == 'home.tbregra' for row in exported))
+        fixture = serializers.serialize('json', [test_profile, rule])
+        test_profile.delete()
+        rule.delete()
+
+        report = deploy_sync.sincronizar_conteudo(fixture)
+
+        local.refresh_from_db()
+        self.assertEqual(local.apresentacao, 'Perfil local preservado')
+        self.assertFalse(Profile.objects.filter(user=test_user).exists())
+        self.assertTrue(TbRegra.objects.filter(slug='regra-redesign-sync').exists())
+        self.assertTrue(report['mem_ok'])
 
     def test_adventure_ledger_is_memory_and_world_is_production_owned(self):
         self.assertIn("TbPersonagemAventura", deploy_sync.MEMORY_MODELS)
