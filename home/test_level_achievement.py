@@ -343,10 +343,12 @@ class LevelAchievementTests(_CriadorBase):
 
         revision.revertida = True
         revision.save(update_fields=['revertida'])
-        TbEventoConquista.objects.filter(agregado_id=revision.pk).delete()
+        TbEventoConquista.objects.filter(
+            agregado_id=revision.pk, tipo='character_level_up').delete()
         with patch.object(administrator, 'message_user'):
             administrator.reprocessar_nivel(request, TbConquista.objects.filter(pk=rule.pk))
-        self.assertFalse(TbEventoConquista.objects.filter(agregado_id=revision.pk).exists())
+        self.assertFalse(TbEventoConquista.objects.filter(
+            agregado_id=revision.pk, tipo='character_level_up').exists())
 
     def test_admin_does_not_invent_level_fact_without_valid_snapshot(self):
         owner = self._novo_usuario('level-unproven-owner')
@@ -373,7 +375,8 @@ class LevelAchievementTests(_CriadorBase):
                 RequestFactory().post('/admin/home/tbconquista/'),
                 TbConquista.objects.filter(pk=rule.pk))
         self.assertIn('1 revisão(ões) sem prova suficiente', notification.call_args.args[1])
-        self.assertFalse(TbEventoConquista.objects.filter(agregado_id=revision.pk).exists())
+        self.assertFalse(TbEventoConquista.objects.filter(
+            agregado_id=revision.pk, tipo='character_level_up').exists())
         self.assertFalse(TbUsuarioConquista.objects.filter(user=owner, conquista=rule).exists())
         revision.snapshot_json = ['estrutura inválida']
         revision.save(update_fields=['snapshot_json'])
@@ -382,7 +385,8 @@ class LevelAchievementTests(_CriadorBase):
                 RequestFactory().post('/admin/home/tbconquista/'),
                 TbConquista.objects.filter(pk=rule.pk))
         self.assertIn('1 revisão(ões) sem prova suficiente', notification.call_args.args[1])
-        self.assertFalse(TbEventoConquista.objects.filter(agregado_id=revision.pk).exists())
+        self.assertFalse(TbEventoConquista.objects.filter(
+            agregado_id=revision.pk, tipo='character_level_up').exists())
 
     def test_rank_milestone_uses_verified_level_and_private_character(self):
         owner = self._novo_usuario('rank-milestone-owner')

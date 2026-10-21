@@ -70,6 +70,8 @@
 
   dialog.querySelector('[data-service-back]').addEventListener('click', () => dialog.close());
   dialog.addEventListener('close', () => {
+    // A close event from the previous review can arrive after the next opens.
+    if (dialog.open) return;
     const button = pending?.button;
     pending = null;
     button?.focus({ preventScroll: true });

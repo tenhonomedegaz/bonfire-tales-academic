@@ -112,6 +112,7 @@ class ServicesReviewBrowserTests(StaticLiveServerTestCase):
                 js('document.querySelector(".loan-payment input[name=valor_po]").value = "0"; document.querySelector(".loan-payment button[name=valor_po]").click()')
                 wait_for('document.querySelector("#service-review").open')
                 self.assertEqual(js('document.querySelector("[data-service-subject]").textContent'), 'Ficha Devedora → Ficha Credora')
+                js('document.querySelector("#service-review").dispatchEvent(new Event("close"))')
                 js('document.querySelector("[data-service-confirm]").click()')
                 for _ in range(200):
                     loan.refresh_from_db()
