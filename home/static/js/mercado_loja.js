@@ -448,6 +448,8 @@
   if (review && typeof review.showModal === 'function') {
     review.querySelector('[data-shop-review-cancel]').addEventListener('click', function () { review.close(); });
     review.addEventListener('close', function () {
+      // O fechamento anterior pode ser entregue depois que outra revisao abriu.
+      if (review.open) return;
       pendingTrade = null;
       if (folhaAberta && folha) folha.setAttribute('aria-modal', 'true');
       if (reviewOpener && document.contains(reviewOpener)) reviewOpener.focus({ preventScroll: true });

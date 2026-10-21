@@ -53,12 +53,16 @@ class ServicesReviewBrowserTests(StaticLiveServerTestCase):
             ws = None
             try:
                 port_file = Path(profile) / 'DevToolsActivePort'
+                port = None
                 for _ in range(150):
-                    if port_file.exists() or process.poll() is not None:
+                    try:
+                        port = port_file.read_text(encoding='utf-8').splitlines()[0]
                         break
-                    time.sleep(.2)
-                self.assertTrue(port_file.exists(), 'Browser did not start.')
-                port = port_file.read_text(encoding='utf-8').splitlines()[0]
+                    except (FileNotFoundError, PermissionError, IndexError):
+                        if process.poll() is not None:
+                            break
+                        time.sleep(.2)
+                self.assertIsNotNone(port, 'Browser debugging port unavailable.')
                 with urlopen(f'http://127.0.0.1:{port}/json', timeout=10) as response:
                     target = next(item for item in json.load(response) if item['type'] == 'page')
                 ws = websocket.create_connection(target['webSocketDebuggerUrl'], timeout=30)

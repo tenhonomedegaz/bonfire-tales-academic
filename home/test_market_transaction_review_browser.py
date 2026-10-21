@@ -127,6 +127,9 @@ class MarketTransactionReviewBrowserTests(StaticLiveServerTestCase):
                 self.assertEqual(js('tradeCalls.length'), 0)
                 js('document.querySelector("[data-shop-detail] [data-shop-buy] button[type=submit]").click()')
                 wait_for('document.querySelector("[data-shop-review]").open')
+                # A queued close from the previous review must not discard this trade.
+                js('document.querySelector("[data-shop-review]").dispatchEvent(new Event("close"))')
+                self.assertTrue(js('document.querySelector("[data-shop-review]").open'))
                 js('document.querySelector("[data-shop-review-confirm]").click()')
                 wait_for('tradeCalls.length === 1')
                 self.assertEqual(js('tradeCalls[0].fields.item'), mundane.slug)

@@ -107,7 +107,7 @@ class WorkshopTabsBrowserTests(StaticLiveServerTestCase):
                 self.assertEqual(js('document.querySelector("[data-shop-picker] [name=tab]").value'), 'components')
                 js(f'document.querySelector("[data-shop-personagem]").value = "{second.pk}"; document.querySelector("[data-shop-picker]").requestSubmit()')
                 wait_for('document.querySelector("[data-workshop-tab=components][aria-pressed=true]") !== null')
-                wait_for(f'document.querySelector("[data-shop-personagem]").value === "{second.pk}"')
+                wait_for(f'document.querySelector("[data-shop-personagem]")?.value === "{second.pk}"')
                 js('document.querySelector("[data-workshop-tab=casting]").click()')
                 js('history.back()')
                 wait_for('document.querySelector("[data-workshop-tab=components][aria-pressed=true]") !== null')
