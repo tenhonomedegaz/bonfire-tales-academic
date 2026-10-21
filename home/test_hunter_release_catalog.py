@@ -55,7 +55,15 @@ class HunterReleaseCatalogTests(_CriadorBase):
         self.assertEqual(compose_order_revision(compose_choice_revision(target, **mapping),
             class_id=hunter.pk, order_ids=orders).pk, target.pk)
         person.refresh_from_db()
-        self.assertEqual(derive(person), before)
+        after = derive(person)
+        # Legacy resource rows have no database ordering guarantee. The new
+        # Order identities must preserve every resource and its value, while
+        # PostgreSQL may return the same rows in a different sequence.
+        for kind, rows in before['recursos_por_tipo'].items():
+            self.assertCountEqual(after['recursos_por_tipo'][kind], rows)
+        for snapshot in (before, after):
+            snapshot.pop('recursos_por_tipo')
+        self.assertEqual(after, before)
         self.assertFalse(TbPersonagemCacador.objects.filter(personagem_classe=pc).exists())
 
         detail_url = reverse('classe_detail', args=['cacador'])
