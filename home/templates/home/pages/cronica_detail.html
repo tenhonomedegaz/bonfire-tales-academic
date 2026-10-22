@@ -16,6 +16,7 @@
 <nav class="chronicles-breadcrumb" aria-label="Caminho da crônica"><a href="{% url 'mundo_cronicas' %}">← Arquivo de Crônicas</a><span>Bonfire Tales RPG · Relatos de aventureiros</span></nav>
 <div class="cronica-hero">
   {% if cronica.safe_image_url %}<img class="cronica-hero-cover" src="{{ cronica.safe_image_url }}" alt="">{% endif %}
+  <p class="chronicles-kicker">Crônicas de Cinéria{% if cronica.destaque_editorial %} · Destaque editorial{% endif %}</p>
   <span class="cronica-eyebrow">{{ cronica.territorio_label }}{% if cronica.regiao_label %} &middot; {{ cronica.regiao_label }}{% endif %}</span>
   <h1 class="cronica-title">{{ cronica.titulo }}</h1>
   <div class="cronica-meta">
