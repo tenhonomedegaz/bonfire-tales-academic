@@ -13,9 +13,10 @@ S09 foi aceita para prosseguir com S11. O handoff compartilhado está em
 [redesign-s09-handoff.md](redesign-s09-handoff.md); a cobertura versionada de
 rotas inclui `18b1373` (matriz aprovada), `b27fa4f` (inventário original) e
 `789c04b` (limites dinâmicos legados). Isso não substitui o aceite de S10:
-suite geral, matriz completa do charbuilder e QA visual/funcional ainda precisam
-de resultado consolidado. G00 foi reconciliado localmente no merge `ca41838`;
-esta revisão não conclui S10, não envia `dev` e não autoriza produção.
+o aceite local S10 foi registrado em [redesign-s10-aceite.md](redesign-s10-aceite.md),
+com matriz, capturas e validação composta da suíte geral e correção focada.
+G00 foi reconciliado localmente no merge `ca41838`. O envio a `dev` e a
+atualização de produção são marcos separados.
 
 ## Gates efetivos
 
@@ -27,7 +28,7 @@ esta revisão não conclui S10, não envia `dev` e não autoriza produção.
 | G01-D | Piloto de temas e economia aprovado apenas em DEV isolado, com inventário e reversão prévios. | Oferta demonstrativa não cobra; preservar recibos, direitos, saldo e posses. |
 | G01-E/F | E apenas nas adaptações necessárias aos lotes aprovados; F adiado. | Sem importação de fixtures, regras ou mecânicas. |
 | G01-sync | [Política dos seis modelos](redesign-g01-deploy-sync-proposta.md) aprovada pelo PO, condicionada a não enviar perfis de teste para produção. | Perfis, anúncios, revisões e feitos permanecem no próprio ambiente; conferir o artefato de catálogo antes de qualquer envio. G02 continua separado. |
-| S10 | Aceite consolidado ainda exigido: suite geral, charbuilder, QA e regressões abaixo. | Sem esse aceite, S12 permanece pendente. |
+| S10 | Aceite local com matriz do charbuilder e validação composta documentado em [redesign-s10-aceite.md](redesign-s10-aceite.md). | Libera S12; não comprova QA ou deploy remoto. |
 | G00 | Reconciliação local concluída no merge `ca41838`; `git merge-base --is-ancestor dev HEAD` retornou 0 e `origin/dev` foi conferido em `2a0c650` em 21/10/2026. | Revalidar o SHA remoto antes do push de S12; se houver avanço, reconciliar primeiro. |
 | G02 | PO ainda precisa autorizar e executar a atualização de produção. | Só depois ocorre smoke S13 no site/API; push em `dev` não comprova deploy. |
 
