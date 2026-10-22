@@ -8,7 +8,7 @@
 - A introdução da seção diz **+2 em um atributo, até 22**. As 31 descrições individuais dizem **+2 em um atributo à escolha, até 30**. O staging preserva os dois textos; nenhum deles foi eleito regra prevalente.
 - Dois talentos têm pré-requisito explícito: **Dádiva da Marca Arcana Superior** exige Marca Arcana Maior e Marca Potente; **Dádiva da Mente Desperta** exige Telepatia originada de Raça, Classe ou Talento. Os outros 29 não trazem pré-requisito explícito no catálogo; isso não define elegibilidade por nível, campanha ou concessão.
 - Os efeitos incluem escolhas, recursos por descanso, condições e exceções. `tags_mecanicas_explicitas` é uma transcrição da frase de atributo, sem sintaxe executável do motor.
-- A fonte HTML indicada no JSON (`ref/talentos épicos/Talentos in Bonfire Tales RPG.html`) não está presente neste worktree. Esta revisão valida a consistência do staging, sem declarar conferência independente contra o HTML nem publicação prévia de 139 talentos.
+- A fonte HTML indicada no JSON está em `BonfireSite-main/ref/talentos épicos/Talentos in Bonfire Tales RPG.html` e foi consultada somente para leitura. Os 31 títulos únicos do staging aparecem como cabeçalhos no HTML; a introdução contém uma ocorrência do limite 22 e as entradas contêm 31 ocorrências de "até o máximo de 30". Esta conferência cobre títulos e conflito de teto, sem validar palavra por palavra todos os efeitos nem presumir publicação prévia de 139 talentos.
 
 ## Contrato mínimo a definir antes de implementar
 
