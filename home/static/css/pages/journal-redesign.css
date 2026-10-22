@@ -1,1 +1,197 @@
-.journal-page{width:min(100%,74rem);margin:0 auto;padding:1.5rem}.journal-page .jornal-hero{border:1px solid var(--stroke);border-top:3px solid var(--flame);background:linear-gradient(135deg,var(--bg2),var(--bg0))}.journal-page .jornal-hero-title{font-family:'Cinzel',serif;color:var(--text)}.journal-page .jornal-toolbar,.journal-page .jornal-card{border-color:var(--stroke);background:var(--bg1)}.journal-page a:focus-visible{outline:2px solid var(--flame);outline-offset:3px}
+/* Jornal de Cinéria: editorial hierarchy within the Bonfire brand. */
+body.bft-journal{--journal-red:#b31515;--journal-wine:#4b0d0d;--journal-line:#62302b;--journal-paper:#efe6d7;--journal-muted:#c0b4a7;--journal-ember:#ffac72;background:#0a0a0a;color:var(--journal-paper);font-family:'Open Sans',sans-serif}
+.bft-journal [hidden]{display:none!important}
+.bft-journal :is(a,button,input,select,summary,textarea):focus-visible{outline:2px solid var(--journal-ember);outline-offset:4px}
+.bft-journal :is(input,select,textarea){min-width:0;max-width:100%}
+.bft-journal .journal-edition,.bft-journal .journal-reader-shell{width:min(100%,1360px);margin:0 auto;padding:1.25rem clamp(1rem,3vw,2.5rem) 3rem;min-width:0}
+.bft-journal .journal-preview-notice{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;border:1px dashed #9b653e;background:#25180d;color:#dac5a8;padding:.65rem .85rem;margin-bottom:1rem;font-size:.7rem;line-height:1.6}
+.bft-journal .journal-preview-notice strong{color:#ffc68c;font-weight:700}
+.bft-journal .journal-preview-notice a{color:#ffe0b6;text-decoration:underline;text-underline-offset:3px;margin-left:auto}
+.bft-journal .jornal-hero{background:linear-gradient(110deg,#2b0b0de0,#100c0d 65%);border:1px solid var(--journal-line);border-top:3px solid var(--journal-red);padding:0 1.5rem;text-align:left;position:relative;overflow:hidden}
+.bft-journal .jornal-hero::after{content:'';position:absolute;right:-30px;top:-55px;width:300px;height:300px;background:url('../../brand/facets.svg') center/contain no-repeat;opacity:.18;pointer-events:none}
+.bft-journal .journal-masthead-top,.bft-journal .journal-masthead-bottom{position:relative;z-index:1;display:flex;justify-content:space-between;gap:1rem;align-items:center;flex-wrap:wrap;padding:.65rem 0;color:#bca89c;font-size:.62rem;line-height:1.6;letter-spacing:.06em}
+.bft-journal .journal-masthead-top{border-bottom:1px solid #662326;text-transform:uppercase;font-weight:600}
+.bft-journal .journal-masthead-main{display:flex;gap:1.2rem;align-items:center;padding:1.3rem 0;position:relative;z-index:1}
+.bft-journal .journal-mark{flex:0 0 72px;width:72px;height:72px;color:#ef955b}
+.bft-journal .journal-kicker{font-size:.6rem;font-weight:700;line-height:1.6;letter-spacing:.13em;text-transform:uppercase;color:#f4a26e}
+.bft-journal .jornal-hero-title{font-size:clamp(2rem,4vw,3.25rem);font-weight:500;line-height:1.1;letter-spacing:-.025em;text-transform:none;color:var(--journal-paper);margin:.25rem 0 .5rem;text-shadow:none}
+.bft-journal .jornal-hero-sub{font-size:.78rem;line-height:1.65;color:var(--journal-muted);margin:0;max-width:72ch}
+.bft-journal .journal-masthead-bottom{border-top:1px solid #662326;letter-spacing:0;font-size:.68rem}
+.bft-journal .journal-masthead-bottom a{color:#fac299;min-height:28px;display:inline-flex;align-items:center;gap:.5rem}
+.bft-journal .jornal-actions{justify-content:flex-end;padding:.8rem 0 0}
+.bft-journal :is(.jornal-new-btn,.editor-submit,.wiki-inline-save,.artigo-edit-btn){background:linear-gradient(110deg,#9d2420,#5a1515);color:#ffe2c7;border:1px solid #b75b42;border-radius:3px;box-shadow:none;font-size:.72rem;font-weight:700;min-height:38px}
+.bft-journal :is(.jornal-new-btn,.editor-submit,.wiki-inline-save,.artigo-edit-btn):hover{background:#af2c24;transform:none}
+.bft-journal .journal-archive-tools{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;border-bottom:1px solid #4f2524;margin-top:1rem;padding-bottom:.75rem}
+.bft-journal .journal-filters{display:flex;gap:.4rem;flex-wrap:wrap}
+.bft-journal .journal-filters a{display:inline-flex;align-items:center;gap:.4rem;min-height:38px;padding:.45rem .7rem;border:1px solid #4f2524;color:#c9b8ab;font-size:.73rem;border-radius:3px}
+.bft-journal .journal-filters a[aria-current]{background:#441414;border-color:#b34e37;color:#ffd9b8}
+.bft-journal .journal-filters a:hover{border-color:#d06c45;color:#ffe0b8}
+.bft-journal .journal-search{display:flex;gap:.35rem;width:min(100%,390px)}
+.bft-journal .journal-search input{flex:1;background:#151010;border:1px solid #5d302c;border-radius:3px;color:#eee2d4;font-size:.78rem;min-height:39px;padding:.55rem .65rem;width:100%}
+.bft-journal .journal-search input::placeholder{color:#b6a294;opacity:1}
+.bft-journal .journal-search button{background:#321212;border:1px solid #9c4b36;border-radius:3px;color:#ffd6ad;font-size:.72rem;padding:.55rem .8rem;min-height:39px;font-weight:600}
+.bft-journal .journal-archive-label{display:flex;gap:1rem;justify-content:space-between;align-items:center;margin:1.1rem 0 .85rem;flex-wrap:wrap}
+.bft-journal .journal-archive-label h2{font:500 1.25rem/1.3 'Frank Ruhl Libre',serif;color:#e5d1bb;overflow-wrap:anywhere}
+.bft-journal .journal-archive-label>span{font-size:.65rem;color:#baa99a}
+.bft-journal .journal-clear-search{display:inline-flex;gap:.6rem;color:#ffc18d;font-size:.72rem;margin-bottom:1rem;text-decoration:underline;text-underline-offset:4px}
+.bft-journal .jornal-grid{padding:0;margin:0;max-width:none;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;align-items:start}
+.bft-journal .jornal-card{border:1px solid #522a25;border-top:2px solid #8f3c2e;border-radius:3px;background:#141011;transition:border-color .2s;min-width:0;text-decoration:none;color:inherit;overflow-wrap:anywhere}
+.bft-journal .jornal-card:hover{transform:none;border-color:#dd6b3f;box-shadow:0 8px 28px #0005}
+.bft-journal .jornal-card-cover{min-height:155px;background-color:#231014;background-image:radial-gradient(ellipse at 50% 100%,#7b201b55,transparent 75%);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.bft-journal .jornal-card-cover::after{height:70%;background:linear-gradient(0deg,#140e10c9,transparent);pointer-events:none}
+.bft-journal .journal-cover-mark{display:block;width:76px;height:76px;color:#d18859;opacity:.65}
+.bft-journal .jornal-card-body{padding:1rem;gap:.65rem}
+.bft-journal .jornal-card-title{font-size:1.4rem;font-weight:500;line-height:1.2;color:#f5e4cf}
+.bft-journal .jornal-card-summary{font-size:.77rem;line-height:1.75;color:#c5b8ad;flex:0 1 auto}
+.bft-journal .jornal-card-meta{margin-top:.35rem;padding-top:.7rem;font-size:.65rem;line-height:1.6;color:#bbaa9d;flex-wrap:wrap;border-color:#4d2824}
+.bft-journal .jornal-card-meta .author{color:#ecad7c;font-weight:600}
+.bft-journal .journal-read-link{display:flex;justify-content:space-between;align-items:center;gap:.75rem;font-size:.69rem;font-weight:700;color:#f2bb8e;margin-top:.3rem;min-height:26px}
+.bft-journal .jornal-card:hover .journal-read-link{color:#ffcf9b}
+.bft-journal .jornal-badge-destaque{border:1px solid #d96b42;background:#6d1917;color:#ffe4c2;border-radius:2px;font-size:.57rem;letter-spacing:.1em}
+.bft-journal .journal-demo-label{position:absolute;top:.7rem;right:.7rem;padding:.2rem .4rem;background:#0c0908d9;border:1px solid #9b6a3e;color:#ffcd91;font-size:.55rem;z-index:1;letter-spacing:.04em}
+.bft-journal .jornal-card.is-destaque{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);grid-column:1/-1;align-items:stretch;border-top-color:#c33b2e}
+.bft-journal .jornal-card.is-destaque .jornal-card-cover{min-height:250px}
+.bft-journal .jornal-card.is-destaque .jornal-card-body{padding:1.5rem;justify-content:center}
+.bft-journal .jornal-card.is-destaque .jornal-card-title{font-size:clamp(1.55rem,2.6vw,2.3rem)}
+.bft-journal .jornal-card.is-destaque .jornal-card-summary{font-size:.82rem}
+.bft-journal .jornal-empty{grid-column:1/-1;background:linear-gradient(115deg,#1b0f11,#100e0e);border:1px solid #5e2925;border-top:2px solid #b31515;padding:2.2rem 1rem;display:flex;align-items:center;flex-direction:column;gap:.75rem;color:#c0b0a2;position:relative;overflow:hidden}
+.bft-journal .journal-empty-mark{display:block;width:78px;height:78px;color:#f19b61;margin-bottom:.25rem}
+.bft-journal .jornal-empty h3{font:500 clamp(1.5rem,2.8vw,2rem)/1.25 'Frank Ruhl Libre',serif;color:#f1ddc6;max-width:32ch}
+.bft-journal .jornal-empty>p:not(.journal-kicker){max-width:63ch;font-size:.8rem;line-height:1.8}
+.bft-journal .journal-empty-links{display:flex;gap:.6rem;flex-wrap:wrap;justify-content:center;margin-top:.6rem}
+.bft-journal .journal-empty-links a,.bft-journal .journal-secondary-link{display:inline-flex;align-items:center;justify-content:center;padding:.6rem .85rem;min-height:40px;border:1px solid #955137;border-radius:3px;color:#ffd4a8;font-size:.72rem;font-weight:600}
+.bft-journal .journal-empty-links a:first-child{background:#551716;border-color:#b84935}
+.bft-journal .journal-empty-links a:hover{background:#73231b}
+.bft-journal .jornal-pagination{border-top:1px solid #522a25;padding:1.2rem 0 0;justify-content:space-between;margin:1.5rem 0 0;gap:.75rem}
+.bft-journal .jornal-pagination a{border-color:#92513a;border-radius:3px;font-size:.73rem;background:#2c1211;color:#ffcc9c;min-height:40px}
+.bft-journal .jornal-pagination span{font-size:.7rem;color:#c2b0a1}
+/* Reading: preserve each saved layout, add an unobtrusive index. */
+.bft-journal .journal-breadcrumb{display:flex;gap:1rem;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:.1rem 0 1rem;font-size:.68rem;line-height:1.6;color:#b79f8d}
+.bft-journal .journal-breadcrumb a{color:#eab588;display:inline-flex;align-items:center;min-height:30px}
+.bft-journal .artigo-hero{min-height:260px;border:1px solid #6f322a;border-top:2px solid #b31515;background-color:#191011;background-image:linear-gradient(90deg,#100b0de8,#0b080b45),linear-gradient(0deg,#120b0edb,transparent),var(--hero-bg,none);padding:1.5rem clamp(1.2rem,3vw,2.5rem);gap:.55rem}
+.bft-journal .artigo-hero--text{min-height:190px;background:linear-gradient(115deg,#351014,#120e0e)}
+.bft-journal .artigo-eyebrow{font-size:.6rem;color:#f7b685;letter-spacing:.13em;font-weight:600}
+.bft-journal .artigo-title{font-size:clamp(1.9rem,3.5vw,3rem);text-transform:none;font-weight:500;color:#fff0db;line-height:1.12;max-width:30ch;overflow-wrap:anywhere;margin:0;text-shadow:0 3px 16px #0008}
+.bft-journal .artigo-meta{font-size:.7rem;line-height:1.7;flex-wrap:wrap;gap:.45rem;color:#c9b4a5;margin-top:.1rem}
+.bft-journal .artigo-meta .author{color:#f5b780;font-weight:600}
+.bft-journal .journal-article-summary{font-size:.87rem;line-height:1.75;color:#e6d5c5;max-width:80ch;margin:.5rem 0 0;overflow-wrap:anywhere}
+.bft-journal .journal-reading-grid{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:2rem;margin-top:1.5rem;align-items:start}
+.bft-journal .artigo-layout{max-width:none;margin:0;padding:0 0 2rem;min-width:0}
+.bft-journal .artigo-body{margin:0;min-width:0}
+.bft-journal .artigo-body:not(.artigo-body--atlas)>.bonfire-markdown{color:#d5cbbe;font-size:.94rem;line-height:1.95;max-width:85ch}
+.bft-journal .artigo-body .bonfire-markdown>p+p{margin-top:1.15rem}
+.bft-journal .artigo-body:not(.artigo-body--atlas) .bonfire-markdown :is(h1,h2,h3,h4){font-family:'Frank Ruhl Libre',serif;font-weight:500;color:#f0ccaa;text-transform:none;line-height:1.35;margin:1.7rem 0 .65rem;scroll-margin-top:95px}
+.bft-journal .artigo-body:not(.artigo-body--atlas) .bonfire-markdown h2{font-size:1.65rem;padding-bottom:.5rem;border-bottom:1px solid #68362a}
+.bft-journal .artigo-body:not(.artigo-body--atlas) .bonfire-markdown h3{font-size:1.3rem}
+.bft-journal .artigo-body:not(.artigo-body--atlas) .bonfire-markdown strong{color:#f6e6d0}
+.bft-journal .artigo-body:not(.artigo-body--atlas) .bonfire-markdown blockquote{border-left:3px solid #c84d30;background:#271414;padding:.9rem 1.2rem;margin:1.3rem 0;color:#e6c7aa}
+.bft-journal .bonfire-markdown a{color:#ffc28b;text-decoration:underline;text-underline-offset:3px}
+.bft-journal .bonfire-markdown li{margin:.35rem 0}
+.bft-journal .bonfire-markdown table{display:block;max-width:100%;overflow:auto;border-collapse:collapse;margin:1rem 0}
+.bft-journal .bonfire-markdown :is(th,td){border:1px solid #62382d;padding:.55rem .7rem;font-size:.82rem}
+.bft-journal .bonfire-markdown th{background:#2a1412;color:#f1c7a3}
+.bft-journal .artigo-body--colunas .bonfire-markdown{column-width:21rem;column-count:2;column-gap:2rem;column-rule-color:#69382c}
+.bft-journal .artigo-back{margin-top:1.8rem;font-size:.74rem;color:#e8ab7e;border:1px solid #68372b;border-radius:3px;padding:.55rem .8rem;min-height:38px}
+.bft-journal .journal-reading-aside{position:sticky;top:90px;display:grid;gap:.85rem;min-width:0}
+.bft-journal :is(.journal-reading-time,.journal-toc,.journal-explore){border:1px solid #5c2f27;background:#191012;border-top:2px solid #983729;padding:.85rem}
+.bft-journal .journal-reading-time p{color:#edd4b9;font:500 1.2rem/1.5 'Frank Ruhl Libre',serif;margin-top:.2rem}
+.bft-journal .journal-toc summary{display:flex;justify-content:space-between;gap:.5rem;color:#f1c89f;cursor:pointer;font-size:.73rem;font-weight:600;min-height:28px;list-style:none}
+.bft-journal .journal-toc summary::-webkit-details-marker{display:none}
+.bft-journal .journal-toc nav{display:grid;gap:.3rem;margin-top:.65rem;max-height:46vh;overflow:auto;scrollbar-width:thin}
+.bft-journal .journal-toc a{color:#cdb9a6;font-size:.7rem;line-height:1.6;padding:.35rem .4rem;border-left:2px solid #563128;overflow-wrap:anywhere;min-height:32px}
+.bft-journal .journal-toc a[data-depth="3"]{padding-left:.9rem;font-size:.67rem}
+.bft-journal .journal-toc a:hover{border-left-color:#ee8650;background:#391915;color:#ffdbb6}
+.bft-journal .journal-explore{display:grid;gap:.6rem}
+.bft-journal .journal-explore a{display:flex;align-items:center;justify-content:space-between;gap:.5rem;border-top:1px solid #4b2823;padding-top:.6rem;min-height:34px;color:#d7b99d;font-size:.7rem}
+.bft-journal .journal-explore a:hover{color:#ffd4a3}
+.bft-journal .journal-reader-shell.is-atlas .journal-reading-grid{grid-template-columns:minmax(0,1fr)}
+.bft-journal .is-atlas .journal-reading-aside{display:contents}
+.bft-journal .is-atlas .journal-reading-time{grid-row:1;display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.55rem .8rem}
+.bft-journal .is-atlas .journal-reading-time p{font-size:1rem;margin:0}
+.bft-journal .is-atlas .journal-toc{grid-row:2}
+.bft-journal .is-atlas .artigo-layout{grid-row:3}
+.bft-journal .is-atlas .journal-explore{grid-row:4}
+.bft-journal .artigo-layout--atlas{--atlas-bg:#e8d9bc;--atlas-bg-dark:#ddc9a4;--atlas-ink:#281912;--atlas-ink-muted:#513628;--atlas-rule:#aa8564;--atlas-accent:#781d18;--atlas-header-bg:#551815;--atlas-header-text:#f4e3c5;padding:0 0 1.2rem;border:1px solid #9b6849;border-top:3px solid #b31515;border-radius:2px;margin:0;box-shadow:0 10px 30px #0004}
+.bft-journal .artigo-atlas-meta{padding:.85rem 1.3rem;background:#ddc7a7;border-bottom-color:#aa8564}
+.bft-journal .artigo-atlas-meta h1{font-family:'Frank Ruhl Libre',serif;font-size:clamp(1.5rem,3vw,2.2rem)}
+.bft-journal .artigo-atlas-meta p{font-size:.75rem;line-height:1.7;color:#4a3022}
+.bft-journal .artigo-atlas-meta .journal-article-summary{margin:.5rem auto 0}
+.bft-journal .artigo-body--atlas .bonfire-markdown{font-family:Georgia,'Frank Ruhl Libre',serif;font-size:1.08rem;line-height:1.85;color:var(--atlas-ink);text-align:left}
+.bft-journal .artigo-body--atlas .atlas-columns{column-count:2;column-width:21rem;column-gap:2.5rem;padding:1.5rem 2rem}
+.bft-journal .artigo-body--atlas .bonfire-markdown :is(h1,h2,h3,h4){font-family:'Frank Ruhl Libre',serif;color:var(--atlas-ink);font-weight:600;line-height:1.35;scroll-margin-top:90px;text-transform:none}
+.bft-journal .artigo-body--atlas .bonfire-markdown h1{font-size:1.8rem}
+.bft-journal .artigo-body--atlas .bonfire-markdown h2{font-size:1.5rem;border-color:#8a5d45}
+.bft-journal .artigo-body--atlas .bonfire-markdown h3{font-size:1.3rem}
+.bft-journal .artigo-body--atlas .bonfire-markdown :is(strong,a){color:#6a2118}
+.bft-journal .artigo-body--atlas .bonfire-markdown blockquote{font-size:1.2rem;color:#6a2118;border-top:1px solid #b0926e;border-bottom:1px solid #b0926e;padding:.8rem;margin:1rem 0}
+.bft-journal .artigo-body--atlas .bonfire-markdown th{background:#d5b590;color:#391d14}
+.bft-journal .artigo-body--atlas .bonfire-markdown :is(th,td){border-color:#9e7655}
+.bft-journal .atlas-header-title{font-family:'Frank Ruhl Libre',serif;font-size:3.4rem;color:#651a16}
+.bft-journal .atlas-header-subtitle{font-size:1rem}
+.bft-journal .atlas-header-bar{font-size:.75rem;flex-wrap:wrap;gap:.5rem;border-color:#754530}
+.bft-journal .atlas-header-bar span{min-width:80px;overflow-wrap:anywhere}
+.bft-journal .atlas-header-date{font-size:.9rem}
+.bft-journal .atlas-cabecalho-title{font-family:'Frank Ruhl Libre',serif;font-size:2rem}
+.bft-journal .atlas-cabecalho-section-title{font-size:1.5rem}
+.bft-journal .bonfire-md-image-caption{font-size:.85rem;line-height:1.6}
+.bft-journal .artigo-edit-tools{border-color:#653129}
+.bft-journal .wiki-inline-editor{background:#181010;border-color:#6c3730;border-radius:3px;padding:1rem;gap:.8rem}
+.bft-journal .wiki-inline-editor :is(input,textarea,select){background:#0f0c0c;border-color:#6b3a31;color:#efe2d0;font-size:.85rem;letter-spacing:0;text-transform:none;min-height:40px}
+.bft-journal .wiki-inline-editor label{color:#d3bba4;font-size:.62rem}
+/* Editorial workspace: same fields and submit handlers, calmer spacing. */
+.bft-journal .editor-shell{width:100%;padding:0;min-width:0}
+.bft-journal .journal-editor-back{display:inline-flex;align-items:center;min-height:32px;color:#efb589;font-size:.72rem;margin-bottom:.85rem}
+.bft-journal .editor-header{border:1px solid #74382c;border-top:2px solid #b31515;background:linear-gradient(110deg,#331014,#141011);padding:1.1rem 1.3rem}
+.bft-journal .editor-header h1{font-size:1.9rem;font-weight:500;text-transform:none;color:#f4e1cb;margin-top:.25rem}
+.bft-journal .editor-header p{color:#c4b4a6;line-height:1.8;font-size:.78rem;max-width:85ch}
+.bft-journal .editor-fields{grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;background:#130f10;border:1px solid #522b26;padding:1rem}
+.bft-journal .editor-field label{color:#cfb79f;font-size:.6rem;font-weight:600;line-height:1.6}
+.bft-journal .editor-field :is(input,select){background:#0e0b0c;border-color:#693b32;border-radius:3px;font-size:.8rem;min-height:40px;width:100%}
+.bft-journal .editor-toolbar{background:#241114;border-color:#67312a;border-radius:3px;padding:.65rem;gap:.45rem}
+.bft-journal .editor-tool{background:#110c0c;border-color:#6d3a30;color:#e8c5a5;border-radius:2px;font-size:.65rem;font-weight:600;min-height:34px}
+.bft-journal .editor-tool:hover{border-color:#e38650;color:#ffd8aa}
+.bft-journal .editor-status{font-size:.65rem;color:#c6a893}
+.bft-journal .editor-split{grid-template-columns:minmax(300px,.8fr) minmax(0,1.2fr);min-height:520px}
+.bft-journal .editor-panel{background:#141010;border-color:#64342b;border-radius:3px;min-width:0}
+.bft-journal .editor-panel-header{background:#261215;border-color:#61332a;gap:.5rem;flex-wrap:wrap;padding:.7rem}
+.bft-journal .editor-panel-header h2{color:#f0bd91;font-family:'Open Sans',sans-serif;font-size:.64rem;font-weight:600;letter-spacing:.05em}
+.bft-journal .editor-panel-header span{color:#bda18b;font-size:.63rem}
+.bft-journal .editor-textarea{background:#0e0b0c;color:#dcd1c1;font-size:.83rem;line-height:1.85;padding:1rem;min-height:440px;resize:vertical}
+.bft-journal .editor-preview{font-size:.9rem;line-height:1.9;color:#d3c5b6;padding:1rem}
+.bft-journal-editor:has(#edLayout option[value="colunas"]:checked) #edPreview{column-count:2;column-width:21rem;column-gap:2rem;column-rule:1px solid #69382c}
+.bft-journal .editor-preview :is(h1,h2,h3){color:#efc59f;text-transform:none;line-height:1.4;margin:1.3rem 0 .65rem}
+.bft-journal .editor-preview-heading{padding:1rem;border-color:#5d342a}
+.bft-journal .editor-preview-heading h3{font-size:1.45rem;font-weight:500;color:#f4dfc6}
+.bft-journal .editor-preview-heading :is(span,p){color:#c9b09a;line-height:1.7}
+.bft-journal .editor-preview-heading .editor-preview-featured{background:#681d18;color:#ffe0bc}
+.bft-journal #edPreviewContainer.artigo-layout--atlas{margin:0;border:0}
+.bft-journal #edPreviewContainer.artigo-layout--atlas :is(.editor-preview-heading h3,.editor-preview-heading span,.editor-preview-heading p,.editor-preview strong){color:#5c281c}
+.bft-journal .editor-cancel,.bft-journal .wiki-inline-cancel{border-color:#8a4c34;color:#ecc29c;border-radius:3px;font-size:.7rem;min-height:38px}
+.bft-journal .editor-submit:disabled{cursor:not-allowed;opacity:.65}
+@media(max-width:1100px){
+ .bft-journal .journal-reading-grid{grid-template-columns:minmax(0,1fr);gap:.8rem}
+ .bft-journal .journal-reading-aside,.bft-journal .is-atlas .journal-reading-aside{display:contents}
+ .bft-journal .journal-reading-time{grid-row:1;display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.55rem .8rem}
+ .bft-journal .journal-reading-time p{font-size:1rem;margin:0}
+ .bft-journal .journal-toc{grid-row:2}
+ .bft-journal .journal-toc summary{min-height:32px}
+ .bft-journal .artigo-layout{grid-row:3}
+ .bft-journal .journal-explore{grid-row:4}
+ .bft-journal .jornal-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:900px){.bft-journal .editor-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.bft-journal .editor-split{grid-template-columns:minmax(0,1fr)}.bft-journal .artigo-body--atlas .atlas-columns{column-count:1;padding:1rem}.bft-journal .artigo-body--colunas .bonfire-markdown{column-count:1}.bft-journal .atlas-header-title{font-size:2.6rem}.bft-journal .atlas-header{padding:1rem}.bft-journal .atlas-no-column{padding:.8rem 1rem}}
+@media(max-width:650px){
+ .bft-journal .journal-edition,.bft-journal .journal-reader-shell{padding:1rem .85rem 2rem}
+ .bft-journal .jornal-hero{padding:0 1rem}.bft-journal .journal-masthead-main{gap:.75rem;padding:1.2rem 0}.bft-journal .journal-mark{flex-basis:44px;width:44px;height:44px;align-self:flex-start;margin-top:.5rem}
+ .bft-journal .journal-masthead-top{font-size:.55rem;gap:.4rem}.bft-journal .journal-masthead-top span:last-child{display:none}
+ .bft-journal .jornal-hero-title{font-size:2.1rem}.bft-journal .jornal-hero-sub{font-size:.73rem}.bft-journal .journal-kicker{font-size:.56rem}
+ .bft-journal .journal-masthead-bottom{gap:.3rem}.bft-journal .journal-archive-tools{align-items:stretch;gap:.75rem}.bft-journal .journal-search{width:100%}
+ .bft-journal .jornal-grid{grid-template-columns:minmax(0,1fr)}.bft-journal .jornal-card.is-destaque{grid-template-columns:minmax(0,1fr)}.bft-journal .jornal-card.is-destaque .jornal-card-cover{min-height:190px}.bft-journal .jornal-card.is-destaque .jornal-card-body{padding:1rem}
+ .bft-journal .jornal-pagination{justify-content:center}.bft-journal .jornal-pagination span{width:100%;text-align:center}
+ .bft-journal .artigo-hero{min-height:230px;padding:1.25rem 1rem}.bft-journal .artigo-hero--text{min-height:170px}.bft-journal .artigo-title{font-size:1.9rem}
+ .bft-journal .journal-reading-grid{margin-top:1rem}.bft-journal .artigo-body:not(.artigo-body--atlas)>.bonfire-markdown{font-size:.9rem;line-height:1.9}
+ .bft-journal .journal-toc nav{max-height:none}
+ .bft-journal .editor-fields{grid-template-columns:minmax(0,1fr);padding:.8rem}.bft-journal .editor-header{padding:1rem}.bft-journal .editor-header h1{font-size:1.7rem}.bft-journal .editor-status{width:100%;margin:0}.bft-journal .editor-preview{padding:.8rem}
+ .bft-journal .atlas-header-bar span{flex:1 1 40%;text-align:center}.bft-journal .artigo-layout--atlas .artigo-back{margin-left:1rem}.bft-journal .artigo-atlas-meta{padding:.85rem}.bft-journal .artigo-body--atlas .bonfire-markdown{font-size:1rem}
+}
+@media(prefers-reduced-motion:reduce){.bft-journal *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
