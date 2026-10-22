@@ -1,6 +1,6 @@
 # S10 — aceite local do Pathbuilder
 
-Base de integração: `b061c66`. Execução restrita ao banco PostgreSQL de teste;
+Base da matriz: `b061c66`; revisão de aceite: `92bbc00`. Execução restrita ao banco PostgreSQL de teste;
 sem produção, migração aplicada manualmente ou deploy.
 
 ## Matriz executada
@@ -65,7 +65,19 @@ no banco DEV ou em produção.
 Os comandos novos usaram `DB_ENGINE=postgresql` e o banco de teste
 `test_bonfire_redesign_6113ea68`. O teste de navegador usou Edge local.
 A falha anterior de `MODEL_GROUP` foi corrigida em `a6c8e4c`. A suíte geral
-iniciada sobre `b061c66` ainda não tem resultado final; não há aceite S10.
+sobre `363bd46` terminou com 2.272 testes, uma falha, nenhum erro e 19 pulados
+(`%TEMP%/bonfire-s10-363bd46.log`, 9.787,982 s). A única falha foi o teste
+`home.test_commerce_review_browser`: um evento `close` atrasado limpava a
+compra já aberta na revisão seguinte. O commit `92bbc00` corrigiu o frontend e
+adicionou reprodução determinística; o teste afetado passou 1/1 em PostgreSQL
+isolado. Os consumidores próximos `home.test_commerce_presentation` e
+`home.test_cosmetic_checkout` passaram 19/20, com um teste pulado. `node --check`
+em `home/static/js/commerce.js` passou. Entre a suíte geral e `92bbc00`, somente
+esse JS e seu teste de navegador mudaram; os outros 2.271 desfechos da suíte
+(2.252 aprovações e 19 pulados) permanecem aplicáveis. Aceite local S10 por
+validação composta: a falha única foi corrigida e verificada no consumidor
+afetado, enquanto a matriz funcional e visual permanece inalterada. Isto não
+equivale a uma suíte geral com código de saída zero em `92bbc00`.
 
 ## Limites do aceite
 
