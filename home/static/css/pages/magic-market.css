@@ -1,12 +1,68 @@
-.magic-shops { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:.6rem; margin:0 0 .9rem; }
-.magic-shops button { display:grid; grid-template-columns:1.8rem minmax(0,1fr); gap:.25rem .6rem; align-items:center; padding:.75rem; border:1px solid var(--stroke); border-radius:.35rem; background:var(--bg1); color:var(--text); text-align:left; cursor:pointer; }
-.magic-shops button[aria-pressed="true"] { border-color:var(--ember); box-shadow:inset .2rem 0 var(--ember); }
-.magic-shops svg { grid-row:1 / 3; width:1.6rem; height:1.6rem; color:var(--flame); }
-.magic-shops small,.magic-shops em { color:var(--muted); font-size:.72rem; font-style:normal; }
-.magic-caravan { display:flex; flex-wrap:wrap; gap:.75rem; align-items:center; margin:0 0 1rem; padding:.8rem 1rem; border:1px solid var(--stroke); border-left:3px solid var(--ember); background:var(--bg1); }
-.magic-caravan.is-present { border-left-color:var(--spark); }
-.magic-caravan h2 { margin:0; color:var(--text); font-family:'Cinzel',serif; font-size:1.2rem; }
-.magic-caravan p { margin:.2rem 0 0; color:var(--muted); font-size:.82rem; }
-.magic-primary-filters { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.6rem; }
-.magic-availability-note,.magic-customization-note { margin:.75rem 0; padding:.75rem; border-left:2px solid var(--ember); background:var(--bg1); color:var(--muted); font-size:.82rem; }
-@media (max-width:700px) { .magic-shops { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+.magic-shops { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:9px; margin:0 0 12px; }
+.magic-shops button { display:grid; grid-template-columns:28px minmax(0,1fr); align-items:center; gap:5px 10px; padding:12px; border:1px solid #57352c; border-radius:3px; background:linear-gradient(125deg,#211512,#121010); text-align:left; cursor:pointer; min-width:0; }
+.magic-shops button:hover { background:#2b1914; border-color:#ba6843; }
+.magic-shops button[aria-pressed=true] { background:linear-gradient(120deg,#4b1514,#21120f); border-color:#dc6c42; box-shadow:inset 0 2px #b31515; }
+.bft-magic-market svg:not(.market-symbols) { fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+.magic-shops svg { width:27px; height:27px; color:#df9464; grid-row:1/3; }
+.magic-shops strong { color:#f0e3d8; font:600 20px/1.2 'Frank Ruhl Libre',serif; display:block; }
+.magic-shops small { display:block; color:#baa89c; font-size:10px; line-height:1.6; margin-top:4px; }
+.magic-shops em { grid-column:2; color:#da9f76; font-size:9px; font-style:normal; }
+.magic-mundane-link { color:#edb28b; font-size:11px; border:1px solid #82442d; padding:8px 11px; border-radius:3px; }
+.magic-caravan { position:relative; display:flex; align-items:center; gap:13px; flex-wrap:wrap; padding:12px 15px; margin:0 0 15px; border:1px solid #604026; border-left:3px solid #8a5736; border-radius:3px; background:linear-gradient(105deg,#241910,#15110e); }
+.magic-caravan.is-present { border-color:#9d6631; border-left-color:#eea34e; }
+.magic-caravan > svg { flex:none; width:35px; height:35px; color:#cf9257; }
+.magic-caravan > div { flex:1; min-width:230px; }
+.magic-caravan h2 { color:#efdec8; font:600 22px/1.3 'Frank Ruhl Libre',serif; display:flex; align-items:center; flex-wrap:wrap; gap:7px 12px; margin:0 0 3px; }
+.magic-caravan h2 span { font:600 9px/1.4 'Open Sans',sans-serif; color:#e3bc8d; padding:3px 6px; border:1px solid #725136; border-radius:2px; }
+.magic-caravan p { font-size:11px; color:#c1ac95; line-height:1.75; }
+.magic-caravan > button,.magic-caravan summary,.magic-caravan > a { cursor:pointer; border:1px solid #80502e; border-radius:3px; background:#2b1a10; color:#e6b58b; padding:8px 10px; font-size:10px; }
+.magic-caravan > button { color:#ffe2bd; border-color:#ca8146; background:#623619; }
+.magic-caravan details > div { position:absolute; right:0; top:calc(100% + 7px); z-index:45; width:min(470px,100%); border:1px solid #93653d; background:#1c1410; padding:18px; border-radius:3px; box-shadow:0 14px 35px #000a; }
+.magic-caravan details p + p { margin-top:12px; }
+.magic-primary-filters { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:9px; }
+.bft-magic-market .mkt-row { grid-template-columns:9px minmax(0,1fr) auto 9px; }
+.bft-magic-market .mkt-row-dot { grid-column:1; grid-row:1/3; width:6px; height:6px; align-self:center; margin:0; }
+.bft-magic-market .mkt-row-meta { font-size:9px; }
+.bft-magic-market .mkt-row-price small { display:block; font:400 9px/1.5 'Open Sans',sans-serif; color:#bda38c; text-align:right; }
+.bft-magic-market .mkt-row-attune { color:#e3b580; }
+.bft-magic-market .mkt-rarity-tag { font-size:10px; letter-spacing:0; padding:0; border:0; background:none; }
+.bft-magic-market .magic-english-name { color:#b5a296; font-size:11px; line-height:1.6; margin-top:6px; }
+.bft-magic-market .mkt-figure { border-color:#77412b; }
+.magic-base-note { display:block; color:#d4a985; font-size:10px; margin-top:7px; }
+.bft-magic-market .magic-buy-form { flex-wrap:wrap; justify-content:flex-end; flex:1; max-width:390px; }
+.magic-base-picker { display:flex; flex-direction:column; gap:5px; flex:1 1 100%; min-width:0; }
+.magic-base-picker > span { color:#ceb39b; font-size:10px; }
+.magic-buy-form .mkt-select { width:100%; max-width:100%; font-size:12px; }
+.bft-magic-market .mkt-deal { align-items:center; }
+.bft-magic-market .mkt-deal > div:first-child { flex:none; }
+.bft-magic-market .market-entry-status.is-caravan { border-color:#b97e40; background:#382415; color:#f5c187; }
+.magic-availability-note { padding:11px 13px; border-left:2px solid #a75835; background:#26160f; font-size:12px; line-height:1.8; color:#d5ad92; }
+.magic-stock-count { color:#dcac73; font-size:11px; line-height:1.8; }
+.magic-customization-note { padding:11px 13px; border:1px solid #4b3428; background:#18120e; color:#c8b5a3; font-size:12px; line-height:1.8; }
+.magic-section-title { color:#efceb1; font:600 23px/1.3 'Frank Ruhl Libre',serif; margin-top:8px; }
+.bft-magic-market .mkt-btn:disabled { opacity:.5; cursor:not-allowed; }
+.magic-config { max-width:650px; margin:25px auto; padding:25px; border:1px solid #804831; background:#171110; }
+.magic-config h1 { font:600 32px 'Frank Ruhl Libre',serif; color:#f1e8df; margin:20px 0 12px; }
+.magic-config > p { color:#bfae9f; font-size:13px; line-height:1.8; }
+.magic-config form p { display:flex; flex-direction:column; gap:8px; margin-top:20px; color:#d5bca6; font-size:12px; }
+.magic-config input:not([type=checkbox]) { padding:12px; background:#0a0a0a; border:1px solid #77513a; color:#eee; color-scheme:dark; }
+.magic-config input[type=checkbox] { width:20px; height:20px; accent-color:#b31515; }
+.magic-config button { padding:11px 18px; background:#b31515; border:1px solid #f08652; color:#fff; margin-top:22px; }
+.magic-config .errorlist { color:#ffae94; font-size:12px; margin:10px 0; }
+@media(max-width:1099px) { .magic-shops { grid-template-columns:repeat(3,minmax(0,1fr)); } .magic-shops small { display:none; } }
+@media(max-width:599px) {
+  .magic-shops { grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
+  .magic-shops button { padding:10px; grid-template-columns:22px minmax(0,1fr); gap:5px 8px; }
+  .magic-shops svg { width:22px; height:22px; }
+  .magic-shops strong { font-size:19px; }
+  .magic-caravan { gap:10px; padding:12px; }
+  .magic-caravan > div { min-width:200px; }
+  .magic-caravan h2 { font-size:21px; }
+  .magic-caravan details > div { position:static; width:100%; margin-top:10px; padding:12px; }
+  .magic-caravan details[open] { flex:1 1 100%; }
+  .bft-magic-market .mkt-row { grid-template-columns:7px minmax(0,1fr) auto 7px; }
+  .bft-magic-market .mkt-deal:has(.magic-base-picker) { flex-wrap:wrap; }
+  .bft-magic-market .magic-buy-form { max-width:none; }
+  .bft-magic-market .mkt-deal:has(.magic-base-picker) .magic-buy-form { flex:1 1 100%; }
+  .magic-config { margin:15px 0; padding:18px; }
+}
