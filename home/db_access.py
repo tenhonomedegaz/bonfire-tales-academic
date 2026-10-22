@@ -104,6 +104,24 @@ MODEL_ALLOWLIST = {
         ('id_linhagem', 'id_raca', 'slug', 'nome'),
         ('id_linhagem', 'id_raca', 'slug', 'nome'),
     ),
+    'opcao_jogo': ModelAccess(
+        home_models.TbOpcaojogo,
+        ('id_opcao', 'nome', 'slug', 'tipo', 'descricao', 'pre_requisito',
+         'etiquetas_adicionais', 'tags_json'),
+        (),
+        ('id_opcao', 'slug', 'tipo'),
+        ('id_opcao', 'slug', 'nome', 'tipo'),
+    ),
+    'acesso_opcao': ModelAccess(
+        home_models.TbAcessoopcao,
+        ('id_acessoopcao', 'id_opcao', 'id_classe', 'id_subclasse',
+         'nivel_recebimento'),
+        (),
+        ('id_acessoopcao', 'id_opcao', 'id_classe', 'id_subclasse',
+         'nivel_recebimento'),
+        ('id_acessoopcao', 'id_opcao', 'id_classe', 'id_subclasse',
+         'nivel_recebimento'),
+    ),
 }
 
 

@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from home.db_access import OPERATION_HANDLERS, register_operation_handler
 from home.db_access_models import DbAccessAudit, ManagedApiKey
-from home.models import TbLinhagem, TbRaca, TbRegra
+from home.models import TbAcessoopcao, TbClasse, TbLinhagem, TbOpcaojogo, TbRaca, TbRegra
 
 
 class ApiKeyLifecycleTests(TestCase):
@@ -168,9 +168,69 @@ class StructuredDbApiTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             set(response.json()['models']),
-            {'regra', 'idioma', 'condicao', 'raca', 'linhagem'},
+            {'regra', 'idioma', 'condicao', 'raca', 'linhagem',
+             'opcao_jogo', 'acesso_opcao'},
         )
         self.assertNotIn('user', json.dumps(response.json()).lower())
+
+    def test_option_catalog_and_access_are_queryable_but_not_mutable(self):
+        _key, secret = self.make_key()
+        class_record = TbClasse.objects.create(nome='Bardo', slug='bardo-api')
+        option = TbOpcaojogo.objects.create(
+            nome='Passo', slug='passo-api', tipo='Bailado',
+            pre_requisito='Destreza 13',
+        )
+        access = TbAcessoopcao.objects.create(
+            id_opcao=option, id_classe=class_record, nivel_recebimento=2,
+        )
+        headers = self.request_headers(secret)
+        option_url = reverse('db_access_collection', args=['opcao_jogo'])
+        access_url = reverse('db_access_collection', args=['acesso_opcao'])
+
+        option_list = self.client.get(
+            option_url + '?filter[slug]=passo-api&fields=id_opcao,slug,pre_requisito',
+            **headers,
+        )
+        self.assertEqual(option_list.status_code, 200)
+        self.assertEqual(option_list.json()['items'], [{
+            'id_opcao': option.pk, 'slug': 'passo-api',
+            'pre_requisito': 'Destreza 13',
+        }])
+        access_list = self.client.get(
+            access_url + '?filter[id_classe]=%s&fields=id_opcao,id_classe,nivel_recebimento' % class_record.pk,
+            **headers,
+        )
+        self.assertEqual(access_list.status_code, 200)
+        self.assertEqual(access_list.json()['items'], [{
+            'id_opcao': option.pk, 'id_classe': class_record.pk,
+            'nivel_recebimento': 2,
+        }])
+        schema = self.client.get(reverse('db_access_schema'), **headers).json()
+        for model_name in ('opcao_jogo', 'acesso_opcao'):
+            self.assertFalse(any(
+                field['writable'] for field in schema['models'][model_name]['fields'].values()
+            ))
+
+        create = self.client.post(
+            option_url, data=json.dumps({'nome': 'Outro', 'slug': 'outro-api', 'tipo': 'Bailado'}),
+            content_type='application/json',
+            **self.request_headers(secret, HTTP_IDEMPOTENCY_KEY='option-create-denied'),
+        )
+        self.assertEqual(create.status_code, 400)
+        self.assertEqual(TbOpcaojogo.objects.count(), 1)
+        object_url = reverse('db_access_object', args=['acesso_opcao', access.pk])
+        version = self.client.get(object_url, **headers).json()['version']
+        update = self.client.patch(
+            object_url, data=json.dumps({'nivel_recebimento': 1}),
+            content_type='application/json',
+            **self.request_headers(
+                secret, HTTP_IDEMPOTENCY_KEY='access-update-denied',
+                HTTP_IF_MATCH='"%s"' % version,
+            ),
+        )
+        self.assertEqual(update.status_code, 400)
+        access.refresh_from_db()
+        self.assertEqual(access.nivel_recebimento, 2)
 
     def test_read_filters_columns_pagination_and_rejects_escape_from_allowlist(self):
         _key, secret = self.make_key(scopes=('read',))

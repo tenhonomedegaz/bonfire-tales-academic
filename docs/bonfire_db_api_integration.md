@@ -70,7 +70,7 @@ Os únicos escopos são `read`, `write` e `publish`. Em incidente ou perda de se
 
 O Jarvis envia `Authorization: Bearer` por HTTPS internamente. O segredo fica no cofre local e nao precisa ser copiado para comandos, prompts ou historico. Use **Testar conexao e escopos** em Integracoes para consultar `session/`; o agente consulta `schema/` pela ferramenta protegida.
 
-`schema/` é a fonte de verdade para modelos, campos e operações expostos pela versão implantada. `session/` confirma conexão, escopos e expiração. Os modelos atuais são `regra`, `idioma`, `condicao`, `raca` e `linhagem`; a allowlist não inclui usuários, chaves, auditoria, revisões, rulesets ou personagens.
+`schema/` é a fonte de verdade para modelos, campos e operações expostos pela versão implantada. `session/` confirma conexão, escopos e expiração. Os modelos atuais são `regra`, `idioma`, `condicao`, `raca`, `linhagem`, `opcao_jogo` e `acesso_opcao`; a allowlist não inclui usuários, chaves, auditoria, revisões, rulesets ou personagens. `opcao_jogo` e `acesso_opcao` expõem somente consulta estruturada; seus campos aparecem com `writable: false` no schema. A publicação de opções e vínculos de acesso requer um fluxo especializado ou decisão de contrato própria, pois alterar esses vínculos afeta a elegibilidade de personagens.
 
 | Método | URL | Escopo | Regras |
 | --- | --- | --- | --- |
