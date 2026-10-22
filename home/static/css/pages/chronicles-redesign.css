@@ -1,1 +1,255 @@
-.chronicles-page{width:min(100%,70rem);margin:0 auto;padding:1.5rem}.chronicles-page .cronicas-hero{padding:2rem;border:1px solid var(--stroke);border-top:3px solid var(--ember);background:linear-gradient(120deg,var(--bg2),var(--bg0))}.chronicles-page .cronicas-hero-title{margin:0;font-family:'Cinzel',serif;color:var(--text);font-size:clamp(2rem,5vw,3.5rem)}.chronicles-page .cronicas-hero-sub{color:var(--muted)}.chronicles-page .cronicas-toolbar{display:flex;flex-wrap:wrap;gap:.75rem;margin:1rem 0;padding:1rem;border:1px solid var(--stroke);background:var(--bg1)}.chronicles-page select,.chronicles-page input{min-height:2.4rem;border:1px solid var(--stroke);background:var(--bg0);color:var(--text);padding:.4rem .55rem}.chronicles-page article{border-color:var(--stroke)}
+/* Crônicas: a library of adventures, distinct from the newspaper.
+   All selectors are page-scoped; original editorial and social flows remain. */
+body.bft-chronicles {
+  --chronicle-red:#b31515; --chronicle-wine:#4b0d0d; --chronicle-line:#62302b;
+  --chronicle-cream:#f0e3cf; --chronicle-muted:#c4b4a3; --chronicle-ember:#f6af76;
+  --chronicle-paper:#e9dfcc; --chronicle-ink:#35271f;
+  background:#0a0a0a;color:var(--chronicle-cream);font-family:'Open Sans',sans-serif;
+}
+.bft-chronicles [hidden]{display:none!important}
+.bft-chronicles :is(a,button,input,select,summary,textarea):focus-visible{outline:2px solid #ffbd86;outline-offset:4px}
+.bft-chronicles :is(input,select,textarea){max-width:100%;min-width:0}
+.bft-chronicles .chronicles-shell{width:min(100%,1360px);margin:0 auto;padding:1.3rem clamp(1rem,3vw,2.5rem) 3rem;min-width:0}
+.bft-chronicles .chronicles-kicker{font:700 10px/1.7 'Open Sans',sans-serif;color:var(--chronicle-ember);letter-spacing:.12em;text-transform:uppercase}
+.bft-chronicles .chronicles-preview-notice{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;padding:.65rem .85rem;margin-bottom:1rem;border:1px dashed #98603c;background:#25180e;color:#dbc3a4;font-size:11px;line-height:1.7}
+.bft-chronicles .chronicles-preview-notice strong{color:#ffca91}
+.bft-chronicles .chronicles-preview-notice a{color:#ffe0b7;text-decoration:underline;text-underline-offset:3px}
+.bft-chronicles .chronicles-preview-notice a:first-of-type{margin-left:auto}
+/* The archive is a warm, illustrated bookcase inside the Bonfire shell. */
+.bft-chronicles .cronicas-hero{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:2rem;align-items:center;text-align:left;padding:clamp(1.3rem,3vw,2.4rem);border:1px solid #71352d;border-top:3px solid var(--chronicle-red);background:linear-gradient(110deg,#370e13,#180e10 65%,#100d0e);position:relative;overflow:hidden}
+.bft-chronicles .cronicas-hero::after{content:'';position:absolute;right:-40px;top:-60px;width:360px;height:360px;background:url('../../brand/facets.svg') center/contain no-repeat;opacity:.22;pointer-events:none}
+.bft-chronicles .chronicles-hero-copy{position:relative;z-index:1}
+.bft-chronicles .cronicas-hero-title{font:500 clamp(2.1rem,4.7vw,3.8rem)/1.05 'Frank Ruhl Libre',Georgia,serif;text-transform:none;letter-spacing:-.035em;color:#f6e8d3;margin:.5rem 0 .7rem}
+.bft-chronicles .cronicas-hero-sub{color:#efd2b3;font-size:15px;line-height:1.7;margin:0}
+.bft-chronicles .chronicles-hero-intro{color:var(--chronicle-muted);font-size:13px;line-height:1.85;max-width:72ch;margin-top:.65rem}
+.bft-chronicles .chronicles-hero-actions{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:1.2rem}
+.bft-chronicles .chronicles-hero-emblem{display:grid;justify-items:center;gap:.8rem;color:#c3804e;position:relative;z-index:1}
+.bft-chronicles .chronicles-hero-emblem svg{width:145px;height:145px;filter:drop-shadow(0 0 25px #d3461630)}
+.bft-chronicles .chronicles-hero-emblem>span{font:italic 15px/1.6 Georgia,serif;color:#c2a68b;text-align:center}
+.bft-chronicles :is(.cronicas-btn,.editor-submit){background:linear-gradient(110deg,#a42520,#641817);color:#ffead4;border:1px solid #c05e42;border-radius:3px;box-shadow:none;text-transform:none;letter-spacing:0;font-size:12px;font-weight:700;min-height:40px;padding:.6rem .85rem}
+.bft-chronicles :is(.cronicas-btn,.editor-submit):hover{background:#a92b23;transform:none}
+.bft-chronicles .cronicas-btn-outline{border:1px solid #915039;color:#efbc94;background:#1d1010;border-radius:3px;font-size:12px;font-weight:600;letter-spacing:0;text-transform:none;min-height:40px;padding:.6rem .8rem;display:inline-flex;align-items:center;justify-content:center;gap:.6rem}
+.bft-chronicles .cronicas-btn-outline:hover{background:#421713;border-color:#d17e51;color:#ffe0ba}
+.bft-chronicles .chronicles-guide{border:1px solid #5e3028;background:#171011;margin-top:1rem}
+.bft-chronicles .chronicles-guide summary{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;min-height:48px;padding:.8rem 1rem;cursor:pointer;color:#efc3a0;font-size:12px;font-weight:600;list-style:none}
+.bft-chronicles .chronicles-guide summary::-webkit-details-marker{display:none}
+.bft-chronicles .chronicles-guide summary>span:first-child{color:#f0d9be;font-family:'Frank Ruhl Libre',Georgia,serif;font-size:19px;font-weight:500}
+.bft-chronicles .chronicles-guide summary>span:last-child{margin-left:auto}
+.bft-chronicles .chronicles-guide[open] summary{border-bottom:1px solid #5e3028}
+.bft-chronicles .chronicles-guide>div{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.5rem;padding:1.2rem}
+.bft-chronicles .chronicles-guide p{color:#c5b8a8;font-size:13px;line-height:1.85;min-width:0}
+.bft-chronicles .chronicles-guide strong{display:block;color:#edb285;margin-bottom:.4rem;font-weight:600}
+.bft-chronicles .cronicas-toolbar{justify-content:flex-start;max-width:none;padding:1rem 0;margin:1rem 0 0;border-block:1px solid #5b2d27;gap:.75rem;scroll-margin-top:90px}
+.bft-chronicles .chronicles-filters{display:flex;align-items:end;gap:.6rem;flex:1 1 650px;min-width:0;flex-wrap:wrap}
+.bft-chronicles .chronicles-filters>label{display:grid;gap:.4rem;min-width:0;flex:1 1 160px;color:#c8ae96;font-size:10px;letter-spacing:.06em;font-weight:600;text-transform:uppercase}
+.bft-chronicles .cronicas-filter{background:#141011;border:1px solid #744034;color:#ead9c5;border-radius:3px;font-size:13px;min-height:40px;width:100%;color-scheme:dark;letter-spacing:0;text-transform:none;font-weight:400;padding:.55rem .6rem;cursor:pointer}
+.bft-chronicles .cronicas-filter:focus{outline:2px solid #ffbd86;outline-offset:2px}
+.bft-chronicles .cronicas-featured{max-width:none;padding:0;margin:1.5rem 0}
+.bft-chronicles .cronicas-featured>h2{font:500 1.5rem/1.3 'Frank Ruhl Libre',Georgia,serif;color:#ebcdb0}
+.bft-chronicles .cronicas-featured-links{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:.75rem;margin-top:.75rem}
+.bft-chronicles .cronicas-featured-links>a{display:flex;gap:.8rem;align-items:center;border:1px solid #683429;border-left:3px solid #b31515;border-radius:2px;padding:.85rem;background:#1c1012;color:#f1dac1;min-width:0}
+.bft-chronicles .cronicas-featured-links>a:hover{border-color:#d27b4b;background:#2b1415}
+.bft-chronicles .chronicles-featured-mark{flex:0 0 45px;width:45px;height:45px;color:#d58f55}
+.bft-chronicles .cronicas-featured-links>a>span:nth-child(2){display:grid;gap:.3rem;min-width:0;flex:1}
+.bft-chronicles .cronicas-featured-links strong{font:500 19px/1.3 'Frank Ruhl Libre',Georgia,serif;overflow-wrap:anywhere}
+.bft-chronicles .cronicas-featured-links small{color:#c3ae99;font-size:11px}
+.bft-chronicles .chronicles-archive-heading{display:flex;justify-content:space-between;align-items:baseline;gap:.75rem;flex-wrap:wrap;margin:1.4rem 0 .85rem}
+.bft-chronicles .chronicles-archive-heading h2{font:500 1.6rem/1.3 'Frank Ruhl Libre',Georgia,serif;color:#f0d6b9}
+.bft-chronicles .chronicles-archive-heading p{color:#bda994;font-size:11px}
+.bft-chronicles .chronicles-current-filters{display:flex;gap:.75rem;flex-wrap:wrap;font-size:12px;color:#d3bca5;margin-bottom:1rem}
+.bft-chronicles .chronicles-current-filters a{color:#ffc18c;text-decoration:underline;text-underline-offset:3px}
+.bft-chronicles .cronicas-grid{grid-template-columns:repeat(3,minmax(0,1fr));max-width:none;padding:0;margin:0;gap:1rem}
+.bft-chronicles .cronica-card{background:linear-gradient(120deg,#1c1113,#130f10);border:1px solid #5e3029;border-left:4px solid #7b2420;border-radius:3px;padding:0;overflow:hidden;min-width:0;transition:border-color .2s;position:relative;color:inherit}
+.bft-chronicles .cronica-card:hover{transform:none;box-shadow:0 8px 25px #0004;border-color:#cc754b}
+.bft-chronicles .chronicles-card-art{position:relative;aspect-ratio:1.9;display:grid;place-items:center;overflow:hidden;background:radial-gradient(ellipse at 50% 110%,#66221a,transparent 75%),#130d10;border-bottom:1px solid #693a2c}
+.bft-chronicles .chronicles-card-art::after{content:'';position:absolute;inset:8px;border:1px solid #cd9c6140;pointer-events:none}
+.bft-chronicles .cronica-card-cover{margin:0;border-radius:0;aspect-ratio:auto;width:100%;height:100%;object-fit:cover;filter:saturate(.8) contrast(1.04)}
+.bft-chronicles .chronicles-card-seal{width:82px;height:82px;color:#b6794e}
+.bft-chronicles .chronicles-bookmark{position:absolute;top:0;left:1rem;z-index:1;background:#741d1b;border:1px solid #ba5b3e;border-top:0;padding:.6rem .65rem .8rem;clip-path:polygon(0 0,100% 0,100% 100%,50% calc(100% - 5px),0 100%);font-size:10px;font-weight:700;letter-spacing:.05em;color:#ffe4c7}
+.bft-chronicles .chronicles-example-label{position:absolute;right:.6rem;bottom:.6rem;background:#110c0de8;border:1px solid #9a683d;color:#f3c693;font-size:9px;padding:.2rem .4rem}
+.bft-chronicles .chronicles-card-copy{padding:1rem;display:flex;flex-direction:column;gap:.55rem;flex:1;min-width:0}
+.bft-chronicles .cronica-card-eyebrow{color:#d99e73;font-size:10px;line-height:1.6;font-weight:600;letter-spacing:.06em;overflow-wrap:anywhere}
+.bft-chronicles .cronica-card-title{color:#f4e3cb;font:500 1.6rem/1.2 'Frank Ruhl Libre',Georgia,serif;letter-spacing:-.02em;margin:0;overflow-wrap:anywhere}
+.bft-chronicles .cronica-card-summary{color:#c9bbab;font-size:13px;line-height:1.85;margin:0;flex:1;overflow-wrap:anywhere}
+.bft-chronicles .cronica-card-footer{color:#baa38d;border-color:#583128;font-size:11px;line-height:1.7;flex-wrap:wrap;margin-top:.3rem;padding-top:.7rem}
+.bft-chronicles .cronica-card-footer .author{color:#eab184;font-weight:600}
+.bft-chronicles .cronica-card-footer .personagem{color:#d6c0a7}
+.bft-chronicles .chronicles-read-link{display:flex;align-items:center;justify-content:space-between;gap:.6rem;min-height:30px;color:#f4ba8a;font-size:12px;font-weight:600}
+.bft-chronicles .cronica-card:hover .chronicles-read-link{color:#ffdcaf}
+.bft-chronicles .cronicas-empty{border:1px solid #633027;border-top:2px solid #a92d23;background:linear-gradient(110deg,#211114,#120f10);padding:2.2rem 1rem;display:grid;justify-items:center;gap:.8rem;color:#c6b6a4}
+.bft-chronicles .chronicles-empty-mark{width:86px;height:86px;color:#d58f55}
+.bft-chronicles .cronicas-empty h3{font:500 1.8rem/1.25 'Frank Ruhl Libre',Georgia,serif;color:#f0d8bc;max-width:32ch}
+.bft-chronicles .cronicas-empty>p{font-size:13px;line-height:1.8}
+.bft-chronicles .chronicles-empty-actions{display:flex;flex-wrap:wrap;gap:.6rem;justify-content:center;margin-top:.3rem}
+.bft-chronicles .cronicas-pagination{border-top:1px solid #623027;padding:1rem 0 0;margin:1.5rem 0;max-width:none;align-items:center;flex-wrap:wrap;color:#cbb6a0;font-size:12px}
+.bft-chronicles .cronicas-pagination a{border:1px solid #965237;background:#291211;color:#f7c497;min-height:40px;padding:.65rem .9rem;border-radius:3px}
+.bft-chronicles .minhas-section{max-width:none;border-color:#6e3027;margin:2rem 0 0;padding:1.2rem 0 0}
+.bft-chronicles .minhas-title{font:500 1.5rem/1.4 'Frank Ruhl Libre',Georgia,serif;text-transform:none;letter-spacing:0;color:#edcbaa}
+.bft-chronicles .minhas-item{border-color:#62352b;border-radius:3px;gap:.8rem;flex-wrap:wrap;background:#181011;padding:.75rem}
+.bft-chronicles .minhas-item-title{font-size:13px;flex:1 1 220px;overflow-wrap:anywhere}
+.bft-chronicles .minhas-item>span:not([class]),.bft-chronicles .minhas-action{font-size:12px;color:#ddbaa0}
+.bft-chronicles .minhas-status{font-size:10px}
+.bft-chronicles .minhas-status.reprovada{color:#f6b1a0}
+.bft-chronicles .minhas-status.oculta{background:#29222d;color:#d5b6e4}
+/* A chronicle opens as a book, with social controls outside the paper. */
+.bft-chronicles .chronicles-breadcrumb{display:flex;justify-content:space-between;gap:1rem;align-items:center;flex-wrap:wrap;margin:0 0 1rem;font-size:11px;color:#bda18b}
+.bft-chronicles .chronicles-breadcrumb a{color:#efb88b;min-height:30px;display:inline-flex;align-items:center}
+.bft-chronicles .cronica-hero{border:1px solid #713c2d;border-top:3px solid #b31515;padding:clamp(1.3rem,3vw,2.3rem);min-height:230px;background:linear-gradient(100deg,#200d10ed,#170d0fde 58%,#100b0e86);gap:.55rem}
+.bft-chronicles .cronica-hero-cover{opacity:.6;z-index:-2;filter:saturate(.75)}
+.bft-chronicles .cronica-hero::before{content:'';position:absolute;inset:0;background:linear-gradient(100deg,#160a0de8,#160b0dd6 55%,#0e090d55);z-index:-1;pointer-events:none}
+.bft-chronicles .cronica-eyebrow{font-size:11px;color:#deb68e;letter-spacing:.06em;font-weight:600;line-height:1.7}
+.bft-chronicles .cronica-title{font:500 clamp(2rem,3.6vw,3.2rem)/1.1 'Frank Ruhl Libre',Georgia,serif;color:#ffedd5;text-transform:none;letter-spacing:-.025em;margin:.25rem 0;max-width:32ch;overflow-wrap:anywhere}
+.bft-chronicles .cronica-meta{font-size:12px;color:#c9b49d;margin-top:.25rem;line-height:1.8}
+.bft-chronicles .cronica-meta .author{color:#fac291}
+.bft-chronicles .cronica-meta .personagem{color:#e5c8a6}
+.bft-chronicles .chronicles-reader-summary{font:italic 16px/1.7 Georgia,serif;color:#e0c7ab;max-width:75ch;margin:.5rem 0 0}
+.bft-chronicles .chronicles-reading-grid{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:1.25rem;align-items:start;margin-top:1.3rem}
+.bft-chronicles .cronica-layout{min-width:0;max-width:none;margin:0;padding:0}
+.bft-chronicles .cronica-body{border:1px solid #b89d79;border-left:5px solid #8a2820;border-radius:0;margin:0;padding:clamp(1.2rem,3vw,2.5rem);background-color:var(--chronicle-paper);background-image:linear-gradient(90deg,#a87a3020,transparent 5%,transparent 95%,#a87a3010),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.6' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Cpath d='M0 0h180v180H0z' fill='%23643e17' opacity='.035' filter='url(%23grain)'/%3E%3C/svg%3E");box-shadow:0 10px 25px #0004;color:var(--chronicle-ink)}
+.bft-chronicles .cronica-body .bonfire-markdown{font:16px/1.9 Georgia,'Frank Ruhl Libre',serif;color:var(--chronicle-ink);max-width:72ch;margin:0 auto;overflow-wrap:anywhere}
+.bft-chronicles .cronica-body .bonfire-markdown strong{color:#302119}
+.bft-chronicles .cronica-body .bonfire-markdown :is(h1,h2,h3,h4){font-family:'Frank Ruhl Libre',Georgia,serif;color:#4f281c;text-transform:none;font-weight:600;line-height:1.3;margin:1.8rem 0 .7rem;scroll-margin-top:95px}
+.bft-chronicles .cronica-body .bonfire-markdown h2{font-size:1.8rem;border-bottom:1px solid #ad8c68;padding-bottom:.45rem}
+.bft-chronicles .cronica-body .bonfire-markdown h3{font-size:1.4rem}
+.bft-chronicles .cronica-body .bonfire-markdown>p+p{margin-top:1.15rem}
+.bft-chronicles .cronica-body .bonfire-markdown>p:first-of-type::first-letter{font:600 3.5rem/.9 'Frank Ruhl Libre',Georgia,serif;float:left;color:#7a221b;margin:.15rem .35rem 0 0}
+.bft-chronicles .cronica-body .bonfire-markdown a{color:#7a221b;text-decoration:underline;text-underline-offset:3px}
+.bft-chronicles .cronica-body .bonfire-markdown blockquote{border-left:3px solid #8a3826;background:#d5c1a24d;color:#6a3020;padding:.9rem 1rem;margin:1.3rem 0;font:italic 18px/1.7 Georgia,serif}
+.bft-chronicles .cronica-body .bonfire-markdown li{margin:.4rem 0}
+.bft-chronicles .cronica-body .bonfire-markdown table{display:block;overflow:auto;max-width:100%;border-collapse:collapse;margin:1rem 0}
+.bft-chronicles .cronica-body .bonfire-markdown :is(th,td){border:1px solid #a17d59;padding:.6rem;font-size:14px;color:#35271f}
+.bft-chronicles .cronica-body .bonfire-markdown th{background:#d4c0a0}
+.bft-chronicles .cronica-body .bonfire-markdown :is(pre,code){background:#d5c6af;color:#533021;max-width:100%;overflow:auto}
+.bft-chronicles .cronica-body .bonfire-markdown :is(a,summary):focus-visible{outline-color:#7a221b}
+.bft-chronicles .chronicles-endmark{border-top:1px solid #b99b77;margin:2rem auto 0;padding-top:1rem;text-align:center;color:#8a2820;max-width:72ch;font-size:12px}
+.bft-chronicles .chronicles-reading-aside{display:grid;gap:.8rem;position:sticky;top:90px;min-width:0}
+.bft-chronicles :is(.chronicles-reading-time,.chronicles-toc,.chronicles-world-links){background:#191012;border:1px solid #64352a;border-top:2px solid #a33a28;padding:.9rem}
+.bft-chronicles .chronicles-reading-time p{font:500 1.3rem/1.5 'Frank Ruhl Libre',Georgia,serif;color:#f0d6bb;margin:.25rem 0 0}
+.bft-chronicles .chronicles-toc summary{display:flex;justify-content:space-between;align-items:center;gap:.5rem;cursor:pointer;list-style:none;min-height:30px;color:#eac19d;font-size:12px;font-weight:600}
+.bft-chronicles .chronicles-toc summary::-webkit-details-marker{display:none}
+.bft-chronicles .chronicles-toc nav{display:grid;gap:.3rem;margin-top:.6rem;max-height:44vh;overflow:auto;scrollbar-width:thin}
+.bft-chronicles .chronicles-toc a{font-size:12px;line-height:1.6;color:#cdb6a1;border-left:2px solid #63362b;padding:.4rem;min-height:32px;overflow-wrap:anywhere}
+.bft-chronicles .chronicles-toc a[data-depth="3"]{padding-left:.85rem;font-size:11px}
+.bft-chronicles .chronicles-toc a:hover{border-color:#f09b60;background:#371a16;color:#ffdfb8}
+.bft-chronicles .chronicles-world-links{display:grid;gap:.7rem}
+.bft-chronicles .chronicles-world-links a{display:flex;justify-content:space-between;gap:.6rem;border-top:1px solid #512e26;padding-top:.6rem;font-size:12px;line-height:1.6;color:#dcbaa0;min-height:32px}
+.bft-chronicles .cronica-status-banner{margin:0 0 1rem;padding:1rem;border-color:#684032;background:#211215;border-radius:3px;line-height:1.8;font-size:13px}
+.bft-chronicles .cronica-status-banner p{color:#cbb7a1;font-size:13px;line-height:1.8;overflow-wrap:anywhere}
+.bft-chronicles .cronica-status-banner a{color:#ffc08f;text-decoration:underline}
+.bft-chronicles .cronica-reactions{gap:.8rem;font-size:13px;color:#cdb49b;margin-top:1.2rem}
+.bft-chronicles .cronica-reactions button,.bft-chronicles .cronica-comments button,.bft-chronicles .cronica-layout>form button{border:1px solid #a45c3e;background:#3c1514;color:#ffd1a7;border-radius:3px;min-height:40px;padding:.6rem .85rem;font-size:12px;font-weight:600;cursor:pointer}
+.bft-chronicles .cronica-layout>form{margin-bottom:.8rem}
+.bft-chronicles .cronica-reactions button[aria-pressed="true"]{background:#71231a;border-color:#e5995e}
+.bft-chronicles :is(.cronica-reactions,.cronica-comments) a{color:#ffc08f;text-decoration:underline;text-underline-offset:3px}
+.bft-chronicles .cronica-comments{border-color:#69392c;padding-top:1.2rem;margin-top:1.5rem;font-size:13px;line-height:1.8;color:#cbb49e}
+.bft-chronicles .cronica-comments h2{font:500 1.7rem/1.3 'Frank Ruhl Libre',Georgia,serif;color:#edc5a1;margin-bottom:.8rem}
+.bft-chronicles .cronica-comment{background:#181011;border-color:#64372c;border-radius:3px;padding:1rem}
+.bft-chronicles .cronica-comment header{font-size:11px;color:#bfa48e}
+.bft-chronicles .cronica-comment header strong{color:#f0bd92}
+.bft-chronicles .cronica-comment-text{font-size:14px;color:#e2d0ba;line-height:1.85;margin:.65rem 0;overflow-wrap:anywhere}
+.bft-chronicles .cronica-comments :is(input,textarea){background:#110c0d;color:#efddc7;border:1px solid #774330;border-radius:3px;min-height:40px;padding:.6rem;width:100%;font-size:14px}
+.bft-chronicles .cronica-comments textarea{min-height:110px;resize:vertical}
+.bft-chronicles .cronica-comments summary{display:list-item;color:#dcb08c;min-height:32px;font-size:12px;cursor:pointer}
+.bft-chronicles .cronica-back{color:#e7b28a;border:1px solid #7b4430;border-radius:3px;font-size:12px;min-height:40px;padding:.6rem .85rem;margin-top:1.3rem}
+/* Authoring: preserve every field and tool; the preview is a manuscript. */
+.bft-chronicles .editor-shell{width:min(100%,1400px);max-width:none;margin:auto;padding:1.3rem clamp(1rem,3vw,2.5rem) 3rem;min-width:0}
+.bft-chronicles .chronicles-editor-back,.bft-chronicles .review-back{color:#e5af88;min-height:32px;display:inline-flex;align-items:center;font-size:12px;margin-bottom:1rem}
+.bft-chronicles .editor-header,.bft-chronicles .review-header{padding:1.2rem 1.4rem;border:1px solid #71392e;border-top:3px solid #b31515;background:linear-gradient(110deg,#351014,#151011)}
+.bft-chronicles .editor-header h1,.bft-chronicles .review-header h1{font:500 2.1rem/1.2 'Frank Ruhl Libre',Georgia,serif;text-transform:none;letter-spacing:-.02em;color:#f1dfc8;margin:.35rem 0}
+.bft-chronicles .editor-header>p:not(.chronicles-kicker),.bft-chronicles .review-header p{color:#c9b8a4;font-size:13px;line-height:1.85;max-width:85ch}
+.bft-chronicles .editor-info-box{background:#201310;border-color:#70432e;border-left-color:#cb834d;color:#ccb69c;font-size:12px;line-height:1.8;border-radius:3px}
+.bft-chronicles .editor-info-box strong{color:#f3bb86}
+.bft-chronicles .editor-fields{background:#151011;border:1px solid #5e342a;padding:1rem;gap:1rem;grid-template-columns:repeat(2,minmax(0,1fr))}
+.bft-chronicles .editor-field{min-width:0}
+.bft-chronicles .editor-field label{color:#cfb499;font-size:11px;font-weight:600;letter-spacing:.04em}
+.bft-chronicles .editor-field :is(input,select){background:#100b0c;border-color:#764231;color:#eddbc4;border-radius:3px;font-size:14px;min-height:40px;letter-spacing:0;width:100%;color-scheme:dark}
+.bft-chronicles .editor-field select[multiple]{min-height:140px}
+.bft-chronicles .editor-help{color:#b8a28b;font-size:11px;line-height:1.7}
+.bft-chronicles .editor-toolbar{background:#241115;border-color:#633529;border-radius:3px;padding:.65rem;gap:.4rem}
+.bft-chronicles :is(.editor-tool,.editor-file-tool){background:#110d0e;border-color:#724332;color:#e4c3a2;border-radius:3px;min-height:34px;padding:.5rem .6rem;font-size:11px;font-weight:600}
+.bft-chronicles .editor-file-tool{position:relative;display:inline-flex;align-items:center;overflow:hidden}
+.bft-chronicles .editor-file-tool input{display:block;position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.bft-chronicles .editor-file-tool:focus-within{outline:2px solid #ffbd86;outline-offset:3px}
+.bft-chronicles .editor-status{color:#c4a78d;font-size:11px}
+.bft-chronicles .editor-split{grid-template-columns:minmax(0,1fr) minmax(0,1fr);min-height:500px;gap:1rem}
+.bft-chronicles .editor-panel{min-width:0;background:#140f10;border-color:#734031;border-radius:3px}
+.bft-chronicles .editor-panel-header{background:#2b1216;border-color:#734031;gap:.5rem;flex-wrap:wrap;padding:.7rem}
+.bft-chronicles .editor-panel-header h2{font:600 11px/1.5 'Open Sans',sans-serif;color:#f3be92;letter-spacing:.04em}
+.bft-chronicles .editor-panel-header span{color:#c1a48a;font-size:11px}
+.bft-chronicles .editor-textarea{background:#0f0c0d;font-size:13px;line-height:1.85;min-height:460px;resize:vertical;color:#e0d0bd;padding:1rem}
+.bft-chronicles .editor-preview{background:var(--chronicle-paper);border-left:4px solid #8a2820;color:var(--chronicle-ink);font:16px/1.9 Georgia,serif;padding:1.5rem;overflow-wrap:anywhere;overflow:visible}
+.bft-chronicles .editor-preview strong{color:#302119}
+.bft-chronicles .editor-preview :is(h1,h2,h3,h4){font-family:'Frank Ruhl Libre',Georgia,serif;color:#4f281c;font-weight:600;text-transform:none;line-height:1.3;margin:1.6rem 0 .7rem}
+.bft-chronicles .editor-preview h1{font-size:2rem}
+.bft-chronicles .editor-preview h2{font-size:1.8rem;border-bottom:1px solid #ad8c68;padding-bottom:.45rem}
+.bft-chronicles .editor-preview h3{font-size:1.4rem}
+.bft-chronicles .editor-preview>p:first-of-type::first-letter{font:600 3.5rem/.9 'Frank Ruhl Libre',Georgia,serif;float:left;color:#7a221b;margin:.15rem .35rem 0 0}
+.bft-chronicles .editor-preview>p+p{margin-top:1.15rem}
+.bft-chronicles .editor-preview a{color:#7a221b;text-decoration:underline}
+.bft-chronicles .editor-preview blockquote{color:#6a3020;border-left:3px solid #8a3826;padding:.8rem 1rem;margin:1rem 0;background:#d5c1a24d;font-style:italic}
+.bft-chronicles .editor-preview table{display:block;max-width:100%;overflow:auto}
+.bft-chronicles .editor-preview :is(th,td){border:1px solid #a17d59;color:#35271f;padding:.6rem}
+.bft-chronicles .editor-preview :is(pre,code){background:#d5c6af;color:#533021;max-width:100%;overflow:auto}
+.bft-chronicles .editor-cancel{color:#e7bd99;border-color:#8a5036;font-size:12px;border-radius:3px;text-transform:none;min-height:40px}
+.bft-chronicles .editor-submit:disabled{cursor:not-allowed;opacity:.65}
+/* Connected inbox/review screens receive the same skin, without new privileges. */
+.bft-chronicles .review-shell{padding:1.3rem 0 2.5rem;min-width:0}
+.bft-chronicles .review-item{border-color:#6d392d;background:#181011;border-radius:3px}
+.bft-chronicles :is(.review-item-header,.review-item-actions){border-color:#68372b;background:#231215;padding:1rem}
+.bft-chronicles .review-item-title{font:500 1.6rem/1.25 'Frank Ruhl Libre',Georgia,serif;color:#f0dbc2;overflow-wrap:anywhere}
+.bft-chronicles .review-item-meta{font-size:11px;color:#c5ab92;line-height:1.8}
+.bft-chronicles .review-item-body{padding:1.2rem;max-height:none;overflow:visible}
+.bft-chronicles .review-item-body .bonfire-markdown{font-size:14px;line-height:1.85;overflow-wrap:anywhere}
+.bft-chronicles :is(.review-item-summary,.review-item-cover){font-size:13px;line-height:1.8;color:#ccb8a2}
+.bft-chronicles .review-feedback-input{background:#100c0d;border-color:#7b4933;border-radius:3px;color:#eddbc5;font-size:13px;min-height:40px}
+.bft-chronicles .review-feedback-label{font-size:12px;color:#ccb297}
+.bft-chronicles .review-btn-approve{background:#24573b;color:#ebf6df;border:1px solid #629574;font-size:12px;text-transform:none;letter-spacing:0;min-height:40px;border-radius:3px}
+.bft-chronicles .review-btn-reject{border-color:#9b4935;color:#ffc2a3;font-size:12px;text-transform:none;letter-spacing:0;min-height:40px;border-radius:3px}
+.bft-chronicles .review-btn-reject:hover{background:#6a2119;color:#fff0df}
+.bft-chronicles .cronica-inbox{max-width:none;margin:0;padding:1.2rem 0 2rem;color:#dcc7af}
+.bft-chronicles :is(.cronica-inbox,.bft-chronicles-reports .cronica-layout)>h1{font:500 2.2rem/1.2 'Frank Ruhl Libre',Georgia,serif;color:#f0dcc4;margin-bottom:1rem}
+.bft-chronicles .cronica-inbox-item{background:#1e1013;border-color:#64372c;border-radius:3px;font-size:13px}
+.bft-chronicles .cronica-inbox-item.is-unread{border-left:3px solid #b31515;background:#301216}
+.bft-chronicles .cronica-inbox-action{color:#efd0af;font-size:13px;line-height:1.8;overflow-wrap:anywhere}
+.bft-chronicles .cronica-inbox-item time{font-size:11px;color:#c1a78e}
+.bft-chronicles .cronica-inbox-state{background:#7c241c;color:#ffe0bb}
+.bft-chronicles-reports .cronica-layout .cronica-status-banner{margin-top:1rem}
+.bft-chronicles-reports .cronica-layout .cronica-status-banner h2{font:500 1.6rem/1.4 'Frank Ruhl Libre',Georgia,serif;color:#ebc7a4}
+.bft-chronicles-reports .cronica-layout button{border:1px solid #9b5339;padding:.6rem .8rem;min-height:40px;color:#ffd2ab;background:#421713;border-radius:3px;margin:.4rem .4rem 0 0;font-size:12px}
+@media(max-width:1100px){.bft-chronicles .cronicas-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.bft-chronicles .cronicas-hero{grid-template-columns:minmax(0,1fr) 170px;gap:1.25rem}.bft-chronicles .chronicles-hero-emblem svg{width:125px;height:125px}}
+@media(max-width:1000px){
+ .bft-chronicles .chronicles-reading-grid{grid-template-columns:minmax(0,1fr);gap:.8rem}
+ .bft-chronicles .chronicles-reading-aside{display:contents}
+ .bft-chronicles .chronicles-reading-time{grid-row:1;display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.55rem .8rem}
+ .bft-chronicles .chronicles-reading-time p{font-size:1.1rem;margin:0}
+ .bft-chronicles .chronicles-toc{grid-row:2;padding:.6rem .8rem}
+ .bft-chronicles .cronica-layout{grid-row:3}
+ .bft-chronicles .chronicles-world-links{grid-row:4}
+ .bft-chronicles .editor-split{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:700px){
+ .bft-chronicles .chronicles-guide>div{grid-template-columns:minmax(0,1fr);gap:1rem}
+ .bft-chronicles .chronicles-hero-emblem{display:none}
+ .bft-chronicles .cronicas-hero{grid-template-columns:minmax(0,1fr)}
+ .bft-chronicles .editor-fields{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:600px){
+ .bft-chronicles .chronicles-shell,.bft-chronicles .editor-shell{padding:1rem .85rem 2rem}
+ .bft-chronicles .cronicas-hero{padding:1.2rem 1rem}
+ .bft-chronicles .cronicas-hero-title{font-size:2.4rem}
+ .bft-chronicles .cronicas-grid{grid-template-columns:minmax(0,1fr)}
+ .bft-chronicles .chronicles-filters{display:grid;grid-template-columns:minmax(0,1fr);flex-basis:100%;width:100%}
+ .bft-chronicles .chronicles-filters>button{justify-self:start}
+ .bft-chronicles .cronicas-filter{font-size:16px}
+ .bft-chronicles .chronicles-hero-actions>a{flex:1 1 170px}
+ .bft-chronicles .cronica-body{padding:1.2rem .95rem}
+ .bft-chronicles .cronica-hero{padding:1.2rem 1rem;min-height:0}
+ .bft-chronicles .cronica-title{font-size:2.2rem}
+ .bft-chronicles .chronicles-toc nav{max-height:none}
+ .bft-chronicles .editor-preview{padding:1rem}
+ .bft-chronicles .editor-field :is(input,select),.bft-chronicles .cronica-comments :is(input,textarea){font-size:16px}
+ .bft-chronicles .editor-header{padding:1rem}
+ .bft-chronicles .editor-status{width:100%;margin:.4rem 0 0}
+ .bft-chronicles .editor-actions{flex-wrap:wrap}
+}
+@media(prefers-reduced-motion:reduce){.bft-chronicles *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
