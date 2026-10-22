@@ -168,6 +168,9 @@ class CommerceReviewBrowserTests(StaticLiveServerTestCase):
                 self.assertEqual(js('window.reviewSubmits.length'), 1)
                 js('document.querySelector("form[data-purchase-review] button").click()')
                 wait_for('document.querySelector("#co-review").open')
+                # A delayed close from the cancelled review must not clear this purchase.
+                js('document.querySelector("#co-review").dispatchEvent(new Event("close"))')
+                self.assertTrue(js('document.querySelector("#co-review").open'))
                 js('document.querySelector("[data-co-proceed]").click()')
                 wait_for('window.reviewSubmits.length === 3')
                 self.assertEqual(js('JSON.stringify(window.reviewSubmits)'), '[true,true,false]')

@@ -60,7 +60,12 @@
     if (demoButton) demoButton.addEventListener('click', () => review(form, demoButton));
   }
   for (const close of dialog.querySelectorAll('[data-co-close]')) close.addEventListener('click', () => dialog.close());
-  dialog.addEventListener('close', () => { pending = null; approved = null; if (opener) opener.focus(); });
+  dialog.addEventListener('close', () => {
+    // A close event from the previous review may arrive after this one opens.
+    if (dialog.open) return;
+    pending = null; approved = null;
+    if (opener) opener.focus();
+  });
   proceed.addEventListener('click', () => {
     const form = pending;
     if (!form || form.hasAttribute('data-co-readonly') || !form.reportValidity()) return;
