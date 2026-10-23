@@ -88,12 +88,14 @@ class CombatEncounter:
         if damage_type is None:
             return damage
         target_entry = self._combatants[target]
-        result = evaluate_tags(target_entry["defensive_tags"], {
+        context = dict(target_entry["tag_context"])
+        context.update({
             "resolve_runtime": True,
             "event": "take_damage",
             "self_hp": target_entry["hp"],
             "self_max_hp": target_entry["max_hp"],
         })
+        result = evaluate_tags(target_entry["defensive_tags"], context)
         defenses = {
             operation.target
             for operation in result.operations
