@@ -47,6 +47,7 @@ class CombatEncounter:
         self.finished = False
         self._events = []
         self._healing_tag_uses = set()
+        self._fall_progress = {}
 
     @property
     def combatants(self):
@@ -82,6 +83,42 @@ class CombatEncounter:
         self.action_used = False
         self._events.append(("turn_start", actor, turn_id))
         return True
+
+    def fall(self, actor, remaining_distance_ft, *, turn_id):
+        """Resolve the distance fallen this turn from the actor's movement tags.
+
+        The table supplies the remaining distance and turn identity. Multiple
+        calls in one turn share the same limit, including falls outside the
+        actor's own turn.
+        """
+        if (actor not in self._combatants or type(remaining_distance_ft) is not int
+                or remaining_distance_ft < 0 or
+                not isinstance(turn_id, (str, int)) or not str(turn_id)):
+            raise ValueError("Declare an actor, distance and turn")
+        from home.epic_sky_runtime import consume_movement_operation
+
+        entry = self._combatants[actor]
+        context = dict(entry["tag_context"])
+        context.update(resolve_runtime=True, event="fall",
+                       self_hp=entry["hp"], self_max_hp=entry["max_hp"])
+        properties, rule = {}, {}
+        for operation in evaluate_tags(entry["defensive_tags"], context).operations:
+            if operation.active:
+                consume_movement_operation(operation, properties, rule)
+
+        actual = remaining_distance_ft
+        threshold = rule.get("threshold_ft")
+        speed = rule.get("max_per_turn_ft")
+        if threshold is not None and speed is not None:
+            turn_key = str(turn_id)
+            previous_turn, used = self._fall_progress.get(actor, (None, 0))
+            if previous_turn != turn_key:
+                used = 0
+            if remaining_distance_ft > threshold:
+                actual = min(remaining_distance_ft, max(0, speed - used))
+            self._fall_progress[actor] = (turn_key, used + actual)
+        self._events.append(("fall", actor, turn_id, remaining_distance_ft, actual))
+        return actual
 
     def _damage_after_defenses(self, target, damage, damage_type):
         """Apply target-declared resistance or immunity for one typed hit."""

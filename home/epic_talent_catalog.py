@@ -31,6 +31,12 @@ VERIFIED_EFFECTS = {
         *(f"prof:{skill}" for skill in sorted(SKILLS)),
         "expertise:original_prof",
     ],
+    "dadiva-do-dominio-do-ceu": [
+        "always_active{move:fly(=walk, hover, fall_threshold:5ft, "
+        "fall_speed:60ft)}",
+        "cast{spell:caminhar-no-vento, without{slot}, without{components}, "
+        "uses{1, reset:long_rest}, always_prepared}",
+    ],
 }
 
 # Efeitos conferidos isoladamente. Estes talentos ainda não entram em epic_candidates:
@@ -39,12 +45,6 @@ PARTIAL_EFFECTS = {
     "dadiva-da-tempestade": [
         "always_active{resist:raio, resist:trovejante}",
         "while_active{requires:self{sangrando}, immune:raio, immune:trovejante}",
-    ],
-    "dadiva-do-dominio-do-ceu": [
-        "always_active{move:fly(=walk, hover, fall_threshold:5ft, "
-        "fall_speed:60ft)}",
-        "cast{spell:caminhar-no-vento, without{slot}, without{components}, "
-        "uses{1, reset:long_rest}, always_prepared}",
     ],
 }
 

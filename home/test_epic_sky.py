@@ -8,13 +8,14 @@ from django.test import SimpleTestCase, TestCase
 
 from home.character_engine import apply_tags, derive
 from home.epic_sky_runtime import fall_distance_for_turn
-from home.epic_talent_catalog import ATTRIBUTE_TAGS, PARTIAL_EFFECTS, epic_candidates
+from home.epic_talent_catalog import ATTRIBUTE_TAGS, VERIFIED_EFFECTS, epic_candidates
 from home.models import TbMagia, TbPersonagem, TbPersonagemTalento, TbTalento
+from home.tag_engine.combat_encounter import CombatEncounter
 from home.views import (_innate_spell_uses, _magias_sheet_info,
                         _sync_magias_concedidas)
 
 
-EFFECT_TAGS = tuple(PARTIAL_EFFECTS["dadiva-do-dominio-do-ceu"])
+EFFECT_TAGS = tuple(VERIFIED_EFFECTS["dadiva-do-dominio-do-ceu"])
 TAGS = tuple(ATTRIBUTE_TAGS) + EFFECT_TAGS
 
 
@@ -33,8 +34,8 @@ def feature(tags=EFFECT_TAGS):
 
 
 class EpicSkyMovementTests(SimpleTestCase):
-    def test_talento_permanece_fora_da_carga_ate_consumer_de_queda(self):
-        self.assertNotIn("dadiva-do-dominio-do-ceu", {
+    def test_talento_incluido_na_carga_apos_consumer_de_queda(self):
+        self.assertIn("dadiva-do-dominio-do-ceu", {
             item["slug"] for item in epic_candidates()
         })
 
@@ -74,6 +75,20 @@ class EpicSkyMovementTests(SimpleTestCase):
             "threshold_ft": 5,
             "max_per_turn_ft": 60,
         })
+
+    def test_encounter_consumes_fall_tags_once_per_turn(self):
+        encounter = CombatEncounter([
+            {"id": "sky", "team": "allies", "max_hp": 20,
+             "defensive_tags": EFFECT_TAGS},
+            {"id": "ordinary", "team": "enemies", "max_hp": 20},
+        ])
+        self.assertEqual(encounter.fall("sky", 5, turn_id="t1"), 5)
+        self.assertEqual(encounter.fall("sky", 120, turn_id="t1"), 55)
+        self.assertEqual(encounter.fall("sky", 60, turn_id="t1"), 0)
+        self.assertEqual(encounter.fall("sky", 60, turn_id="t2"), 60)
+        self.assertEqual(encounter.fall("ordinary", 120, turn_id="t2"), 120)
+        self.assertEqual(encounter.events[-1],
+                         ("fall", "ordinary", "t2", 120, 120))
 
 
 class EpicSkySpellTests(TestCase):
