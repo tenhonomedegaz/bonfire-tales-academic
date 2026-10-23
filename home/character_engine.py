@@ -2934,6 +2934,9 @@ def _dsl_static_adapter(operations, ctx, feature_name, coll, hp_bonus, ca_cands,
                 elif isinstance(amount, (int, float)):
                     coll['move_modes'][mode] = '%dft' % amount
                     mark('move')
+                from .epic_sky_runtime import consume_movement_operation
+                consume_movement_operation(
+                    operation, coll['movement_properties'], coll['fall_rule'])
             continue
         if key == ('add_modifier', 'pericia.bonus'):
             binding = params.get('binding') or {}
@@ -3009,7 +3012,8 @@ def _apply_tags(state, features, personagem=None, escolhas=None, *, ruleset=None
 
     coll = {'skill_prof': set(), 'save_prof': set(), 'all_saves': 0, 'save_bonus': {}, 'check_attr': {},
             'check_bonus': {}, 'idiomas': [], 'ferramentas': [], 'armaduras': [], 'armas': [],
-            'initiative': 0, 'move_modes': {}, 'desvantagens': [],
+            'initiative': 0, 'move_modes': {}, 'movement_properties': {},
+            'fall_rule': {}, 'desvantagens': [],
             'spell_attack_bonus': 0, 'spell_save_dc_bonus': 0,
             'n_ataques': 0, 'ataque_dado': {}, 'ataque_attr': {},
             'atk_bonus': {}, 'dmg_bonus': {},  # bônus PLANO de acerto/dano por escopo (item/Estilo)
@@ -3498,6 +3502,10 @@ def _apply_tags(state, features, personagem=None, escolhas=None, *, ruleset=None
         state['velocidade_bonus'] = speed_bonus
     if coll['move_modes']:
         state['movimento_modos'] = coll['move_modes']
+    if coll['movement_properties']:
+        state['movimento_propriedades'] = coll['movement_properties']
+    if coll['fall_rule']:
+        state['queda_controlada'] = coll['fall_rule']
     # Resistências condicionais "se já tem X -> A, senão B" avaliadas contra o conjunto FINAL.
     for _tipo, _a, _b in resist_condicionais:
         _chosen = _a if _tipo in resist else _b

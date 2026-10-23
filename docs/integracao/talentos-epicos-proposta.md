@@ -18,6 +18,8 @@ O avaliador geral reconhece a conjunção `e` do requisito de **Marca Arcana Sup
 
 **Tempestade** tem resistência a raio e trovejante e imunidade a ambos enquanto Sangrando verificadas no consumidor de dano tipado. As tags constam de `PARTIAL_EFFECTS` e não entram na carga: a desvantagem nos testes de resistência contra magias desses tipos ainda não tem consumidor de conjuração comprovado. A fonte não define um nível de aquisição automática para os épicos; nenhum nível foi presumido.
 
+**Dádiva do Domínio do Céu** tem voo com pairar na ficha e *Caminhar no Vento* concedido sem espaço nem componentes, uma vez por descanso longo. A ficha também expõe o limite de queda de 60 pés por turno após os primeiros 5 pés. As tags constam de `PARTIAL_EFFECTS` e não entram na carga: a resolução de queda em combate ainda não consome essa regra.
+
 ## Gate da entrega R2
 
 Completar tags e consumidores dos 31 talentos, validar escolha, persistência, aplicação, remoção, recálculo, teto, coexistência, idempotência e requisitos. Só então integrar e enviar o lote à dev; informar o SHA no Discord para o `/site-update` do PO. Push na dev não é deploy.

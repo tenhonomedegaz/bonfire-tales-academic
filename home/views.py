@@ -4291,6 +4291,13 @@ def _innate_spell_uses(personagem, ficha=None, *, ruleset=None):
                 meta = _uses_meta_from_text(body, ctx) or _uses_meta_from_text(t, ctx) or source_meta
                 if not meta:
                     continue
+                meta = dict(meta)
+                omissions = {
+                    value.strip().lower()
+                    for value in re.findall(r'without\s*\{\s*([^{}]+?)\s*\}', body, re.I)
+                }
+                meta['without_slot'] = 'slot' in omissions
+                meta['without_components'] = 'components' in omissions
                 for slug in re.findall(r'spell:([a-z0-9-]+)', body):
                     if ruleset is not None and slug not in catalog:
                         raise ValueError('Innate spell absent from pinned ruleset: %s' % slug)
@@ -4590,6 +4597,11 @@ def _magias_sheet_info_resolved(personagem, ficha, essencia_pendentes, *, rulese
             'innate_reset': innate_meta.get('reset', '') if innate_meta else '',
         }
         row.update(_spell_catalog_fields(_mag))
+        if innate_meta.get('without_components'):
+            row['componentes'] = '—'
+        row['innate_without_slot'] = bool(innate_meta.get('without_slot'))
+        row['innate_without_components'] = bool(
+            innate_meta.get('without_components'))
         assinatura = assinaturas.get(m.pk)
         if assinatura is not None:
             mods = assinatura.modificacoes_json or {}
