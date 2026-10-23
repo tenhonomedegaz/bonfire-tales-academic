@@ -6394,6 +6394,30 @@ def _talento_prereq_atom_ok(atom, personagem, ficha, contexto):
     return _prereq_named_atom_ok(atom, contexto)
 
 
+def _prereq_capability_from_sources(personagem, capability, origins):
+    """Confere uma capacidade passiva nas tags das fontes permitidas pelo requisito."""
+    from .character_engine import _features_do_personagem, _passive_segments
+
+    aliases = {'telepatia': 'telepathy'}
+    verb = aliases.get(capability, capability)
+    allowed = {
+        'raca': {'raca', 'linhagem', 'essencia'},
+        'classe': {'classe', 'subclasse'},
+        'talento': {'talento', 'talento-racial'},
+    }
+    source_types = set().union(*(allowed.get(origin, set()) for origin in origins))
+    if not source_types or not re.fullmatch(r'[a-z_]+', verb):
+        return False
+    pattern = re.compile(r'(?<![\w-])' + re.escape(verb) + r'\s*[:{]', re.I)
+    return any(
+        pattern.search(segment)
+        for source_type, _name, obj, _level in _features_do_personagem(personagem)
+        if source_type in source_types
+        for tag in (getattr(obj, 'tags_json', None) or [])
+        for segment in _passive_segments(str(tag))
+    )
+
+
 def _talento_prereq_ok(talento, personagem, ficha, contexto=None):
     """Avalia o campo humano: vírgula e ``e`` = ``and``; ``ou`` = ``or``.
 
@@ -6403,6 +6427,13 @@ def _talento_prereq_ok(talento, personagem, ficha, contexto=None):
     req = _prereq_label(talento.pre_requisito)
     if not req:
         return True
+    sourced_capability = re.fullmatch(
+        r'possuir ([a-z_]+) originada de (raca|classe|talento),? '
+        r'(raca|classe|talento) ou (raca|classe|talento)', req,
+    )
+    if sourced_capability:
+        return _prereq_capability_from_sources(
+            personagem, sourced_capability.group(1), sourced_capability.groups()[1:])
     contexto = contexto or _talento_prereq_contexto(personagem, ficha)
     for clause in (part.strip() for part in req.split(',') if part.strip()):
         negative = re.fullmatch(r'nao possuir(?: outra)?\s+(.+)', clause)
