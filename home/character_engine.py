@@ -3480,6 +3480,27 @@ def _apply_tags(state, features, personagem=None, escolhas=None, *, ruleset=None
         _chosen = _a if _tipo in resist else _b
         if _chosen not in _PLACEHOLDERS and _chosen not in resist:
             resist.append(_chosen)
+    # O máximo de PV já inclui os bônus das tags neste ponto. Reavalia apenas
+    # resistências condicionadas ao estado Sangrando com os PV reais da ficha.
+    if personagem is not None and personagem.pv_atual is not None:
+        from .tag_engine import evaluate_tags
+        combat_ctx = dict(base_ctx, resolve_runtime=True,
+                          self_hp=personagem.pv_atual,
+                          self_max_hp=state['pv']['maximo_calculado'])
+        for _origem, _fonte, obj, classlvl in features:
+            feature_ctx = dict(combat_ctx)
+            if classlvl is not None:
+                feature_ctx['classlvl'] = int(classlvl)
+            for line in (getattr(obj, 'tags_json', None) or []):
+                if not isinstance(line, str) or not re.search(
+                        r'\brequires\s*:\s*self\s*\{\s*sangrando\s*\}', line):
+                    continue
+                for operation in evaluate_tags([line], feature_ctx).operations:
+                    if (operation.active and operation.op == 'add_to_set'
+                            and operation.target == 'resistencias'
+                            and isinstance(operation.value, str)
+                            and operation.value not in resist):
+                        resist.append(operation.value)
     state['resistencias'] = resist
     _cn = _cond_nomes(ruleset=ruleset)
     state['imunidades'] = imune + ['%s (condição)' % _cn.get(c, c.replace('-', ' ').capitalize()) for c in cond_imune]

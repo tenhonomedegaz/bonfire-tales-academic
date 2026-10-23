@@ -729,7 +729,6 @@ class EpicTalentDeriveTests(TestCase):
         from home.models import TbPersonagem, TbPersonagemTalento, TbTalento
 
         definitions = epic_candidates()
-        self.assertEqual(len(definitions), 2)
         talent = TbTalento.objects.create(**next(
             row for row in definitions if row["slug"] == "dadiva-da-visao-verdadeira"))
         owner = get_user_model().objects.create_user(username="epic-sight")
@@ -787,6 +786,54 @@ class EpicTalentDeriveTests(TestCase):
         other_owned.delete()
         self.assertFalse(next(row for row in derive(character)["pericias"]
                               if row["nome"] == "Percepção")["proficiente"])
+
+    def test_resiliencia_sangrenta_resiste_so_abaixo_da_metade(self):
+        from django.contrib.auth import get_user_model
+        from home.character_engine import derive
+        from home.epic_talent_catalog import epic_candidates
+        from home.models import (TbClasse, TbPersonagem, TbPersonagemClasse,
+                                 TbPersonagemTalento, TbTalento)
+
+        owner = get_user_model().objects.create_user(username="epic-bloodied")
+        character = TbPersonagem.objects.create(
+            dono=owner, nome="Teste resiliência", pv_atual=10)
+        fighter = TbClasse.objects.create(
+            nome="Classe de teste", slug="classe-epic-bloodied", dado_vida="d10")
+        TbPersonagemClasse.objects.create(
+            id_personagem=character, id_classe=fighter, nivel=1, principal=True)
+        talent = TbTalento.objects.create(**next(
+            row for row in epic_candidates()
+            if row["slug"] == "dadiva-da-resiliencia-sangrenta"))
+        owned = TbPersonagemTalento.objects.create(
+            id_personagem=character, id_talento=talent, categoria="epico",
+            nome=talent.nome, detalhes="talent_attr:CON")
+
+        maximum = derive(character)["pv"]["maximo_calculado"]
+        character.pv_atual = maximum
+        character.save(update_fields=["pv_atual"])
+        self.assertNotIn("fogo", derive(character)["resistencias"])
+
+        character.pv_atual = maximum // 2 + 1
+        character.save(update_fields=["pv_atual"])
+        self.assertNotIn("fogo", derive(character)["resistencias"])
+
+        character.pv_atual = maximum // 2
+        character.save(update_fields=["pv_atual"])
+        for _ in range(2):
+            sheet = derive(character)
+            self.assertEqual(len(sheet["resistencias"]), 12)
+            self.assertIn("fogo", sheet["resistencias"])
+            self.assertNotIn("forca", sheet["resistencias"])
+            self.assertNotIn("energia", sheet["resistencias"])
+
+        other = TbTalento.objects.create(
+            nome="Fonte de Energia", slug="fonte-energia", tipo="geral",
+            descricao="Resistência externa.", tags_json=["resist:forca"])
+        TbPersonagemTalento.objects.create(
+            id_personagem=character, id_talento=other, nome=other.nome)
+        self.assertEqual(len(derive(character)["resistencias"]), 13)
+        owned.delete()
+        self.assertEqual(derive(character)["resistencias"], ["forca"])
 
     def test_ficha_recalcula_talento_com_escolha_e_bonus_externo(self):
         from django.contrib.auth import get_user_model

@@ -17,6 +17,12 @@ ATTRIBUTE_TAGS = [
 # Só publicar entradas cujos efeitos adicionais foram conferidos contra o motor.
 VERIFIED_EFFECTS = {
     "dadiva-da-visao-verdadeira": ["sense:truesight(range:120ft)"],
+    "dadiva-da-resiliencia-sangrenta": [
+        "while_active{requires:self{sangrando}, "
+        "resist:acido, resist:concussao, resist:frio, resist:fogo, "
+        "resist:raio, resist:necrotico, resist:perfurante, resist:veneno, "
+        "resist:psiquico, resist:radiante, resist:cortante, resist:trovejante}"
+    ],
     "dadiva-do-erudito": [
         *(f"prof:{skill}" for skill in sorted(SKILLS)),
         "expertise:original_prof",
