@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, TestCase
 
 from home.character_engine import _apply_attr_asi, _dado_de_vida_classe, apply_tags
 from home.tag_engine import evaluate_tags, parse_tags
@@ -461,6 +461,32 @@ class GenericEvaluatorTests(SimpleTestCase):
         self.assertEqual(score(29, [epic])["bonus"], 1)
         self.assertEqual(score(29, [])["valor"], 29)
 
+    def test_talento_aplica_incremento_na_escolha_persistida(self):
+        talent = SimpleNamespace(
+            id_talento=77,
+            slug="epic-test",
+            nome="Talento de prova",
+            tags_json=["attr:talent_attr_score+2", "attr_max:talent_attr_score=30"],
+        )
+
+        def score(start, selection):
+            attributes = {
+                sig: {"valor": start if sig == "DES" else 10,
+                      "bonus": 0, "breakdown": []}
+                for sig in ("FOR", "DES", "CON", "INT", "SAB", "CAR")
+            }
+            _apply_attr_asi(
+                [("talento", talent.nome, talent, 1)], {}, attributes,
+                talent_attrs=selection,
+            )
+            return attributes
+
+        self.assertEqual(score(29, {("id", 77): "DES"})["DES"]["valor"], 30)
+        self.assertEqual(score(30, {("id", 77): "DES"})["DES"]["valor"], 30)
+        self.assertEqual(score(32, {("id", 77): "DES"})["DES"]["valor"], 32)
+        self.assertEqual(score(29, {})["DES"]["valor"], 29)
+        self.assertEqual(score(29, {("id", 77): "DES"})["FOR"]["valor"], 10)
+
     @patch("home.character_engine._cond_nomes", return_value={})
     def test_ficha_exibe_vantagem_condicional_sem_mostrar_dsl(self, _conditions):
         feature = SimpleNamespace(
@@ -663,6 +689,45 @@ class GenericEvaluatorTests(SimpleTestCase):
         self.assertEqual(active({**base, "event": "action",
                                  "save_outcome": "fail",
                                  "self_can_see_target": False}, "apply"), [])
+
+
+class EpicTalentDeriveTests(TestCase):
+    def test_ficha_recalcula_talento_com_escolha_e_bonus_externo(self):
+        from django.contrib.auth import get_user_model
+        from home.character_engine import derive
+        from home.models import (TbPersonagem, TbPersonagemAtributoBonus,
+                                 TbPersonagemTalento, TbTalento)
+
+        owner = get_user_model().objects.create_user(username="epic-derive")
+        character = TbPersonagem.objects.create(
+            dono=owner, nome="Teste epico", destreza=28,
+        )
+        other = TbPersonagemAtributoBonus.objects.create(
+            id_personagem=character, atributo="DES", valor=1,
+            origem="Outra fonte", origem_tipo="classe-asi",
+        )
+        talent = TbTalento.objects.create(
+            nome="Talento de teste", slug="talento-epico-teste", tipo="geral",
+            descricao="**Aumento de Atributo:** +2 em um atributo ate 30.",
+            tags_json=["attr:talent_attr_score+2", "attr_max:talent_attr_score=30"],
+        )
+        owned = TbPersonagemTalento.objects.create(
+            id_personagem=character, id_talento=talent, categoria="epico",
+            nome=talent.nome, detalhes="talent_attr:DES",
+        )
+
+        self.assertEqual(derive(character)["atributos"]["DES"]["valor"], 30)
+        self.assertEqual(derive(character)["atributos"]["DES"]["valor"], 30)
+        owned.detalhes = "talent_attr:FOR"
+        owned.save(update_fields=["detalhes"])
+        changed = derive(character)["atributos"]
+        self.assertEqual(changed["DES"]["valor"], 29)
+        self.assertEqual(changed["FOR"]["valor"], 12)
+        owned.delete()
+        self.assertEqual(derive(character)["atributos"]["DES"]["valor"], 29)
+        other.valor = 5
+        other.save(update_fields=["valor"])
+        self.assertEqual(derive(character)["atributos"]["DES"]["valor"], 33)
 
 
 class TagNamingTests(SimpleTestCase):

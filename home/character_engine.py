@@ -843,7 +843,8 @@ def _resource_formula_context(personagem, classes, *, ruleset=None):
     nivel_total = sum(int(c.nivel or 0) for c in classes) or int(personagem.nivel or 1)
     features = _features_do_personagem(personagem, classes, ruleset=ruleset)
     escolhas, _listas = _collect_escolhas(personagem, features)
-    _apply_attr_asi(features, escolhas, atributos)
+    _apply_attr_asi(features, escolhas, atributos,
+                    talent_attrs=_talent_attr_map(personagem, ruleset=ruleset))
     from .hunter_mutagens import apply_attributes as apply_mutagen_attributes
     apply_mutagen_attributes(personagem, ruleset, atributos)
     for atributo in atributos.values():
@@ -3830,7 +3831,7 @@ def _proficiencias(personagem):
     return idiomas, ferramentas, outras
 
 
-def _apply_attr_asi(features, escolhas, atributos):
+def _apply_attr_asi(features, escolhas, atributos, *, talent_attrs=None):
     """Pre-passe de alteracoes passivas de atributo.
 
     Incrementos usam ``attr:<x>_score+N``; pisos usam a formula generica
@@ -3840,6 +3841,8 @@ def _apply_attr_asi(features, escolhas, atributos):
     # Um bônus anterior pode legitimamente deixar o atributo acima desse teto.
     for _o, fonte, obj, _cl in features:
         feat_nome = getattr(obj, 'nome', fonte)
+        talent_sig = _feature_talent_attr_sig(obj, talent_attrs)
+        talent_score = (_ATTR_EN[talent_sig] + '_score') if talent_sig in _ATTR_EN else None
         increments = {}
         caps = {}
         floors = {}
@@ -3847,6 +3850,12 @@ def _apply_attr_asi(features, escolhas, atributos):
             if not isinstance(t, str):
                 continue
             for seg in _passive_segments(_resolve_match(t, escolhas)):
+                # A escolha pertence ao vínculo do personagem com este talento.
+                # Sem escolha válida, a tag não concede um atributo por padrão.
+                if 'talent_attr_score' in seg:
+                    if not talent_score:
+                        continue
+                    seg = seg.replace('talent_attr_score', talent_score)
                 for m in re.finditer(r'attr:([a-z]{3})_score\s*\+\s*(\d+)', seg):
                     sig = _EN_SIG.get(m.group(1))
                     if sig:
@@ -3927,7 +3936,8 @@ def _derive(personagem, *, ruleset=None):
     escolhas, listas = _collect_escolhas(personagem, features)
 
     # 3. Pré-passe de ASI passivo (tag) → mods / PB / PV / ctx
-    _apply_attr_asi(features, escolhas, atributos)
+    _apply_attr_asi(features, escolhas, atributos,
+                    talent_attrs=_talent_attr_map(personagem, ruleset=ruleset))
     from .hunter_mutagens import apply_attributes as apply_mutagen_attributes
     apply_mutagen_attributes(personagem, ruleset, atributos)
     for sig in atributos:
