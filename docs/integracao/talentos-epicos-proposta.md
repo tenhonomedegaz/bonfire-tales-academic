@@ -16,6 +16,8 @@ Cobertura atual: **Visão Verdadeira** possui as tags `attr:talent_attr_score+2`
 
 O avaliador geral reconhece a conjunção `e` do requisito de **Marca Arcana Superior**, mas a fonte exige "Marca Arcana Maior" e o catálogo atual contém "Marca Arcana Superior" e "Marca Potente". Nenhuma equivalência entre Maior e Superior foi presumida. O requisito de Telepatia de **Mente Desperta** confere tags passivas originadas de Raça, Classe ou Talento; item ou efeito temporário não o satisfaz.
 
+**Tempestade** tem resistência a raio e trovejante e imunidade a ambos enquanto Sangrando verificadas no consumidor de dano tipado. As tags constam de `PARTIAL_EFFECTS` e não entram na carga: a desvantagem nos testes de resistência contra magias desses tipos ainda não tem consumidor de conjuração comprovado. A fonte não define um nível de aquisição automática para os épicos; nenhum nível foi presumido.
+
 ## Gate da entrega R2
 
 Completar tags e consumidores dos 31 talentos, validar escolha, persistência, aplicação, remoção, recálculo, teto, coexistência, idempotência e requisitos. Só então integrar e enviar o lote à dev; informar o SHA no Discord para o `/site-update` do PO. Push na dev não é deploy.

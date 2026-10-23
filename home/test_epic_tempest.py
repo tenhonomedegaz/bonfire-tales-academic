@@ -2,14 +2,12 @@
 
 from django.test import SimpleTestCase
 
+from home.epic_talent_catalog import PARTIAL_EFFECTS, epic_candidates
 from home.tag_engine.combat_encounter import CombatEncounter
 from home.tag_engine.evaluator import evaluate_tags
 
 
-TEMPEST_DEFENSES = (
-    "always_active{resist:raio, resist:trovejante}",
-    "while_active{requires:self{sangrando}, immune:raio, immune:trovejante}",
-)
+TEMPEST_DEFENSES = tuple(PARTIAL_EFFECTS["dadiva-da-tempestade"])
 
 
 def encounter(*, hp, defensive_tags=TEMPEST_DEFENSES):
@@ -21,6 +19,11 @@ def encounter(*, hp, defensive_tags=TEMPEST_DEFENSES):
 
 
 class EpicTempestDefensesTests(SimpleTestCase):
+    def test_talento_permanece_fora_da_carga_ate_todos_os_efeitos(self):
+        self.assertNotIn("dadiva-da-tempestade", {
+            row["slug"] for row in epic_candidates()
+        })
+
     def _take_damage(self, combat, damage_type, damage=7):
         combat.start_turn("adversario", 1)
         combat.attack("portador", (), hit=True, damage=damage,
