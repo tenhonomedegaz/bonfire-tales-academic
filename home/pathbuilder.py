@@ -130,13 +130,16 @@ def catalogos():
 
     from .views import _talento_attr_options
 
+    from .epic_talents import is_epic_talent
+
     talentos = [{
         "slug": talento.slug,
         "nome": talento.nome,
         "grupo": (talento.tipo or "Talento").strip() or "Talento",
         "meta": (talento.pre_requisito or "").strip()[:80],
         "atributos": _talento_attr_options(talento),
-    } for talento in TbTalento.objects.filter(tipo__iexact="geral").order_by("nome")]
+    } for talento in TbTalento.objects.filter(tipo__iexact="geral").order_by("nome")
+      if not is_epic_talent(talento)]
 
     magias = [{
         "slug": magia.slug,
@@ -405,11 +408,12 @@ def _normalize_talents(build):
 def _apply_talents(personagem, build):
     from .models import TbPersonagemAtributoBonus, TbPersonagemTalento, TbTalento
     from .views import _talento_attr_options
+    from .epic_talents import is_epic_talent
 
     rows = _normalize_talents(build)
     slugs = [row["slug"] for row in rows]
     talents = {obj.slug: obj for obj in TbTalento.objects.filter(
-        slug__in=slugs, tipo__iexact="geral")}
+        slug__in=slugs, tipo__iexact="geral") if not is_epic_talent(obj)}
     if len(talents) != len(slugs):
         raise PathbuilderError("Um dos talentos livres selecionados nao existe.")
     owned = set(personagem.talentos.exclude(

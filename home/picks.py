@@ -1267,12 +1267,14 @@ def _talento_owned_slugs(personagem):
 
 def _talento_universe(ctx):
     from .models import TbTalento
+    from .epic_talents import is_epic_talent
     text = _talento_constraint_text(ctx)
     if ctx.get('ruleset') is not None:
         from .versioned_origins import VersionedOrigins
         talents = VersionedOrigins(ctx['ruleset']).objects(TbTalento)
     else:
         talents = TbTalento.objects.all()
+    talents = [t for t in talents if not is_epic_talent(t)]
     if _TALENTO_ORIGEM_RE.search(text) or (ctx.get('kind') or '') == 'talento_de_origem':
         talents = [t for t in talents if (t.tipo or '').lower() == 'origem']
     elif _TALENTO_GERAL_RE.search(text):

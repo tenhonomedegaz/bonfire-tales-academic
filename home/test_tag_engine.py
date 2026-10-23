@@ -708,8 +708,13 @@ class EpicTalentDeriveTests(TestCase):
         )
         talent = TbTalento.objects.create(
             nome="Talento de teste", slug="talento-epico-teste", tipo="geral",
+            etiquetas_adicionais="epico",
             descricao="**Aumento de Atributo:** +2 em um atributo ate 30.",
             tags_json=["attr:talent_attr_score+2", "attr_max:talent_attr_score=30"],
+        )
+        ordinary = TbTalento.objects.create(
+            nome="Talento comum", slug="talento-comum-teste", tipo="geral",
+            etiquetas_adicionais="nao_epico", descricao="Talento comum.",
         )
         owned = TbPersonagemTalento.objects.create(
             id_personagem=character, id_talento=talent, categoria="epico",
@@ -717,6 +722,18 @@ class EpicTalentDeriveTests(TestCase):
         )
 
         self.assertEqual(derive(character)["atributos"]["DES"]["valor"], 30)
+        from home.views import _talentos_asi_catalogo
+        from home.pathbuilder import PathbuilderError, _apply_talents
+        asi_ids = {row["id"] for row in _talentos_asi_catalogo(character, derive(character))}
+        self.assertNotIn(talent.pk, asi_ids)
+        self.assertIn(ordinary.pk, asi_ids)
+        with self.assertRaises(PathbuilderError):
+            _apply_talents(character, {"talentos": [{"slug": talent.slug}]})
+        from home.picks import _talento_universe
+        pick_slugs = {row["slug"] for row in _talento_universe(
+            {"kind": "talento", "tag_text": "tipo:geral"})}
+        self.assertNotIn(talent.slug, pick_slugs)
+        self.assertIn(ordinary.slug, pick_slugs)
         self.assertEqual(derive(character)["atributos"]["DES"]["valor"], 30)
         owned.detalhes = "talent_attr:FOR"
         owned.save(update_fields=["detalhes"])

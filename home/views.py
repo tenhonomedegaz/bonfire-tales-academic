@@ -6431,10 +6431,13 @@ def _talentos_asi_disponiveis(personagem, ficha):
 def _talentos_asi_catalogo(personagem, ficha):
     """Catálogo geral completo, anotado com elegibilidade e motivo do bloqueio."""
     from .models import TbTalento
+    from .epic_talents import is_epic_talent
     owned_ids = set(personagem.talentos.exclude(id_talento__isnull=True).values_list('id_talento_id', flat=True))
     prereq_contexto = _talento_prereq_contexto(personagem, ficha)
     out = []
     for t in TbTalento.objects.filter(tipo__iexact='geral').order_by('nome'):
+        if is_epic_talent(t):
+            continue
         owned = t.id_talento in owned_ids
         prereq_ok = _talento_prereq_ok(t, personagem, ficha, prereq_contexto)
         elegivel = not owned and prereq_ok
