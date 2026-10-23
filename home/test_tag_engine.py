@@ -692,6 +692,59 @@ class GenericEvaluatorTests(SimpleTestCase):
 
 
 class EpicTalentDeriveTests(TestCase):
+    def test_semente_epica_preserva_pk_e_rejeita_colisao(self):
+        from tempfile import TemporaryDirectory
+        from pathlib import Path
+        from django.core.management import call_command
+        from django.core.management.base import CommandError
+        from home.models import TbTalento
+
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            with self.assertRaises(CommandError):
+                call_command("seed_epic_talents", apply=True,
+                             backup=root / "blocked.json", verbosity=0)
+            self.assertFalse((root / "blocked.json").exists())
+            call_command("seed_epic_talents", apply=True, allow_partial_test=True,
+                         backup=root / "before.json", verbosity=0)
+            row = TbTalento.objects.get(slug="dadiva-da-visao-verdadeira")
+            first_pk = row.pk
+            self.assertEqual(row.tags_json[-1], "sense:truesight(range:120ft)")
+            call_command("seed_epic_talents", apply=True, allow_partial_test=True,
+                         backup=root / "again.json", verbosity=0)
+            self.assertEqual(TbTalento.objects.get(slug=row.slug).pk, first_pk)
+            self.assertEqual(TbTalento.objects.filter(slug=row.slug).count(), 1)
+            self.assertTrue((root / "before.json").exists())
+            row.etiquetas_adicionais = "comum"
+            row.save(update_fields=["etiquetas_adicionais"])
+            with self.assertRaises(CommandError):
+                call_command("seed_epic_talents", apply=True, allow_partial_test=True,
+                             backup=root / "collision.json", verbosity=0)
+            self.assertFalse((root / "collision.json").exists())
+
+    def test_visao_verdadeira_importada_aplica_e_remove_sentinel(self):
+        from django.contrib.auth import get_user_model
+        from home.character_engine import derive
+        from home.epic_talent_catalog import epic_candidates
+        from home.models import TbPersonagem, TbPersonagemTalento, TbTalento
+
+        definitions = epic_candidates()
+        self.assertEqual(len(definitions), 1)
+        talent = TbTalento.objects.create(**definitions[0])
+        owner = get_user_model().objects.create_user(username="epic-sight")
+        character = TbPersonagem.objects.create(dono=owner, nome="Teste visão")
+        owned = TbPersonagemTalento.objects.create(
+            id_personagem=character, id_talento=talent, categoria="epico",
+            nome=talent.nome, detalhes="talent_attr:DES",
+        )
+        sheet = derive(character)
+        self.assertEqual(sheet["atributos"]["DES"]["valor"], 12)
+        self.assertIn("truesight 120ft", sheet["sentidos"])
+        owned.delete()
+        sheet = derive(character)
+        self.assertEqual(sheet["atributos"]["DES"]["valor"], 10)
+        self.assertNotIn("truesight 120ft", sheet["sentidos"])
+
     def test_ficha_recalcula_talento_com_escolha_e_bonus_externo(self):
         from django.contrib.auth import get_user_model
         from home.character_engine import derive
