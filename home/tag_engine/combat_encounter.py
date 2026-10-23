@@ -6,6 +6,7 @@ does not persist characters or pretend to resolve every RPG combat rule.
 """
 
 from .combat_conditions import CombatConditions
+from .evaluator import evaluate_tags
 
 
 class CombatEncounter:
@@ -18,12 +19,23 @@ class CombatEncounter:
             team = entry.get("team")
             maximum = entry.get("max_hp")
             hp = entry.get("hp", maximum)
+            defensive_tags = entry.get("defensive_tags", entry.get("tags", ()))
             if (not isinstance(actor, str) or not actor or actor in self._combatants or
                     not isinstance(team, str) or not team or
                     type(maximum) is not int or maximum <= 0 or
-                    type(hp) is not int or not 0 < hp <= maximum):
+                    type(hp) is not int or not 0 < hp <= maximum or
+                    isinstance(defensive_tags, str)):
                 raise ValueError("Invalid combatant")
-            self._combatants[actor] = {"team": team, "max_hp": maximum, "hp": hp}
+            try:
+                defensive_tags = tuple(defensive_tags)
+            except TypeError as error:
+                raise ValueError("Invalid combatant") from error
+            if not all(isinstance(tag, str) for tag in defensive_tags):
+                raise ValueError("Invalid combatant")
+            self._combatants[actor] = {
+                "team": team, "max_hp": maximum, "hp": hp,
+                "defensive_tags": defensive_tags,
+            }
         if len({entry["team"] for entry in self._combatants.values()}) < 2:
             raise ValueError("An encounter needs at least two teams")
         self.conditions = CombatConditions()
@@ -34,7 +46,11 @@ class CombatEncounter:
 
     @property
     def combatants(self):
-        return {actor: entry.copy() for actor, entry in self._combatants.items()}
+        return {
+            actor: {key: value for key, value in entry.items()
+                    if key != "defensive_tags"}
+            for actor, entry in self._combatants.items()
+        }
 
     @property
     def events(self):
@@ -60,16 +76,45 @@ class CombatEncounter:
         self._events.append(("turn_start", actor, turn_id))
         return True
 
-    def attack(self, target, tags, *, hit, damage=0):
+    def _damage_after_defenses(self, target, damage, damage_type):
+        """Apply target-declared resistance or immunity for one typed hit."""
+        if damage_type is None:
+            return damage
+        target_entry = self._combatants[target]
+        result = evaluate_tags(target_entry["defensive_tags"], {
+            "resolve_runtime": True,
+            "event": "take_damage",
+            "self_hp": target_entry["hp"],
+            "self_max_hp": target_entry["max_hp"],
+        })
+        defenses = {
+            operation.target
+            for operation in result.operations
+            if operation.active and operation.op == "add_to_set" and
+            operation.target in {"resistencias", "imunidades"} and
+            operation.value == damage_type
+        }
+        if "imunidades" in defenses:
+            return 0
+        if "resistencias" in defenses:
+            return damage // 2
+        return damage
+
+    def attack(self, target, tags, *, hit, damage=0, damage_type=None):
         source = self._action_actor()
         self._living(target)
         if (type(hit) is not bool or type(damage) is not int or damage < 0 or
+                (damage_type is not None and
+                 (not isinstance(damage_type, str) or not damage_type.strip())) or
                 (not hit and damage)):
             raise ValueError("Declare a valid hit and rolled damage")
         operations = None
         if hit:
             operations = self.conditions.resolve(
                 tags, event="hit", source=source, target=target)
+            damage = self._damage_after_defenses(
+                target, damage, damage_type.strip().lower()
+                if isinstance(damage_type, str) else None)
             self._combatants[target]["hp"] = max(
                 0, self._combatants[target]["hp"] - damage)
         self.action_used = True

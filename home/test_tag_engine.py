@@ -398,6 +398,103 @@ class GenericEvaluatorTests(SimpleTestCase):
         self.assertEqual(result["_tag"]["n_ataques"], 2)
 
     @patch("home.character_engine._cond_nomes", return_value={})
+    def test_resistencia_previa_da_fonte_vira_imunidade_em_ordem(self, _conditions):
+        def state():
+            return {
+                "_ctx": {"lvl": 1, "classlvl": 1, "pb": 2, "dex_mod": 0},
+                "pv": {"maximo_calculado": 10}, "ca": 10,
+                "velocidade": "9 m / 30 ft", "recursos": {},
+            }
+
+        previa = SimpleNamespace(nome="Previa", tags_json=["resist:fogo"])
+        elevacao = SimpleNamespace(
+            nome="Elevacao",
+            tags_json=["if(already:resist{fogo}): immune:fogo else: resist:fogo"],
+        )
+        posterior = SimpleNamespace(nome="Posterior", tags_json=["resist:frio"])
+
+        result = apply_tags(state(), [
+            ("talento", previa.nome, previa, 1),
+            ("talento", elevacao.nome, elevacao, 1),
+            ("talento", posterior.nome, posterior, 1),
+        ])
+
+        self.assertEqual(result["resistencias"], ["fogo", "frio"])
+        self.assertEqual(result["imunidades"], ["fogo"])
+
+    @patch("home.character_engine._cond_nomes", return_value={})
+    def test_resistencia_condicional_aplica_remove_e_e_idempotente(self, _conditions):
+        def state():
+            return {
+                "_ctx": {"lvl": 1, "classlvl": 1, "pb": 2, "dex_mod": 0},
+                "pv": {"maximo_calculado": 10}, "ca": 10,
+                "velocidade": "9 m / 30 ft", "recursos": {},
+            }
+
+        elevacao = SimpleNamespace(
+            nome="Elevacao",
+            tags_json=["if(already:resist{necrotico}): immune:necrotico else: resist:necrotico"],
+        )
+        previa = SimpleNamespace(nome="Previa", tags_json=["resist:necrotico"])
+
+        sem_fonte = apply_tags(state(), [("talento", elevacao.nome, elevacao, 1)])
+        self.assertEqual(sem_fonte["resistencias"], ["necrotico"])
+        self.assertEqual(sem_fonte["imunidades"], [])
+
+        com_fonte = apply_tags(state(), [
+            ("talento", previa.nome, previa, 1),
+            ("talento", elevacao.nome, elevacao, 1),
+        ])
+        self.assertEqual(com_fonte["resistencias"], ["necrotico"])
+        self.assertEqual(com_fonte["imunidades"], ["necrotico"])
+
+        removida = apply_tags(state(), [("talento", previa.nome, previa, 1)])
+        self.assertEqual(removida["resistencias"], ["necrotico"])
+        self.assertEqual(removida["imunidades"], [])
+
+        repetida = apply_tags(state(), [
+            ("talento", previa.nome, previa, 1),
+            ("talento", elevacao.nome, elevacao, 1),
+            ("talento", elevacao.nome, elevacao, 1),
+        ])
+        self.assertEqual(repetida["resistencias"], ["necrotico"])
+        self.assertEqual(repetida["imunidades"], ["necrotico"])
+
+    @patch("home.character_engine._cond_nomes", return_value={})
+    def test_resistencia_condicional_consulta_fonte_posterior(self, _conditions):
+        state = {
+            "_ctx": {"lvl": 1, "classlvl": 1, "pb": 2, "dex_mod": 0},
+            "pv": {"maximo_calculado": 10}, "ca": 10,
+            "velocidade": "9 m / 30 ft", "recursos": {},
+        }
+        elevacao = SimpleNamespace(
+            nome="Elevacao",
+            tags_json=["if(already:resist{psiquico}): immune:psiquico else: resist:psiquico"],
+        )
+        posterior = SimpleNamespace(nome="Posterior", tags_json=["resist:psiquico"])
+
+        result = apply_tags(state, [
+            ("talento", elevacao.nome, elevacao, 1),
+            ("talento", posterior.nome, posterior, 1),
+        ])
+
+        self.assertEqual(result["resistencias"], ["psiquico"])
+        self.assertEqual(result["imunidades"], ["psiquico"])
+
+        same_source = SimpleNamespace(
+            nome="Uma fonte",
+            tags_json=["resist:fogo",
+                       "if(already:resist{fogo}): immune:fogo else: resist:fogo"],
+        )
+        isolated = apply_tags({
+            "_ctx": {"lvl": 1, "classlvl": 1, "pb": 2, "dex_mod": 0},
+            "pv": {"maximo_calculado": 10}, "ca": 10,
+            "velocidade": "9 m / 30 ft", "recursos": {},
+        }, [("talento", same_source.nome, same_source, 1)])
+        self.assertEqual(isolated["resistencias"], ["fogo"])
+        self.assertEqual(isolated["imunidades"], [])
+
+    @patch("home.character_engine._cond_nomes", return_value={})
     def test_ficha_materializa_bonus_de_magia_por_escopo(self, _conditions):
         feature = SimpleNamespace(
             nome="Foco Arcano",

@@ -6395,7 +6395,7 @@ def _talento_prereq_atom_ok(atom, personagem, ficha, contexto):
 
 
 def _talento_prereq_ok(talento, personagem, ficha, contexto=None):
-    """Avalia o campo humano como expressão: vírgula = ``and``; ``ou`` = ``or``.
+    """Avalia o campo humano: vírgula e ``e`` = ``and``; ``ou`` = ``or``.
 
     Os átomos são genéricos (nível, atributo, conjuração, proficiência ou entidade já
     possuída). Um átomo desconhecido falha fechado, evitando liberar um talento por engano.
@@ -6412,8 +6412,12 @@ def _talento_prereq_ok(talento, personagem, ficha, contexto=None):
                 return False
             continue
         options = [part.strip() for part in re.split(r'\s+ou\s+', clause) if part.strip()]
-        if not any(_talento_prereq_atom_ok(option, personagem, ficha, contexto)
-                   for option in options):
+        if not any(
+                _talento_prereq_atom_ok(option, personagem, ficha, contexto)
+                or (' e ' in option and all(
+                    _talento_prereq_atom_ok(part.strip(), personagem, ficha, contexto)
+                    for part in re.split(r'\s+e\s+', option) if part.strip()))
+                for option in options):
             return False
     return True
 

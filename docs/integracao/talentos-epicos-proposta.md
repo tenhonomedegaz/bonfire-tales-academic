@@ -14,6 +14,8 @@ O staging [talentos-epicos-staging.json](talentos-epicos-staging.json) contém 3
 
 Cobertura atual: **Visão Verdadeira** possui as tags `attr:talent_attr_score+2`, `attr_max:talent_attr_score=30` e `sense:truesight(range:120ft)`. **Erudito** usa o mesmo incremento, `prof:<perícia>` para as 18 perícias canônicas e `expertise:original_prof` para especializar apenas as proficiências prévias, inclusive de outras fontes. **Resiliência Sangrenta** usa a condição `requires:self{sangrando}` e as 12 resistências explícitas da fonte; a ficha reavalia essas tags com PV atuais e máximo calculado. As outras 28 definições continuam pendentes de mapeamento e validação integral de seus efeitos; não devem ser importadas como se a descrição fosse automação. Os dois requisitos explícitos permanecem em texto até que a elegibilidade existente seja conectada e testada.
 
+O avaliador geral reconhece a conjunção `e` do requisito de **Marca Arcana Superior**, mas a fonte exige "Marca Arcana Maior" e o catálogo atual contém "Marca Arcana Superior" e "Marca Potente". Nenhuma equivalência entre Maior e Superior foi presumida. O requisito de Telepatia de **Mente Desperta** ainda depende de ligação explícita às fontes Raça, Classe ou Talento.
+
 ## Gate da entrega R2
 
 Completar tags e consumidores dos 31 talentos, validar escolha, persistência, aplicação, remoção, recálculo, teto, coexistência, idempotência e requisitos. Só então integrar e enviar o lote à dev; informar o SHA no Discord para o `/site-update` do PO. Push na dev não é deploy.

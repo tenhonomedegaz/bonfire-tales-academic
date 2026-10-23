@@ -106,3 +106,56 @@ class CombatEncounterTests(SimpleTestCase):
         encounter.start_turn("curandeiro", 3)
         self.assertTrue(encounter.heal("heroi", 5))
         self.assertEqual(encounter.combatants["heroi"]["hp"], 15)
+
+    def test_typed_damage_uses_target_resistance(self):
+        encounter = CombatEncounter([
+            {"id": "diabo", "team": "monstros", "max_hp": 9},
+            {"id": "heroi", "team": "grupo", "max_hp": 20,
+             "defensive_tags": ["always_active", "resist:fogo"]},
+        ])
+        encounter.start_turn("diabo", 1)
+        encounter.attack("heroi", [], hit=True, damage=5, damage_type="fogo")
+
+        self.assertEqual(encounter.combatants["heroi"]["hp"], 18)
+
+    def test_typed_damage_uses_target_immunity(self):
+        encounter = CombatEncounter([
+            {"id": "diabo", "team": "monstros", "max_hp": 9},
+            {"id": "heroi", "team": "grupo", "max_hp": 20,
+             "defensive_tags": ["always_active", "immune:frio"]},
+        ])
+        encounter.start_turn("diabo", 1)
+        encounter.attack("heroi", [], hit=True, damage=7, damage_type="frio")
+
+        self.assertEqual(encounter.combatants["heroi"]["hp"], 20)
+
+    def test_bleeding_defense_uses_current_hp_at_half_or_less(self):
+        tags = ["while_active{requires:self{sangrando}, resist:fogo}"]
+        above_threshold = CombatEncounter([
+            {"id": "diabo", "team": "monstros", "max_hp": 9},
+            {"id": "heroi", "team": "grupo", "max_hp": 20, "hp": 11,
+             "defensive_tags": tags},
+        ])
+        above_threshold.start_turn("diabo", 1)
+        above_threshold.attack("heroi", [], hit=True, damage=6, damage_type="fogo")
+        self.assertEqual(above_threshold.combatants["heroi"]["hp"], 5)
+
+        at_threshold = CombatEncounter([
+            {"id": "diabo", "team": "monstros", "max_hp": 9},
+            {"id": "heroi", "team": "grupo", "max_hp": 20, "hp": 10,
+             "defensive_tags": tags},
+        ])
+        at_threshold.start_turn("diabo", 1)
+        at_threshold.attack("heroi", [], hit=True, damage=6, damage_type="fogo")
+        self.assertEqual(at_threshold.combatants["heroi"]["hp"], 7)
+
+    def test_legacy_attack_ignores_defenses_without_a_damage_type(self):
+        encounter = CombatEncounter([
+            {"id": "diabo", "team": "monstros", "max_hp": 9},
+            {"id": "heroi", "team": "grupo", "max_hp": 20,
+             "defensive_tags": ["always_active", "immune:fogo"]},
+        ])
+        encounter.start_turn("diabo", 1)
+        encounter.attack("heroi", [], hit=True, damage=4)
+
+        self.assertEqual(encounter.combatants["heroi"]["hp"], 16)

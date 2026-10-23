@@ -3019,6 +3019,8 @@ def _apply_tags(state, features, personagem=None, escolhas=None, *, ruleset=None
     hp_bonus, resist, imune, cond_imune, vantagens, notas = [], [], [], [], [], []
     sentidos, sentidos_incr, sentidos_incr_ifp, ca_cands, recursos_tag = {}, {}, {}, [], {}
     resist_condicionais = []  # (tipo, se_ja_tem, senao) -> avaliados após o loop principal
+    conditional_immunities = []  # (tipo_testado, imune, resistente, fonte)
+    resist_sources = {}  # tipo -> índices das fontes que o concedem diretamente
     modificadores = []  # modify:<X> cross-feature: registrados inertes (combate/VTT)
     sintonizacao_max = 3  # limite de sintonização (base 5e = 3); attr_max:sintonizacao eleva
     speed_bonus = 0
@@ -3043,7 +3045,8 @@ def _apply_tags(state, features, personagem=None, escolhas=None, *, ruleset=None
     dsl_features, dsl_operations, dsl_errors = [], [], []
     skill_grants_by_feature = []
 
-    for origem, fonte, obj, classlvl in features:
+    for feature_index, (origem, fonte, obj, classlvl) in enumerate(features):
+        feature_resists = set()
         tags = [t for t in (getattr(obj, 'tags_json', None) or []) if isinstance(t, str)]
         if tags:
             brutas.append({'origem': origem, 'fonte': fonte, 'nome': getattr(obj, 'nome', ''), 'tags': tags})
@@ -3088,6 +3091,11 @@ def _apply_tags(state, features, personagem=None, escolhas=None, *, ruleset=None
             } for op in dsl_result.operations)
             if dsl_result.blocked:
                 continue
+            feature_resists.update(
+                operation.value for operation in dsl_result.operations
+                if operation.active and operation.op == 'add_to_set'
+                and operation.target == 'resistencias'
+                and isinstance(operation.value, str))
             active_skill_ops = [op for op in dsl_result.operations
                                 if op.active and op.op == 'grant_proficiency']
             skill_grants_by_feature.append((
@@ -3221,6 +3229,16 @@ def _apply_tags(state, features, personagem=None, escolhas=None, *, ruleset=None
                 # (ex.: Oread "Sangue Elemental"). Avaliada numa 2ª passada (resist_condicionais),
                 # contra o conjunto FINAL de resistências — senão o regex genérico abaixo aplicaria
                 # A e B ao mesmo tempo (bug do veneno+ácido).
+                _immunity_cond = re.search(
+                    r'if\(already:resist\{([a-z0-9_-]+)\}\):\s*'
+                    r'immune:([a-z0-9_-]+)\s*else:\s*resist:([a-z0-9_-]+)', seg)
+                if _immunity_cond:
+                    checked = _resolve_var(_immunity_cond.group(1), locais, escolhas)
+                    immune_type = _resolve_var(_immunity_cond.group(2), locais, escolhas)
+                    resist_type = _resolve_var(_immunity_cond.group(3), locais, escolhas)
+                    conditional_immunities.append(
+                        (checked, immune_type, resist_type, feature_index))
+                    seg = seg[:_immunity_cond.start()] + seg[_immunity_cond.end():]
                 _cond = re.search(r'if\(already:resist\{([a-z0-9_-]+)\}\):\s*resist:([a-z0-9_-]+)\s*else:\s*resist:([a-z0-9_-]+)', seg)
                 if _cond:
                     resist_condicionais.append((_cond.group(1), _cond.group(2), _cond.group(3)))
@@ -3236,8 +3254,10 @@ def _apply_tags(state, features, personagem=None, escolhas=None, *, ruleset=None
                 if 'resist' not in dsl_consumed:
                     for m in re.finditer(r'(?<![a-z_-])resist:([a-z0-9_-]+)', seg):
                         v = _resolve_var(m.group(1), locais, escolhas)
-                        if v not in _PLACEHOLDERS and v not in resist:
-                            resist.append(v)
+                        if v not in _PLACEHOLDERS:
+                            feature_resists.add(v)
+                            if v not in resist:
+                                resist.append(v)
                 if 'immune' not in dsl_consumed:
                     for m in re.finditer(r'(?<![a-z_-])immune:([a-z0-9_-]+)', seg):
                         v = _resolve_var(m.group(1), locais, escolhas)
@@ -3411,6 +3431,9 @@ def _apply_tags(state, features, personagem=None, escolhas=None, *, ruleset=None
                 for m in re.finditer(r'(?<![a-z_-])speak:([a-z0-9_-]+)', seg):
                     notas.append('falar com %s (%s)' % (m.group(1), feat_nome))
 
+        for damage_type in feature_resists:
+            resist_sources.setdefault(damage_type, set()).add(feature_index)
+
     # A especialização sobre proficiências anteriores exclui a própria fonte,
     # inclusive quando outras fontes aparecem depois na ordem das features.
     if any(requested for requested, _ in skill_grants_by_feature) and personagem is not None:
@@ -3487,7 +3510,7 @@ def _apply_tags(state, features, personagem=None, escolhas=None, *, ruleset=None
         combat_ctx = dict(base_ctx, resolve_runtime=True,
                           self_hp=personagem.pv_atual,
                           self_max_hp=state['pv']['maximo_calculado'])
-        for _origem, _fonte, obj, classlvl in features:
+        for feature_index, (_origem, _fonte, obj, classlvl) in enumerate(features):
             feature_ctx = dict(combat_ctx)
             if classlvl is not None:
                 feature_ctx['classlvl'] = int(classlvl)
@@ -3498,9 +3521,19 @@ def _apply_tags(state, features, personagem=None, escolhas=None, *, ruleset=None
                 for operation in evaluate_tags([line], feature_ctx).operations:
                     if (operation.active and operation.op == 'add_to_set'
                             and operation.target == 'resistencias'
-                            and isinstance(operation.value, str)
-                            and operation.value not in resist):
-                        resist.append(operation.value)
+                            and isinstance(operation.value, str)):
+                        if operation.value not in resist:
+                            resist.append(operation.value)
+                        resist_sources.setdefault(operation.value, set()).add(feature_index)
+    # "Já possui resistência" consulta as demais fontes no estado final, sem
+    # depender da ordem em que classe, raça e talentos vieram das consultas.
+    for checked, immune_type, resist_type, feature_index in conditional_immunities:
+        external = any(source != feature_index
+                       for source in resist_sources.get(checked, ()))
+        destination, granted = ((imune, immune_type) if external
+                                else (resist, resist_type))
+        if granted not in _PLACEHOLDERS and granted not in destination:
+            destination.append(granted)
     state['resistencias'] = resist
     _cn = _cond_nomes(ruleset=ruleset)
     state['imunidades'] = imune + ['%s (condição)' % _cn.get(c, c.replace('-', ' ').capitalize()) for c in cond_imune]
