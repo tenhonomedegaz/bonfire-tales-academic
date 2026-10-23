@@ -3836,10 +3836,13 @@ def _apply_attr_asi(features, escolhas, atributos):
     Incrementos usam ``attr:<x>_score+N``; pisos usam a formula generica
     ``attr:<x>_score:=max(<x>_score,N)``; tetos usam ``attr_max``.
     """
-    caps = {}
-    floors = {}  # sig -> (N, feat_nome): maior piso pedido por atributo
+    # O teto pertence ao incremento da fonte, não ao valor total do personagem.
+    # Um bônus anterior pode legitimamente deixar o atributo acima desse teto.
     for _o, fonte, obj, _cl in features:
         feat_nome = getattr(obj, 'nome', fonte)
+        increments = {}
+        caps = {}
+        floors = {}
         for t in (getattr(obj, 'tags_json', None) or []):
             if not isinstance(t, str):
                 continue
@@ -3847,11 +3850,7 @@ def _apply_attr_asi(features, escolhas, atributos):
                 for m in re.finditer(r'attr:([a-z]{3})_score\s*\+\s*(\d+)', seg):
                     sig = _EN_SIG.get(m.group(1))
                     if sig:
-                        n = int(m.group(2))
-                        atributos[sig]['valor'] += n
-                        atributos[sig]['bonus'] += n
-                        atributos[sig].setdefault('breakdown', []).append(
-                            {'origem': feat_nome + ' (tag)', 'valor': n})
+                        increments[sig] = increments.get(sig, 0) + int(m.group(2))
                 # Piso pela operacao generica de atribuicao + funcao max.
                 floor_rx = (
                     r'attr:([a-z]{3})_score\s*:=\s*max\(\s*'
@@ -3870,22 +3869,21 @@ def _apply_attr_asi(features, escolhas, atributos):
                     sig = _EN_SIG.get(m.group(1))
                     if sig:
                         caps[sig] = min(caps.get(sig, 999), int(m.group(2)))
-    # PISO aplicado APÓS os aditivos: alvo = max(valor_atual, N), sem ultrapassar um teto
-    # existente; o delta entra no breakdown para manter valor == base + Σbreakdown.
-    for sig, (n, feat_nome) in floors.items():
-        alvo = min(n, caps[sig]) if sig in caps else n
-        if atributos[sig]['valor'] < alvo:
-            delta = alvo - atributos[sig]['valor']
-            atributos[sig]['valor'] = alvo
-            atributos[sig]['bonus'] += delta
-            atributos[sig].setdefault('breakdown', []).append(
-                {'origem': feat_nome + ' (tag)', 'valor': delta})
-    for sig, cap in caps.items():
-        if atributos[sig]['valor'] > cap:
-            ajuste = cap - atributos[sig]['valor']
-            atributos[sig]['valor'] = cap
-            atributos[sig]['bonus'] += ajuste
-            atributos[sig].setdefault('breakdown', []).append({'origem': 'teto %d' % cap, 'valor': ajuste})
+        for sig in set(increments) | set(floors):
+            atual = atributos[sig]['valor']
+            incremento = increments.get(sig, 0)
+            if sig in caps:
+                incremento = min(incremento, max(0, caps[sig] - atual))
+            alvo = atual + incremento
+            if sig in floors:
+                piso = floors[sig][0]
+                alvo = max(alvo, min(piso, caps[sig]) if sig in caps else piso)
+            delta = max(0, alvo - atual)
+            if delta:
+                atributos[sig]['valor'] += delta
+                atributos[sig]['bonus'] += delta
+                atributos[sig].setdefault('breakdown', []).append(
+                    {'origem': feat_nome + ' (tag)', 'valor': delta})
 
 
 def derive(personagem, *, ruleset=None):

@@ -438,6 +438,29 @@ class GenericEvaluatorTests(SimpleTestCase):
         self.assertEqual(attributes["FOR"]["valor"], 19)
         self.assertEqual(attributes["FOR"]["bonus"], 9)
 
+    def test_teto_da_tag_limita_so_o_incremento_da_propria_fonte(self):
+        epic = SimpleNamespace(
+            nome="Aumento epico",
+            tags_json=["attr:str_score+2", "attr_max:str_score=30"],
+        )
+        other = SimpleNamespace(nome="Outra fonte", tags_json=["attr:str_score+2"])
+
+        def score(start, features):
+            attributes = {"FOR": {"valor": start, "bonus": 0, "breakdown": []}}
+            _apply_attr_asi(
+                [("talento", feature.nome, feature, 1) for feature in features],
+                {}, attributes,
+            )
+            return attributes["FOR"]
+
+        self.assertEqual(score(29, [epic])["valor"], 30)
+        self.assertEqual(score(30, [epic])["valor"], 30)
+        self.assertEqual(score(32, [epic])["valor"], 32)
+        self.assertEqual(score(29, [epic, other])["valor"], 32)
+        self.assertEqual(score(29, [other, epic])["valor"], 31)
+        self.assertEqual(score(29, [epic])["bonus"], 1)
+        self.assertEqual(score(29, [])["valor"], 29)
+
     @patch("home.character_engine._cond_nomes", return_value={})
     def test_ficha_exibe_vantagem_condicional_sem_mostrar_dsl(self, _conditions):
         feature = SimpleNamespace(
