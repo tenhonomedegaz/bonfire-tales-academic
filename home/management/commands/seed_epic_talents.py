@@ -35,9 +35,14 @@ class Command(BaseCommand):
         self.stdout.write(f"Candidatos completos: {len(ready)}/31; pendentes: {31-len(ready)}")
         if not options["apply"]:
             return
-        if len(ready) != 31 and not (
-            options["allow_partial_test"] and connection.settings_dict["NAME"].startswith("test_")
-        ):
+        db_name = str(connection.settings_dict["NAME"])
+        local_postgres_test = (connection.vendor == "postgresql"
+                               and db_name.startswith("test_")
+                               and connection.settings_dict["HOST"] in {"127.0.0.1", "localhost"}
+                               and str(connection.settings_dict["PORT"]) != "5432")
+        isolated_test = local_postgres_test or (
+            connection.vendor == "sqlite" and "mode=memory" in db_name)
+        if len(ready) != 31 and not (options["allow_partial_test"] and isolated_test):
             raise CommandError("Carga parcial permitida somente no banco de teste isolado.")
         backup = options["backup"]
         if backup is None or backup.exists():

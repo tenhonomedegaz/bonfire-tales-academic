@@ -3041,6 +3041,7 @@ def _apply_tags(state, features, personagem=None, escolhas=None, *, ruleset=None
     if _equip0.get('tem_escudo'):
         _equipped_dsl.add('shield')
     dsl_features, dsl_operations, dsl_errors = [], [], []
+    skill_grants_by_feature = []
 
     for origem, fonte, obj, classlvl in features:
         tags = [t for t in (getattr(obj, 'tags_json', None) or []) if isinstance(t, str)]
@@ -3087,6 +3088,15 @@ def _apply_tags(state, features, personagem=None, escolhas=None, *, ruleset=None
             } for op in dsl_result.operations)
             if dsl_result.blocked:
                 continue
+            active_skill_ops = [op for op in dsl_result.operations
+                                if op.active and op.op == 'grant_proficiency']
+            skill_grants_by_feature.append((
+                any(op.verb == 'expertise' and op.value == 'original_prof'
+                    for op in active_skill_ops),
+                {_norm_skill_slug(op.value) for op in active_skill_ops
+                 if op.verb in {'prof', 'expertise'} and isinstance(op.value, str)
+                 and _norm_skill_slug(op.value) in _SKILL_INFO},
+            ))
             senses_before_feature = frozenset(sentidos)
             dsl_consumed, dsl_speed = _dsl_static_adapter(
                 dsl_result.operations, ctx, feat_nome, coll,
@@ -3400,6 +3410,20 @@ def _apply_tags(state, features, personagem=None, escolhas=None, *, ruleset=None
                         _roll_modifier_display(m.group(1), feat_nome, disadvantage=True))
                 for m in re.finditer(r'(?<![a-z_-])speak:([a-z0-9_-]+)', seg):
                     notas.append('falar com %s (%s)' % (m.group(1), feat_nome))
+
+    # A especialização sobre proficiências anteriores exclui a própria fonte,
+    # inclusive quando outras fontes aparecem depois na ordem das features.
+    if any(requested for requested, _ in skill_grants_by_feature) and personagem is not None:
+        original = {_slug(row.nome) for row in personagem.pericias.all()
+                    if row.proficiente or row.expertise}
+        original |= _pericias_escolhidas(personagem)
+        original |= _expertise_escolhidas(personagem)
+        for index, (requested, _) in enumerate(skill_grants_by_feature):
+            if requested:
+                grants = set().union(*(source for pos, (_, source)
+                                       in enumerate(skill_grants_by_feature) if pos != index))
+                coll['skill_expertise'].update(
+                    skill for skill in original | grants if skill in _SKILL_INFO)
 
     # Bug C: resolve os bumps condicionais estáticos do desarmado agora que o DADO BASE
     # (de outras features) está consolidado. `>=` por tamanho de dado (_die_size), mesmo

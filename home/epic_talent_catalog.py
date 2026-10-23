@@ -5,6 +5,7 @@ from pathlib import Path
 
 from django.conf import settings
 from django.utils.text import slugify
+from home.tag_engine.library import SKILLS
 
 
 STAGING_PATH = Path(settings.BASE_DIR) / "docs/integracao/talentos-epicos-staging.json"
@@ -16,6 +17,10 @@ ATTRIBUTE_TAGS = [
 # Só publicar entradas cujos efeitos adicionais foram conferidos contra o motor.
 VERIFIED_EFFECTS = {
     "dadiva-da-visao-verdadeira": ["sense:truesight(range:120ft)"],
+    "dadiva-do-erudito": [
+        *(f"prof:{skill}" for skill in sorted(SKILLS)),
+        "expertise:original_prof",
+    ],
 }
 
 CATEGORIES = {

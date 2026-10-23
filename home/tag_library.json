@@ -1726,7 +1726,7 @@
       "value": {
         "dobra_pb": true
       },
-      "doc": "Especialização (dobro do PB). CONSUMIDO no derive (modo estático): expertise:<perícia> em segmento passivo marca proficiente+expertise na perícia (implica proficiência). Escolha de expertise entre proficientes = pick:pericia_expertise (kind no PICK_REGISTRY, readback no derive). expertise:tool{}/ferramentas ficam inertes (a ficha não deriva teste de ferramenta)."
+      "doc": "Especialização (dobro do PB). CONSUMIDO no derive (modo estático): expertise:<perícia> em segmento passivo marca proficiente+expertise na perícia (implica proficiência). expertise:original_prof especializa apenas perícias proficientes antes da própria fonte, incluindo outras tags e escolhas. Escolha de expertise entre proficientes = pick:pericia_expertise (kind no PICK_REGISTRY, readback no derive). expertise:tool{}/ferramentas ficam inertes (a ficha não deriva teste de ferramenta)."
     },
     "save_prof": {
       "categoria": "efeito",

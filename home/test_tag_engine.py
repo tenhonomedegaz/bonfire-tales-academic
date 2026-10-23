@@ -729,8 +729,9 @@ class EpicTalentDeriveTests(TestCase):
         from home.models import TbPersonagem, TbPersonagemTalento, TbTalento
 
         definitions = epic_candidates()
-        self.assertEqual(len(definitions), 1)
-        talent = TbTalento.objects.create(**definitions[0])
+        self.assertEqual(len(definitions), 2)
+        talent = TbTalento.objects.create(**next(
+            row for row in definitions if row["slug"] == "dadiva-da-visao-verdadeira"))
         owner = get_user_model().objects.create_user(username="epic-sight")
         character = TbPersonagem.objects.create(dono=owner, nome="Teste visão")
         owned = TbPersonagemTalento.objects.create(
@@ -744,6 +745,48 @@ class EpicTalentDeriveTests(TestCase):
         sheet = derive(character)
         self.assertEqual(sheet["atributos"]["DES"]["valor"], 10)
         self.assertNotIn("truesight 120ft", sheet["sentidos"])
+
+    def test_erudito_especializa_apenas_pericias_anteriores(self):
+        from django.contrib.auth import get_user_model
+        from home.character_engine import derive
+        from home.epic_talent_catalog import epic_candidates
+        from home.models import (TbPersonagem, TbPersonagemPericia,
+                                 TbPersonagemTalento, TbTalento)
+
+        owner = get_user_model().objects.create_user(username="epic-scholar")
+        character = TbPersonagem.objects.create(dono=owner, nome="Teste erudito")
+        TbPersonagemPericia.objects.create(
+            id_personagem=character, nome="Atletismo", atributo="FOR", proficiente=True)
+        other = TbTalento.objects.create(
+            nome="Fonte de Percepção", slug="fonte-percepcao", tipo="geral",
+            descricao="Proficiência em Percepção.", tags_json=["prof:percepcao"],
+        )
+        erudito = TbTalento.objects.create(**next(
+            row for row in epic_candidates() if row["slug"] == "dadiva-do-erudito"))
+        owned = TbPersonagemTalento.objects.create(
+            id_personagem=character, id_talento=erudito, categoria="epico",
+            nome=erudito.nome, detalhes="talent_attr:INT",
+        )
+        other_owned = TbPersonagemTalento.objects.create(
+            id_personagem=character, id_talento=other, nome=other.nome)
+
+        for _ in range(2):
+            sheet = derive(character)
+            skills = {row["nome"]: row for row in sheet["pericias"]}
+            self.assertEqual(len([row for row in skills.values() if row["proficiente"]]), 18)
+            self.assertTrue(skills["Atletismo"]["expertise"])
+            self.assertTrue(skills["Percepção"]["expertise"])
+            self.assertFalse(skills["Acrobacia"]["expertise"])
+            self.assertEqual(sheet["atributos"]["INT"]["valor"], 12)
+
+        owned.delete()
+        skills = {row["nome"]: row for row in derive(character)["pericias"]}
+        self.assertTrue(skills["Percepção"]["proficiente"])
+        self.assertFalse(skills["Percepção"]["expertise"])
+        self.assertFalse(skills["Acrobacia"]["proficiente"])
+        other_owned.delete()
+        self.assertFalse(next(row for row in derive(character)["pericias"]
+                              if row["nome"] == "Percepção")["proficiente"])
 
     def test_ficha_recalcula_talento_com_escolha_e_bonus_externo(self):
         from django.contrib.auth import get_user_model
