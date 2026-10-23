@@ -7,6 +7,7 @@ does not persist characters or pretend to resolve every RPG combat rule.
 
 from .combat_conditions import CombatConditions
 from .evaluator import evaluate_tags
+from .parser import parse_tag
 
 
 class CombatEncounter:
@@ -20,11 +21,12 @@ class CombatEncounter:
             maximum = entry.get("max_hp")
             hp = entry.get("hp", maximum)
             defensive_tags = entry.get("defensive_tags", entry.get("tags", ()))
+            tag_context = entry.get("tag_context", {})
             if (not isinstance(actor, str) or not actor or actor in self._combatants or
                     not isinstance(team, str) or not team or
                     type(maximum) is not int or maximum <= 0 or
                     type(hp) is not int or not 0 < hp <= maximum or
-                    isinstance(defensive_tags, str)):
+                    isinstance(defensive_tags, str) or not isinstance(tag_context, dict)):
                 raise ValueError("Invalid combatant")
             try:
                 defensive_tags = tuple(defensive_tags)
@@ -35,6 +37,7 @@ class CombatEncounter:
             self._combatants[actor] = {
                 "team": team, "max_hp": maximum, "hp": hp,
                 "defensive_tags": defensive_tags,
+                "tag_context": dict(tag_context),
             }
         if len({entry["team"] for entry in self._combatants.values()}) < 2:
             raise ValueError("An encounter needs at least two teams")
@@ -43,12 +46,13 @@ class CombatEncounter:
         self.action_used = False
         self.finished = False
         self._events = []
+        self._healing_tag_uses = set()
 
     @property
     def combatants(self):
         return {
             actor: {key: value for key, value in entry.items()
-                    if key != "defensive_tags"}
+                    if key not in {"defensive_tags", "tag_context"}}
             for actor, entry in self._combatants.items()
         }
 
@@ -71,6 +75,9 @@ class CombatEncounter:
         self._living(actor)
         if not self.conditions.start_turn(actor, turn_id):
             return False
+        self._healing_tag_uses = {
+            key for key in self._healing_tag_uses if key[0] != actor
+        }
         self.current_actor = actor
         self.action_used = False
         self._events.append(("turn_start", actor, turn_id))
@@ -130,10 +137,50 @@ class CombatEncounter:
         blocked = self.conditions.blocks_healing(target)
         if not blocked:
             entry = self._combatants[target]
-            entry["hp"] = min(entry["max_hp"], entry["hp"] + amount)
+            bonus = (self._healing_tag_bonus(target)
+                     if amount and entry["hp"] < entry["max_hp"] else 0)
+            entry["hp"] = min(entry["max_hp"], entry["hp"] + amount + bonus)
         self.action_used = True
         self._events.append(("heal", source, target, amount, blocked))
         return not blocked
+
+    @staticmethod
+    def _limited_per_turn(tag, scope):
+        """Whether a ``1/turn`` literal governs this operation's AST scope."""
+        program = parse_tag(tag)
+
+        def walk(nodes):
+            for node in nodes:
+                if (node.name == "_literal" and
+                        str(node.value).replace(" ", "") == "1/turn" and
+                        tuple(scope[:len(node.scope)]) == node.scope):
+                    return True
+                if walk(node.children):
+                    return True
+            return False
+
+        return walk(program.nodes)
+
+    def _healing_tag_bonus(self, target):
+        """Resolve target healing modifiers declared by generic runtime tags."""
+        entry = self._combatants[target]
+        context = dict(entry["tag_context"])
+        context.update(resolve_runtime=True, event="healing",
+                       self_hp=entry["hp"], self_max_hp=entry["max_hp"])
+        total = 0
+        for tag_index, tag in enumerate(entry["defensive_tags"]):
+            result = evaluate_tags((tag,), context)
+            for operation_index, operation in enumerate(result.operations):
+                if (not operation.active or operation.op != "heal" or
+                        not isinstance(operation.value, (int, float))):
+                    continue
+                key = (target, tag_index, operation_index)
+                if self._limited_per_turn(tag, operation.scope):
+                    if key in self._healing_tag_uses:
+                        continue
+                    self._healing_tag_uses.add(key)
+                total += max(0, int(operation.value))
+        return total
 
     def end_turn(self):
         if self.current_actor is None:

@@ -789,6 +789,26 @@ class GenericEvaluatorTests(SimpleTestCase):
 
 
 class EpicTalentDeriveTests(TestCase):
+    def test_fortitude_importada_aplica_e_remove_pv_maximo_na_ficha(self):
+        from django.contrib.auth import get_user_model
+        from home.character_engine import derive
+        from home.epic_talent_catalog import epic_candidates
+        from home.models import TbPersonagem, TbPersonagemTalento, TbTalento
+
+        owner = get_user_model().objects.create_user(username="epic-fortitude")
+        character = TbPersonagem.objects.create(dono=owner, nome="Teste fortitude")
+        base_hp = derive(character)["pv"]["maximo_calculado"]
+        talent = TbTalento.objects.create(**next(
+            row for row in epic_candidates() if row["slug"] == "dadiva-da-fortitude"))
+        owned = TbPersonagemTalento.objects.create(
+            id_personagem=character, id_talento=talent, categoria="epico",
+            nome=talent.nome, detalhes="talent_attr:CON",
+        )
+
+        self.assertEqual(derive(character)["pv"]["maximo_calculado"], base_hp + 40)
+        owned.delete()
+        self.assertEqual(derive(character)["pv"]["maximo_calculado"], base_hp)
+
     def test_semente_epica_preserva_pk_e_rejeita_colisao(self):
         from tempfile import TemporaryDirectory
         from pathlib import Path

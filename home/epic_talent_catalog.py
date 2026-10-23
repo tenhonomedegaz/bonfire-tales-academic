@@ -16,6 +16,10 @@ ATTRIBUTE_TAGS = [
 
 # Só publicar entradas cujos efeitos adicionais foram conferidos contra o motor.
 VERIFIED_EFFECTS = {
+    "dadiva-da-fortitude": [
+        "always_active{buff:max_hp:+40}",
+        "always_active{trigger=healing, 1/turn, instant{heal:+con_mod}}",
+    ],
     "dadiva-da-visao-verdadeira": ["sense:truesight(range:120ft)"],
     "dadiva-da-resiliencia-sangrenta": [
         "while_active{requires:self{sangrando}, "
