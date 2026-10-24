@@ -2,11 +2,11 @@
 
 from django.test import SimpleTestCase
 
-from home.epic_talent_catalog import PARTIAL_EFFECTS
+from home.epic_talent_catalog import VERIFIED_EFFECTS
 from home.tag_engine.combat_encounter import CombatEncounter
 
 
-HEALTHY_TEMP_HP = tuple(PARTIAL_EFFECTS["dadiva-da-saude-abundante"])
+HEALTHY_TEMP_HP = tuple(VERIFIED_EFFECTS["dadiva-da-saude-abundante"])
 
 
 def encounter(tags=(), *, temp_hp=0):

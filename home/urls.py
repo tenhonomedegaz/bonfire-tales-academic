@@ -250,6 +250,7 @@ urlpatterns = [
     path('jogador/personagens/<int:pk>/salvaguarda-tempestade/', views.personagem_salvaguarda_tempestade, name='personagem_salvaguarda_tempestade'),
     path('jogador/personagens/<int:pk>/iniciar-turno-cura/', views.personagem_iniciar_turno_cura, name='personagem_iniciar_turno_cura'),
     path('jogador/personagens/<int:pk>/receber-pv-temporarios/', views.personagem_receber_pv_temporarios, name='personagem_receber_pv_temporarios'),
+    path('jogador/personagens/<int:pk>/gastar-dados-vida/', views.personagem_gastar_dados_vida, name='personagem_gastar_dados_vida'),
     path('jogador/personagens/<int:pk>/usar-item-consumivel/', views.personagem_usar_item_consumivel, name='personagem_usar_item_consumivel'),
     path('jogador/personagens/<int:pk>/usar-slot-magia/', views.personagem_usar_slot_magia, name='personagem_usar_slot_magia'),
     path('jogador/personagens/<int:pk>/descansar/', views.personagem_descansar, name='personagem_descansar'),

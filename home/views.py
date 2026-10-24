@@ -10357,6 +10357,30 @@ def personagem_receber_pv_temporarios(request, pk):
 
 @login_required(login_url='/login/')
 @require_POST
+def personagem_gastar_dados_vida(request, pk):
+    """Gasta Dados de Vida da classe com valor máximo concedido por tag."""
+    from django.contrib import messages
+    from .epic_hit_dice import spend_hit_dice
+
+    person = _ficha_editavel(request, pk)
+    try:
+        result = spend_hit_dice(
+            person, operation_id=request.POST.get('operation_id'),
+            die=request.POST.get('die'), count=request.POST.get('count'),
+            maximize=request.POST.get('maximize') == 'on',
+            confirmed=request.POST.get('confirmed') == 'on',
+            ruleset=_resource_ruleset(person),
+        )
+    except (TypeError, ValueError):
+        return HttpResponse('Gasto de Dados de Vida inválido.', status=400)
+    messages.success(request, 'Dados gastos: %s d%s. Cura aplicada: %s PV. Restam %s dados.' % (
+        result['count'], result['die'], result['healed'], result['remaining']),
+        extra_tags='epic-hit-dice')
+    return redirect(reverse('ficha_detail', args=[pk]) + '?aba=ficha')
+
+
+@login_required(login_url='/login/')
+@require_POST
 def personagem_usar_magia_inata(request, pk, magia_id):
     """Gasta (-1) ou devolve (+1) o uso oculto de uma magia inata/concedida."""
     from .character_engine import derive
@@ -10760,6 +10784,7 @@ def ficha_detail_view(request, pk):
     from .epic_storm_save import storm_save_types
     from .epic_healing_bonus import healing_turn_state
     from .temporary_hp import temporary_hp_bonus
+    from .epic_hit_dice import hit_dice_state
     import uuid
     if not request.user.is_authenticated:
         if request.method in ('GET', 'HEAD') and TbPersonagem.objects.filter(
@@ -10871,6 +10896,8 @@ def ficha_detail_view(request, pk):
         'cura_turno_operation_id': uuid.uuid4() if pode_editar else None,
         'bonus_pv_temporarios': temporary_hp_bonus(p, ruleset=ruleset) if pode_editar else 0,
         'pv_temporarios_operation_id': uuid.uuid4() if pode_editar else None,
+        'dados_vida_epicos': hit_dice_state(p, ruleset=ruleset) if pode_editar else None,
+        'dados_vida_epicos_operation_id': uuid.uuid4() if pode_editar else None,
         'raca_linha': raca_linha,
         'magias_info': magias_info,
         'partial_spell_slots': getattr(settings, 'SPELL_SLOT_PARTIAL_ENABLED', True),

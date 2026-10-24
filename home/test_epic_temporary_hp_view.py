@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
-from home.epic_talent_catalog import ATTRIBUTE_TAGS, PARTIAL_EFFECTS
+from home.epic_talent_catalog import epic_candidates
 from home.models import TbPersonagem, TbPersonagemTalento, TbTalento
 from home.temporary_hp import receive_tagged_temporary_hp, temporary_hp_bonus
 
@@ -20,8 +20,8 @@ class EpicTemporaryHpViewTests(TestCase):
             dono=self.owner, nome='Saúde', pv_maximo=40, pv_atual=20)
         talent = TbTalento.objects.create(
             nome='Saúde Abundante parcial', slug='saude-abundante-parcial',
-            tipo='geral', tags_json=ATTRIBUTE_TAGS +
-            PARTIAL_EFFECTS['dadiva-da-saude-abundante'])
+            tipo='geral', tags_json=next(row['tags_json'] for row in
+                epic_candidates() if row['slug'] == 'dadiva-da-saude-abundante'))
         self.grant = TbPersonagemTalento.objects.create(
             id_personagem=self.person, id_talento=talent,
             nome=talent.nome, detalhes='talent_attr:CON')

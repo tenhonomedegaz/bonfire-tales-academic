@@ -12,6 +12,7 @@ from home.epic_battle_accuracy import NO_DISADVANTAGE_TAG, AUTO_HIT_TAG
 from home.epic_recovery_pool import RECOVERY_POOL_TAG, SURVIVAL_TAG
 from home.epic_storm_save import STORM_SAVE_TAG
 from home.epic_soul_siphon import SIPHON_TAG
+from home.epic_hit_dice import HIT_DICE_MAX_TAG
 from home.tag_engine.library import SKILLS
 
 
@@ -23,6 +24,10 @@ ATTRIBUTE_TAGS = [
 
 # Só publicar entradas cujos efeitos adicionais foram conferidos contra o motor.
 VERIFIED_EFFECTS = {
+    "dadiva-da-saude-abundante": [
+        "always_active{temp_hp:+5}",
+        HIT_DICE_MAX_TAG,
+    ],
     "dadiva-da-recuperacao": [SURVIVAL_TAG, RECOVERY_POOL_TAG],
     "dadiva-da-tempestade": [
         "always_active{resist:raio, resist:trovejante}",
@@ -85,9 +90,6 @@ PARTIAL_EFFECTS = {
         "fall_speed:60ft)}",
         "cast{spell:caminhar-no-vento, without{slot}, without{components}, "
         "uses{1, reset:long_rest}, always_prepared}",
-    ],
-    "dadiva-da-saude-abundante": [
-        "always_active{temp_hp:+5}",
     ],
     "dadiva-da-velocidade": [
         "speed:+30",
