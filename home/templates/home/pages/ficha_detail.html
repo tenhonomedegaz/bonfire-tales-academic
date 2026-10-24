@@ -279,6 +279,21 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
   </section>
   {% endif %}
 
+  {% if bonus_pv_temporarios and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="pv-temporarios-epicos-title">
+    <h2 id="pv-temporarios-epicos-title" class="ficha-section-title">Receber PV temporários</h2>
+    {% for message in messages %}{% if 'epic-temporary-hp' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
+    <p>Ao receber PV temporários na mesa, a ficha acrescenta {{ bonus_pv_temporarios }} por suas fontes ativas e mantém o maior total.</p>
+    <form method="post" action="{% url 'personagem_receber_pv_temporarios' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ pv_temporarios_operation_id }}">
+      <label>PV temporários concedidos antes dos bônus <input type="number" name="amount" min="1" max="100000" required></label>
+      <label><input type="checkbox" name="confirmed" required> Confirmo a concessão na mesa</label>
+      <button type="submit" class="banner-btn primary">Registrar PV temporários</button>
+    </form>
+  </section>
+  {% endif %}
+
   {% if cura_turno_bloqueada and pode_editar %}
   <section class="ficha-panel ficha-noprint" aria-labelledby="cura-turno-title">
     <h2 id="cura-turno-title" class="ficha-section-title">Bônus de cura por turno</h2>
