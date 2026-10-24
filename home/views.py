@@ -17916,7 +17916,7 @@ def oficina_comprar_componente(request, pk):
     return _oficina_redirect(request, 'comprado')
 
 
-def _oficina_casting_resource(personagem, caster, spell, slot_level):
+def _oficina_casting_resource(personagem, caster, spell, slot_level, *, preserve_slot=False):
     """Valida e gasta o recurso declarado no contrato de conjuração."""
     from .character_engine import _eval_formula, _recursos_consumiveis
     from .magic_workshop import character_casters
@@ -17941,6 +17941,12 @@ def _oficina_casting_resource(personagem, caster, spell, slot_level):
         if total <= 0:
             return False, {'error': 'slot'}
         key = 'spell-slot:%d' % chosen
+        if preserve_slot:
+            from .resource_commands import _current_slot
+            if _current_slot(personagem, chosen, total)['atual'] <= 0:
+                return False, {'error': 'slot_gasto'}
+            return True, {'kind': 'slot', 'level': chosen, 'resource': key,
+                          'preserved': True}
         ok, _snapshot = spend_resource(personagem, {
             'key': key, 'legacy_name': key, 'name': key,
             'maximum': total, 'reset': 'long_rest', 'origin': 'spellcasting',
@@ -18059,11 +18065,19 @@ def oficina_conjurar_magia(request, pk):
             return _oficina_redirect(request, 'componente_reutilizavel')
         spending = {'kind': 'ritual'}
         if not ritual:
+            from .epic_free_cast import roll_free_cast
+            free_roll = (roll_free_cast(p, int(spell.nivel or 0),
+                                        ruleset=_resource_ruleset(p))
+                         if caster['contract'].get('slots') in {'full', 'half', 'third'}
+                         else None)
             ok, spending = _oficina_casting_resource(
-                p, caster, spell, request.POST.get('slot'))
+                p, caster, spell, request.POST.get('slot'),
+                preserve_slot=bool(free_roll and free_roll['slot_preserved']))
             if not ok:
                 transaction.set_rollback(True)
                 return _oficina_redirect(request, spending['error'])
+            if free_roll:
+                spending['free_cast_roll'] = free_roll['die']
         if consumed is not None:
             _oficina_consume_one(consumed)
         if identity(spell, 'Find Familiar'):
@@ -18084,8 +18098,12 @@ def oficina_conjurar_magia(request, pk):
                 'concentration': bool(spell.concentracao),
             },
             ends_on=['dispelled', 'dismissed'])
-    request.session['oficina_resultado'] = '%s foi registrada%s.' % (
-        spell.nome, ' como ritual' if ritual else '')
+    request.session['oficina_resultado'] = '%s foi registrada%s.%s' % (
+        spell.nome, ' como ritual' if ritual else '',
+        (' Conjuração Livre: d4=%s; espaço %s.' % (
+            spending['free_cast_roll'],
+            'preservado' if spending.get('preserved') else 'gasto'))
+        if 'free_cast_roll' in spending else '')
     return _oficina_redirect(request, 'conjurada')
 
 

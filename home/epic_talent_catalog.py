@@ -13,6 +13,7 @@ from home.epic_recovery_pool import RECOVERY_POOL_TAG, SURVIVAL_TAG
 from home.epic_storm_save import STORM_SAVE_TAG
 from home.epic_soul_siphon import SIPHON_TAG
 from home.epic_hit_dice import HIT_DICE_MAX_TAG
+from home.epic_free_cast import FREE_CAST_TAG
 from home.tag_engine.library import SKILLS
 
 
@@ -71,6 +72,7 @@ PARTIAL_EFFECTS = {
     "dadiva-da-memoria-arcana": [
         "if(already:prof{arcanismo}): expertise:arcanismo else: prof:arcanismo",
         "pick:pericia_expertise:1(requires:already_expertise{arcanismo})",
+        FREE_CAST_TAG,
     ],
     "dadiva-da-folia": [
         "if(already:prof{atuacao}): expertise:atuacao else: prof:atuacao",
