@@ -36,6 +36,9 @@ VERIFIED_EFFECTS = {
 # Efeitos conferidos isoladamente. Estes talentos ainda não entram em epic_candidates:
 # faltam outros efeitos da mesma definição e a carga permanece fechada até cobertura integral.
 PARTIAL_EFFECTS = {
+    "dadiva-do-ataque-implacavel": [
+        "always_active{ignore:resist(concussao,cortante,perfurante)}",
+    ],
     "dadiva-da-tempestade": [
         "always_active{resist:raio, resist:trovejante}",
         "while_active{requires:self{sangrando}, immune:raio, immune:trovejante}",

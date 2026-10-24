@@ -6,6 +6,7 @@ does not persist characters or pretend to resolve every RPG combat rule.
 """
 
 from .combat_conditions import CombatConditions
+from .attack_effects import ignored_resistance_types, ignores_resistance
 from .evaluator import evaluate_tags
 from .parser import parse_tag
 
@@ -22,24 +23,28 @@ class CombatEncounter:
             hp = entry.get("hp", maximum)
             temp_hp = entry.get("temp_hp", 0)
             defensive_tags = entry.get("defensive_tags", entry.get("tags", ()))
+            offensive_tags = entry.get("offensive_tags", entry.get("tags", ()))
             tag_context = entry.get("tag_context", {})
             if (not isinstance(actor, str) or not actor or actor in self._combatants or
                     not isinstance(team, str) or not team or
                     type(maximum) is not int or maximum <= 0 or
                     type(hp) is not int or not 0 < hp <= maximum or
                     type(temp_hp) is not int or temp_hp < 0 or
-                    isinstance(defensive_tags, str) or not isinstance(tag_context, dict)):
+                    isinstance(defensive_tags, str) or
+                    isinstance(offensive_tags, str) or not isinstance(tag_context, dict)):
                 raise ValueError("Invalid combatant")
             try:
                 defensive_tags = tuple(defensive_tags)
+                offensive_tags = tuple(offensive_tags)
             except TypeError as error:
                 raise ValueError("Invalid combatant") from error
-            if not all(isinstance(tag, str) for tag in defensive_tags):
+            if not all(isinstance(tag, str) for tag in defensive_tags + offensive_tags):
                 raise ValueError("Invalid combatant")
             self._combatants[actor] = {
                 "team": team, "max_hp": maximum, "hp": hp,
                 "temp_hp": temp_hp,
                 "defensive_tags": defensive_tags,
+                "offensive_tags": offensive_tags,
                 "tag_context": dict(tag_context),
             }
         if len({entry["team"] for entry in self._combatants.values()}) < 2:
@@ -56,7 +61,7 @@ class CombatEncounter:
     def combatants(self):
         return {
             actor: {key: value for key, value in entry.items()
-                    if key not in {"defensive_tags", "tag_context"}}
+                    if key not in {"defensive_tags", "offensive_tags", "tag_context"}}
             for actor, entry in self._combatants.items()
         }
 
@@ -123,7 +128,7 @@ class CombatEncounter:
         self._events.append(("fall", actor, turn_id, remaining_distance_ft, actual))
         return actual
 
-    def _damage_after_defenses(self, target, damage, damage_type):
+    def _damage_after_defenses(self, target, damage, damage_type, ignored=()):
         """Apply target-declared resistance or immunity for one typed hit."""
         if damage_type is None:
             return damage
@@ -145,13 +150,14 @@ class CombatEncounter:
         }
         if "imunidades" in defenses:
             return 0
-        if "resistencias" in defenses:
+        if "resistencias" in defenses and not ignores_resistance(ignored, damage_type):
             return damage // 2
         return damage
 
     def attack(self, target, tags, *, hit, damage=0, damage_type=None):
         source = self._action_actor()
         self._living(target)
+        tags = tuple(tags)
         if (type(hit) is not bool or type(damage) is not int or damage < 0 or
                 (damage_type is not None and
                  (not isinstance(damage_type, str) or not damage_type.strip())) or
@@ -159,11 +165,19 @@ class CombatEncounter:
             raise ValueError("Declare a valid hit and rolled damage")
         operations = None
         if hit:
+            source_entry = self._combatants[source]
+            attack_context = dict(source_entry["tag_context"])
+            attack_context.update(resolve_runtime=True, event="hit",
+                                  self_hp=source_entry["hp"],
+                                  self_max_hp=source_entry["max_hp"])
+            attack_effects = evaluate_tags(
+                source_entry["offensive_tags"] + tags, attack_context)
+            ignored = ignored_resistance_types(attack_effects.operations)
             operations = self.conditions.resolve(
                 tags, event="hit", source=source, target=target)
             damage = self._damage_after_defenses(
                 target, damage, damage_type.strip().lower()
-                if isinstance(damage_type, str) else None)
+                if isinstance(damage_type, str) else None, ignored)
             target_entry = self._combatants[target]
             absorbed = min(target_entry["temp_hp"], damage)
             target_entry["temp_hp"] -= absorbed
