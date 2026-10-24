@@ -11,8 +11,15 @@ from home.epic_legendary_save import (
     LEGENDARY_SAVE_STATE_KEY, LEGENDARY_SAVE_TAG,
     legendary_save_state, use_legendary_save,
 )
+from home.epic_heroic_inspiration import (
+    HEROIC_INSPIRATION_KEY, RETAIN_INSPIRATION_TAG,
+    inspiration_state, use_inspiration,
+)
 from home.epic_talent_catalog import ATTRIBUTE_TAGS, epic_candidates
-from home.models import TbOperacaoRecurso, TbPersonagem, TbPersonagemTalento, TbTalento
+from home.models import (
+    TbOperacaoRecurso, TbPersonagem, TbPersonagemRecurso,
+    TbPersonagemTalento, TbTalento,
+)
 from home.resource_engine import end_states_on
 from home.tag_engine.library import Library
 from home.tag_engine.validator import ERROR, validate_tags_json
@@ -26,14 +33,16 @@ class LegendarySaveTests(TestCase):
         self.person = TbPersonagem.objects.create(dono=self.owner, nome="Hero")
         self.source = TbTalento.objects.create(
             nome="Fonte de teste", slug=f"heroic-save-{uuid.uuid4()}",
-            tipo="geral", tags_json=ATTRIBUTE_TAGS + [LEGENDARY_SAVE_TAG])
+            tipo="geral", tags_json=ATTRIBUTE_TAGS + [LEGENDARY_SAVE_TAG,
+                                                       RETAIN_INSPIRATION_TAG])
         self.owned = TbPersonagemTalento.objects.create(
             id_personagem=self.person, id_talento=self.source,
             nome=self.source.nome, detalhes="talent_attr:SAB")
 
-    def test_tag_is_valid_but_talent_remains_outside_ready_catalog(self):
+    def test_both_tags_valid_but_grantless_talent_stays_outside_catalog(self):
         self.assertFalse([d for d in validate_tags_json(
-            [LEGENDARY_SAVE_TAG], Library()) if d.level == ERROR])
+            [LEGENDARY_SAVE_TAG, RETAIN_INSPIRATION_TAG], Library())
+            if d.level == ERROR])
         self.assertNotIn("dadiva-da-resistencia-heroica",
                          {row["slug"] for row in epic_candidates()})
 
@@ -83,3 +92,58 @@ class LegendarySaveTests(TestCase):
         response = self.client.post(url, payload)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(TbOperacaoRecurso.objects.count(), 1)
+
+    def grant_inspiration(self):
+        return TbPersonagemRecurso.objects.create(
+            id_personagem=self.person, chave=HEROIC_INSPIRATION_KEY,
+            nome="Inspiração Heróica", atual=1, maximo=1,
+            origem="fonte:confirmada")
+
+    def test_inspiration_requires_prior_grant_and_retains_only_failed_roll(self):
+        with self.assertRaises(ValueError):
+            use_inspiration(self.person, operation_id=uuid.uuid4(),
+                            roll_kind="save", failed=True)
+        resource = self.grant_inspiration()
+        self.assertTrue(inspiration_state(self.person)["available"])
+        operation = uuid.uuid4()
+        result = use_inspiration(self.person, operation_id=operation,
+                                 roll_kind="save", failed=True)
+        self.assertTrue(result["retained"])
+        self.assertEqual(result["remaining"], 1)
+        self.assertTrue(use_inspiration(self.person, operation_id=operation,
+                                        roll_kind="save", failed=True)["replayed"])
+        self.assertEqual(TbOperacaoRecurso.objects.count(), 1)
+        with self.assertRaises(ValueError):
+            use_inspiration(self.person, operation_id=operation,
+                            roll_kind="attack", failed=True)
+        resource.refresh_from_db()
+        self.assertEqual(resource.atual, 1)
+        success = use_inspiration(self.person, operation_id=uuid.uuid4(),
+                                  roll_kind="attack", failed=False)
+        self.assertFalse(success["retained"])
+        resource.refresh_from_db()
+        self.assertEqual(resource.atual, 0)
+        with self.assertRaises(ValueError):
+            use_inspiration(self.person, operation_id=uuid.uuid4(),
+                            roll_kind="attack", failed=True)
+
+    def test_inspiration_source_choice_and_owner_gate(self):
+        resource = self.grant_inspiration()
+        url = reverse("personagem_usar_inspiracao_heroica", args=[self.person.pk])
+        payload = {"operation_id": str(uuid.uuid4()),
+                   "roll_kind": "ability_check", "failed": "on"}
+        self.client.force_login(self.other)
+        self.assertNotEqual(self.client.post(url, payload).status_code, 302)
+        self.client.force_login(self.owner)
+        self.assertContains(self.client.get(reverse("ficha_detail", args=[self.person.pk])),
+                            url)
+        self.assertEqual(self.client.post(url, payload).status_code, 302)
+        resource.refresh_from_db()
+        self.assertEqual(resource.atual, 1)
+        self.owned.detalhes = ""
+        self.owned.save(update_fields=["detalhes"])
+        self.assertFalse(inspiration_state(self.person)["can_retain"])
+        self.assertFalse(use_inspiration(self.person, operation_id=uuid.uuid4(),
+                                         roll_kind="save", failed=True)["retained"])
+        resource.refresh_from_db()
+        self.assertEqual(resource.atual, 0)

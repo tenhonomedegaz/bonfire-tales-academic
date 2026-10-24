@@ -167,6 +167,21 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
   </script>
   {% endif %}
 
+  {% if inspiracao_heroica.available and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="inspiracao-heroica-title">
+    <h2 id="inspiracao-heroica-title" class="ficha-section-title">Inspiração Heróica</h2>
+    {% for message in messages %}{% if 'epic-heroic-inspiration' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
+    <p>Concedida por {{ inspiracao_heroica.origin }}. Registre o resultado da rolagem para atualizar o saldo.</p>
+    <form method="post" action="{% url 'personagem_usar_inspiracao_heroica' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ inspiracao_heroica_operation_id }}">
+      <label>Rolagem <select name="roll_kind"><option value="attack">Ataque</option><option value="ability_check">Teste de habilidade</option><option value="save">Salvaguarda</option></select></label>
+      <label><input type="checkbox" name="failed"> A rolagem ainda falhou</label>
+      <button type="submit" class="banner-btn primary">Registrar uso</button>
+    </form>
+  </section>
+  {% endif %}
+
   {% if resistencia_lendaria and pode_editar %}
   <section class="ficha-panel ficha-noprint" aria-labelledby="resistencia-lendaria-title">
     <h2 id="resistencia-lendaria-title" class="ficha-section-title">Resistência lendária</h2>

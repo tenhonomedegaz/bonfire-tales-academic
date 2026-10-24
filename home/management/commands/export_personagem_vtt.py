@@ -286,9 +286,9 @@ def exportar_personagem(personagem, gerado_de=None):
         'recursos': recursos,
         'habilidades': _habilidades(personagem, classes),
         'magias': _magias(personagem),
-        # O site não modela inspiração heroica (nenhum campo em TbPersonagem):
-        # exportada como estado neutro False.
-        'inspiracao': False,
+        # A ficha só exporta uma concessão já registrada no livro de recursos.
+        'inspiracao': bool(personagem.recursos.filter(
+            chave='heroic_inspiration', atual=1, maximo=1).exclude(origem='').exists()),
         'moedas': moedas,
         # Estado inicial NEUTRO de sessão (o VTT é quem evolui isso em mesa).
         'estado_mesa': {'pv_atual': pv_max, 'pv_temp': 0, 'morte_s': 0, 'morte_f': 0},

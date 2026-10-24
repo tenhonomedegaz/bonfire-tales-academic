@@ -26,7 +26,7 @@ from home.management.commands.export_personagem_vtt import (
     exportar_personagem, serializar)
 from home.models import (
     TbClasse, TbClassehabilidade, TbMagia, TbPersonagem, TbPersonagemClasse,
-    TbPersonagemMagia, TbPersonagemProficiencia, TbRecursoclasse,
+    TbPersonagemMagia, TbPersonagemProficiencia, TbPersonagemRecurso, TbRecursoclasse,
 )
 
 
@@ -145,6 +145,19 @@ class ExportPersonagemVttTests(TestCase):
         self.assertIn('TbClassehabilidade:%d' % self.hab_mago.pk, fontes)
 
     # ── v1.1: salvaguardas ───────────────────────────────────────────────────
+    def test_inspiracao_exporta_somente_concessao_registrada(self):
+        grant = TbPersonagemRecurso.objects.create(
+            id_personagem=self.p, chave='heroic_inspiration', nome='Inspiração Heróica',
+            atual=1, maximo=1, origem='fonte:confirmada')
+        self.assertIs(exportar_personagem(self.p)['inspiracao'], True)
+        grant.atual = 0
+        grant.save(update_fields=['atual'])
+        self.assertIs(exportar_personagem(self.p)['inspiracao'], False)
+        grant.atual = 1
+        grant.origem = ''
+        grant.save(update_fields=['atual', 'origem'])
+        self.assertIs(exportar_personagem(self.p)['inspiracao'], False)
+
     def test_salvaguardas_com_proficiencia_de_classe(self):
         d = exportar_personagem(self.p)['derive']
         # 6 entradas SEMPRE, em ordem canônica de siglas (determinismo)
