@@ -3600,11 +3600,13 @@ def _apply_tags(state, features, personagem=None, escolhas=None, *, ruleset=None
                     continue
                 for operation in evaluate_tags([line], feature_ctx).operations:
                     if (operation.active and operation.op == 'add_to_set'
-                            and operation.target == 'resistencias'
                             and isinstance(operation.value, str)):
-                        if operation.value not in resist:
-                            resist.append(operation.value)
-                        resist_sources.setdefault(operation.value, set()).add(feature_index)
+                        if operation.target == 'resistencias':
+                            if operation.value not in resist:
+                                resist.append(operation.value)
+                            resist_sources.setdefault(operation.value, set()).add(feature_index)
+                        elif operation.target == 'imunidades' and operation.value not in imune:
+                            imune.append(operation.value)
     # "Já possui resistência" consulta as demais fontes no estado final, sem
     # depender da ordem em que classe, raça e talentos vieram das consultas.
     for checked, immune_type, resist_type, feature_index in conditional_immunities:

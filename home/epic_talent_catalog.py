@@ -10,6 +10,7 @@ from home.epic_reaping import REAPING_TAG
 from home.epic_save_reroll import REROLL_TAG
 from home.epic_battle_accuracy import NO_DISADVANTAGE_TAG, AUTO_HIT_TAG
 from home.epic_recovery_pool import RECOVERY_POOL_TAG, SURVIVAL_TAG
+from home.epic_storm_save import STORM_SAVE_TAG
 from home.epic_soul_siphon import SIPHON_TAG
 from home.tag_engine.library import SKILLS
 
@@ -23,6 +24,11 @@ ATTRIBUTE_TAGS = [
 # Só publicar entradas cujos efeitos adicionais foram conferidos contra o motor.
 VERIFIED_EFFECTS = {
     "dadiva-da-recuperacao": [SURVIVAL_TAG, RECOVERY_POOL_TAG],
+    "dadiva-da-tempestade": [
+        "always_active{resist:raio, resist:trovejante}",
+        "while_active{requires:self{sangrando}, immune:raio, immune:trovejante}",
+        STORM_SAVE_TAG,
+    ],
     "dadiva-da-fortitude": [
         "always_active{buff:max_hp:+40}",
         "always_active{trigger=healing, 1/turn, instant{heal:+con_mod}}",
@@ -73,10 +79,6 @@ PARTIAL_EFFECTS = {
     "dadiva-do-ataque-implacavel": [
         "always_active{ignore:resist(concussao,cortante,perfurante)}",
         "always_active{crit_dmg:+talent_attr_score}",
-    ],
-    "dadiva-da-tempestade": [
-        "always_active{resist:raio, resist:trovejante}",
-        "while_active{requires:self{sangrando}, immune:raio, immune:trovejante}",
     ],
     "dadiva-do-dominio-do-ceu": [
         "always_active{move:fly(=walk, hover, fall_threshold:5ft, "

@@ -261,6 +261,24 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
   </section>
   {% endif %}
 
+  {% if tempestade_save_types and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="tempestade-save-title">
+    <h2 id="tempestade-save-title" class="ficha-section-title">Salvaguarda contra magia da Tempestade</h2>
+    {% for message in messages %}{% if 'epic-storm-save' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
+    <p>Declare os dados da salvaguarda do alvo. A rolagem é feita no servidor com desvantagem; vantagem do alvo cancela a desvantagem.</p>
+    <form method="post" action="{% url 'personagem_salvaguarda_tempestade' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ tempestade_save_operation_id }}">
+      <label>Tipo de dano <select name="damage_type" required>{% for tipo in tempestade_save_types %}<option value="{{ tipo }}">{{ tipo|capfirst }}</option>{% endfor %}</select></label>
+      <label>Modificador da salvaguarda do alvo <input type="number" name="target_modifier" value="0" required></label>
+      <label>CD da magia <input type="number" name="save_dc" min="1" required></label>
+      <label><input type="checkbox" name="target_has_advantage"> O alvo tem vantagem nesta salvaguarda</label>
+      <label><input type="checkbox" name="confirmed" required> Confirmo a magia e o alvo declarados na mesa</label>
+      <button type="submit" class="banner-btn primary">Rolar salvaguarda do alvo</button>
+    </form>
+  </section>
+  {% endif %}
+
   {# ===================== LARGURA CHEIA ===================== #}
 
   {% comment %}As 4 caixinhas de RP do PDF da ficha. Edição inline (fetch) só para o dono/staff.{% endcomment %}
