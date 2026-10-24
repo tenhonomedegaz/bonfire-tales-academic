@@ -55,8 +55,11 @@ class CombatEncounter:
         self.conditions = CombatConditions()
         self.current_actor = None
         self.action_used = False
+        self.bonus_action_used = False
         self.finished = False
         self._events = []
+        self._dodge_active = set()
+        self._attack_reach_bonus = {}
         self._healing_tag_uses = set()
         self._fall_progress = {}
 
@@ -92,8 +95,51 @@ class CombatEncounter:
         }
         self.current_actor = actor
         self.action_used = False
+        self.bonus_action_used = False
+        self._dodge_active.discard(actor)
+        self._attack_reach_bonus.pop(actor, None)
         self._events.append(("turn_start", actor, turn_id))
         return True
+
+    def bonus_action_dodge(self):
+        """Use a bonus action to Dodge when a currently active tag grants it."""
+        actor = self.current_actor
+        if self.finished or actor is None or self.bonus_action_used:
+            raise ValueError("No bonus action is available")
+        self._living(actor)
+        entry = self._combatants[actor]
+        context = dict(entry["tag_context"])
+        context.update(resolve_runtime=True, event="dodge_action",
+                       self_hp=entry["hp"], self_max_hp=entry["max_hp"])
+        tags = entry["defensive_tags"] + tuple(
+            tag for tag in entry["offensive_tags"]
+            if tag not in entry["defensive_tags"])
+        granted = any(
+            operation.active and operation.verb == "dodge"
+            and operation.op == "grant_execution"
+            and re.search(r"action\s*:\s*bonus_action\b", tag)
+            for tag in tags
+            for operation in evaluate_tags((tag,), context).operations
+        )
+        if not granted:
+            raise ValueError("No bonus-action Dodge is granted")
+        self.bonus_action_used = True
+        self._dodge_active.add(actor)
+        self._events.append(("dodge", actor, "bonus_action"))
+        return True
+
+    def dodge_defense(self, actor):
+        """Tell the VTT how to resolve attack rolls and Dexterity saves."""
+        if actor not in self._combatants:
+            raise ValueError("Unknown combatant")
+        active = actor in self._dodge_active and self._combatants[actor]["hp"] > 0
+        return {"attacks_disadvantage": active, "dex_saves_advantage": active}
+
+    def attack_reach_bonus(self, actor):
+        """Reach added by the current turn's Attack action, in feet."""
+        if actor not in self._combatants:
+            raise ValueError("Unknown combatant")
+        return self._attack_reach_bonus.get(actor, 0) if self.current_actor == actor else 0
 
     def escape_condition(self, condition, source, available_movement_ft):
         """Spend VTT-declared movement to end a condition when an active tag allows it.
@@ -206,7 +252,8 @@ class CombatEncounter:
         return damage
 
     def attack(self, target, tags, *, hit, damage=0, damage_type=None,
-               critical=False):
+               critical=False, dodge_disadvantage_applied=False,
+               melee_weapon=False):
         source = self._action_actor()
         self._living(target)
         tags = tuple(tags)
@@ -214,8 +261,28 @@ class CombatEncounter:
                 (critical and not hit) or type(damage) is not int or damage < 0 or
                 (damage_type is not None and
                  (not isinstance(damage_type, str) or not damage_type.strip())) or
-                (not hit and damage)):
+                (not hit and damage) or type(dodge_disadvantage_applied) is not bool
+                or type(melee_weapon) is not bool):
             raise ValueError("Declare a valid hit and rolled damage")
+        if target in self._dodge_active and not dodge_disadvantage_applied:
+            raise ValueError("Resolve the dodging target's attack disadvantage")
+        if melee_weapon:
+            source_entry = self._combatants[source]
+            attack_context = dict(source_entry["tag_context"])
+            attack_context.update(resolve_runtime=True, event="attack_action",
+                                  self_hp=source_entry["hp"],
+                                  self_max_hp=source_entry["max_hp"])
+            reach_tags = source_entry["offensive_tags"] + tuple(
+                tag for tag in tags if tag not in source_entry["offensive_tags"])
+            reach_bonus = sum(
+                operation.value for tag in reach_tags
+                for operation in evaluate_tags((tag,), attack_context).operations
+                if operation.active and operation.verb == "reach"
+                and operation.op == "add_modifier"
+                and type(operation.value) is int and operation.value > 0
+            )
+            if reach_bonus:
+                self._attack_reach_bonus[source] = reach_bonus
         operations = None
         if hit:
             source_entry = self._combatants[source]
@@ -338,8 +405,10 @@ class CombatEncounter:
         if self.current_actor is None:
             raise ValueError("No turn to finish")
         self._events.append(("turn_end", self.current_actor))
+        self._attack_reach_bonus.pop(self.current_actor, None)
         self.current_actor = None
         self.action_used = False
+        self.bonus_action_used = False
 
     def _finish_if_decided(self):
         living_teams = {

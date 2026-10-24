@@ -25,6 +25,10 @@ ATTRIBUTE_TAGS = [
 
 # Só publicar entradas cujos efeitos adicionais foram conferidos contra o motor.
 VERIFIED_EFFECTS = {
+    "dadiva-das-sombras-vivas": [
+        "while_active{trigger=attack_action, reach:+10ft, duration:until_turn_end}",
+        "while_active{action:bonus_action, instant{dodge}}",
+    ],
     "dadiva-da-carnificina": [
         FORTUNE_TAG,
         "while_active{requires:self{sangrando}, 1/turn, "
