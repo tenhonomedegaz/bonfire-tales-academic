@@ -36,6 +36,10 @@ VERIFIED_EFFECTS = {
 # Efeitos conferidos isoladamente. Estes talentos ainda não entram em epic_candidates:
 # faltam outros efeitos da mesma definição e a carga permanece fechada até cobertura integral.
 PARTIAL_EFFECTS = {
+    "dadiva-do-devorador-de-almas": [
+        "if(already:resist{frio}): immune:frio else: resist:frio",
+        "if(already:resist{necrotico}): immune:necrotico else: resist:necrotico",
+    ],
     "dadiva-do-ataque-implacavel": [
         "always_active{ignore:resist(concussao,cortante,perfurante)}",
         "always_active{crit_dmg:+talent_attr_score}",
