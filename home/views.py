@@ -10185,6 +10185,28 @@ def personagem_rerolar_salvaguarda(request, pk):
 
 @login_required(login_url='/login/')
 @require_POST
+def personagem_resistir_salvaguarda(request, pk):
+    """Consume a tagged legendary save after a declared failure."""
+    from django.contrib import messages
+    from .epic_legendary_save import use_legendary_save
+
+    person = _ficha_editavel(request, pk)
+    try:
+        use_legendary_save(
+            person, operation_id=request.POST.get('operation_id'),
+            save_kind=request.POST.get('save_kind'),
+            failed=request.POST.get('failed') == 'on',
+            ruleset=_resource_ruleset(person),
+        )
+    except (TypeError, ValueError):
+        return HttpResponse('Resistência lendária indisponível ou inválida.', status=400)
+    messages.success(request, 'Salvaguarda convertida em sucesso.',
+                     extra_tags='epic-legendary-save')
+    return redirect(reverse('ficha_detail', args=[pk]) + '?aba=ficha')
+
+
+@login_required(login_url='/login/')
+@require_POST
 def personagem_iniciar_turno_rerrolagem(request, pk):
     """Libera a nova rolagem após o início do próximo turno declarado."""
     from django.contrib import messages
@@ -10946,6 +10968,7 @@ def ficha_detail_view(request, pk):
     from .epic_death_seal import death_seal_state
     from .epic_reaping import reaping_state
     from .epic_save_reroll import reroll_state
+    from .epic_legendary_save import legendary_save_state
     from .epic_battle_accuracy import attack_accuracy_state
     from .epic_relentless_damage import relentless_profiles
     from .epic_bloodied_damage import bloodied_attack_state
@@ -11062,6 +11085,8 @@ def ficha_detail_view(request, pk):
         'ceifa_operation_id': uuid.uuid4() if pode_editar else None,
         'ceifa_death_operation_id': uuid.uuid4() if pode_editar else None,
         'nova_salvaguarda': reroll_state(p, ruleset=ruleset) if pode_editar else None,
+        'resistencia_lendaria': legendary_save_state(p, ruleset=ruleset) if pode_editar else None,
+        'resistencia_lendaria_operation_id': uuid.uuid4() if pode_editar else None,
         'nova_salvaguarda_operation_id': uuid.uuid4() if pode_editar else None,
         'nova_salvaguarda_turn_operation_id': uuid.uuid4() if pode_editar else None,
         'ataque_epico': attack_accuracy_state(p, ruleset=ruleset) if pode_editar else None,

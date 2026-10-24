@@ -167,6 +167,23 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
   </script>
   {% endif %}
 
+  {% if resistencia_lendaria and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="resistencia-lendaria-title">
+    <h2 id="resistencia-lendaria-title" class="ficha-section-title">Resistência lendária</h2>
+    {% for message in messages %}{% if 'epic-legendary-save' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
+    {% if resistencia_lendaria.available %}
+    <p>Após falhar em uma salvaguarda, converta a falha em sucesso. Recupera após descanso curto ou longo.</p>
+    <form method="post" action="{% url 'personagem_resistir_salvaguarda' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ resistencia_lendaria_operation_id }}">
+      <label>Salvaguarda <select name="save_kind"><option value="str">Força</option><option value="dex">Destreza</option><option value="con">Constituição</option><option value="int">Inteligência</option><option value="wis">Sabedoria</option><option value="cha">Carisma</option><option value="death">Contra a morte</option></select></label>
+      <label><input type="checkbox" name="failed" required> A salvaguarda falhou</label>
+      <button type="submit" class="banner-btn primary">Converter em sucesso</button>
+    </form>
+    {% else %}<p>Já usada neste descanso.</p>{% endif %}
+  </section>
+  {% endif %}
+
   {% if nova_salvaguarda and pode_editar %}
   <section class="ficha-panel ficha-noprint" aria-labelledby="nova-salvaguarda-title">
     <h2 id="nova-salvaguarda-title" class="ficha-section-title">Nova rolagem de salvaguarda</h2>
