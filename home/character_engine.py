@@ -3054,16 +3054,22 @@ def _apply_tags(state, features, personagem=None, escolhas=None, *, ruleset=None
         _equipped_dsl.add('shield')
     dsl_features, dsl_operations, dsl_errors = [], [], []
     skill_grants_by_feature = []
+    choice_pending_features = set()
 
     for feature_index, (origem, fonte, obj, classlvl) in enumerate(features):
         feature_resists = set()
         tags = [t for t in (getattr(obj, 'tags_json', None) or []) if isinstance(t, str)]
+        talent_sig = _feature_talent_attr_sig(obj, talent_attrs)
+        # Fontes que pedem atributo escolhido só concedem seus demais efeitos
+        # depois que a escolha desse vínculo estiver registrada.
+        if not talent_sig and any('attr:talent_attr_score+' in t for t in tags):
+            tags = []
+            choice_pending_features.add(feature_index)
         if tags:
             brutas.append({'origem': origem, 'fonte': fonte, 'nome': getattr(obj, 'nome', ''), 'tags': tags})
         ctx = dict(base_ctx)
         if classlvl is not None:
             ctx['classlvl'] = int(classlvl)
-        talent_sig = _feature_talent_attr_sig(obj, talent_attrs)
         if talent_sig:
             en = _ATTR_EN.get(talent_sig)
             if en:
@@ -3519,12 +3525,14 @@ def _apply_tags(state, features, personagem=None, escolhas=None, *, ruleset=None
             resist.append(_chosen)
     # O máximo de PV já inclui os bônus das tags neste ponto. Reavalia apenas
     # resistências condicionadas ao estado Sangrando com os PV reais da ficha.
-    if personagem is not None and personagem.pv_atual is not None:
+    if personagem is not None and getattr(personagem, 'pv_atual', None) is not None:
         from .tag_engine import evaluate_tags
         combat_ctx = dict(base_ctx, resolve_runtime=True,
                           self_hp=personagem.pv_atual,
                           self_max_hp=state['pv']['maximo_calculado'])
         for feature_index, (_origem, _fonte, obj, classlvl) in enumerate(features):
+            if feature_index in choice_pending_features:
+                continue
             feature_ctx = dict(combat_ctx)
             if classlvl is not None:
                 feature_ctx['classlvl'] = int(classlvl)

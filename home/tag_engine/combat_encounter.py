@@ -173,8 +173,13 @@ class CombatEncounter:
             attack_context.update(resolve_runtime=True, event="hit",
                                   self_hp=source_entry["hp"],
                                   self_max_hp=source_entry["max_hp"])
+            # A ficha pode entregar a mesma tag passiva na fonte do atacante e
+            # nas tags declaradas para o golpe. Conte-a uma vez nesse caso;
+            # fontes distintas no conjunto do atacante continuam cumulativas.
+            source_tags = source_entry["offensive_tags"]
             attack_effects = evaluate_tags(
-                source_entry["offensive_tags"] + tags, attack_context)
+                source_tags + tuple(tag for tag in tags if tag not in source_tags),
+                attack_context)
             ignored = ignored_resistance_types(attack_effects.operations)
             if critical and damage_type is not None:
                 damage += critical_damage_bonus(attack_effects.operations)

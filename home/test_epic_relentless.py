@@ -74,6 +74,20 @@ class RelentlessAttackTests(SimpleTestCase):
         with self.assertRaises(ValueError):
             self.encounter().attack('alvo', [], hit=False, critical=True)
 
+    def test_same_source_repeated_in_attack_is_idempotent_but_other_bonus_stacks(self):
+        repeated = self.encounter()
+        repeated.attack('alvo', RELENTLESS, hit=True, critical=True,
+                        damage=10, damage_type='cortante')
+        self.assertEqual(repeated.combatants['alvo']['hp'], 2)
+        separate = self.encounter(offensive=RELENTLESS + [
+            'always_active{crit_dmg:+2}',
+        ])
+        separate.attack('alvo', RELENTLESS, hit=True, critical=True,
+                        damage=10, damage_type='cortante')
+        self.assertEqual(separate.combatants['alvo']['hp'], 0)
+        self.assertEqual(next(event for event in separate.events
+                              if event[0] == 'attack')[-1], 30)
+
 
 class RelentlessSheetTests(TestCase):
     def test_owned_talent_annotates_only_matching_attack_and_removes_cleanly(self):
@@ -96,14 +110,17 @@ class RelentlessSheetTests(TestCase):
             descricao='Teste', tags_json=ATTRIBUTE_TAGS + RELENTLESS)
         owned = TbPersonagemTalento.objects.create(
             id_personagem=character, id_talento=talent,
-            categoria='epico', nome=talent.nome,
-            detalhes='talent_attr:FOR')
+            categoria='epico', nome=talent.nome)
 
         def weapon_profile():
             return next(p for p in derive(character)['ataques']['perfis']
                         if p['nome'] == weapon.nome)
 
         self.assertEqual(weapon_profile()['tipo_dano'], 'cortante')
+        self.assertNotIn('ignora_resistencia', weapon_profile())
+        self.assertNotIn('dano_critico_extra', weapon_profile())
+        owned.detalhes = 'talent_attr:FOR'
+        owned.save(update_fields=['detalhes'])
         self.assertTrue(weapon_profile()['ignora_resistencia'])
         self.assertEqual(weapon_profile()['nota'].count('ignora resistência'), 1)
         self.assertEqual(derive(character)['atributos']['FOR']['valor'], 18)

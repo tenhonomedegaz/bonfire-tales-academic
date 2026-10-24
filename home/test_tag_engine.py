@@ -936,6 +936,11 @@ class EpicTalentDeriveTests(TestCase):
 
         character.pv_atual = maximum // 2
         character.save(update_fields=["pv_atual"])
+        owned.detalhes = ''
+        owned.save(update_fields=['detalhes'])
+        self.assertNotIn("fogo", derive(character)["resistencias"])
+        owned.detalhes = 'talent_attr:CON'
+        owned.save(update_fields=['detalhes'])
         for _ in range(2):
             sheet = derive(character)
             self.assertEqual(len(sheet["resistencias"]), 12)
