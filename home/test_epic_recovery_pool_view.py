@@ -7,8 +7,8 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
-from home.epic_recovery_pool import RECOVERY_POOL_TAG, recovery_pool_state
-from home.epic_talent_catalog import ATTRIBUTE_TAGS, PARTIAL_EFFECTS, epic_candidates
+from home.epic_recovery_pool import RECOVERY_POOL_TAG, SURVIVAL_TAG, recovery_pool_state
+from home.epic_talent_catalog import ATTRIBUTE_TAGS, epic_candidates
 from home.models import TbPersonagem, TbPersonagemTalento, TbTalento
 from home.tag_engine.library import Library
 from home.tag_engine.validator import ERROR, validate_tags_json
@@ -67,10 +67,11 @@ class RecoveryPoolViewTests(TestCase):
         self.assertIsNone(recovery_pool_state(self.person))
         self.assertNotContains(self.client.get(self.sheet_url), "Recuperar Vitalidade")
 
-    def test_effect_stays_partial_until_zero_hp_survival_is_implemented(self):
-        self.assertEqual(PARTIAL_EFFECTS["dadiva-da-recuperacao"], [RECOVERY_POOL_TAG])
-        self.assertNotIn("dadiva-da-recuperacao",
-                         {row["slug"] for row in epic_candidates()})
+    def test_complete_candidate_has_both_validated_effects(self):
+        candidate = next(row for row in epic_candidates()
+                         if row["slug"] == "dadiva-da-recuperacao")
+        self.assertEqual(candidate["tags_json"],
+                         ATTRIBUTE_TAGS + [SURVIVAL_TAG, RECOVERY_POOL_TAG])
         self.assertEqual([issue for issue in validate_tags_json(
-            ATTRIBUTE_TAGS + [RECOVERY_POOL_TAG], Library())
+            candidate["tags_json"], Library())
             if issue.level == ERROR], [])

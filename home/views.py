@@ -10261,6 +10261,32 @@ def personagem_recuperar_vitalidade(request, pk):
 
 @login_required(login_url='/login/')
 @require_POST
+def personagem_registrar_dano_sobrevivencia(request, pk):
+    """Registra dano final e aciona a sobrevivência declarada quando aplicável."""
+    from django.contrib import messages
+    from .epic_recovery_pool import apply_incoming_damage
+
+    person = _ficha_editavel(request, pk)
+    try:
+        result = apply_incoming_damage(
+            person, operation_id=request.POST.get('operation_id'),
+            damage=int(request.POST.get('damage') or 0),
+            use_survival=request.POST.get('use_survival') == 'on',
+            confirmed=request.POST.get('confirmed') == 'on',
+            ruleset=_resource_ruleset(person),
+        )
+    except (TypeError, ValueError):
+        return HttpResponse('Dano ou sobrevivência indisponível ou inválido.', status=400)
+    text = 'Dano: %s. PV atuais: %s. PV temporários: %s.' % (
+        result['damage'], result['hp_after'], result['temp_hp_after'])
+    if result['survival_triggered']:
+        text += ' Sobrevivência do Mais Forte aplicada.'
+    messages.success(request, text, extra_tags='epic-survival')
+    return redirect(reverse('ficha_detail', args=[pk]) + '?aba=ficha')
+
+
+@login_required(login_url='/login/')
+@require_POST
 def personagem_usar_magia_inata(request, pk, magia_id):
     """Gasta (-1) ou devolve (+1) o uso oculto de uma magia inata/concedida."""
     from .character_engine import derive
@@ -10660,7 +10686,7 @@ def ficha_detail_view(request, pk):
     from .epic_reaping import reaping_state
     from .epic_save_reroll import reroll_state
     from .epic_battle_accuracy import attack_accuracy_state
-    from .epic_recovery_pool import recovery_pool_state
+    from .epic_recovery_pool import recovery_pool_state, survival_state
     import uuid
     if not request.user.is_authenticated:
         if request.method in ('GET', 'HEAD') and TbPersonagem.objects.filter(
@@ -10764,6 +10790,8 @@ def ficha_detail_view(request, pk):
         'ataque_epico_rolagem_id': request.GET.get('ataque_epico', '') if pode_editar else '',
         'recuperacao_pool': recovery_pool_state(p, ruleset=ruleset) if pode_editar else None,
         'recuperacao_pool_operation_id': uuid.uuid4() if pode_editar else None,
+        'sobrevivencia_epica': survival_state(p, ruleset=ruleset) if pode_editar else None,
+        'sobrevivencia_operation_id': uuid.uuid4() if pode_editar else None,
         'raca_linha': raca_linha,
         'magias_info': magias_info,
         'partial_spell_slots': getattr(settings, 'SPELL_SLOT_PARTIAL_ENABLED', True),

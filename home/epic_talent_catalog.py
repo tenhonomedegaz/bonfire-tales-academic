@@ -9,7 +9,7 @@ from home.epic_death_seal import DEATH_SEAL_TAG
 from home.epic_reaping import REAPING_TAG
 from home.epic_save_reroll import REROLL_TAG
 from home.epic_battle_accuracy import NO_DISADVANTAGE_TAG, AUTO_HIT_TAG
-from home.epic_recovery_pool import RECOVERY_POOL_TAG
+from home.epic_recovery_pool import RECOVERY_POOL_TAG, SURVIVAL_TAG
 from home.epic_soul_siphon import SIPHON_TAG
 from home.tag_engine.library import SKILLS
 
@@ -22,6 +22,7 @@ ATTRIBUTE_TAGS = [
 
 # Só publicar entradas cujos efeitos adicionais foram conferidos contra o motor.
 VERIFIED_EFFECTS = {
+    "dadiva-da-recuperacao": [SURVIVAL_TAG, RECOVERY_POOL_TAG],
     "dadiva-da-fortitude": [
         "always_active{buff:max_hp:+40}",
         "always_active{trigger=healing, 1/turn, instant{heal:+con_mod}}",
@@ -49,7 +50,6 @@ VERIFIED_EFFECTS = {
 # Efeitos conferidos isoladamente. Estes talentos ainda não entram em epic_candidates:
 # faltam outros efeitos da mesma definição e a carga permanece fechada até cobertura integral.
 PARTIAL_EFFECTS = {
-    "dadiva-da-recuperacao": [RECOVERY_POOL_TAG],
     "dadiva-do-ceifador-de-almas": [
         "immune:veneno",
         "cond_immune:envenenado",

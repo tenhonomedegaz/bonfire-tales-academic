@@ -245,6 +245,22 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
   </section>
   {% endif %}
 
+  {% if sobrevivencia_epica and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="sobrevivencia-epica-title">
+    <h2 id="sobrevivencia-epica-title" class="ficha-section-title">Sobrevivência do Mais Forte</h2>
+    {% for message in messages %}{% if 'epic-survival' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
+    <p>Uso disponível até o próximo descanso longo: {{ sobrevivencia_epica.available|yesno:"sim,não" }}. Informe o dano final após resistências; PV temporários serão consumidos primeiro.</p>
+    <form method="post" action="{% url 'personagem_registrar_dano_sobrevivencia' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ sobrevivencia_operation_id }}">
+      <label>Dano final <input type="number" name="damage" min="1" required></label>
+      {% if sobrevivencia_epica.available %}<label><input type="checkbox" name="use_survival"> Usar o benefício se este dano me reduzir a 0 PV</label>{% endif %}
+      <label><input type="checkbox" name="confirmed" required> Confirmo o dano declarado na mesa</label>
+      <button type="submit" class="banner-btn primary">Registrar dano</button>
+    </form>
+  </section>
+  {% endif %}
+
   {# ===================== LARGURA CHEIA ===================== #}
 
   {% comment %}As 4 caixinhas de RP do PDF da ficha. Edição inline (fetch) só para o dono/staff.{% endcomment %}
