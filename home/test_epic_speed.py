@@ -2,12 +2,18 @@
 
 from types import SimpleNamespace
 from unittest.mock import patch
+import uuid
 
-from django.test import SimpleTestCase
+from django.contrib.auth import get_user_model
+from django.test import SimpleTestCase, TestCase
+from django.urls import reverse
 
 from home.character_engine import apply_tags
-from home.epic_talent_catalog import PARTIAL_EFFECTS
-from home.views import _innate_spell_uses_from_features
+from home.epic_talent_catalog import ATTRIBUTE_TAGS, PARTIAL_EFFECTS
+from home.models import (TbMagia, TbOperacaoRecurso, TbPersonagem,
+                         TbPersonagemTalento, TbTalento)
+from home.views import (_innate_spell_uses_from_features,
+                        _sync_magias_concedidas)
 
 
 SPEED_TAGS = tuple(PARTIAL_EFFECTS["dadiva-da-velocidade"])
@@ -83,3 +89,60 @@ class EpicSpeedInnateSpellTests(SimpleTestCase):
         ], {"velocidade"}, state())
         self.assertEqual(coexists[("Fonte sintetica", "velocidade")]["reset"], "short_or_long")
         self.assertEqual(coexists[("Outra", "velocidade")]["reset"], "long_rest")
+
+
+class EpicSpeedSheetCastTests(TestCase):
+    def setUp(self):
+        owner = get_user_model().objects.create_user(username='epic-speed-owner')
+        self.character = TbPersonagem.objects.create(dono=owner, nome='Velocista')
+        self.spell = TbMagia.objects.create(
+            nome='Velocidade', nome_ingles='Haste', slug='velocidade',
+            nivel=3, componentes='V, S, M')
+        self.talent = TbTalento.objects.create(
+            nome='Fonte epica sintetica', slug='fonte-epica-velocidade-teste',
+            tipo='geral', etiqueta='combate', etiquetas_adicionais='epico',
+            descricao='Fonte de teste.', tags_json=ATTRIBUTE_TAGS + list(SPEED_TAGS))
+        self.owned = TbPersonagemTalento.objects.create(
+            id_personagem=self.character, id_talento=self.talent,
+            categoria='epico', nome=self.talent.nome, detalhes='talent_attr:DES')
+        _sync_magias_concedidas(self.character)
+        self.owned_spell = self.character.magias.get(id_magia=self.spell)
+        self.url = reverse('personagem_usar_magia_inata', args=[
+            self.character.pk, self.owned_spell.pk])
+        self.client.force_login(owner)
+
+    def test_haste_cast_receipt_and_short_rest(self):
+        from home.resource_engine import reset_resources
+
+        operation_id = str(uuid.uuid4())
+        response = self.client.post(self.url, {'operation_id': operation_id}, follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Sem letargia ao terminar.')
+        receipt = TbOperacaoRecurso.objects.get(operation_id=operation_id)
+        self.assertEqual(receipt.resposta['remaining'], 0)
+        self.assertTrue(receipt.resposta['without_slot'])
+        self.assertTrue(receipt.resposta['without_components'])
+        self.assertTrue(receipt.resposta['without_lethargy'])
+        self.assertEqual(self.client.post(self.url, {
+            'operation_id': operation_id}).status_code, 302)
+        self.assertEqual(TbOperacaoRecurso.objects.filter(
+            operation_id=operation_id).count(), 1)
+        self.assertEqual(self.client.post(self.url, {
+            'operation_id': str(uuid.uuid4())}).status_code, 400)
+        reset_resources(self.character, 'short_rest')
+        self.assertEqual(self.client.post(self.url, {
+            'operation_id': str(uuid.uuid4())}).status_code, 302)
+
+    def test_choice_source_and_owner_gate(self):
+        other = get_user_model().objects.create_user(username='epic-speed-other')
+        self.client.force_login(other)
+        self.assertEqual(self.client.post(self.url, {
+            'operation_id': str(uuid.uuid4())}).status_code, 404)
+        self.client.force_login(self.character.dono)
+        self.owned.detalhes = ''
+        self.owned.save(update_fields=['detalhes'])
+        self.assertEqual(self.client.post(self.url, {
+            'operation_id': str(uuid.uuid4())}).status_code, 400)
+        self.owned.delete()
+        self.assertEqual(self.client.post(self.url, {
+            'operation_id': str(uuid.uuid4())}).status_code, 400)

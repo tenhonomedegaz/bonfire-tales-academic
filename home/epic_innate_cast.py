@@ -54,7 +54,9 @@ def cast_tagged_innate_spell(person, *, operation_id, owned_spell_id, ruleset=No
     response = {
         'operation_id': str(operation_id), 'spell_id': owned_spell_id,
         'spell_name': spell['nome'], 'without_slot': True,
-        'without_components': True, 'remaining': snapshot['current'],
+        'without_components': True,
+        'without_lethargy': bool(spell.get('innate_without_lethargy')),
+        'remaining': snapshot['current'],
         'replayed': False,
     }
     TbOperacaoRecurso.objects.create(

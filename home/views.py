@@ -10462,8 +10462,9 @@ def personagem_usar_magia_inata(request, pk, magia_id):
                 owned_spell_id=magia_id, ruleset=_resource_ruleset(p))
         except (TypeError, ValueError):
             return HttpResponse('Conjuração inata indisponível ou inválida.', status=400)
-        messages.success(request, '%s conjurada sem espaço ou componentes. Restam %s usos.' % (
-            result['spell_name'], result['remaining']), extra_tags='epic-innate-cast')
+        note = ' Sem letargia ao terminar.' if result.get('without_lethargy') else ''
+        messages.success(request, '%s conjurada sem espaço ou componentes. Restam %s usos.%s' % (
+            result['spell_name'], result['remaining'], note), extra_tags='epic-innate-cast')
         return _redirect_next_or(request, reverse('ficha_detail', args=[pk]) + '?aba=magias')
     m = get_object_or_404(TbPersonagemMagia, pk=magia_id, id_personagem=p)
     if not m.sempre_preparada:
