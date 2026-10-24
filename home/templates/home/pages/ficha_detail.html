@@ -101,6 +101,72 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
   </section>
   {% endif %}
 
+  {% if selo_morte and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="selo-morte-title">
+    <h2 id="selo-morte-title" class="ficha-section-title">Finitude da Vida</h2>
+    <p>Quando uma criatura morrer em decorrência de dano causado por você, registre o selo. Apenas Desejo ou Ressurreição Verdadeira podem restaurá-la; ela não pode ser transformada em morto-vivo.</p>
+    {% if request.GET.morte_selada == 'ok' %}<p role="status">Morte selada registrada.</p>{% endif %}
+    {% if selo_morte.targets %}<p>Alvos registrados: {{ selo_morte.targets|join:', ' }}</p>{% endif %}
+    {% if selo_morte.active %}<form method="post" action="{% url 'personagem_registrar_morte_selada' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ selo_morte_operation_id }}">
+      <label>Identificação única da criatura (encontro e alvo) <input type="text" name="target" maxlength="100" required></label>
+      <label><input type="checkbox" name="caused_by_own_damage" required> Meu dano causou a morte</label>
+      <label><input type="checkbox" name="death_confirmed" required> A morte foi confirmada na mesa</label>
+      <button type="submit" class="banner-btn primary">Registrar morte selada</button>
+    </form>{% endif %}
+  </section>
+  {% endif %}
+
+  {% if ceifa and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="ceifa-title">
+    <h2 id="ceifa-title" class="ficha-section-title">Ceifa da Alma</h2>
+    {% for message in messages %}{% if 'epic-reaping' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
+    {% if ceifa.available %}
+    <p>Escolha um tipo de dano causado nesta rolagem. Todos os dados desse tipo usam o valor máximo; os demais dados mantêm os resultados informados.</p>
+    <form method="post" action="{% url 'personagem_ceifar_dano' p.pk %}" data-ceifa-form>
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ ceifa_operation_id }}">
+      <label>Identificação da criatura <input type="text" name="creature_ref" maxlength="120" required></label>
+      <label>Origem do dano <select name="source_kind"><option value="attack">Ataque</option><option value="spell">Magia</option><option value="feature">Característica</option></select></label>
+      <label>Tipo de dano a maximizar <input type="text" name="chosen_type" maxlength="50" required></label>
+      <div data-ceifa-rows>
+        <fieldset data-ceifa-row>
+          <legend>Parcela de dano</legend>
+          <label>Tipo <input type="text" name="damage_type" maxlength="50" required></label>
+          <label>Dados (ex.: 3d8) <input type="text" name="dice_expression" placeholder="3d8"></label>
+          <label>Resultados de cada dado (ex.: 1, 4, 8) <input type="text" name="rolled_values" placeholder="1, 4, 8"></label>
+          <label>Dano fixo <input type="number" name="fixed_damage" value="0" required></label>
+        </fieldset>
+      </div>
+      <button type="button" data-ceifa-add>Adicionar outro tipo de dano</button>
+      <button type="submit" class="banner-btn primary">Aplicar Ceifa</button>
+    </form>
+    {% else %}
+    <p>Ceifa indisponível até a criatura escolhida morrer com 0 PV ou você terminar um descanso curto ou longo.</p>
+    <form method="post" action="{% url 'personagem_liberar_ceifa' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ ceifa_death_operation_id }}">
+      <label>Identificação da mesma criatura <input type="text" name="creature_ref" maxlength="120" required></label>
+      <label>PV atuais da criatura <input type="number" name="current_hp" min="0" value="0" required></label>
+      <label><input type="checkbox" name="dead" required> A criatura morreu</label>
+      <button type="submit" class="banner-btn primary">Confirmar morte e liberar Ceifa</button>
+    </form>
+    {% endif %}
+  </section>
+  <script>
+    document.querySelectorAll('[data-ceifa-form]').forEach(form => {
+      const rows = form.querySelector('[data-ceifa-rows]');
+      form.querySelector('[data-ceifa-add]').addEventListener('click', () => {
+        if (rows.querySelectorAll('[data-ceifa-row]').length >= 10) return;
+        const copy = rows.querySelector('[data-ceifa-row]').cloneNode(true);
+        copy.querySelectorAll('input').forEach(input => { input.value = input.name === 'fixed_damage' ? '0' : ''; });
+        rows.appendChild(copy);
+      });
+    });
+  </script>
+  {% endif %}
+
   {# ===================== LARGURA CHEIA ===================== #}
 
   {% comment %}As 4 caixinhas de RP do PDF da ficha. Edição inline (fetch) só para o dono/staff.{% endcomment %}

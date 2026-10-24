@@ -5,6 +5,8 @@ from django.test import TestCase
 from django.template.loader import render_to_string
 
 from home.character_engine import derive
+from home.epic_death_seal import death_seal_state
+from home.epic_reaping import reaping_state
 from home.epic_talent_catalog import ATTRIBUTE_TAGS, PARTIAL_EFFECTS, epic_candidates
 from home.models import TbPersonagem, TbPersonagemTalento, TbTalento
 from home.tag_engine.library import Library
@@ -36,9 +38,13 @@ class SoulReaperBodyTests(TestCase):
             categoria="epico", nome=self.talent.nome,
         )
         self.assertNotIn("veneno", derive(self.character)["imunidades"])
+        self.assertIsNone(death_seal_state(self.character))
+        self.assertIsNone(reaping_state(self.character))
 
         owned.detalhes = "talent_attr:CON"
         owned.save(update_fields=["detalhes"])
+        self.assertTrue(death_seal_state(self.character)["active"])
+        self.assertTrue(reaping_state(self.character)["available"])
         for _ in range(2):
             sheet = derive(self.character)
             self.assertEqual(sheet["imunidades"].count("veneno"), 1)
@@ -62,6 +68,8 @@ class SoulReaperBodyTests(TestCase):
         )
 
         owned.delete()
+        self.assertIsNone(death_seal_state(self.character))
+        self.assertIsNone(reaping_state(self.character))
         removed = derive(self.character)
         self.assertEqual(removed["imunidades"].count("veneno"), 1)
         self.assertNotIn("envenenado", {row["slug"] for row in removed["imunidades_condicao"]})

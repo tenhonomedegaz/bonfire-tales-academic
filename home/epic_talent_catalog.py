@@ -5,6 +5,8 @@ from pathlib import Path
 
 from django.conf import settings
 from django.utils.text import slugify
+from home.epic_death_seal import DEATH_SEAL_TAG
+from home.epic_reaping import REAPING_TAG
 from home.epic_soul_siphon import SIPHON_TAG
 from home.tag_engine.library import SKILLS
 
@@ -46,6 +48,8 @@ PARTIAL_EFFECTS = {
         "immune:veneno",
         "cond_immune:envenenado",
         "adv:death_save",
+        DEATH_SEAL_TAG,
+        REAPING_TAG,
     ],
     "dadiva-da-memoria-arcana": [
         "if(already:prof{arcanismo}): expertise:arcanismo else: prof:arcanismo",

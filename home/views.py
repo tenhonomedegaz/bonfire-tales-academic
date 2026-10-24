@@ -10063,6 +10063,70 @@ def personagem_usar_reacao_cura(request, pk):
 
 @login_required(login_url='/login/')
 @require_POST
+def personagem_registrar_morte_selada(request, pk):
+    """Registra a morte confirmada pela mesa conforme a tag da fonte ativa."""
+    from .epic_death_seal import record_death_seal
+
+    person = _ficha_editavel(request, pk)
+    try:
+        record_death_seal(
+            person, target=request.POST.get('target'),
+            operation_id=request.POST.get('operation_id'),
+            caused_by_own_damage=request.POST.get('caused_by_own_damage') == 'on',
+            death_confirmed=request.POST.get('death_confirmed') == 'on',
+            ruleset=_resource_ruleset(person),
+        )
+    except (TypeError, ValueError):
+        return HttpResponse('Morte não confirmada ou selo indisponível.', status=400)
+    return redirect(reverse('ficha_detail', args=[pk]) + '?aba=ficha&morte_selada=ok')
+
+
+@login_required(login_url='/login/')
+@require_POST
+def personagem_ceifar_dano(request, pk):
+    """Resolve uma rolagem declarada na ficha e persiste o bloqueio por alvo."""
+    from django.contrib import messages
+    from .epic_reaping import use_reaping
+    from .epic_reaping_form import parse_reaping_form
+
+    person = _ficha_editavel(request, pk)
+    try:
+        data = parse_reaping_form(request.POST)
+        result = use_reaping(
+            person, operation_id=request.POST.get('operation_id'),
+            ruleset=_resource_ruleset(person), **data)
+    except (TypeError, ValueError):
+        return HttpResponse('Dano ou uso da Ceifa inválido.', status=400)
+    messages.success(request, 'Ceifa aplicada: %s de dano total. Dados de %s maximizados.' % (
+        result['damage']['total'], result['damage']['chosen_type']),
+        extra_tags='epic-reaping')
+    return redirect(reverse('ficha_detail', args=[pk]) + '?aba=ficha')
+
+
+@login_required(login_url='/login/')
+@require_POST
+def personagem_liberar_ceifa(request, pk):
+    """Libera apenas a trava da criatura morta com 0 PV."""
+    from django.contrib import messages
+    from .epic_reaping import release_reaping_on_death
+
+    person = _ficha_editavel(request, pk)
+    try:
+        result = release_reaping_on_death(
+            person, operation_id=request.POST.get('operation_id'),
+            creature_ref=request.POST.get('creature_ref'),
+            current_hp=int(request.POST.get('current_hp') or -1),
+            dead=request.POST.get('dead') == 'on')
+    except (TypeError, ValueError):
+        return HttpResponse('Morte ou alvo da Ceifa inválido.', status=400)
+    if not result['released']:
+        return HttpResponse('O alvo informado não possui a trava atual.', status=400)
+    messages.success(request, 'Ceifa disponível novamente.', extra_tags='epic-reaping')
+    return redirect(reverse('ficha_detail', args=[pk]) + '?aba=ficha')
+
+
+@login_required(login_url='/login/')
+@require_POST
 def personagem_usar_magia_inata(request, pk, magia_id):
     """Gasta (-1) ou devolve (+1) o uso oculto de uma magia inata/concedida."""
     from .character_engine import derive
@@ -10458,6 +10522,8 @@ def ficha_detail_view(request, pk):
     from . import permissions as perms
     from .character_engine import derive, aventuras_para_nivel
     from .epic_soul_siphon import siphon_state
+    from .epic_death_seal import death_seal_state
+    from .epic_reaping import reaping_state
     import uuid
     if not request.user.is_authenticated:
         if request.method in ('GET', 'HEAD') and TbPersonagem.objects.filter(
@@ -10546,6 +10612,11 @@ def ficha_detail_view(request, pk):
         'ficha': ficha,
         'reacao_cura': siphon_state(p, ruleset=ruleset) if pode_editar else None,
         'reacao_cura_operation_id': uuid.uuid4() if pode_editar else None,
+        'selo_morte': death_seal_state(p, ruleset=ruleset) if pode_editar else None,
+        'selo_morte_operation_id': uuid.uuid4() if pode_editar else None,
+        'ceifa': reaping_state(p, ruleset=ruleset) if pode_editar else None,
+        'ceifa_operation_id': uuid.uuid4() if pode_editar else None,
+        'ceifa_death_operation_id': uuid.uuid4() if pode_editar else None,
         'raca_linha': raca_linha,
         'magias_info': magias_info,
         'partial_spell_slots': getattr(settings, 'SPELL_SLOT_PARTIAL_ENABLED', True),
