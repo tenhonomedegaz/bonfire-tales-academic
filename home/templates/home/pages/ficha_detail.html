@@ -167,6 +167,34 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
   </script>
   {% endif %}
 
+  {% if nova_salvaguarda and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="nova-salvaguarda-title">
+    <h2 id="nova-salvaguarda-title" class="ficha-section-title">Nova rolagem de salvaguarda</h2>
+    {% for message in messages %}{% if 'epic-save-reroll' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
+    {% if nova_salvaguarda.available %}
+    <p>Após falhar em uma salvaguarda, inclusive contra a morte, role novamente o d20 e use o novo resultado.</p>
+    <form method="post" action="{% url 'personagem_rerolar_salvaguarda' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ nova_salvaguarda_operation_id }}">
+      <label>Salvaguarda <select name="save_kind"><option value="str">Força</option><option value="dex">Destreza</option><option value="con">Constituição</option><option value="int">Inteligência</option><option value="wis">Sabedoria</option><option value="cha">Carisma</option><option value="death">Contra a morte</option></select></label>
+      <label>Resultado original do d20 <input type="number" name="original_roll" min="1" max="20" required></label>
+      <label>Novo resultado do d20 <input type="number" name="new_roll" min="1" max="20" required></label>
+      <label><input type="checkbox" name="failed" required> A salvaguarda original falhou</label>
+      <button type="submit" class="banner-btn primary">Usar nova rolagem</button>
+    </form>
+    {% else %}
+    <p>Você já usou esta nova rolagem. Ela volta a ficar disponível no início do seu próximo turno.</p>
+    <form method="post" action="{% url 'personagem_iniciar_turno_rerrolagem' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ nova_salvaguarda_turn_operation_id }}">
+      <label>Identificação do próximo turno <input type="text" name="turn_ref" maxlength="100" required></label>
+      <label><input type="checkbox" name="confirmed" required> Meu próximo turno começou na mesa</label>
+      <button type="submit" class="banner-btn primary">Iniciar próximo turno</button>
+    </form>
+    {% endif %}
+  </section>
+  {% endif %}
+
   {# ===================== LARGURA CHEIA ===================== #}
 
   {% comment %}As 4 caixinhas de RP do PDF da ficha. Edição inline (fetch) só para o dono/staff.{% endcomment %}

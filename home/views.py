@@ -10127,6 +10127,51 @@ def personagem_liberar_ceifa(request, pk):
 
 @login_required(login_url='/login/')
 @require_POST
+def personagem_rerolar_salvaguarda(request, pk):
+    """Aplica a nova rolagem declarada por uma fonte ativa na ficha."""
+    from django.contrib import messages
+    from .epic_save_reroll import use_save_reroll
+
+    person = _ficha_editavel(request, pk)
+    try:
+        result = use_save_reroll(
+            person, operation_id=request.POST.get('operation_id'),
+            save_kind=request.POST.get('save_kind'),
+            failed=request.POST.get('failed') == 'on',
+            original_roll=int(request.POST.get('original_roll') or 0),
+            new_roll=int(request.POST.get('new_roll') or 0),
+            ruleset=_resource_ruleset(person),
+        )
+    except (TypeError, ValueError):
+        return HttpResponse('Nova rolagem indisponível ou inválida.', status=400)
+    messages.success(request, 'Use o novo resultado do d20: %s.' % result['applied_d20'],
+                     extra_tags='epic-save-reroll')
+    return redirect(reverse('ficha_detail', args=[pk]) + '?aba=ficha')
+
+
+@login_required(login_url='/login/')
+@require_POST
+def personagem_iniciar_turno_rerrolagem(request, pk):
+    """Libera a nova rolagem após o início do próximo turno declarado."""
+    from django.contrib import messages
+    from .epic_save_reroll import release_reroll_on_turn_start
+
+    person = _ficha_editavel(request, pk)
+    try:
+        release_reroll_on_turn_start(
+            person, operation_id=request.POST.get('operation_id'),
+            turn_ref=request.POST.get('turn_ref'),
+            confirmed=request.POST.get('confirmed') == 'on',
+        )
+    except (TypeError, ValueError):
+        return HttpResponse('Início de turno inválido.', status=400)
+    messages.success(request, 'Nova rolagem disponível no próximo turno.',
+                     extra_tags='epic-save-reroll')
+    return redirect(reverse('ficha_detail', args=[pk]) + '?aba=ficha')
+
+
+@login_required(login_url='/login/')
+@require_POST
 def personagem_usar_magia_inata(request, pk, magia_id):
     """Gasta (-1) ou devolve (+1) o uso oculto de uma magia inata/concedida."""
     from .character_engine import derive
@@ -10524,6 +10569,7 @@ def ficha_detail_view(request, pk):
     from .epic_soul_siphon import siphon_state
     from .epic_death_seal import death_seal_state
     from .epic_reaping import reaping_state
+    from .epic_save_reroll import reroll_state
     import uuid
     if not request.user.is_authenticated:
         if request.method in ('GET', 'HEAD') and TbPersonagem.objects.filter(
@@ -10617,6 +10663,9 @@ def ficha_detail_view(request, pk):
         'ceifa': reaping_state(p, ruleset=ruleset) if pode_editar else None,
         'ceifa_operation_id': uuid.uuid4() if pode_editar else None,
         'ceifa_death_operation_id': uuid.uuid4() if pode_editar else None,
+        'nova_salvaguarda': reroll_state(p, ruleset=ruleset) if pode_editar else None,
+        'nova_salvaguarda_operation_id': uuid.uuid4() if pode_editar else None,
+        'nova_salvaguarda_turn_operation_id': uuid.uuid4() if pode_editar else None,
         'raca_linha': raca_linha,
         'magias_info': magias_info,
         'partial_spell_slots': getattr(settings, 'SPELL_SLOT_PARTIAL_ENABLED', True),
