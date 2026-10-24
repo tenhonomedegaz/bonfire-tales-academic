@@ -79,6 +79,8 @@ class CombatEncounter:
         self._attack_reach_bonus = {}
         self._healing_tag_uses = set()
         self._fall_progress = {}
+        self._horror_used = set()
+        self._horror_flee_recorded = set()
         self._concentration = initial_concentration
         self._concentration_save_pending = set()
 
@@ -112,6 +114,8 @@ class CombatEncounter:
         self._healing_tag_uses = {
             key for key in self._healing_tag_uses if key[0] != actor
         }
+        self._horror_used.discard(actor)
+        self._horror_flee_recorded.discard(actor)
         self.current_actor = actor
         self.action_used = False
         self.bonus_action_used = False
@@ -321,6 +325,63 @@ class CombatEncounter:
         self._break_invisibility(actor)
         self._events.append(("action", actor, kind))
 
+    def inflict_horror(self, target, *, wisdom_save_total, ability):
+        """After a damaging hit, resolve one tagged horror use this turn."""
+        source = self.current_actor
+        if (self.finished or source is None or source in self._horror_used
+                or self._action_kind != "attack" or self._action_actor_id != source
+                or not self._events or self._events[-1][:3] != ("attack", source, target)
+                or self._events[-1][4] <= 0
+                or type(wisdom_save_total) is not int or ability not in {"spell", "cha"}):
+            raise ValueError("Declare dano inimigo e salvaguarda válidos neste turno")
+        self._living(target)
+        owner = self._combatants[source]
+        victim = self._combatants[target]
+        if owner["team"] == victim["team"]:
+            raise ValueError("O alvo precisa ser inimigo")
+        context = dict(owner["tag_context"])
+        pb = context.get("pb")
+        modifier = context.get("spell_mod" if ability == "spell" else "cha_mod")
+        if type(pb) is not int or pb < 0 or type(modifier) is not int:
+            raise ValueError("Declare proficiência e modificador de conjuração ou Carisma")
+        tags = owner["offensive_tags"] + tuple(
+            tag for tag in owner["defensive_tags"] if tag not in owner["offensive_tags"])
+        source_tag = next((tag for tag in tags
+            if "trigger=damage_enemy" in tag and "apply:horror" in tag
+            and any(op.active and op.op == "apply_condition" and op.value == "horror"
+                    and op.params.get("kwargs", {}).get("duration") == "until_source_turn_start"
+                    for op in evaluate_tags((tag,), dict(context, resolve_runtime=True,
+                                                  event="damage_enemy")).operations)), None)
+        if source_tag is None:
+            raise ValueError("Nenhuma tag de horror ativa")
+        self._horror_used.add(source)
+        dc = 8 + pb + modifier
+        failed = wisdom_save_total < dc
+        if failed:
+            self.conditions.resolve((source_tag,), event="damage_enemy",
+                                    source=source, target=target)
+        self._events.append(("horror", source, target, dc, wisdom_save_total, failed))
+        return {"dc": dc, "failed": failed}
+
+    def horror_state(self, actor):
+        """Expose the VTT's attack/check disadvantage and forced retreat."""
+        if actor not in self._combatants:
+            raise ValueError("Unknown combatant")
+        sources = tuple(sorted(source for source in self._combatants
+            if source != actor and "horror" in self.conditions.facts(actor, source)))
+        return {"sources": sources, "attack_disadvantage": bool(sources),
+                "ability_check_disadvantage": bool(sources),
+                "must_flee": bool(sources) and actor not in self._horror_flee_recorded}
+
+    def record_horror_flee(self, actor, *, available_ft, spent_ft):
+        if (actor != self.current_actor or not self.horror_state(actor)["must_flee"]
+                or type(available_ft) is not int or available_ft < 0
+                or type(spent_ft) is not int or spent_ft != available_ft):
+            raise ValueError("Declare todo o movimento possível para afastamento")
+        self._horror_flee_recorded.add(actor)
+        self._events.append(("horror_flee", actor, spent_ft))
+        return spent_ft
+
     def bonus_action_dodge(self):
         """Use a bonus action to Dodge when a currently active tag grants it."""
         actor = self.current_actor
@@ -477,7 +538,8 @@ class CombatEncounter:
                critical=False, dodge_disadvantage_applied=False,
                melee_weapon=False, invisible_advantage_applied=False,
                invisible_disadvantage_applied=False,
-               concentration_save_success=None):
+               concentration_save_success=None,
+               horror_disadvantage_applied=False):
         source = self._action_actor()
         if self._teleport_pending_kind not in {None, "attack"}:
             raise ValueError("Complete the magic action declared for teleport")
@@ -492,8 +554,11 @@ class CombatEncounter:
                 or type(invisible_advantage_applied) is not bool
                 or type(invisible_disadvantage_applied) is not bool
                 or (concentration_save_success is not None and
-                    type(concentration_save_success) is not bool)):
+                    type(concentration_save_success) is not bool)
+                or type(horror_disadvantage_applied) is not bool):
             raise ValueError("Declare a valid hit and rolled damage")
+        if self.horror_state(source)["attack_disadvantage"] and not horror_disadvantage_applied:
+            raise ValueError("Resolve the horrified attacker's disadvantage")
         if concentration_save_success is not None and (
                 not hit or damage == 0 or target not in self._concentration):
             raise ValueError("No concentration damage save is available")
@@ -665,6 +730,8 @@ class CombatEncounter:
             raise ValueError("No turn to finish")
         if self._teleport_pending_kind:
             raise ValueError("Complete the action declared for teleport")
+        if self.horror_state(self.current_actor)["must_flee"]:
+            raise ValueError("Registre o afastamento obrigatório antes de encerrar o turno")
         self._events.append(("turn_end", self.current_actor))
         self._attack_reach_bonus.pop(self.current_actor, None)
         self.current_actor = None
