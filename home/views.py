@@ -4269,13 +4269,12 @@ def _resource_resets_on_rest(reset, longo):
     return reset in ('short-rest', 'short-or-long', 'rest')
 
 
-def _innate_spell_uses(personagem, ficha=None, *, ruleset=None):
-    """Mapeia (fonte, spell_slug) -> metadados de uso inato vindos das tags."""
-    from .character_engine import _features_do_personagem
-    from .versioned_spells import spell_catalog
-    features = _features_do_personagem(personagem, ruleset=ruleset)
-    catalog = ({m.slug for m in spell_catalog(ruleset).values()} if ruleset is not None
-               else set(TbMagia.objects.values_list('slug', flat=True)))
+def _innate_spell_uses_from_features(features, catalog, ficha=None, *, ruleset=None):
+    """Compila usos inatos de fontes e catalogo ja resolvidos.
+
+    Mantem o leitor independente de talento, classe e persistencia: qualquer fonte
+    que declare ``cast`` sem slot e um limite de usos recebe o mesmo contrato.
+    """
     out = {}
     for (_origem, _fonte, obj, _cl) in features:
         fonte = getattr(obj, 'nome', '') or ''
@@ -4298,12 +4297,28 @@ def _innate_spell_uses(personagem, ficha=None, *, ruleset=None):
                 }
                 meta['without_slot'] = 'slot' in omissions
                 meta['without_components'] = 'components' in omissions
+                # O lancamento atual e registrado pelo card de magia; o efeito de
+                # encerramento ainda nao tem runtime. Preservamos a declaracao no
+                # contrato para um consumidor de efeitos temporarios, sem inventar
+                # comportamento neste caminho.
+                meta['without_lethargy'] = 'lethargy' in omissions
                 for slug in re.findall(r'spell:([a-z0-9-]+)', body):
                     if ruleset is not None and slug not in catalog:
                         raise ValueError('Innate spell absent from pinned ruleset: %s' % slug)
                     if slug in catalog:
                         out[(fonte, slug)] = meta
     return out
+
+
+def _innate_spell_uses(personagem, ficha=None, *, ruleset=None):
+    """Mapeia (fonte, spell_slug) -> metadados de uso inato vindos das tags."""
+    from .character_engine import _features_do_personagem
+    from .versioned_spells import spell_catalog
+    features = _features_do_personagem(personagem, ruleset=ruleset)
+    catalog = ({m.slug for m in spell_catalog(ruleset).values()} if ruleset is not None
+               else set(TbMagia.objects.values_list('slug', flat=True)))
+    return _innate_spell_uses_from_features(
+        features, catalog, ficha, ruleset=ruleset)
 
 
 def _innate_spell_labels(personagem, *, ruleset=None):
@@ -4602,6 +4617,8 @@ def _magias_sheet_info_resolved(personagem, ficha, essencia_pendentes, *, rulese
         row['innate_without_slot'] = bool(innate_meta.get('without_slot'))
         row['innate_without_components'] = bool(
             innate_meta.get('without_components'))
+        row['innate_without_lethargy'] = bool(
+            innate_meta.get('without_lethargy'))
         assinatura = assinaturas.get(m.pk)
         if assinatura is not None:
             mods = assinatura.modificacoes_json or {}

@@ -2733,6 +2733,7 @@ def _dsl_static_adapter(operations, ctx, feature_name, coll, hp_bonus, ca_cands,
     """
     expected, applied = {}, {}
     speed_delta = 0
+    seen_speed_declarations = set()
     proficiency_sinks = {
         'armor': coll['armaduras'],
         'weapon': coll['armas'],
@@ -2918,6 +2919,11 @@ def _dsl_static_adapter(operations, ctx, feature_name, coll, hp_bonus, ca_cands,
             continue
         if key == ('add_modifier', 'movimento.deslocamento'):
             if isinstance(value, (int, float)):
+                declaration = (operation.raw, operation.scope)
+                if declaration in seen_speed_declarations:
+                    mark('speed')
+                    continue
+                seen_speed_declarations.add(declaration)
                 speed_delta += int(value)
                 mark('speed')
             continue

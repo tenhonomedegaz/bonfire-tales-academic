@@ -20,12 +20,14 @@ class CombatEncounter:
             team = entry.get("team")
             maximum = entry.get("max_hp")
             hp = entry.get("hp", maximum)
+            temp_hp = entry.get("temp_hp", 0)
             defensive_tags = entry.get("defensive_tags", entry.get("tags", ()))
             tag_context = entry.get("tag_context", {})
             if (not isinstance(actor, str) or not actor or actor in self._combatants or
                     not isinstance(team, str) or not team or
                     type(maximum) is not int or maximum <= 0 or
                     type(hp) is not int or not 0 < hp <= maximum or
+                    type(temp_hp) is not int or temp_hp < 0 or
                     isinstance(defensive_tags, str) or not isinstance(tag_context, dict)):
                 raise ValueError("Invalid combatant")
             try:
@@ -36,6 +38,7 @@ class CombatEncounter:
                 raise ValueError("Invalid combatant")
             self._combatants[actor] = {
                 "team": team, "max_hp": maximum, "hp": hp,
+                "temp_hp": temp_hp,
                 "defensive_tags": defensive_tags,
                 "tag_context": dict(tag_context),
             }
@@ -161,8 +164,10 @@ class CombatEncounter:
             damage = self._damage_after_defenses(
                 target, damage, damage_type.strip().lower()
                 if isinstance(damage_type, str) else None)
-            self._combatants[target]["hp"] = max(
-                0, self._combatants[target]["hp"] - damage)
+            target_entry = self._combatants[target]
+            absorbed = min(target_entry["temp_hp"], damage)
+            target_entry["temp_hp"] -= absorbed
+            target_entry["hp"] = max(0, target_entry["hp"] - (damage - absorbed))
         self.action_used = True
         self._events.append(("attack", source, target, hit, damage))
         self._finish_if_decided()
@@ -182,6 +187,26 @@ class CombatEncounter:
         self.action_used = True
         self._events.append(("heal", source, target, amount, blocked))
         return not blocked
+
+    def grant_temporary_hp(self, target, amount):
+        """Grant temporary HP after resolving the target's generic modifiers.
+
+        Temporary HP replaces an existing lower value, following the normal
+        replacement rule. It is intentionally a separate encounter action
+        from healing: temporary HP is not healing and does not check healing
+        restrictions.
+        """
+        source = self._action_actor()
+        self._living(target)
+        if type(amount) is not int or amount < 0:
+            raise ValueError("Declare a nonnegative temporary HP amount")
+        entry = self._combatants[target]
+        received = (amount + self._temporary_hp_tag_bonus(target)
+                    if amount else 0)
+        entry["temp_hp"] = max(entry["temp_hp"], received)
+        self.action_used = True
+        self._events.append(("temp_hp", source, target, amount, received))
+        return received
 
     @staticmethod
     def _limited_per_turn(tag, scope):
@@ -218,6 +243,20 @@ class CombatEncounter:
                     if key in self._healing_tag_uses:
                         continue
                     self._healing_tag_uses.add(key)
+                total += max(0, int(operation.value))
+        return total
+
+    def _temporary_hp_tag_bonus(self, target):
+        """Resolve generic modifiers to temporary HP received by a target."""
+        entry = self._combatants[target]
+        context = dict(entry["tag_context"])
+        context.update(resolve_runtime=True, event="receive_temp_hp",
+                       self_hp=entry["hp"], self_max_hp=entry["max_hp"])
+        total = 0
+        for operation in evaluate_tags(entry["defensive_tags"], context).operations:
+            if (operation.active and operation.op == "heal" and
+                    operation.target == "pv_temporario" and
+                    isinstance(operation.value, (int, float))):
                 total += max(0, int(operation.value))
         return total
 
