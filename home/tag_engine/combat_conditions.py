@@ -51,6 +51,19 @@ class CombatConditions:
                     "self" if effect.source == source else "other")
         return facts
 
+    def remove(self, target, name, source):
+        """End one source's condition; other grapplers remain active."""
+        if not target or not name or not source:
+            raise ValueError("target, condition and source are required")
+        remaining = {
+            effect for effect in self._conditions
+            if (effect.target != target or effect.name != name or
+                effect.source != source)
+        }
+        removed = len(self._conditions) - len(remaining)
+        self._conditions = remaining
+        return removed
+
     def blocks_healing(self, target):
         """Evaluate restrictions from the action that applied each active effect."""
         for effect in self._conditions:

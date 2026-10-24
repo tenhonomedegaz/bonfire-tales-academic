@@ -9,14 +9,18 @@ from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
 from home.character_engine import apply_tags
-from home.epic_talent_catalog import ATTRIBUTE_TAGS, PARTIAL_EFFECTS
+from home.epic_talent_catalog import (ATTRIBUTE_TAGS, VERIFIED_EFFECTS,
+                                      epic_candidates)
 from home.models import (TbMagia, TbOperacaoRecurso, TbPersonagem,
                          TbPersonagemTalento, TbTalento)
+from home.tag_engine.combat_encounter import CombatEncounter
+from home.tag_engine.library import Library
+from home.tag_engine.validator import validate_tags_json
 from home.views import (_innate_spell_uses_from_features,
                         _sync_magias_concedidas)
 
 
-SPEED_TAGS = tuple(PARTIAL_EFFECTS["dadiva-da-velocidade"])
+SPEED_TAGS = tuple(VERIFIED_EFFECTS["dadiva-da-velocidade"])
 
 
 def state(speed=30):
@@ -89,6 +93,72 @@ class EpicSpeedInnateSpellTests(SimpleTestCase):
         ], {"velocidade"}, state())
         self.assertEqual(coexists[("Fonte sintetica", "velocidade")]["reset"], "short_or_long")
         self.assertEqual(coexists[("Outra", "velocidade")]["reset"], "long_rest")
+
+
+class EpicSpeedEscapeTests(SimpleTestCase):
+    @staticmethod
+    def encounter(tags=SPEED_TAGS):
+        encounter = CombatEncounter([
+            {'id': 'runner', 'team': 'allies', 'max_hp': 30,
+             'defensive_tags': tags},
+            {'id': 'enemy', 'team': 'enemies', 'max_hp': 30},
+        ])
+        encounter.conditions.resolve(
+            ['instant{trigger=hit, '
+             'apply:agarrado(duration:until_source_turn_start)}'],
+            event='hit', source='enemy', target='runner')
+        encounter.start_turn('runner', 'runner-1')
+        return encounter
+
+    def test_escape_tag_is_valid_and_spends_movement_without_action(self):
+        self.assertEqual(validate_tags_json(SPEED_TAGS, Library()), [])
+        candidate = next(row for row in epic_candidates()
+                         if row['slug'] == 'dadiva-da-velocidade')
+        self.assertEqual(candidate['tags_json'], ATTRIBUTE_TAGS + list(SPEED_TAGS))
+        self.assertIn('Movimento sem Amarras', candidate['descricao'])
+        encounter = self.encounter()
+        self.assertEqual(encounter.escape_condition('agarrado', 'enemy', 30), 25)
+        self.assertEqual(encounter.conditions.facts('runner', 'enemy'), {})
+        self.assertFalse(encounter.action_used)
+        self.assertEqual(encounter.events[-1],
+                         ('escape', 'runner', 'enemy', 'agarrado', 5, 25))
+        with self.assertRaises(ValueError):
+            encounter.escape_condition('agarrado', 'enemy', 25)
+
+    def test_requires_source_condition_turn_and_movement(self):
+        without_source = self.encounter(tags=())
+        with self.assertRaises(ValueError):
+            without_source.escape_condition('agarrado', 'enemy', 30)
+        self.assertIn('agarrado', without_source.conditions.facts('runner', 'enemy'))
+
+        encounter = self.encounter()
+        with self.assertRaises(ValueError):
+            encounter.escape_condition('agarrado', 'enemy', 4)
+        self.assertIn('agarrado', encounter.conditions.facts('runner', 'enemy'))
+        with self.assertRaises(ValueError):
+            encounter.escape_condition('paralisado', 'enemy', 30)
+        encounter.end_turn()
+        with self.assertRaises(ValueError):
+            encounter.escape_condition('agarrado', 'enemy', 30)
+
+    def test_multiple_grapplers_and_other_escape_source(self):
+        tags = SPEED_TAGS + SPEED_TAGS + (
+            'escape{action:move, condition:agarrado, cost:10ft}',)
+        encounter = self.encounter(tags=tags)
+        encounter.conditions.resolve(
+            ['instant{trigger=hit, '
+             'apply:agarrado(duration:until_source_turn_start)}'],
+            event='hit', source='enemy-two', target='runner')
+        self.assertEqual(encounter.escape_condition('agarrado', 'enemy', 5), 0)
+        self.assertEqual(encounter.conditions.facts('runner', 'enemy'),
+                         {'agarrado': {'other'}})
+        self.assertEqual(encounter.conditions.facts('runner', 'enemy-two'),
+                         {'agarrado': {'self'}})
+        with self.assertRaises(ValueError):
+            encounter.escape_condition('agarrado', 'enemy-two', 0)
+        self.assertEqual(encounter.escape_condition('agarrado', 'enemy-two', 5), 0)
+        self.assertEqual(encounter.conditions.facts('runner', 'enemy-two'), {})
+        self.assertEqual(sum(event[0] == 'escape' for event in encounter.events), 2)
 
 
 class EpicSpeedSheetCastTests(TestCase):

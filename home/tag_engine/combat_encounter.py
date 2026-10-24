@@ -5,6 +5,8 @@ action use, condition timing and healing restrictions for one encounter; it
 does not persist characters or pretend to resolve every RPG combat rule.
 """
 
+import re
+
 from .combat_conditions import CombatConditions
 from .attack_effects import (critical_damage_bonus, ignored_resistance_types,
                              ignores_resistance)
@@ -92,6 +94,54 @@ class CombatEncounter:
         self.action_used = False
         self._events.append(("turn_start", actor, turn_id))
         return True
+
+    def escape_condition(self, condition, source, available_movement_ft):
+        """Spend VTT-declared movement to end a condition when an active tag allows it.
+
+        The caller owns movement outside this encounter. A successful result
+        returns the remaining movement so the VTT can update its turn budget.
+        """
+        actor = self.current_actor
+        if (self.finished or actor is None or
+                not isinstance(condition, str) or not condition.strip() or
+                not isinstance(source, str) or not source.strip() or
+                type(available_movement_ft) is not int or available_movement_ft < 0):
+            raise ValueError("Declare an active turn, condition, source and movement")
+        condition = condition.strip().lower()
+        self._living(actor)
+        if "self" not in self.conditions.facts(actor, source).get(condition, ()):
+            raise ValueError("Condition is not active")
+
+        entry = self._combatants[actor]
+        context = dict(entry["tag_context"])
+        context.update(resolve_runtime=True, event="escape",
+                       self_hp=entry["hp"], self_max_hp=entry["max_hp"])
+        tags = entry["defensive_tags"] + tuple(
+            tag for tag in entry["offensive_tags"]
+            if tag not in entry["defensive_tags"])
+        costs = []
+        for operation in evaluate_tags(tags, context).operations:
+            if not (operation.active and operation.verb == "escape" and
+                    operation.op == "grant_execution"):
+                continue
+            nodes = parse_tag(operation.raw).nodes
+            if len(nodes) != 1:
+                continue
+            arguments = {node.name: str(node.value or "").strip().lower()
+                         for node in nodes[0].children}
+            match = re.fullmatch(r"(\d+)ft", arguments.get("cost", ""))
+            if (arguments.get("action") == "move" and
+                    arguments.get("condition") == condition and match):
+                costs.append(int(match.group(1)))
+        if not costs:
+            raise ValueError("No movement escape is granted")
+        cost = min(costs)
+        if available_movement_ft < cost:
+            raise ValueError("Insufficient movement")
+        self.conditions.remove(actor, condition, source)
+        remaining = available_movement_ft - cost
+        self._events.append(("escape", actor, source, condition, cost, remaining))
+        return remaining
 
     def fall(self, actor, remaining_distance_ft, *, turn_id):
         """Resolve the distance fallen this turn from the actor's movement tags.
