@@ -10229,6 +10229,31 @@ def personagem_usar_inspiracao_heroica(request, pk):
 
 @login_required(login_url='/login/')
 @require_POST
+def personagem_resolver_dano_magia(request, pk):
+    """Resolve dados declarados de uma magia preparada via tag ativa."""
+    from django.contrib import messages
+    from .epic_spell_damage import parse_damage_dice, resolve_spell_damage
+
+    person = _ficha_editavel(request, pk)
+    try:
+        result = resolve_spell_damage(
+            person, operation_id=request.POST.get('operation_id'),
+            owned_spell_id=request.POST.get('owned_spell_id'),
+            damage_type=request.POST.get('damage_type'),
+            dice=parse_damage_dice(request.POST.get('dice')),
+            fixed=int(request.POST.get('fixed') or 0),
+            ruleset=_resource_ruleset(person),
+        )
+    except (TypeError, ValueError):
+        return HttpResponse('Dano de magia indisponível ou inválido.', status=400)
+    messages.success(request, 'Dados aplicados: %s; dano total %s.' % (
+        ', '.join(str(value) for value in result['applied_dice']), result['total']),
+        extra_tags='epic-spell-damage')
+    return redirect(reverse('ficha_detail', args=[pk]) + '?aba=ficha')
+
+
+@login_required(login_url='/login/')
+@require_POST
 def personagem_iniciar_turno_rerrolagem(request, pk):
     """Libera a nova rolagem após o início do próximo turno declarado."""
     from django.contrib import messages
@@ -10992,6 +11017,7 @@ def ficha_detail_view(request, pk):
     from .epic_save_reroll import reroll_state
     from .epic_legendary_save import legendary_save_state
     from .epic_heroic_inspiration import inspiration_state
+    from .epic_spell_damage import damage_spell_options
     from .epic_battle_accuracy import attack_accuracy_state
     from .epic_relentless_damage import relentless_profiles
     from .epic_bloodied_damage import bloodied_attack_state
@@ -11112,6 +11138,8 @@ def ficha_detail_view(request, pk):
         'resistencia_lendaria_operation_id': uuid.uuid4() if pode_editar else None,
         'inspiracao_heroica': inspiration_state(p, ruleset=ruleset) if pode_editar else None,
         'inspiracao_heroica_operation_id': uuid.uuid4() if pode_editar else None,
+        'dano_magia_epica_opcoes': damage_spell_options(p, ruleset=ruleset) if pode_editar else [],
+        'dano_magia_epica_operation_id': uuid.uuid4() if pode_editar else None,
         'nova_salvaguarda_operation_id': uuid.uuid4() if pode_editar else None,
         'nova_salvaguarda_turn_operation_id': uuid.uuid4() if pode_editar else None,
         'ataque_epico': attack_accuracy_state(p, ruleset=ruleset) if pode_editar else None,

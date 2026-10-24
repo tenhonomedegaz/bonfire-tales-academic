@@ -167,6 +167,23 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
   </script>
   {% endif %}
 
+  {% if dano_magia_epica_opcoes and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="dano-magia-epica-title">
+    <h2 id="dano-magia-epica-title" class="ficha-section-title">Dano mágico refinado</h2>
+    {% for message in messages %}{% if 'epic-spell-damage' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
+    <p>Para uma magia preparada de 1º ciclo ou maior, cada dado de dano que rolou 1 ou 2 passa a valer 3.</p>
+    <form method="post" action="{% url 'personagem_resolver_dano_magia' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ dano_magia_epica_operation_id }}">
+      <label>Magia <select name="owned_spell_id" required>{% for spell in dano_magia_epica_opcoes %}<option value="{{ spell.id }}">{{ spell.name }} ({{ spell.circle }}º ciclo; {{ spell.damage_types|join:", " }})</option>{% endfor %}</select></label>
+      <label>Tipo de dano declarado na magia <input name="damage_type" required></label>
+      <label>Dados (faces:resultado, separados por vírgula) <input name="dice" placeholder="6:1, 6:2, 6:5" required></label>
+      <label>Dano fixo <input name="fixed" type="number" value="0"></label>
+      <button type="submit" class="banner-btn primary">Resolver dano</button>
+    </form>
+  </section>
+  {% endif %}
+
   {% if inspiracao_heroica.available and pode_editar %}
   <section class="ficha-panel ficha-noprint" aria-labelledby="inspiracao-heroica-title">
     <h2 id="inspiracao-heroica-title" class="ficha-section-title">Inspiração Heróica</h2>

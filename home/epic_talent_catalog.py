@@ -10,6 +10,7 @@ from home.epic_reaping import REAPING_TAG
 from home.epic_save_reroll import REROLL_TAG
 from home.epic_legendary_save import LEGENDARY_SAVE_TAG
 from home.epic_heroic_inspiration import RETAIN_INSPIRATION_TAG
+from home.epic_spell_damage import SPELL_DIE_FLOOR_TAG
 from home.epic_battle_accuracy import NO_DISADVANTAGE_TAG, AUTO_HIT_TAG, FORTUNE_TAG
 from home.epic_recovery_pool import RECOVERY_POOL_TAG, SURVIVAL_TAG
 from home.epic_storm_save import STORM_SAVE_TAG
@@ -116,6 +117,7 @@ VERIFIED_EFFECTS = {
 # Efeitos conferidos isoladamente. Estes talentos ainda não entram em epic_candidates:
 # faltam outros efeitos da mesma definição e a carga permanece fechada até cobertura integral.
 PARTIAL_EFFECTS = {
+    "dadiva-do-conjurador-de-combate": [SPELL_DIE_FLOOR_TAG],
     # O consumidor preserva uma concessão existente; a concessão em si ainda não
     # é materializada pelo site, portanto a definição completa segue fechada.
     "dadiva-da-resistencia-heroica": [
