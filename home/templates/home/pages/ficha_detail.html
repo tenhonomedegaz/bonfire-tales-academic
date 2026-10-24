@@ -783,6 +783,17 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
                 {% if m.escola %}<span class="spell-tag muted">{{ m.escola }}</span>{% endif %}
                 {% if m.origem %}<span class="spell-tag source">{{ m.origem }}</span>{% endif %}
               </span>
+              {% if pode_editar and m.free_cast_slots %}
+              <form method="post" action="{% url 'personagem_conjurar_magia_ficha' p.id_personagem %}" class="spell-inline-actions">
+                {% csrf_token %}
+                <input type="hidden" name="magia_personagem" value="{{ m.id }}">
+                <input type="hidden" name="operation_id" value="{{ m.free_cast_operation_id }}">
+                <label>Espaço <select name="slot" aria-label="Espaço para {{ m.nome }}">
+                  {% for slot in m.free_cast_slots %}<option value="{{ slot.nivel }}">{{ slot.nivel }}º</option>{% endfor %}
+                </select></label>
+                <button type="submit" class="btn-ember">Conjurar</button>
+              </form>
+              {% endif %}
               {% if m.descricao or m.em_niveis_superiores %}<div class="spell-desc" data-spell-body="{{ m.uid }}" hidden></div>{% endif %}
             </li>
             {% empty %}

@@ -4493,6 +4493,7 @@ def _magias_sheet_info(personagem, ficha, essencia_pendentes, *, ruleset=None):
 def _magias_sheet_info_resolved(personagem, ficha, essencia_pendentes, *, ruleset=None):
     from .models import (
         TbMagia, TbPersonagemMagia, TbPersonagemMagiaAssinatura)
+    from .magic_workshop import spell_is_log_castable
     classes = list(personagem.classes.select_related('id_classe', 'id_subclasse').order_by('-principal', 'id'))
     from .versioned_classes import resolved_classes
     from .versioned_spells import spell_catalog
@@ -4605,6 +4606,7 @@ def _magias_sheet_info_resolved(personagem, ficha, essencia_pendentes, *, rulese
                 and int(m.nivel or 0) >= 1 and not m.sempre_preparada),
             'suspensa_na_revisao': suspended,
             'catalog_only': False,
+            'log_castable': bool(_mag and spell_is_log_castable(_mag)),
             'innate_label': innate_label,
             'innate_key': innate_key,
             'innate_max': innate_max,
@@ -10041,6 +10043,30 @@ def personagem_usar_slot_magia(request, pk):
 
 @login_required(login_url='/login/')
 @require_POST
+def personagem_conjurar_magia_ficha(request, pk):
+    """Conjura uma magia identificada com a chance de preservar seu espaço."""
+    from django.contrib import messages
+    from .epic_free_cast import cast_sheet_spell
+
+    person = _ficha_editavel(request, pk)
+    try:
+        result = cast_sheet_spell(
+            person, operation_id=request.POST.get('operation_id'),
+            owned_spell_id=request.POST.get('magia_personagem'),
+            slot_level=request.POST.get('slot'), ruleset=_resource_ruleset(person))
+    except ValueError:
+        return HttpResponse('Magia, espaço ou operação indisponível.', status=400)
+    messages.add_message(
+        request, messages.SUCCESS,
+        '%s: Conjuração Livre d4=%d; espaço %s.' % (
+            result['spell_name'], result['die'],
+            'preservado' if result['slot_preserved'] else 'gasto'),
+        extra_tags='spell-slots')
+    return redirect(reverse('ficha_detail', args=[pk]) + '?aba=magias')
+
+
+@login_required(login_url='/login/')
+@require_POST
 def personagem_usar_reacao_cura(request, pk):
     """Resolve uma reação de cura declarada por tags após confirmação da mesa."""
     from .epic_soul_siphon import use_siphon
@@ -10832,6 +10858,20 @@ def ficha_detail_view(request, pk):
     # Página de Magias: todas as magias do personagem (preparadas / conhecidas-sempre).
     # As sempre_preparada (raça/outros) NÃO contam no total de preparadas da classe.
     magias_info = _magias_sheet_info(p, ficha, essencia_pendentes, ruleset=ruleset)
+    if pode_editar:
+        from .epic_free_cast import free_cast_available
+        if free_cast_available(p, 1, ruleset=ruleset):
+            slot_casters = {caster['classe_id'] for caster in magias_info['spellcasters']
+                            if caster['slots_kind'] in {'full', 'half', 'third'}}
+            for spell in magias_info['lista']:
+                if (spell['id'] and spell['classe_id'] in slot_casters
+                        and 1 <= int(spell['nivel'] or 0) <= 4
+                        and (spell['preparada'] or spell['sempre_preparada'])
+                        and not spell['innate_label'] and not spell['log_castable']):
+                    spell['free_cast_slots'] = [
+                        slot for slot in magias_info['slots']
+                        if slot['nivel'] >= spell['nivel'] and slot['atual'] > 0]
+                    spell['free_cast_operation_id'] = str(uuid.uuid4())
     consumiveis_cards = _consumiveis_ficha_cards(
         p, ficha, ruleset=ruleset, materialize=pode_editar)
     recursos_cards = [card for card in consumiveis_cards if card.get('grupo') != 'item']
@@ -17413,6 +17453,7 @@ def _oficina_castable_spells(personagem, casters):
             continue
         out.append({
             'owned': owned, 'spell': spell, 'caster': caster,
+            'operation_id': str(uuid4()),
             'battle_familiar': identity(spell),
             'ritual_available': bool(
                 spell.ritual and (owned.preparada or (
@@ -18007,7 +18048,7 @@ def _oficina_cast_caster(personagem, owned, casters):
 def oficina_conjurar_magia(request, pk):
     from .magic_workshop import (
         character_casters, parse_priced_materials, spell_is_log_castable)
-    from .models import TbPersonagem, TbPersonagemMagia
+    from .models import TbOperacaoRecurso, TbPersonagem, TbPersonagemMagia
     from .resource_engine import activate_state
     p = _ficha_editavel(request, pk)
     owned = get_object_or_404(
@@ -18042,8 +18083,25 @@ def oficina_conjurar_magia(request, pk):
         return _oficina_redirect(request, 'nao_preparada')
 
     materials = parse_priced_materials(spell.componentes)
+    operation_id = None
+    if request.POST.get('operation_id'):
+        try:
+            operation_id = UUID(str(request.POST['operation_id']))
+        except (TypeError, ValueError, AttributeError):
+            return _oficina_redirect(request, 'operacao_invalida')
+    fingerprint = hashlib.sha256(json.dumps([
+        'workshop-cast', owned.pk, request.POST.get('slot') or '', ritual,
+    ], separators=(',', ':')).encode()).hexdigest()
     with transaction.atomic():
         p = TbPersonagem.objects.select_for_update().get(pk=p.pk)
+        if operation_id:
+            receipt = TbOperacaoRecurso.objects.filter(
+                id_personagem=p, operation_id=operation_id).first()
+            if receipt:
+                if receipt.fingerprint != fingerprint:
+                    return _oficina_redirect(request, 'operacao_invalida')
+                request.session['oficina_resultado'] = receipt.resposta['message']
+                return _oficina_redirect(request, 'conjurada')
         if identity(spell, 'Find Familiar'):
             from .battle_familiar_casting import require_no_primordial
             try:
@@ -18055,6 +18113,13 @@ def oficina_conjurar_magia(request, pk):
         if spell.concentracao and concentration_blocked(p):
             request.session['oficina_resultado'] = 'Guepardo impede manter Concentração enquanto seu Efeito Colateral estiver ativo.'
             return _oficina_redirect(request, 'concentracao_bloqueada')
+        from .epic_free_cast import free_cast_available
+        tagged_cast = (not ritual and caster is not None
+                       and caster['contract'].get('slots') in {'full', 'half', 'third'}
+                       and free_cast_available(p, int(spell.nivel or 0),
+                                               ruleset=_resource_ruleset(p)))
+        if tagged_cast and operation_id is None:
+            return _oficina_redirect(request, 'operacao_invalida')
         consumed = (_oficina_find_component(p, spell, 'consumable', lock=True)
                     if materials['consumed_cost_po'] > 0 else None)
         focus = (_oficina_find_component(p, spell, 'focus', lock=True)
@@ -18098,12 +18163,18 @@ def oficina_conjurar_magia(request, pk):
                 'concentration': bool(spell.concentracao),
             },
             ends_on=['dispelled', 'dismissed'])
-    request.session['oficina_resultado'] = '%s foi registrada%s.%s' % (
-        spell.nome, ' como ritual' if ritual else '',
-        (' Conjuração Livre: d4=%s; espaço %s.' % (
-            spending['free_cast_roll'],
-            'preservado' if spending.get('preserved') else 'gasto'))
-        if 'free_cast_roll' in spending else '')
+        message = '%s foi registrada%s.%s' % (
+            spell.nome, ' como ritual' if ritual else '',
+            (' Conjuração Livre: d4=%s; espaço %s.' % (
+                spending['free_cast_roll'],
+                'preservado' if spending.get('preserved') else 'gasto'))
+            if 'free_cast_roll' in spending else '')
+        if operation_id:
+            TbOperacaoRecurso.objects.create(
+                id_personagem=p, operation_id=operation_id,
+                fingerprint=fingerprint, resposta={'message': message,
+                    'spending': spending, 'spell_id': spell.pk}, status_http=200)
+    request.session['oficina_resultado'] = message
     return _oficina_redirect(request, 'conjurada')
 
 

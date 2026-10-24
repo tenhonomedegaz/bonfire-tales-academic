@@ -25,6 +25,11 @@ ATTRIBUTE_TAGS = [
 
 # Só publicar entradas cujos efeitos adicionais foram conferidos contra o motor.
 VERIFIED_EFFECTS = {
+    "dadiva-da-memoria-arcana": [
+        "if(already:prof{arcanismo}): expertise:arcanismo else: prof:arcanismo",
+        "pick:pericia_expertise:1(requires:already_expertise{arcanismo})",
+        FREE_CAST_TAG,
+    ],
     "dadiva-da-saude-abundante": [
         "always_active{temp_hp:+5}",
         HIT_DICE_MAX_TAG,
@@ -68,11 +73,6 @@ PARTIAL_EFFECTS = {
         "adv:death_save",
         DEATH_SEAL_TAG,
         REAPING_TAG,
-    ],
-    "dadiva-da-memoria-arcana": [
-        "if(already:prof{arcanismo}): expertise:arcanismo else: prof:arcanismo",
-        "pick:pericia_expertise:1(requires:already_expertise{arcanismo})",
-        FREE_CAST_TAG,
     ],
     "dadiva-da-folia": [
         "if(already:prof{atuacao}): expertise:atuacao else: prof:atuacao",

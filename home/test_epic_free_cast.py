@@ -1,5 +1,6 @@
 """Conjuração Livre in the real workshop casting path."""
 
+import uuid
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -7,6 +8,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from home.epic_free_cast import FREE_CAST_TAG, free_cast_available
+from home.epic_talent_catalog import epic_candidates
 from home.models import (
     TbClasse, TbClassehabilidade, TbMagia, TbPersonagem,
     TbPersonagemClasse, TbPersonagemTalento, TbRecursoclasse, TbTalento,
@@ -39,20 +41,31 @@ class EpicFreeCastTests(TestCase):
         self.owned = self.person.magias.create(
             id_magia=self.spell, nivel=1, nome=self.spell.nome,
             preparada=True, origem=caster.nome)
-        self.talent = TbTalento.objects.create(
-            nome="Fonte arcana", slug="fonte-arcana",
-            tags_json=["attr:talent_attr_score+2",
-                       "attr_max:talent_attr_score=30", FREE_CAST_TAG])
+        self.short_spell = TbMagia.objects.create(
+            nome="Faísca breve", slug="faisca-breve", nivel=1,
+            duracao="1 minuto", classes=caster.nome,
+            classes_slugs=[caster.slug])
+        self.short_owned = self.person.magias.create(
+            id_magia=self.short_spell, nivel=1, nome=self.short_spell.nome,
+            preparada=True, origem=caster.nome)
+        candidate = next(row for row in epic_candidates()
+                         if row["slug"] == "dadiva-da-memoria-arcana")
+        self.talent = TbTalento.objects.create(**candidate)
         self.grant = TbPersonagemTalento.objects.create(
             id_personagem=self.person, id_talento=self.talent,
             nome=self.talent.nome, categoria="epico", detalhes="talent_attr:INT")
         self.url = reverse("oficina_conjurar_magia", args=[self.person.pk])
+        self.sheet_url = reverse("personagem_conjurar_magia_ficha", args=[self.person.pk])
 
-    def cast(self):
+    def cast(self, operation_id=None, slot=1):
         return self.client.post(self.url, {
-            "magia_personagem": self.owned.pk, "slot": 1})
+            "magia_personagem": self.owned.pk, "slot": slot,
+            "operation_id": operation_id or uuid.uuid4()})
 
     def test_tag_and_choice_gate(self):
+        candidate = next(row for row in epic_candidates()
+                         if row["slug"] == "dadiva-da-memoria-arcana")
+        self.assertIn(FREE_CAST_TAG, candidate["tags_json"])
         self.assertEqual([issue for issue in validate_tags_json(
             self.talent.tags_json, Library()) if issue.level == ERROR], [])
         self.assertTrue(free_cast_available(self.person, 1))
@@ -69,11 +82,17 @@ class EpicFreeCastTests(TestCase):
         self.client.force_login(self.other)
         self.assertEqual(self.cast().status_code, 404)
         self.client.force_login(self.owner)
+        operation = uuid.uuid4()
         with patch("home.epic_free_cast.secrets.randbelow", return_value=0):
-            self.assertIn("status=conjurada", self.cast()["Location"])
+            self.assertIn("status=conjurada", self.cast(operation)["Location"])
         first = self.person.transacoes.order_by("-pk").first()
         self.assertEqual(first.detalhes_json["gasto"]["free_cast_roll"], 1)
         self.assertTrue(first.detalhes_json["gasto"]["preserved"])
+        with patch("home.epic_free_cast.secrets.randbelow",
+                   side_effect=AssertionError("replay must not reroll")):
+            self.assertIn("status=conjurada", self.cast(operation)["Location"])
+        self.assertEqual(self.person.transacoes.count(), 1)
+        self.assertIn("status=operacao_invalida", self.cast(operation, slot=2)["Location"])
         self.assertFalse(self.person.recursos.filter(chave="spell_slot:1").exists())
         with patch("home.epic_free_cast.secrets.randbelow", return_value=1):
             self.assertIn("status=conjurada", self.cast()["Location"])
@@ -97,3 +116,50 @@ class EpicFreeCastTests(TestCase):
         with patch("home.epic_free_cast.secrets.randbelow", return_value=0):
             self.assertIn("status=slot_gasto", self.cast()["Location"])
         self.assertFalse(self.person.transacoes.exists())
+
+    def test_tagged_workshop_requires_receipt_identifier(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(self.url, {
+            "magia_personagem": self.owned.pk, "slot": 1})
+        self.assertIn("status=operacao_invalida", response["Location"])
+        self.assertFalse(self.person.transacoes.exists())
+
+    def test_sheet_cast_is_server_rolled_and_idempotent(self):
+        operation = str(uuid.uuid4())
+        payload = {"operation_id": operation,
+                   "magia_personagem": self.short_owned.pk, "slot": 1}
+        self.client.force_login(self.other)
+        self.assertEqual(self.client.post(self.sheet_url, payload).status_code, 404)
+        self.client.force_login(self.owner)
+        sheet = self.client.get(reverse("ficha_detail", args=[self.person.pk]))
+        self.assertContains(sheet, self.sheet_url)
+        with patch("home.epic_free_cast.secrets.randbelow", return_value=0):
+            self.assertEqual(self.client.post(self.sheet_url, payload).status_code, 302)
+        receipt = self.person.operacoes_recurso.get(operation_id=operation)
+        self.assertTrue(receipt.resposta["slot_preserved"])
+        self.assertEqual(receipt.resposta["die"], 1)
+        with patch("home.epic_free_cast.secrets.randbelow",
+                   side_effect=AssertionError("replay must not reroll")):
+            self.assertEqual(self.client.post(self.sheet_url, payload).status_code, 302)
+        self.assertFalse(self.person.recursos.filter(chave="spell_slot:1").exists())
+        with patch("home.epic_free_cast.secrets.randbelow", return_value=1):
+            self.assertEqual(self.client.post(self.sheet_url, {
+                **payload, "operation_id": str(uuid.uuid4())}).status_code, 302)
+        self.assertEqual(self.person.recursos.get(chave="spell_slot:1").atual, 3)
+        self.assertEqual(self.client.post(self.sheet_url, {
+            **payload, "slot": 2}).status_code, 400)
+
+    def test_sheet_cast_rejects_removed_source_and_persistent_spell(self):
+        self.client.force_login(self.owner)
+        payload = {"operation_id": str(uuid.uuid4()),
+                   "magia_personagem": self.owned.pk, "slot": 1}
+        self.assertEqual(self.client.post(self.sheet_url, payload).status_code, 400)
+        payload["magia_personagem"] = self.short_owned.pk
+        self.grant.detalhes = ""
+        self.grant.save(update_fields=["detalhes"])
+        self.assertEqual(self.client.post(self.sheet_url, payload).status_code, 400)
+        self.grant.detalhes = "talent_attr:INT"
+        self.grant.save(update_fields=["detalhes"])
+        self.grant.delete()
+        self.assertEqual(self.client.post(self.sheet_url, payload).status_code, 400)
+        self.assertFalse(self.person.operacoes_recurso.exists())

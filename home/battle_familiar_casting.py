@@ -201,9 +201,18 @@ def cast(request, personagem, owned_id):
                 raise ValueError('Use um círculo disponível no contrato de conjuração da classe.')
             resource_spell = copy(spell)
             resource_spell.nivel = circle
-        ok, spending = views._oficina_casting_resource(p, caster, resource_spell, circle)
+        from .epic_free_cast import roll_free_cast
+        free_roll = (roll_free_cast(p, int(spell.nivel or 0),
+                                    ruleset=views._resource_ruleset(p))
+                     if caster['contract'].get('slots') in ('full', 'half', 'third')
+                     else None)
+        ok, spending = views._oficina_casting_resource(
+            p, caster, resource_spell, circle,
+            preserve_slot=bool(free_roll and free_roll['slot_preserved']))
         if not ok:
             raise ValueError('Não há espaço/recurso de magia disponível para esse círculo.')
+        if free_roll:
+            spending['free_cast_roll'] = free_roll['die']
         sheet = derive(p)
         signatures = {'str': 'FOR', 'dex': 'DES', 'con': 'CON', 'int': 'INT', 'wis': 'SAB', 'cha': 'CAR'}
         ability = caster['contract'].get('ability') or 'int'

@@ -8,7 +8,9 @@ from django.urls import reverse
 from django.utils import timezone
 
 from home.battle_familiar_casting import KEY, command_token, workshop_context
-from home.models import TbMagia, TbRecursoclasse, TbClassehabilidade
+from home.models import (TbMagia, TbRecursoclasse, TbClassehabilidade,
+                         TbTalento, TbPersonagemTalento)
+from home.epic_free_cast import FREE_CAST_TAG
 from home.resource_engine import activate_state
 
 
@@ -71,6 +73,24 @@ class BattleFamiliarCastingTests(TestCase):
         self.assertEqual(self.focus.qtd, 1)
         resource = self.personagem.recursos.get(chave='spell_slot:2')
         self.assertEqual(resource.atual, resource.maximo - 1)
+
+    def test_tagged_cast_preserves_slot_and_receipt_prevents_reroll(self):
+        talent = TbTalento.objects.create(
+            nome='Fonte arcana familiar', slug='fonte-arcana-familiar',
+            tags_json=['attr:talent_attr_score+2',
+                       'attr_max:talent_attr_score=30', FREE_CAST_TAG])
+        TbPersonagemTalento.objects.create(
+            id_personagem=self.personagem, id_talento=talent,
+            nome=talent.nome, categoria='epico', detalhes='talent_attr:INT')
+        with patch('home.epic_free_cast.secrets.randbelow', return_value=1):
+            self.assertIn('status=conjurada', self.cast().url)
+        self.assertEqual(self.state().payload_json['spending']['free_cast_roll'], 2)
+        self.assertTrue(self.state().payload_json['spending']['preserved'])
+        self.assertFalse(self.personagem.recursos.filter(chave='spell_slot:2').exists())
+        with patch('home.epic_free_cast.secrets.randbelow',
+                   side_effect=AssertionError('replay must not reroll')):
+            self.assertIn('status=conjurada', self.cast().url)
+        self.assertEqual(self.personagem.transacoes.count(), 1)
 
     def test_identity_and_form_appear_on_workshop(self):
         response = self.client.get(reverse('oficina_magia'), {'personagem': self.personagem.pk})

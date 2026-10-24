@@ -29,9 +29,12 @@ class EpicSkillUpgradeTests(TestCase):
                     if row["nome"] == name)
 
     def grant(self, slug, *, choice="talent_attr:INT"):
+        ready = {row["slug"]: row for row in epic_candidates()}
+        tags = (ready[slug]["tags_json"] if slug in ready
+                else ATTRIBUTE_TAGS + PARTIAL_EFFECTS[slug])
         talent = TbTalento.objects.create(
             nome=slug, slug=slug, tipo="geral", etiquetas_adicionais="epico",
-            tags_json=ATTRIBUTE_TAGS + PARTIAL_EFFECTS[slug],
+            tags_json=tags,
         )
         owned = TbPersonagemTalento.objects.create(
             id_personagem=self.character, id_talento=talent, categoria="epico",
@@ -211,9 +214,14 @@ class EpicSkillUpgradeTests(TestCase):
         owned.delete()
         self.assertNotIn("Amedrontado (condição)", derive(self.character)["imunidades"])
 
-    def test_partial_tags_validate_and_are_not_importable_yet(self):
-        ready = {row["slug"] for row in epic_candidates()}
+    def test_skill_tags_validate_and_only_complete_candidate_is_importable(self):
+        ready = {row["slug"]: row for row in epic_candidates()}
         for slug, _ in CASES:
-            self.assertNotIn(slug, ready)
-            diagnostics = validate_tags_json(PARTIAL_EFFECTS[slug], Library())
+            if slug == "dadiva-da-memoria-arcana":
+                self.assertIn(slug, ready)
+            else:
+                self.assertNotIn(slug, ready)
+            tags = (ready[slug]["tags_json"] if slug in ready
+                    else ATTRIBUTE_TAGS + PARTIAL_EFFECTS[slug])
+            diagnostics = validate_tags_json(tags, Library())
             self.assertEqual([d for d in diagnostics if d.level == ERROR], [], slug)
