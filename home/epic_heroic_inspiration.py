@@ -14,6 +14,9 @@ from .models import TbOperacaoRecurso, TbPersonagem, TbPersonagemRecurso
 
 
 HEROIC_INSPIRATION_KEY = "heroic_inspiration"
+# A mesa continua sendo a autoridade que concede a Inspiração. Esta declaração
+# apenas torna a origem explícita para o VTT; ela não cria recurso, recibo ou UI.
+TABLE_HEROIC_INSPIRATION_GRANT_TAG = "instant{grant:heroic_inspiration@table}"
 RETAIN_INSPIRATION_TAG = (
     "trigger=heroic_inspiration_roll(result:failure), retain:heroic_inspiration"
 )

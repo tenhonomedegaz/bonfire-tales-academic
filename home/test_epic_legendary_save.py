@@ -13,6 +13,7 @@ from home.epic_legendary_save import (
 )
 from home.epic_heroic_inspiration import (
     HEROIC_INSPIRATION_KEY, RETAIN_INSPIRATION_TAG,
+    TABLE_HEROIC_INSPIRATION_GRANT_TAG,
     inspiration_state, use_inspiration,
 )
 from home.epic_talent_catalog import ATTRIBUTE_TAGS, epic_candidates
@@ -39,12 +40,14 @@ class LegendarySaveTests(TestCase):
             id_personagem=self.person, id_talento=self.source,
             nome=self.source.nome, detalhes="talent_attr:SAB")
 
-    def test_both_tags_valid_but_grantless_talent_stays_outside_catalog(self):
+    def test_table_grant_declaration_allows_catalog_import_without_grant_state(self):
         self.assertFalse([d for d in validate_tags_json(
-            [LEGENDARY_SAVE_TAG, RETAIN_INSPIRATION_TAG], Library())
+            [LEGENDARY_SAVE_TAG, RETAIN_INSPIRATION_TAG,
+             TABLE_HEROIC_INSPIRATION_GRANT_TAG], Library())
             if d.level == ERROR])
-        self.assertNotIn("dadiva-da-resistencia-heroica",
-                         {row["slug"] for row in epic_candidates()})
+        candidate = next(row for row in epic_candidates()
+                         if row["slug"] == "dadiva-da-resistencia-heroica")
+        self.assertIn(TABLE_HEROIC_INSPIRATION_GRANT_TAG, candidate["tags_json"])
 
     def test_failed_save_success_receipt_rest_and_source_removal(self):
         operation = uuid.uuid4()

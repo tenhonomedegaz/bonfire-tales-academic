@@ -227,7 +227,7 @@ class EpicSkillUpgradeTests(TestCase):
     def test_skill_tags_validate_and_complete_candidates_are_importable(self):
         ready = {row["slug"]: row for row in epic_candidates()}
         for slug, _ in CASES:
-            if slug in {"dadiva-da-memoria-arcana", "dadiva-do-horror"}:
+            if slug in {"dadiva-da-memoria-arcana", "dadiva-da-folia", "dadiva-do-horror"}:
                 self.assertIn(slug, ready)
             else:
                 self.assertNotIn(slug, ready)
