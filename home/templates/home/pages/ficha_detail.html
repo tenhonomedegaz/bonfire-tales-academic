@@ -212,6 +212,32 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
   </section>
   {% endif %}
 
+  {% if dano_sangrando and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="dano-sangrando-title">
+    <h2 id="dano-sangrando-title" class="ficha-section-title">Dano extra enquanto Sangrando</h2>
+    {% for message in messages %}{% if 'epic-bloodied-damage' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
+    <p>Após confirmar um acerto, escolha o ataque. Some o bônus indicado ao dano do mesmo tipo antes de aplicar as defesas do alvo.</p>
+    {% if dano_sangrando.available %}
+    <form method="post" action="{% url 'personagem_usar_dano_sangrando' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ dano_sangrando_operation_id }}">
+      <label>Ataque <select name="profile_index" required>{% for profile in dano_sangrando.profiles %}<option value="{{ profile.index }}">{{ profile.name }} ({{ profile.damage_type }})</option>{% endfor %}</select></label>
+      <label><input type="checkbox" name="hit_confirmed" required> Acerto confirmado na mesa</label>
+      <button type="submit" class="banner-btn primary">Aplicar +{{ dano_sangrando.bonus }} de dano</button>
+    </form>
+    {% else %}
+    <p>O bônus já foi usado neste turno.</p>
+    <form method="post" action="{% url 'personagem_iniciar_turno_dano_sangrando' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ dano_sangrando_turn_operation_id }}">
+      <label>Identificação do próximo turno <input type="text" name="turn_ref" maxlength="180" required></label>
+      <label><input type="checkbox" name="confirmed" required> Meu próximo turno começou na mesa</label>
+      <button type="submit" class="banner-btn primary">Liberar bônus</button>
+    </form>
+    {% endif %}
+  </section>
+  {% endif %}
+
   {% if ataque_epico and pode_editar %}
   <section class="ficha-panel ficha-noprint" aria-labelledby="ataque-epico-title">
     <h2 id="ataque-epico-title" class="ficha-section-title">Aptidão de batalha</h2>

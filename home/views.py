@@ -10237,6 +10237,46 @@ def personagem_resolver_dano_arma(request, pk):
 
 @login_required(login_url='/login/')
 @require_POST
+def personagem_usar_dano_sangrando(request, pk):
+    from django.contrib import messages
+    from .epic_bloodied_damage import use_bloodied_attack_bonus
+
+    person = _ficha_editavel(request, pk)
+    try:
+        result = use_bloodied_attack_bonus(
+            person, operation_id=request.POST.get('operation_id'),
+            profile_index=int(request.POST.get('profile_index') or -1),
+            hit_confirmed=request.POST.get('hit_confirmed') == 'on',
+            ruleset=_resource_ruleset(person))
+    except (TypeError, ValueError):
+        return HttpResponse('Bônus de dano indisponível ou inválido.', status=400)
+    messages.success(request, 'Acrescente %s de dano %s ao ataque %s.' % (
+        result['bonus_damage'], result['damage_type'], result['profile']),
+        extra_tags='epic-bloodied-damage')
+    return redirect(reverse('ficha_detail', args=[pk]) + '?aba=ficha')
+
+
+@login_required(login_url='/login/')
+@require_POST
+def personagem_iniciar_turno_dano_sangrando(request, pk):
+    from django.contrib import messages
+    from .epic_bloodied_damage import begin_bloodied_attack_turn
+
+    person = _ficha_editavel(request, pk)
+    try:
+        begin_bloodied_attack_turn(
+            person, operation_id=request.POST.get('operation_id'),
+            turn_ref=request.POST.get('turn_ref'),
+            confirmed=request.POST.get('confirmed') == 'on')
+    except (TypeError, ValueError):
+        return HttpResponse('Início de turno inválido.', status=400)
+    messages.success(request, 'Bônus de dano liberado no novo turno.',
+                     extra_tags='epic-bloodied-damage')
+    return redirect(reverse('ficha_detail', args=[pk]) + '?aba=ficha')
+
+
+@login_required(login_url='/login/')
+@require_POST
 def personagem_rolar_ataque_epico(request, pk):
     """Rola o ataque na ficha e respeita imunidade a desvantagem por tag."""
     from django.contrib import messages
@@ -10862,6 +10902,7 @@ def ficha_detail_view(request, pk):
     from .epic_save_reroll import reroll_state
     from .epic_battle_accuracy import attack_accuracy_state
     from .epic_relentless_damage import relentless_profiles
+    from .epic_bloodied_damage import bloodied_attack_state
     from .epic_recovery_pool import recovery_pool_state, survival_state
     from .epic_storm_save import storm_save_types
     from .epic_healing_bonus import healing_turn_state
@@ -10980,6 +11021,9 @@ def ficha_detail_view(request, pk):
         'ataque_epico': attack_accuracy_state(p, ruleset=ruleset) if pode_editar else None,
         'perfis_dano_implacavel': relentless_profiles(p, ruleset=ruleset) if pode_editar else [],
         'dano_implacavel_operation_id': uuid.uuid4() if pode_editar else None,
+        'dano_sangrando': bloodied_attack_state(p, ruleset=ruleset) if pode_editar else None,
+        'dano_sangrando_operation_id': uuid.uuid4() if pode_editar else None,
+        'dano_sangrando_turn_operation_id': uuid.uuid4() if pode_editar else None,
         'ataque_epico_operation_id': uuid.uuid4() if pode_editar else None,
         'ataque_epico_hit_operation_id': uuid.uuid4() if pode_editar else None,
         'ataque_epico_turn_operation_id': uuid.uuid4() if pode_editar else None,

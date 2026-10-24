@@ -85,6 +85,10 @@ VERIFIED_EFFECTS = {
 # Efeitos conferidos isoladamente. Estes talentos ainda não entram em epic_candidates:
 # faltam outros efeitos da mesma definição e a carga permanece fechada até cobertura integral.
 PARTIAL_EFFECTS = {
+    "dadiva-da-carnificina": [
+        "while_active{requires:self{sangrando}, 1/turn, "
+        "instant{trigger=hit, dmg:+lvl}}",
+    ],
     "dadiva-do-ceifador-de-almas": [
         "immune:veneno",
         "cond_immune:envenenado",
