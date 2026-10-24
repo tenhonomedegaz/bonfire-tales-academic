@@ -85,7 +85,7 @@ class EpicSkillUpgradeTests(TestCase):
     def test_existing_expertise_opens_validated_alternative_and_removal_disables_it(self):
         from home.views import _lvl_aplicar_opcao, _opcoes_ficha
 
-        for slug, name in CASES:
+        for slug, name in CASES[:2]:
             with self.subTest(slug=slug):
                 TbPersonagemPericia.objects.create(
                     id_personagem=self.character, nome=name,
@@ -144,7 +144,17 @@ class EpicSkillUpgradeTests(TestCase):
                 self.assertTrue(self.skill(name)["expertise"])
                 TbPersonagemPericia.objects.filter(id_personagem=self.character).delete()
         self.assertEqual(TbPersonagemEscolha.objects.filter(
-            id_personagem=self.character, tipo='pericia_expertise').count(), 3)
+            id_personagem=self.character, tipo='pericia_expertise').count(), 2)
+
+    def test_horror_existing_expertise_does_not_grant_another_skill(self):
+        TbPersonagemPericia.objects.create(
+            id_personagem=self.character, nome='Intimidação',
+            proficiente=True, expertise=True,
+        )
+        owned = self.grant('dadiva-do-horror')
+        self.assertFalse(any(
+            group['kind'] == 'pericia_expertise' and group['origem'] == owned.nome
+            for group in resolve_personagem(self.character)))
 
     def test_alternative_requires_prior_expertise_and_attribute_choice(self):
         owned = self.grant("dadiva-da-memoria-arcana")

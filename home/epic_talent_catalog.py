@@ -29,6 +29,11 @@ ATTRIBUTE_TAGS = [
 
 # Só publicar entradas cujos efeitos adicionais foram conferidos contra o motor.
 VERIFIED_EFFECTS = {
+    "dadiva-do-horror": [
+        "cond_immune:amedrontado",
+        "if(already:prof{intimidacao}): expertise:intimidacao else: prof:intimidacao",
+        "instant{trigger=damage_enemy, apply:horror(duration:until_source_turn_start)}",
+    ],
     "dadiva-do-conjurador-de-combate": [SPELL_DIE_FLOOR_TAG, FOCUS_TAG],
     "dadiva-da-viagem-dimensional": [
         "teleport:30ft(dest:unoccupied_visible, "
@@ -119,13 +124,6 @@ VERIFIED_EFFECTS = {
 # Efeitos conferidos isoladamente. Estes talentos ainda não entram em epic_candidates:
 # faltam outros efeitos da mesma definição e a carga permanece fechada até cobertura integral.
 PARTIAL_EFFECTS = {
-    # O fluxo de ataque causa Horror; danos de magia e outras fontes ainda não
-    # passam pelo mesmo consumidor, então a definição permanece fora da carga.
-    "dadiva-do-horror": [
-        "cond_immune:amedrontado",
-        "if(already:prof{intimidacao}): expertise:intimidacao else: prof:intimidacao",
-        "instant{trigger=damage_enemy, apply:horror(duration:until_source_turn_start)}",
-    ],
     # O consumidor preserva uma concessão existente; a concessão em si ainda não
     # é materializada pelo site, portanto a definição completa segue fechada.
     "dadiva-da-resistencia-heroica": [

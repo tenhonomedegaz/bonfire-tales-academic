@@ -1,14 +1,15 @@
-"""Horror's partial tags and battle consumers remain outside publication."""
+"""Horror's catalog tags and table-resolved battle consumers."""
 
 from django.test import SimpleTestCase
 
-from home.epic_talent_catalog import PARTIAL_EFFECTS, epic_candidates
+from home.epic_talent_catalog import ATTRIBUTE_TAGS, epic_candidates
 from home.tag_engine.combat_encounter import CombatEncounter
 from home.tag_engine.library import Library
 from home.tag_engine.validator import ERROR, validate_tags_json
 
 
-HORROR_TAGS = PARTIAL_EFFECTS['dadiva-do-horror']
+TALENT = next(row for row in epic_candidates() if row['slug'] == 'dadiva-do-horror')
+HORROR_TAGS = TALENT['tags_json']
 
 
 def encounter(tags=None):
@@ -22,9 +23,10 @@ def encounter(tags=None):
 
 
 class EpicHorrorTests(SimpleTestCase):
-    def test_partial_definition_is_valid_and_not_published(self):
-        self.assertNotIn('dadiva-do-horror', {row['slug'] for row in epic_candidates()})
-        self.assertEqual(len(HORROR_TAGS), 3)
+    def test_real_definition_has_source_text_and_valid_tags(self):
+        self.assertIn('Verdadeiro Horror', TALENT['descricao'])
+        self.assertEqual(HORROR_TAGS[:2], ATTRIBUTE_TAGS)
+        self.assertEqual(len(HORROR_TAGS), 5)
         self.assertFalse(any(tag.startswith('pick:') for tag in HORROR_TAGS))
         self.assertFalse([d for d in validate_tags_json(HORROR_TAGS, Library())
                           if d.level == ERROR])
@@ -42,6 +44,9 @@ class EpicHorrorTests(SimpleTestCase):
         game.end_turn()
         game.start_turn('enemy', 'e1')
         with self.assertRaises(ValueError):
+            game.record_ability_check('enemy', disadvantage_applied=False)
+        game.record_ability_check('enemy', disadvantage_applied=True)
+        with self.assertRaises(ValueError):
             game.attack('horror', (), hit=True, damage=1)
         game.attack('horror', (), hit=True, damage=1,
                     horror_disadvantage_applied=True)
@@ -55,6 +60,7 @@ class EpicHorrorTests(SimpleTestCase):
         game.start_turn('horror', 'h2')
         self.assertFalse(game.horror_state('enemy')['must_flee'])
         self.assertFalse(game.horror_state('enemy')['attack_disadvantage'])
+        game.record_ability_check('enemy', disadvantage_applied=False)
 
     def test_success_and_non_source_do_not_apply(self):
         game = encounter()
@@ -80,3 +86,79 @@ class EpicHorrorTests(SimpleTestCase):
         game.attack('enemy', (), hit=True, damage=0)
         with self.assertRaises(ValueError):
             game.inflict_horror('enemy', wisdom_save_total=1, ability='cha')
+
+    def test_magic_damage_applies_hp_and_horror_once_per_turn(self):
+        game = encounter()
+        game.start_turn('horror', 'h1')
+        with self.assertRaises(ValueError):
+            game.record_action_damage('horror', 'enemy', damage=4)
+        game.register_action('horror', 'action', action_kind='magic')
+        self.assertEqual(game.record_action_damage(
+            'horror', 'enemy', damage=7, damage_type='fire'), 7)
+        self.assertEqual(game.combatants['enemy']['hp'], 43)
+        self.assertEqual(game.inflict_horror(
+            'enemy', wisdom_save_total=16, ability='cha'),
+            {'dc': 17, 'failed': True})
+        with self.assertRaises(ValueError):
+            game.record_action_damage('horror', 'enemy', damage=7)
+        game.end_turn()
+        game.start_turn('enemy', 'e1')
+        game.register_action('horror', 'reaction')
+        with self.assertRaises(ValueError):
+            game.record_action_damage('horror', 'enemy', damage=-1)
+        self.assertEqual(game.record_action_damage(
+            'horror', 'enemy', damage=3), 3)
+        self.assertEqual(game.inflict_horror(
+            'enemy', wisdom_save_total=16, ability='cha')['failed'], True)
+        self.assertEqual(game.combatants['enemy']['hp'], 40)
+
+    def test_non_attack_damage_respects_immunity_and_target_provenance(self):
+        game = encounter()
+        game.start_turn('horror', 'h1')
+        game.register_action('horror', 'action', action_kind='magic')
+        with self.assertRaises(ValueError):
+            game.record_action_damage('friend', 'enemy', damage=5)
+        self.assertEqual(game.record_action_damage(
+            'horror', 'enemy', damage=5), 5)
+        with self.assertRaises(ValueError):
+            game.inflict_horror('friend', wisdom_save_total=1, ability='cha')
+        self.assertEqual(game.inflict_horror(
+            'enemy', wisdom_save_total=17, ability='cha')['failed'], False)
+
+    def test_immune_target_takes_no_damage_or_horror(self):
+        game = CombatEncounter([
+            {'id': 'horror', 'team': 'allies', 'max_hp': 30,
+             'offensive_tags': HORROR_TAGS,
+             'tag_context': {'pb': 6, 'cha_mod': 3}},
+            {'id': 'enemy', 'team': 'enemies', 'max_hp': 30,
+             'defensive_tags': ('always_active', 'immune:fogo')},
+        ])
+        game.start_turn('horror', 'h1')
+        game.register_action('horror', 'action', action_kind='magic')
+        self.assertEqual(game.record_action_damage(
+            'horror', 'enemy', damage=10, damage_type='fogo'), 0)
+        self.assertEqual(game.combatants['enemy']['hp'], 30)
+        with self.assertRaises(ValueError):
+            game.inflict_horror('enemy', wisdom_save_total=1, ability='cha')
+
+    def test_declared_damage_preserves_concentration_contract(self):
+        game = CombatEncounter([
+            {'id': 'horror', 'team': 'allies', 'max_hp': 30,
+             'offensive_tags': HORROR_TAGS,
+             'tag_context': {'pb': 6, 'cha_mod': 3}},
+            {'id': 'enemy', 'team': 'enemies', 'max_hp': 30,
+             'concentration': 'spell:old', 'temp_hp': 5},
+        ])
+        game.start_turn('horror', 'h1')
+        game.register_action('horror', 'action', action_kind='magic')
+        with self.assertRaises(ValueError):
+            game.record_action_damage('horror', 'enemy', damage=3,
+                                      concentration_save_success='yes')
+        self.assertEqual(game.record_action_damage(
+            'horror', 'enemy', damage=3,
+            concentration_save_success=False), 3)
+        self.assertEqual(game.combatants['enemy']['hp'], 30)
+        self.assertEqual(game.combatants['enemy']['temp_hp'], 2)
+        self.assertIsNone(game.concentration_state('enemy')['source'])
+        self.assertEqual(game.inflict_horror(
+            'enemy', wisdom_save_total=1, ability='cha')['failed'], True)

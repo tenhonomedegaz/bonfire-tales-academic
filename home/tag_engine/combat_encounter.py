@@ -81,6 +81,8 @@ class CombatEncounter:
         self._fall_progress = {}
         self._horror_used = set()
         self._horror_flee_recorded = set()
+        self._declared_damage_source = None
+        self._declared_damage_targets = set()
         self._concentration = initial_concentration
         self._concentration_save_pending = set()
 
@@ -114,8 +116,10 @@ class CombatEncounter:
         self._healing_tag_uses = {
             key for key in self._healing_tag_uses if key[0] != actor
         }
-        self._horror_used.discard(actor)
+        self._horror_used.clear()
         self._horror_flee_recorded.discard(actor)
+        self._declared_damage_source = None
+        self._declared_damage_targets.clear()
         self.current_actor = actor
         self.action_used = False
         self.bonus_action_used = False
@@ -323,15 +327,52 @@ class CombatEncounter:
                 raise ValueError("No reaction is available")
             self._reactions_used.add(actor)
         self._break_invisibility(actor)
+        self._declared_damage_source = actor
+        self._declared_damage_targets.clear()
         self._events.append(("action", actor, kind))
 
+    def record_action_damage(self, source, target, *, damage, damage_type=None,
+                             concentration_save_success=None):
+        """Apply table-declared damage from a registered non-attack action."""
+        if (self.finished or self.current_actor is None
+                or source != self._declared_damage_source
+                or target in self._declared_damage_targets
+                or type(damage) is not int or damage < 0
+                or (damage_type is not None and
+                    (not isinstance(damage_type, str) or not damage_type.strip()))
+                or (concentration_save_success is not None and
+                    type(concentration_save_success) is not bool)):
+            raise ValueError("Declare dano válido de uma ação registrada")
+        self._living(source)
+        self._living(target)
+        applied = self._damage_after_defenses(
+            target, damage, damage_type.strip().lower()
+            if isinstance(damage_type, str) else None)
+        if concentration_save_success is not None and (
+                applied == 0 or target not in self._concentration):
+            raise ValueError("No concentration damage save is available")
+        victim = self._combatants[target]
+        absorbed = min(victim["temp_hp"], applied)
+        victim["temp_hp"] -= absorbed
+        victim["hp"] = max(0, victim["hp"] - (applied - absorbed))
+        if applied > 0 and target in self._concentration:
+            if victim["hp"] == 0:
+                self.resolve_concentration_event(target, "unconscious")
+            else:
+                self.resolve_concentration_event(
+                    target, "damage", save_success=concentration_save_success)
+        self._declared_damage_targets.add(target)
+        self._events.append(("damage", source, target, applied))
+        self._finish_if_decided()
+        return applied
+
     def inflict_horror(self, target, *, wisdom_save_total, ability):
-        """After a damaging hit, resolve one tagged horror use this turn."""
-        source = self.current_actor
+        """After a recorded damage event, resolve one tagged horror use this turn."""
+        event = self._events[-1] if self._events else ()
+        source = event[1] if event and event[0] in {"attack", "damage"} else None
         if (self.finished or source is None or source in self._horror_used
-                or self._action_kind != "attack" or self._action_actor_id != source
-                or not self._events or self._events[-1][:3] != ("attack", source, target)
-                or self._events[-1][4] <= 0
+                or event[2] != target
+                or (event[4] if event[0] == "attack" else event[3]) <= 0
                 or type(wisdom_save_total) is not int or ability not in {"spell", "cha"}):
             raise ValueError("Declare dano inimigo e salvaguarda válidos neste turno")
         self._living(target)
@@ -372,6 +413,15 @@ class CombatEncounter:
         return {"sources": sources, "attack_disadvantage": bool(sources),
                 "ability_check_disadvantage": bool(sources),
                 "must_flee": bool(sources) and actor not in self._horror_flee_recorded}
+
+    def record_ability_check(self, actor, *, disadvantage_applied):
+        """Accept a table-resolved check only after required horror disadvantage."""
+        self._living(actor)
+        if (self.finished or type(disadvantage_applied) is not bool or
+                (self.horror_state(actor)["ability_check_disadvantage"]
+                 and not disadvantage_applied)):
+            raise ValueError("Resolve a desvantagem no teste de habilidade")
+        self._events.append(("ability_check", actor, disadvantage_applied))
 
     def record_horror_flee(self, actor, *, available_ft, spent_ft):
         if (actor != self.current_actor or not self.horror_state(actor)["must_flee"]
@@ -734,6 +784,8 @@ class CombatEncounter:
             raise ValueError("Registre o afastamento obrigatório antes de encerrar o turno")
         self._events.append(("turn_end", self.current_actor))
         self._attack_reach_bonus.pop(self.current_actor, None)
+        self._declared_damage_source = None
+        self._declared_damage_targets.clear()
         self.current_actor = None
         self.action_used = False
         self.bonus_action_used = False
