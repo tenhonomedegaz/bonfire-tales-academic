@@ -99,7 +99,10 @@ class HunterAwakeningTests(_CriadorBase):
         self.assertTrue(panel(self.profile)['elder_ready'])
 
     def test_final_secret_applies_temporary_hp_tags_once_and_preserves_higher_pool(self):
+        from .content_versions import seal_ruleset
         from .epic_talent_catalog import PARTIAL_EFFECTS
+        from .versioned_classes import EVALUATOR, VOCABULARY
+        from .versioned_origins import snapshot_origins
 
         talent = TbTalento.objects.create(
             nome='Teste de PV temporários', slug='teste-pv-temporarios',
@@ -110,18 +113,46 @@ class HunterAwakeningTests(_CriadorBase):
         self.pc.nivel = 18
         self.pc.save(update_fields=['nivel'])
         self.act('activate')
+        with self.assertRaisesRegex(ValueError, 'Talent absent from pinned ruleset'):
+            self.act('final')
+        self.person.refresh_from_db()
+        self.assertEqual(self.person.pv_temporario, 0)
+        origin_revision = snapshot_origins()
+        self.profile.refresh_from_db()
+        revisions = [origin_revision if entry.identity == 'origin-catalog'
+                     else entry.revision for entry in
+                     self.profile.ruleset.entries.select_related('revision')]
+        self.profile.ruleset = seal_ruleset(
+            revisions, evaluator_version=EVALUATOR,
+            vocabulary_version=VOCABULARY)
+        self.profile.save(update_fields=['ruleset'])
         operation_id = uuid.uuid4()
         response = self.act('final', operation_id=operation_id)
         self.person.refresh_from_db()
         self.assertEqual(self.person.pv_temporario, 41)
+        talent.tags_json = []
+        talent.save(update_fields=['tags_json'])
+        self.person.pv_temporario = 0
+        self.person.save(update_fields=['pv_temporario'])
+        from .temporary_hp import grant_temporary_hp
+        self.assertEqual(grant_temporary_hp(
+            self.person, 36, ruleset=self.profile.ruleset), 41)
+        self.person.talentos.filter(id_talento=talent).delete()
+        self.person.pv_temporario = 0
+        self.person.save(update_fields=['pv_temporario'])
+        self.assertEqual(grant_temporary_hp(
+            self.person, 36, ruleset=self.profile.ruleset), 36)
+        TbPersonagemTalento.objects.create(
+            id_personagem=self.person, id_talento=talent,
+            categoria='epico', nome=talent.nome)
         self.assertEqual(self.act('final', operation_id=operation_id,
                                   version=response['version'] - 1), response)
         self.person.refresh_from_db()
-        self.assertEqual(self.person.pv_temporario, 41)
-        from .temporary_hp import grant_temporary_hp
+        self.assertEqual(self.person.pv_temporario, 36)
         self.person.pv_temporario = 50
         self.person.save(update_fields=['pv_temporario'])
-        self.assertEqual(grant_temporary_hp(self.person, 36), 41)
+        self.assertEqual(grant_temporary_hp(
+            self.person, 36, ruleset=self.profile.ruleset), 41)
         self.person.refresh_from_db()
         self.assertEqual(self.person.pv_temporario, 50)
 

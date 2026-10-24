@@ -88,7 +88,7 @@ def command(*, character_id, owner_id, operation_id, expected_version,
         if not success:
             raise ValueError('Pontos de Segredo insuficientes para Despertar Final.')
         state.update(final=True, final_remaining_seconds=60)
-        grant_temporary_hp(person, 2 * current['level'])
+        grant_temporary_hp(person, 2 * current['level'], ruleset=profile.ruleset)
     elif action == 'elder_rescue':
         if (not current['elder'] or not state.get('active')
                 or not current['elder_ready'] or person.pv_atual > 0):

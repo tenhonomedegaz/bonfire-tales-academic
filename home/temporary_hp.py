@@ -20,11 +20,11 @@ def received_temporary_hp(amount, operations):
     return amount + bonus
 
 
-def grant_temporary_hp(personagem, amount):
+def grant_temporary_hp(personagem, amount, *, ruleset=None):
     """Replace a lower pool after applying grants from the canonical sheet tags."""
     operations = []
     if amount:
-        sheet = derive(personagem)
+        sheet = derive(personagem, ruleset=ruleset)
         context = dict(_build_ctx(sheet['nivel_total'], sheet['bonus_proficiencia'],
                                   sheet['atributos']), resolve_runtime=True,
                        event='receive_temp_hp', self_hp=personagem.pv_atual,
