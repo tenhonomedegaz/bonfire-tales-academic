@@ -3,6 +3,7 @@
 import hashlib
 import json
 import re
+import secrets
 import uuid
 
 from django.db import transaction
@@ -105,14 +106,13 @@ def reroll_state(person, ruleset=None):
 
 @transaction.atomic
 def use_save_reroll(person, *, operation_id, save_kind, failed, original_roll,
-                    new_roll, ruleset=None):
-    """Spend the tag mechanism and substitute only the supplied d20 result."""
+                    ruleset=None):
+    """Spend the tag mechanism and roll the replacement d20 once."""
     operation_id = _operation_id(operation_id)
     save_kind = _save_kind(save_kind)
     original_roll = _d20(original_roll, "O resultado original")
-    new_roll = _d20(new_roll, "O novo resultado")
     payload = {"save_kind": save_kind, "failed": failed,
-               "original_roll": original_roll, "new_roll": new_roll}
+               "original_roll": original_roll}
     fingerprint = _fingerprint("use", payload)
 
     locked = TbPersonagem.objects.select_for_update().get(pk=person.pk)
@@ -128,6 +128,7 @@ def use_save_reroll(person, *, operation_id, save_kind, failed, original_roll,
             id_personagem=locked, chave=REROLL_STATE_KEY, ativo=True).exists():
         raise ValueError("A rerrolagem já foi usada até o início do próximo turno.")
 
+    new_roll = secrets.randbelow(20) + 1
     activate_state(
         locked, REROLL_STATE_KEY, origin=definition["origin"],
         payload={"save_kind": save_kind}, ends_on=["turn_start"],

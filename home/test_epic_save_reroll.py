@@ -45,9 +45,10 @@ class RerollSetup:
 
     def use(self, operation_id=None, **changes):
         payload = {"operation_id": operation_id or uuid.uuid4(), "save_kind": "dex",
-                   "failed": True, "original_roll": 4, "new_roll": 17}
+                   "failed": True, "original_roll": 4}
         payload.update(changes)
-        return use_save_reroll(self.person, **payload)
+        with patch("home.epic_save_reroll.secrets.randbelow", return_value=19):
+            return use_save_reroll(self.person, **payload)
 
     def release(self, operation_id=None, **changes):
         payload = {"operation_id": operation_id or uuid.uuid4(),
@@ -58,7 +59,7 @@ class RerollSetup:
 
 class RerollPersistenceTests(RerollSetup, TestCase):
     def test_failed_death_save_applies_only_new_d20_and_locks_the_turn(self):
-        result = self.use(save_kind="death", original_roll=1, new_roll=20)
+        result = self.use(save_kind="death", original_roll=1)
         self.assertEqual(result["original_d20"], 1)
         self.assertEqual(result["applied_d20"], 20)
         self.assertEqual(set(result), {"ok", "operation_id", "save_kind", "original_d20",
@@ -67,7 +68,7 @@ class RerollPersistenceTests(RerollSetup, TestCase):
         state = TbPersonagemEstado.objects.get(chave=REROLL_STATE_KEY)
         self.assertEqual(state.ends_on_json, ["turn_start"])
         with self.assertRaises(ValueError):
-            self.use(save_kind="con", original_roll=2, new_roll=18)
+            self.use(save_kind="con", original_roll=2)
 
     def test_confirmed_declared_turn_start_resets_and_unconfirmed_render_does_not(self):
         self.use()
@@ -82,9 +83,13 @@ class RerollPersistenceTests(RerollSetup, TestCase):
     def test_replay_conflict_rollback_and_removed_source(self):
         operation = uuid.uuid4()
         first = self.use(operation)
-        self.assertEqual(self.use(operation), dict(first, replayed=True))
+        with patch("home.epic_save_reroll.secrets.randbelow",
+                   side_effect=AssertionError("replay must not roll")):
+            self.assertEqual(use_save_reroll(
+                self.person, operation_id=operation, save_kind="dex",
+                failed=True, original_roll=4), dict(first, replayed=True))
         with self.assertRaises(ValueError):
-            self.use(operation, new_roll=18)
+            self.use(operation, original_roll=18)
         self.release()
         with patch("home.epic_save_reroll.TbOperacaoRecurso.objects.create",
                    side_effect=RuntimeError("receipt")):
@@ -121,7 +126,7 @@ class RerollConcurrencyTests(RerollSetup, TransactionTestCase):
                 barrier.wait(timeout=10)
                 return use_save_reroll(
                     person, operation_id=operation, save_kind="death", failed=True,
-                    original_roll=3, new_roll=16)
+                    original_roll=3)
             finally:
                 connections.close_all()
 

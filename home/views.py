@@ -10139,7 +10139,6 @@ def personagem_rerolar_salvaguarda(request, pk):
             save_kind=request.POST.get('save_kind'),
             failed=request.POST.get('failed') == 'on',
             original_roll=int(request.POST.get('original_roll') or 0),
-            new_roll=int(request.POST.get('new_roll') or 0),
             ruleset=_resource_ruleset(person),
         )
     except (TypeError, ValueError):
