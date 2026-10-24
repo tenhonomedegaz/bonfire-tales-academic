@@ -220,6 +220,7 @@ urlpatterns = [
     path('mercado/oficina-de-magia/<int:pk>/comprar-componente/', views.oficina_comprar_componente, name='oficina_comprar_componente'),
     path('mercado/oficina-de-magia/<int:pk>/conjurar/', views.oficina_conjurar_magia, name='oficina_conjurar_magia'),
     path('mercado/oficina-de-magia/<int:pk>/encerrar-efeito/', views.oficina_encerrar_efeito, name='oficina_encerrar_efeito'),
+    path('mercado/oficina-de-magia/<int:pk>/evento-concentracao/', views.oficina_evento_concentracao, name='oficina_evento_concentracao'),
     path('mercado/oficina-de-magia/<int:pk>/usar-pergaminho/', views.oficina_usar_pergaminho, name='oficina_usar_pergaminho'),
     path('mercado/oficina-de-magia/<int:pk>/solicitar-transcricao/', views.oficina_solicitar_transcricao, name='oficina_solicitar_transcricao'),
     path('mercado/oficina-de-magia/transcricao/<int:solicitacao_id>/responder/', views.oficina_responder_transcricao, name='oficina_responder_transcricao'),

@@ -17982,6 +17982,7 @@ def oficina_magia_view(request):
         'transcricoes': transcricoes, 'grimorios_disponiveis': spellbooks,
         'magias_assinatura': signature_rules,
         'efeitos_persistentes': active_states,
+        'concentration_event_operation_id': uuid4(),
         'formas_magia_assinatura': (
             ('esfera', 'Esfera'), ('cone', 'Cone'), ('cubo', 'Cubo'),
             ('cilindro', 'Cilindro'), ('linha', 'Linha de 1,5 metro [5 pés]')),
@@ -18381,6 +18382,9 @@ def oficina_conjurar_magia(request, pk):
             {'operacao': 'conjuracao_fora_combate', 'magia_id': spell.pk,
              'ritual': ritual, 'gasto': spending,
              'componente_consumido': bool(consumed)})
+        if spell.concentracao:
+            from .epic_concentration import begin_concentration
+            begin_concentration(p, 'spell:%s' % owned.pk)
         activate_state(
             p, 'spell:%s' % owned.pk,
             origin='magia:%s' % spell.slug,
@@ -18430,6 +18434,27 @@ def oficina_encerrar_efeito(request, pk):
         p, 'ajuste', 'Efeito persistente encerrado', 0,
         {'operacao': 'encerrar_estado', 'estado': key})
     return _oficina_redirect(request, 'estado_encerrado')
+
+
+@login_required(login_url='/login/')
+@require_POST
+def oficina_evento_concentracao(request, pk):
+    from .epic_concentration import resolve_concentration_event
+
+    p = _ficha_editavel(request, pk)
+    try:
+        result = resolve_concentration_event(
+            p, operation_id=request.POST.get('operation_id'),
+            event=request.POST.get('event'))
+    except ValueError as exc:
+        request.session['oficina_resultado'] = str(exc)
+        return _oficina_redirect(request, 'concentracao_invalida')
+    request.session['oficina_resultado'] = {
+        'retained': 'A concentração foi mantida pelo efeito ativo.',
+        'ended': 'A concentração foi encerrada.',
+        'save_required': 'A concentração depende da salvaguarda padrão; registre o resultado antes de encerrar o efeito.',
+    }[result['outcome']]
+    return _oficina_redirect(request, 'concentracao_resolvida')
 
 
 @login_required(login_url='/login/')

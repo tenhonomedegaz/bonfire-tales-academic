@@ -170,6 +170,10 @@
           <form method="post" action="{% url 'oficina_encerrar_efeito' mercado_ativo.id_personagem %}">
             {% csrf_token %}<input type="hidden" name="personagem" value="{{ mercado_ativo.id_personagem }}"><input type="hidden" name="estado" value="{{ state.chave }}"><input type="hidden" name="tab" value="casting"><button type="submit">Encerrar</button>
           </form>
+          {% if state.payload_json.concentration %}<form method="post" action="{% url 'oficina_evento_concentracao' mercado_ativo.id_personagem %}">
+            {% csrf_token %}<input type="hidden" name="operation_id" value="{{ concentration_event_operation_id }}"><input type="hidden" name="tab" value="casting">
+            <label>Evento de concentração <select name="event"><option value="damage">Dano recebido</option><option value="petrified">Petrificado</option><option value="unconscious">Inconsciente</option><option value="death">Morte</option></select></label><button type="submit">Registrar evento</button>
+          </form>{% endif %}
         </article>{% endif %}{% endfor %}
       </div>
     </div>

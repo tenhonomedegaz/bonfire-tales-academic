@@ -69,6 +69,30 @@ class MagicWorkshopTests(TestCase):
             id_personagem=self.personagem, id_talento=self.mark,
             nome=self.mark.nome)
 
+    def test_new_concentration_cast_replaces_only_prior_concentration(self):
+        from home.resource_engine import activate_state
+
+        self.client.force_login(self.user)
+        activate_state(self.personagem, 'spell:old', origin='magia:old',
+                       payload={'concentration': True})
+        activate_state(self.personagem, 'spell:plain', origin='magia:plain',
+                       payload={'concentration': False})
+        spell = TbMagia.objects.create(
+            nome='Ritual Concentrado', slug='ritual-concentrado', nivel=0,
+            ritual=True, concentracao=True, tags_json=['log_castable'],
+            classes='Arquivista', classes_slugs=['arquivista'])
+        owned = self.personagem.magias.create(
+            id_magia=spell, nivel=0, nome=spell.nome, preparada=True,
+            origem=self.classe.nome)
+        url = reverse('oficina_conjurar_magia', args=[self.personagem.pk])
+        response = self.client.post(url, {
+            'personagem': self.personagem.pk, 'magia_personagem': owned.pk,
+            'ritual': '1'})
+        self.assertIn('status=conjurada', response['Location'])
+        self.assertFalse(self.personagem.estados.get(chave='spell:old').ativo)
+        self.assertTrue(self.personagem.estados.get(chave='spell:plain').ativo)
+        self.assertTrue(self.personagem.estados.get(chave=f'spell:{owned.pk}').ativo)
+
     def test_componentes_e_preco_do_pergaminho(self):
         parsed = parse_priced_materials(
             'M (um diamante de 1.000 PO, consumido pela magia, e um '
