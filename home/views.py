@@ -10041,6 +10041,28 @@ def personagem_usar_slot_magia(request, pk):
 
 @login_required(login_url='/login/')
 @require_POST
+def personagem_usar_reacao_cura(request, pk):
+    """Resolve uma reação de cura declarada por tags após confirmação da mesa."""
+    from .epic_soul_siphon import use_siphon
+
+    person = _ficha_editavel(request, pk)
+    try:
+        use_siphon(
+            person,
+            operation_id=request.POST.get('operation_id'),
+            distance_ft=int(request.POST.get('distance_ft') or -1),
+            enemy_at_zero=request.POST.get('enemy_at_zero') == 'on',
+            reaction_available=request.POST.get('reaction_available') == 'on',
+            confirmed=request.POST.get('confirmed') == 'on',
+            ruleset=_resource_ruleset(person),
+        )
+    except (TypeError, ValueError):
+        return HttpResponse('Reação indisponível ou evento inválido.', status=400)
+    return redirect(reverse('ficha_detail', args=[pk]) + '?aba=ficha&reacao_cura=ok')
+
+
+@login_required(login_url='/login/')
+@require_POST
 def personagem_usar_magia_inata(request, pk, magia_id):
     """Gasta (-1) ou devolve (+1) o uso oculto de uma magia inata/concedida."""
     from .character_engine import derive
@@ -10435,6 +10457,8 @@ def ficha_detail_view(request, pk):
     from .models import TbPersonagem
     from . import permissions as perms
     from .character_engine import derive, aventuras_para_nivel
+    from .epic_soul_siphon import siphon_state
+    import uuid
     if not request.user.is_authenticated:
         if request.method in ('GET', 'HEAD') and TbPersonagem.objects.filter(
                 pk=pk, publico=True, arquivado=False).exists():
@@ -10520,6 +10544,8 @@ def ficha_detail_view(request, pk):
         'page_title': p.nome,
         'p': p,
         'ficha': ficha,
+        'reacao_cura': siphon_state(p, ruleset=ruleset) if pode_editar else None,
+        'reacao_cura_operation_id': uuid.uuid4() if pode_editar else None,
         'raca_linha': raca_linha,
         'magias_info': magias_info,
         'partial_spell_slots': getattr(settings, 'SPELL_SLOT_PARTIAL_ENABLED', True),

@@ -1,10 +1,10 @@
-"""Partial Soul Devourer effects in the real character sheet."""
+"""Soul Devourer effects and candidate selection in the real sheet."""
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
 from home.character_engine import derive
-from home.epic_talent_catalog import ATTRIBUTE_TAGS, PARTIAL_EFFECTS, epic_candidates
+from home.epic_talent_catalog import ATTRIBUTE_TAGS, VERIFIED_EFFECTS, epic_candidates
 from home.models import TbPersonagem, TbPersonagemTalento, TbTalento
 from home.tag_engine.library import Library
 from home.tag_engine.validator import ERROR, validate_tags_json
@@ -19,8 +19,8 @@ class SoulDevourerSheetTests(TestCase):
         self.character = TbPersonagem.objects.create(dono=owner, nome="Devourer")
         self.talent = TbTalento.objects.create(
             nome="Dádiva do Devorador de Almas", slug=SLUG, tipo="geral",
-            etiquetas_adicionais="epico", descricao="Efeitos parciais de teste.",
-            tags_json=ATTRIBUTE_TAGS + PARTIAL_EFFECTS[SLUG],
+            etiquetas_adicionais="epico", descricao="Efeitos do talento em teste.",
+            tags_json=ATTRIBUTE_TAGS + VERIFIED_EFFECTS[SLUG],
         )
 
     def sheet(self):
@@ -76,7 +76,8 @@ class SoulDevourerSheetTests(TestCase):
         self.assertIn("necrotico", self.sheet()["imunidades"])
         self.assertNotIn("frio", self.sheet()["imunidades"])
 
-    def test_tags_validate_but_candidate_stays_closed_until_soul_siphon(self):
-        diagnostics = validate_tags_json(PARTIAL_EFFECTS[SLUG], Library())
+    def test_all_tags_validate_and_candidate_is_selectable(self):
+        diagnostics = validate_tags_json(VERIFIED_EFFECTS[SLUG], Library())
         self.assertEqual([d for d in diagnostics if d.level == ERROR], [])
-        self.assertNotIn(SLUG, {row["slug"] for row in epic_candidates()})
+        candidate = next(row for row in epic_candidates() if row["slug"] == SLUG)
+        self.assertEqual(candidate["tags_json"], ATTRIBUTE_TAGS + VERIFIED_EFFECTS[SLUG])

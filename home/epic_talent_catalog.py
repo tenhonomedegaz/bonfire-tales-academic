@@ -5,6 +5,7 @@ from pathlib import Path
 
 from django.conf import settings
 from django.utils.text import slugify
+from home.epic_soul_siphon import SIPHON_TAG
 from home.tag_engine.library import SKILLS
 
 
@@ -31,6 +32,11 @@ VERIFIED_EFFECTS = {
         *(f"prof:{skill}" for skill in sorted(SKILLS)),
         "expertise:original_prof",
     ],
+    "dadiva-do-devorador-de-almas": [
+        "if(already:resist{frio}): immune:frio else: resist:frio",
+        "if(already:resist{necrotico}): immune:necrotico else: resist:necrotico",
+        SIPHON_TAG,
+    ],
 }
 
 # Efeitos conferidos isoladamente. Estes talentos ainda não entram em epic_candidates:
@@ -53,10 +59,6 @@ PARTIAL_EFFECTS = {
         "cond_immune:amedrontado",
         "if(already:prof{intimidacao}): expertise:intimidacao else: prof:intimidacao",
         "pick:pericia_expertise:1(requires:already_expertise{intimidacao})",
-    ],
-    "dadiva-do-devorador-de-almas": [
-        "if(already:resist{frio}): immune:frio else: resist:frio",
-        "if(already:resist{necrotico}): immune:necrotico else: resist:necrotico",
     ],
     "dadiva-do-ataque-implacavel": [
         "always_active{ignore:resist(concussao,cortante,perfurante)}",

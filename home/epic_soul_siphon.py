@@ -14,6 +14,7 @@ from .character_engine import (
     _features_do_personagem,
     _talent_attr_map,
     bonus_proficiencia,
+    derive,
 )
 from .models import (
     TbOperacaoRecurso,
@@ -160,8 +161,9 @@ def use_siphon(person, *, operation_id, distance_ft, enemy_at_zero,
         raise ValueError("Não há usos disponíveis para esta reação.")
 
     before_hp = max(0, int(locked.pv_atual or 0))
-    maximum_hp = max(0, int(locked.pv_maximo or 0))
-    after_hp = min(maximum_hp, before_hp + definition["heal"])
+    derived_maximum = int(derive(locked, ruleset=ruleset)["pv"]["maximo_calculado"] or 0)
+    maximum_hp = max(0, int(locked.pv_maximo or 0), derived_maximum)
+    after_hp = max(before_hp, min(maximum_hp, before_hp + definition["heal"]))
     healed = max(0, after_hp - before_hp)
     locked.pv_atual = after_hp
     locked.save(update_fields=["pv_atual"])

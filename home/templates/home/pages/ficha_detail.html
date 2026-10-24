@@ -82,6 +82,25 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
 
   {% include 'home/partials/_ficha_folha.html' %}
 
+  {% if reacao_cura and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="reacao-cura-title">
+    <h2 id="reacao-cura-title" class="ficha-section-title">{{ reacao_cura.name|default:"Reação de cura" }}</h2>
+    <p>Usos: {{ reacao_cura.current }}/{{ reacao_cura.maximum }} · Recupera {{ reacao_cura.heal }} PV com sua reação quando um inimigo a até {{ reacao_cura.range_ft }} pés cai a 0 PV. Usos retornam após descanso longo.</p>
+    {% if request.GET.reacao_cura == 'ok' %}<p role="status">Reação registrada e PV atualizados na ficha.</p>{% endif %}
+    {% if reacao_cura.current %}
+    <form method="post" action="{% url 'personagem_usar_reacao_cura' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ reacao_cura_operation_id }}">
+      <label>Distância do inimigo (pés) <input type="number" name="distance_ft" min="0" max="{{ reacao_cura.range_ft }}" required></label>
+      <label><input type="checkbox" name="enemy_at_zero" required> Inimigo reduzido a 0 PV</label>
+      <label><input type="checkbox" name="reaction_available" required> Minha reação está disponível</label>
+      <label><input type="checkbox" name="confirmed" required> Confirmo o evento declarado na mesa</label>
+      <button type="submit" class="banner-btn primary">Usar reação e recuperar PV</button>
+    </form>
+    {% endif %}
+  </section>
+  {% endif %}
+
   {# ===================== LARGURA CHEIA ===================== #}
 
   {% comment %}As 4 caixinhas de RP do PDF da ficha. Edição inline (fetch) só para o dono/staff.{% endcomment %}

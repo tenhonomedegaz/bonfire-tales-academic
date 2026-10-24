@@ -236,6 +236,7 @@ urlpatterns = [
     path('mercado/negociacoes/', views.mercado_comunidade_view, name='mercado_negociacoes'),
     path('jogador/personagens/<int:pk>/anunciar/', views.personagem_anunciar_magico, name='personagem_anunciar_magico'),
     path('jogador/personagens/<int:pk>/usar-recurso/', views.personagem_usar_recurso, name='personagem_usar_recurso'),
+    path('jogador/personagens/<int:pk>/usar-reacao-cura/', views.personagem_usar_reacao_cura, name='personagem_usar_reacao_cura'),
     path('jogador/personagens/<int:pk>/usar-item-consumivel/', views.personagem_usar_item_consumivel, name='personagem_usar_item_consumivel'),
     path('jogador/personagens/<int:pk>/usar-slot-magia/', views.personagem_usar_slot_magia, name='personagem_usar_slot_magia'),
     path('jogador/personagens/<int:pk>/descansar/', views.personagem_descansar, name='personagem_descansar'),

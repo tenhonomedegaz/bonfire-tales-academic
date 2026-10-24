@@ -10,11 +10,14 @@ from django.db import close_old_connections, connection, connections
 from django.test import TestCase, TransactionTestCase
 
 from home.content_versions import seal_ruleset
+from home.character_engine import derive
 from home.epic_soul_siphon import SIPHON_KEY, SIPHON_TAG, siphon_state, use_siphon
 from home.epic_talent_catalog import ATTRIBUTE_TAGS
 from home.models import (
     TbOperacaoRecurso,
+    TbClasse,
     TbPersonagem,
+    TbPersonagemClasse,
     TbPersonagemRecurso,
     TbPersonagemTalento,
     TbTalento,
@@ -124,6 +127,38 @@ class SoulSiphonTests(SiphonSetup, TestCase):
         self.assertEqual(self.person.pv_temporario, 13)
         self.assertEqual((other.atual, other.maximo), (3, 4))
         self.assertEqual(resource.reset, "long_rest")
+
+    def test_healing_respects_other_max_hp_tags_and_never_reduces_existing_hp(self):
+        fighter = TbClasse.objects.create(
+            nome="Classe de teste", slug="siphon-max-hp-class", dado_vida="d10",
+        )
+        TbPersonagemClasse.objects.create(
+            id_personagem=self.person, id_classe=fighter, nivel=16, principal=True,
+        )
+        maximum_before_other = derive(self.person)["pv"]["maximo_calculado"]
+        other_talent = TbTalento.objects.create(
+            nome="Outra fonte de PV", slug="other-max-hp-siphon", tipo="geral",
+            tags_json=["always_active{buff:max_hp:+40}"],
+        )
+        TbPersonagemTalento.objects.create(
+            id_personagem=self.person, id_talento=other_talent,
+            nome=other_talent.nome,
+        )
+        maximum_with_other = derive(self.person)["pv"]["maximo_calculado"]
+        self.assertEqual(maximum_with_other - maximum_before_other, 40)
+        self.person.pv_atual = maximum_with_other - 30
+        self.person.save(update_fields=["pv_atual"])
+        result = self.use()
+        self.person.refresh_from_db()
+        self.assertEqual((result["healed"], self.person.pv_atual),
+                         (30, maximum_with_other))
+
+        self.person.pv_atual = maximum_with_other + 10
+        self.person.save(update_fields=["pv_atual"])
+        result = self.use()
+        self.person.refresh_from_db()
+        self.assertEqual((result["healed"], self.person.pv_atual),
+                         (0, maximum_with_other + 10))
 
     def test_event_range_reaction_confirmation_and_uses_are_enforced(self):
         invalid = [
