@@ -13,6 +13,7 @@ from home.epic_fate import (
     recover_fate, reset_fate_on_initiative,
 )
 from home.epic_talent_catalog import ATTRIBUTE_TAGS, epic_candidates
+from home.epic_battle_accuracy import roll_tagged_attack
 from home.models import TbPersonagem, TbPersonagemTalento, TbTalento
 from home.tag_engine.library import Library
 from home.tag_engine.validator import validate_tags_json
@@ -120,3 +121,37 @@ class FateTests(TestCase):
         self.use()
         self.choice.delete()
         self.assertIsNone(fate_state(self.person))
+
+    def test_attack_roll_automatically_recovers_only_applied_natural_critical(self):
+        self.use()
+        operation = uuid.uuid4()
+        with patch("home.epic_battle_accuracy.secrets.randbelow", return_value=19):
+            attack = roll_tagged_attack(self.person, operation_id=operation)
+        self.assertEqual(attack["applied_d20"], 20)
+        self.assertTrue(attack["fate_recovered"])
+        self.assertEqual(fate_state(self.person)["direction"], "decrease")
+        self.assertEqual(roll_tagged_attack(self.person, operation_id=operation),
+                         dict(attack, replayed=True))
+        self.use(direction="decrease")
+        with patch("home.epic_battle_accuracy.secrets.randbelow", side_effect=[0, 9]):
+            advantage = roll_tagged_attack(
+                self.person, operation_id=uuid.uuid4(), advantage=True)
+        self.assertEqual(advantage["applied_d20"], 10)
+        self.assertNotIn("fate_recovered", advantage)
+        self.assertFalse(fate_state(self.person)["available"])
+        with patch("home.epic_battle_accuracy.secrets.randbelow", return_value=0):
+            failure = roll_tagged_attack(self.person, operation_id=uuid.uuid4())
+        self.assertTrue(failure["fate_recovered"])
+        self.assertEqual(fate_state(self.person)["direction"], "increase")
+
+    def test_fate_only_attack_card_shows_server_roll_and_recovery(self):
+        self.use()
+        self.client.force_login(self.owner)
+        with patch("home.epic_battle_accuracy.secrets.randbelow", return_value=19):
+            response = self.client.post(
+                reverse("personagem_rolar_ataque_epico", args=[self.person.pk]),
+                {"operation_id": str(uuid.uuid4())}, follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "D20 aplicado no ataque: 20")
+        self.assertTrue(fate_state(self.person)["available"])
+        self.assertEqual(fate_state(self.person)["direction"], "decrease")

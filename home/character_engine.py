@@ -4251,6 +4251,8 @@ def _derive(personagem, *, ruleset=None):
     apply_mutagen_movement(personagem, ruleset, state)
     from .hunter_mutagens import apply_checks as apply_mutagen_checks
     apply_mutagen_checks(personagem, ruleset, state)
+    from .epic_relentless_resistance import apply_resistance_state
+    apply_resistance_state(state, personagem, ruleset=ruleset)
     state.pop('_ctx', None)
     state.pop('_tag', None)
     return state

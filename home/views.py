@@ -10435,6 +10435,58 @@ def personagem_iniciativa_destino(request, pk):
 
 @login_required(login_url='/login/')
 @require_POST
+def personagem_resistencia_implacavel(request, pk):
+    from django.contrib import messages
+    from .epic_relentless_resistance import choose_resistances
+    person = _ficha_editavel(request, pk)
+    try:
+        choose_resistances(person, operation_id=request.POST.get('operation_id'),
+                           damage_types=request.POST.getlist('damage_types'),
+                           long_rest_ref=request.POST.get('long_rest_ref') or None,
+                           long_rest_confirmed=request.POST.get('long_rest_confirmed') == 'on',
+                           ruleset=_resource_ruleset(person))
+    except (TypeError, ValueError):
+        return HttpResponse('Escolha de resistência inválida.', status=400)
+    messages.success(request, 'Resistências implacáveis atualizadas.', extra_tags='epic-relentless')
+    return redirect(reverse('ficha_detail', args=[pk]) + '?aba=ficha')
+
+
+@login_required(login_url='/login/')
+@require_POST
+def personagem_alterar_ruina(request, pk):
+    from django.contrib import messages
+    from .epic_relentless_resistance import alter_ruin
+    person = _ficha_editavel(request, pk)
+    try:
+        result = alter_ruin(person, operation_id=request.POST.get('operation_id'),
+            round_ref=request.POST.get('round_ref'), damage_type=request.POST.get('damage_type'),
+            damage_received=request.POST.get('damage_received') == 'on',
+            target_distance_ft=request.POST.get('target_distance_ft'),
+            target_visible=request.POST.get('target_visible') == 'on',
+            target_has_total_cover=request.POST.get('target_has_total_cover') == 'on',
+            target_save_modifier=int(request.POST.get('target_save_modifier', '')),
+            declared_modifier=request.POST.get('declared_modifier'), ruleset=_resource_ruleset(person))
+    except (TypeError, ValueError):
+        return HttpResponse('Alterar Ruína indisponível ou inválido.', status=400)
+    messages.success(request, 'Alterar Ruína: CD %s; dano %s.' % (result['save_dc'], result['damage']), extra_tags='epic-relentless')
+    return redirect(reverse('ficha_detail', args=[pk]) + '?aba=ficha')
+
+
+@login_required(login_url='/login/')
+@require_POST
+def personagem_nova_rodada_ruina(request, pk):
+    from .epic_relentless_resistance import reset_alter_ruin_on_round
+    person = _ficha_editavel(request, pk)
+    try:
+        reset_alter_ruin_on_round(person, operation_id=request.POST.get('operation_id'),
+            round_ref=request.POST.get('round_ref'), confirmed=request.POST.get('confirmed') == 'on')
+    except (TypeError, ValueError):
+        return HttpResponse('Nova rodada inválida.', status=400)
+    return redirect(reverse('ficha_detail', args=[pk]) + '?aba=ficha')
+
+
+@login_required(login_url='/login/')
+@require_POST
 def personagem_registrar_criatura_a_zero(request, pk):
     from django.contrib import messages
     from .epic_battle_accuracy import record_visible_zero
@@ -11084,6 +11136,7 @@ def ficha_detail_view(request, pk):
     from .epic_spell_damage import damage_spell_options
     from .epic_battle_accuracy import attack_accuracy_state
     from .epic_fate import fate_state
+    from .epic_relentless_resistance import resistance_state
     from .epic_relentless_damage import relentless_profiles
     from .epic_bloodied_damage import bloodied_attack_state
     from .epic_recovery_pool import recovery_pool_state, survival_state
@@ -11212,6 +11265,11 @@ def ficha_detail_view(request, pk):
         'destino_use_operation_id': uuid.uuid4() if pode_editar else None,
         'destino_critical_operation_id': uuid.uuid4() if pode_editar else None,
         'destino_initiative_operation_id': uuid.uuid4() if pode_editar else None,
+        'destino_attack_operation_id': uuid.uuid4() if pode_editar else None,
+        'resistencia_implacavel': resistance_state(p, ruleset=ruleset) if pode_editar else None,
+        'resistencia_implacavel_operation_id': uuid.uuid4() if pode_editar else None,
+        'alterar_ruina_operation_id': uuid.uuid4() if pode_editar else None,
+        'nova_rodada_ruina_operation_id': uuid.uuid4() if pode_editar else None,
         'fortuna_event_operation_id': uuid.uuid4() if pode_editar else None,
         'fortuna_turn_operation_id': uuid.uuid4() if pode_editar else None,
         'perfis_dano_implacavel': relentless_profiles(p, ruleset=ruleset) if pode_editar else [],

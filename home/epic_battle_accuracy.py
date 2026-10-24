@@ -166,10 +166,12 @@ def roll_tagged_attack(person, *, operation_id, advantage=False, disadvantage=Fa
     if replay is not None:
         return replay
     definitions = _definitions(locked, ruleset=ruleset)
+    from .epic_fate import _source as fate_source
+    has_fate = fate_source(locked, ruleset=ruleset) is not None
     critical_margin = _critical_margin(locked, ruleset=ruleset)
     if not (definitions["no_disadvantage"] or definitions["auto_hit"]
             or definitions["fortune"]
-            or critical_margin):
+            or critical_margin or has_fate):
         raise ValueError("O personagem não possui uma fonte ativa para precisão de ataque.")
 
     fortune_pending = bool(definitions["fortune"]) and TbPersonagemEstado.objects.filter(
@@ -199,6 +201,16 @@ def roll_tagged_attack(person, *, operation_id, advantage=False, disadvantage=Fa
     TbOperacaoRecurso.objects.create(
         id_personagem=locked, operation_id=operation_id, fingerprint=fingerprint,
         resposta=response, status_http=200)
+    if has_fate and applied in (1, 20):
+        from .epic_fate import recover_fate
+        fate = recover_fate(
+            locked, operation_id=uuid.uuid5(uuid.NAMESPACE_URL,
+                                             "epic-fate-attack:%s" % operation_id),
+            event_ref="attack:%s" % operation_id, natural_d20=applied,
+            own_roll_confirmed=True, critical_confirmed=True, ruleset=ruleset)
+        response["fate_recovered"] = fate["recovered"]
+        TbOperacaoRecurso.objects.filter(
+            id_personagem=locked, operation_id=operation_id).update(resposta=response)
     return response
 
 

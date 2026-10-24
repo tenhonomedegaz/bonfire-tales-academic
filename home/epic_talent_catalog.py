@@ -14,6 +14,7 @@ from home.epic_spell_damage import SPELL_DIE_FLOOR_TAG
 from home.epic_concentration import FOCUS_TAG
 from home.epic_battle_accuracy import NO_DISADVANTAGE_TAG, AUTO_HIT_TAG, FORTUNE_TAG
 from home.epic_fate import ALTER_FATE_TAG, REVERBERANT_FATE_TAG
+from home.epic_relentless_resistance import RESISTANCE_TAG, ALTER_RUIN_TAG
 from home.epic_recovery_pool import RECOVERY_POOL_TAG, SURVIVAL_TAG
 from home.epic_storm_save import STORM_SAVE_TAG
 from home.epic_soul_siphon import SIPHON_TAG
@@ -30,6 +31,7 @@ ATTRIBUTE_TAGS = [
 
 # Só publicar entradas cujos efeitos adicionais foram conferidos contra o motor.
 VERIFIED_EFFECTS = {
+    "dadiva-da-resistencia-implacavel": [RESISTANCE_TAG, ALTER_RUIN_TAG],
     "dadiva-do-destino": [ALTER_FATE_TAG, REVERBERANT_FATE_TAG],
     "dadiva-do-horror": [
         "cond_immune:amedrontado",
