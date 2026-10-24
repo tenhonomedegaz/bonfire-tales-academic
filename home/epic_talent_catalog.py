@@ -25,6 +25,13 @@ ATTRIBUTE_TAGS = [
 
 # Só publicar entradas cujos efeitos adicionais foram conferidos contra o motor.
 VERIFIED_EFFECTS = {
+    "dadiva-do-ceifador-de-almas": [
+        "immune:veneno",
+        "cond_immune:envenenado",
+        "adv:death_save",
+        DEATH_SEAL_TAG,
+        REAPING_TAG,
+    ],
     "dadiva-das-sombras-vivas": [
         "while_active{trigger=attack_action, reach:+10ft, duration:until_turn_end}",
         "while_active{action:bonus_action, instant{dodge}}",
@@ -95,13 +102,6 @@ VERIFIED_EFFECTS = {
 # Efeitos conferidos isoladamente. Estes talentos ainda não entram em epic_candidates:
 # faltam outros efeitos da mesma definição e a carga permanece fechada até cobertura integral.
 PARTIAL_EFFECTS = {
-    "dadiva-do-ceifador-de-almas": [
-        "immune:veneno",
-        "cond_immune:envenenado",
-        "adv:death_save",
-        DEATH_SEAL_TAG,
-        REAPING_TAG,
-    ],
     "dadiva-da-folia": [
         "if(already:prof{atuacao}): expertise:atuacao else: prof:atuacao",
         "pick:pericia_expertise:1(requires:already_expertise{atuacao})",
