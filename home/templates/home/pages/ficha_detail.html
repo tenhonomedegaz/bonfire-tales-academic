@@ -287,6 +287,41 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
   </section>
   {% endif %}
 
+  {% if destino_epico and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="destino-epico-title">
+    <h2 id="destino-epico-title" class="ficha-section-title">Alterar Destino</h2>
+    {% for message in messages %}{% if 'epic-fate' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
+    {% if destino_epico.available %}
+    <p>Após uma rolagem d20 de sucesso ou falha, role 2d4 e aplique o total.{% if destino_epico.direction %} Este uso recuperado só permite {{ destino_epico.direction }}.{% endif %}</p>
+    <form method="post" action="{% url 'personagem_alterar_destino' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ destino_use_operation_id }}">
+      <label>Rolagem na mesa <input name="roll_ref" maxlength="180" required></label>
+      <label>Distância em pés <input type="number" name="distance_ft" min="0" max="60" value="0" required></label>
+      <label>Aplicar como <select name="direction"><option value="increase">Bônus</option><option value="decrease">Penalidade</option></select></label>
+      <label><input type="checkbox" name="confirmed" required> Sucesso ou falha em d20 confirmado na mesa</label>
+      <button type="submit" class="banner-btn primary">Rolar 2d4</button>
+    </form>
+    {% else %}<p>Uso gasto até iniciativa, descanso ou crítico natural próprio.</p>{% endif %}
+    <form method="post" action="{% url 'personagem_recuperar_destino' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ destino_critical_operation_id }}">
+      <label>Evento crítico <input name="event_ref" maxlength="180" required></label>
+      <label>D20 natural <select name="natural_d20"><option value="20">20</option><option value="1">1</option></select></label>
+      <label><input type="checkbox" name="own_roll_confirmed" required> Foi minha própria rolagem</label>
+      <label><input type="checkbox" name="critical_confirmed" required> Crítico natural confirmado</label>
+      <button type="submit" class="banner-btn primary">Registrar crítico</button>
+    </form>
+    <form method="post" action="{% url 'personagem_iniciativa_destino' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ destino_initiative_operation_id }}">
+      <label>Iniciativa <input name="initiative_ref" maxlength="180" required></label>
+      <label><input type="checkbox" name="confirmed" required> Rolei iniciativa na mesa</label>
+      <button type="submit" class="banner-btn primary">Recuperar após iniciativa</button>
+    </form>
+  </section>
+  {% endif %}
+
   {% if ataque_epico and pode_editar %}
   <section class="ficha-panel ficha-noprint" aria-labelledby="ataque-epico-title">
     <h2 id="ataque-epico-title" class="ficha-section-title">Rolagem de ataque épico</h2>

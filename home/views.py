@@ -10371,6 +10371,70 @@ def personagem_rolar_ataque_epico(request, pk):
 
 @login_required(login_url='/login/')
 @require_POST
+def personagem_alterar_destino(request, pk):
+    from django.contrib import messages
+    from .epic_fate import alter_fate
+
+    person = _ficha_editavel(request, pk)
+    try:
+        result = alter_fate(
+            person, operation_id=request.POST.get('operation_id'),
+            roll_ref=request.POST.get('roll_ref'),
+            distance_ft=request.POST.get('distance_ft'),
+            direction=request.POST.get('direction'),
+            d20_result_confirmed=request.POST.get('confirmed') == 'on',
+            ruleset=_resource_ruleset(person))
+    except (TypeError, ValueError):
+        return HttpResponse('Alterar Destino indisponível ou inválido.', status=400)
+    messages.success(request, 'Alterar Destino: %s e %s nos d4; aplique %+d ao d20.' % (
+        *result['dice'], result['modifier']), extra_tags='epic-fate')
+    return redirect(reverse('ficha_detail', args=[pk]) + '?aba=ficha')
+
+
+@login_required(login_url='/login/')
+@require_POST
+def personagem_recuperar_destino(request, pk):
+    from django.contrib import messages
+    from .epic_fate import recover_fate
+
+    person = _ficha_editavel(request, pk)
+    try:
+        result = recover_fate(
+            person, operation_id=request.POST.get('operation_id'),
+            event_ref=request.POST.get('event_ref'),
+            natural_d20=int(request.POST.get('natural_d20', '')),
+            own_roll_confirmed=request.POST.get('own_roll_confirmed') == 'on',
+            critical_confirmed=request.POST.get('critical_confirmed') == 'on',
+            ruleset=_resource_ruleset(person))
+    except (TypeError, ValueError):
+        return HttpResponse('Crítico natural inválido.', status=400)
+    messages.success(request, 'Uso recuperado.' if result['recovered'] else
+                     'Crítico registrado; o uso já estava disponível.', extra_tags='epic-fate')
+    return redirect(reverse('ficha_detail', args=[pk]) + '?aba=ficha')
+
+
+@login_required(login_url='/login/')
+@require_POST
+def personagem_iniciativa_destino(request, pk):
+    from django.contrib import messages
+    from .epic_fate import reset_fate_on_initiative
+
+    person = _ficha_editavel(request, pk)
+    try:
+        reset_fate_on_initiative(
+            person, operation_id=request.POST.get('operation_id'),
+            initiative_ref=request.POST.get('initiative_ref'),
+            confirmed=request.POST.get('confirmed') == 'on',
+            ruleset=_resource_ruleset(person))
+    except (TypeError, ValueError):
+        return HttpResponse('Iniciativa inválida.', status=400)
+    messages.success(request, 'Alterar Destino disponível após iniciativa.',
+                     extra_tags='epic-fate')
+    return redirect(reverse('ficha_detail', args=[pk]) + '?aba=ficha')
+
+
+@login_required(login_url='/login/')
+@require_POST
 def personagem_registrar_criatura_a_zero(request, pk):
     from django.contrib import messages
     from .epic_battle_accuracy import record_visible_zero
@@ -11019,6 +11083,7 @@ def ficha_detail_view(request, pk):
     from .epic_heroic_inspiration import inspiration_state
     from .epic_spell_damage import damage_spell_options
     from .epic_battle_accuracy import attack_accuracy_state
+    from .epic_fate import fate_state
     from .epic_relentless_damage import relentless_profiles
     from .epic_bloodied_damage import bloodied_attack_state
     from .epic_recovery_pool import recovery_pool_state, survival_state
@@ -11143,6 +11208,10 @@ def ficha_detail_view(request, pk):
         'nova_salvaguarda_operation_id': uuid.uuid4() if pode_editar else None,
         'nova_salvaguarda_turn_operation_id': uuid.uuid4() if pode_editar else None,
         'ataque_epico': attack_accuracy_state(p, ruleset=ruleset) if pode_editar else None,
+        'destino_epico': fate_state(p, ruleset=ruleset) if pode_editar else None,
+        'destino_use_operation_id': uuid.uuid4() if pode_editar else None,
+        'destino_critical_operation_id': uuid.uuid4() if pode_editar else None,
+        'destino_initiative_operation_id': uuid.uuid4() if pode_editar else None,
         'fortuna_event_operation_id': uuid.uuid4() if pode_editar else None,
         'fortuna_turn_operation_id': uuid.uuid4() if pode_editar else None,
         'perfis_dano_implacavel': relentless_profiles(p, ruleset=ruleset) if pode_editar else [],
