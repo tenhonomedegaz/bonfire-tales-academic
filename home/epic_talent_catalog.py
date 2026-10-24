@@ -29,6 +29,7 @@ ATTRIBUTE_TAGS = [
 
 # Só publicar entradas cujos efeitos adicionais foram conferidos contra o motor.
 VERIFIED_EFFECTS = {
+    "dadiva-do-conjurador-de-combate": [SPELL_DIE_FLOOR_TAG, FOCUS_TAG],
     "dadiva-da-viagem-dimensional": [
         "teleport:30ft(dest:unoccupied_visible, "
         "timing:before_or_after_attack_or_magic_action)",
@@ -118,7 +119,6 @@ VERIFIED_EFFECTS = {
 # Efeitos conferidos isoladamente. Estes talentos ainda não entram em epic_candidates:
 # faltam outros efeitos da mesma definição e a carga permanece fechada até cobertura integral.
 PARTIAL_EFFECTS = {
-    "dadiva-do-conjurador-de-combate": [SPELL_DIE_FLOOR_TAG, FOCUS_TAG],
     # O consumidor preserva uma concessão existente; a concessão em si ainda não
     # é materializada pelo site, portanto a definição completa segue fechada.
     "dadiva-da-resistencia-heroica": [

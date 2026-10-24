@@ -23,10 +23,13 @@ class EpicCombatTests(SimpleTestCase):
                 "velocidade": "9 m / 30 ft", "recursos": {},
             }
 
-        feature = SimpleNamespace(nome=talent["nome"], tags_json=talent["tags_json"])
-        applied = apply_tags(state(), [("talento", feature.nome, feature, None)])
-        removed = apply_tags(state(), [])
-        reapplied = apply_tags(state(), [("talento", feature.nome, feature, None)])
+        feature = SimpleNamespace(nome=talent["nome"], slug=talent["slug"],
+                                  tags_json=talent["tags_json"])
+        with patch("home.character_engine._talent_attr_map",
+                   return_value={("slug", talent["slug"]): "CON"}):
+            applied = apply_tags(state(), [("talento", feature.nome, feature, None)])
+            removed = apply_tags(state(), [])
+            reapplied = apply_tags(state(), [("talento", feature.nome, feature, None)])
 
         self.assertEqual(applied["pv"]["maximo_calculado"], 140)
         self.assertEqual(removed["pv"]["maximo_calculado"], 100)

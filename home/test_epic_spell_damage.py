@@ -47,11 +47,49 @@ class SpellDamageTests(TestCase):
         values.update(changes)
         return resolve_spell_damage(self.person, **values)
 
-    def test_tag_valid_but_concentration_effect_still_unprotected(self):
+    def test_complete_candidate_exposes_both_spell_effects(self):
         diagnostics = validate_tags_json([SPELL_DIE_FLOOR_TAG], Library())
         self.assertFalse([d for d in diagnostics if d.level == ERROR])
-        self.assertNotIn("dadiva-do-conjurador-de-combate",
-                         {row["slug"] for row in epic_candidates()})
+        candidate = next(row for row in epic_candidates()
+                         if row["slug"] == "dadiva-do-conjurador-de-combate")
+        from home.epic_concentration import FOCUS_TAG
+        self.assertIn(SPELL_DIE_FLOOR_TAG, candidate["tags_json"])
+        self.assertIn(FOCUS_TAG, candidate["tags_json"])
+        self.assertFalse([d for d in validate_tags_json(
+            candidate["tags_json"], Library()) if d.level == ERROR])
+
+    def test_real_candidate_drives_damage_and_concentration(self):
+        from home.epic_concentration import resolve_concentration_event
+        from home.resource_engine import activate_state
+        from home.tag_engine.combat_encounter import CombatEncounter
+
+        candidate = next(row for row in epic_candidates()
+                         if row["slug"] == "dadiva-do-conjurador-de-combate")
+        source = TbTalento.objects.create(**candidate)
+        self.owned_talent.id_talento = source
+        self.owned_talent.nome = source.nome
+        self.owned_talent.save(update_fields=["id_talento", "nome"])
+        self.assertEqual(self.resolve()["applied_dice"], [3, 3, 5])
+        activate_state(self.person, "spell:real", origin="magia:real",
+                       payload={"concentration": True})
+        self.assertEqual(resolve_concentration_event(
+            self.person, operation_id=uuid.uuid4(), event="damage")['outcome'],
+            "retained")
+        game = CombatEncounter([
+            {'id': 'caster', 'team': 'allies', 'max_hp': 30,
+             'concentration': 'spell:real',
+             'defensive_tags': candidate['tags_json']},
+            {'id': 'foe', 'team': 'enemies', 'max_hp': 30},
+        ])
+        game.start_turn('foe', 'turn-1')
+        game.attack('caster', (), hit=True, damage=4)
+        self.assertEqual(game.concentration_state('caster'), {
+            'source': 'spell:real', 'save_required': False})
+        self.owned_talent.delete()
+        self.assertEqual(damage_spell_options(self.person), [])
+        self.assertEqual(resolve_concentration_event(
+            self.person, operation_id=uuid.uuid4(), event="damage")['outcome'],
+            "save_required")
 
     def test_damage_floor_preserves_other_rolls_fixed_and_receipt(self):
         self.assertEqual(len(damage_spell_options(self.person)), 1)

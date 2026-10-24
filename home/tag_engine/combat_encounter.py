@@ -17,6 +17,7 @@ from .parser import parse_tag
 class CombatEncounter:
     def __init__(self, combatants):
         self._combatants = {}
+        initial_concentration = {}
         for entry in combatants:
             if not isinstance(entry, dict):
                 raise ValueError("Invalid combatant")
@@ -28,13 +29,17 @@ class CombatEncounter:
             defensive_tags = entry.get("defensive_tags", entry.get("tags", ()))
             offensive_tags = entry.get("offensive_tags", entry.get("tags", ()))
             tag_context = entry.get("tag_context", {})
+            concentration = entry.get("concentration")
             if (not isinstance(actor, str) or not actor or actor in self._combatants or
                     not isinstance(team, str) or not team or
                     type(maximum) is not int or maximum <= 0 or
                     type(hp) is not int or not 0 < hp <= maximum or
                     type(temp_hp) is not int or temp_hp < 0 or
                     isinstance(defensive_tags, str) or
-                    isinstance(offensive_tags, str) or not isinstance(tag_context, dict)):
+                    isinstance(offensive_tags, str) or not isinstance(tag_context, dict) or
+                    (concentration is not None and
+                     (not isinstance(concentration, str) or
+                      not 0 < len(concentration.strip()) <= 100))):
                 raise ValueError("Invalid combatant")
             try:
                 defensive_tags = tuple(defensive_tags)
@@ -54,6 +59,8 @@ class CombatEncounter:
                 "offensive_tags": offensive_tags,
                 "tag_context": tag_context,
             }
+            if concentration is not None:
+                initial_concentration[actor] = concentration.strip()
         if len({entry["team"] for entry in self._combatants.values()}) < 2:
             raise ValueError("An encounter needs at least two teams")
         self.conditions = CombatConditions()
@@ -72,6 +79,8 @@ class CombatEncounter:
         self._attack_reach_bonus = {}
         self._healing_tag_uses = set()
         self._fall_progress = {}
+        self._concentration = initial_concentration
+        self._concentration_save_pending = set()
 
     @property
     def combatants(self):
@@ -134,6 +143,66 @@ class CombatEncounter:
         if actor in self._bonus_invisible:
             self._bonus_invisible.remove(actor)
             self._events.append(("invisibility_end", actor))
+
+    def concentration_state(self, actor):
+        if actor not in self._combatants:
+            raise ValueError("Unknown combatant")
+        return {"source": self._concentration.get(actor),
+                "save_required": actor in self._concentration_save_pending}
+
+    def begin_concentration(self, actor, source_ref):
+        """Record a cast resolved by the table/VTT and replace prior focus."""
+        self._living(actor)
+        if self.finished or not isinstance(source_ref, str) or not 0 < len(source_ref.strip()) <= 100:
+            raise ValueError("Declare a concentration source")
+        source_ref = source_ref.strip()
+        previous = self._concentration.get(actor)
+        if previous == source_ref:
+            return False
+        self._concentration[actor] = source_ref
+        self._concentration_save_pending.discard(actor)
+        self._events.append(("concentration_start", actor, source_ref, previous))
+        return True
+
+    def resolve_concentration_event(self, actor, event, *, save_success=None):
+        """Consume explicit hard breaks and table-declared damage saves."""
+        if actor not in self._combatants or event not in {
+                "damage", "petrified", "unconscious", "death"}:
+            raise ValueError("Invalid concentration event")
+        if save_success is not None and (event != "damage" or type(save_success) is not bool):
+            raise ValueError("Declare a valid concentration save result")
+        if actor not in self._concentration:
+            return "inactive"
+        if event != "damage":
+            self._concentration.pop(actor)
+            self._concentration_save_pending.discard(actor)
+            outcome = "ended"
+        else:
+            entry = self._combatants[actor]
+            context = dict(entry["tag_context"])
+            context.update(resolve_runtime=True, event="take_damage",
+                           self_hp=entry["hp"], self_max_hp=entry["max_hp"])
+            focused = any(
+                operation.active and operation.op == "suppress"
+                and "concentration_break" in operation.value
+                for tag in entry["defensive_tags"]
+                for operation in evaluate_tags((tag,), context).operations
+            )
+            if focused:
+                self._concentration_save_pending.discard(actor)
+                outcome = "retained"
+            elif save_success is None:
+                self._concentration_save_pending.add(actor)
+                outcome = "save_required"
+            elif save_success:
+                self._concentration_save_pending.discard(actor)
+                outcome = "retained"
+            else:
+                self._concentration.pop(actor)
+                self._concentration_save_pending.discard(actor)
+                outcome = "ended"
+        self._events.append(("concentration", actor, event, outcome))
+        return outcome
 
     def bonus_action_invisibility(self):
         """Spend the current actor's bonus action when a light-gated tag grants it."""
@@ -407,7 +476,8 @@ class CombatEncounter:
     def attack(self, target, tags, *, hit, damage=0, damage_type=None,
                critical=False, dodge_disadvantage_applied=False,
                melee_weapon=False, invisible_advantage_applied=False,
-               invisible_disadvantage_applied=False):
+               invisible_disadvantage_applied=False,
+               concentration_save_success=None):
         source = self._action_actor()
         if self._teleport_pending_kind not in {None, "attack"}:
             raise ValueError("Complete the magic action declared for teleport")
@@ -420,8 +490,13 @@ class CombatEncounter:
                 (not hit and damage) or type(dodge_disadvantage_applied) is not bool
                 or type(melee_weapon) is not bool
                 or type(invisible_advantage_applied) is not bool
-                or type(invisible_disadvantage_applied) is not bool):
+                or type(invisible_disadvantage_applied) is not bool
+                or (concentration_save_success is not None and
+                    type(concentration_save_success) is not bool)):
             raise ValueError("Declare a valid hit and rolled damage")
+        if concentration_save_success is not None and (
+                not hit or damage == 0 or target not in self._concentration):
+            raise ValueError("No concentration damage save is available")
         if target in self._dodge_active and not dodge_disadvantage_applied:
             raise ValueError("Resolve the dodging target's attack disadvantage")
         if self.invisibility_state(source) and not invisible_advantage_applied:
@@ -467,10 +542,18 @@ class CombatEncounter:
             damage = self._damage_after_defenses(
                 target, damage, damage_type.strip().lower()
                 if isinstance(damage_type, str) else None, ignored)
+            if concentration_save_success is not None and damage == 0:
+                raise ValueError("No concentration damage save is available")
             target_entry = self._combatants[target]
             absorbed = min(target_entry["temp_hp"], damage)
             target_entry["temp_hp"] -= absorbed
             target_entry["hp"] = max(0, target_entry["hp"] - (damage - absorbed))
+            if damage > 0 and target in self._concentration:
+                if target_entry["hp"] == 0:
+                    self.resolve_concentration_event(target, "unconscious")
+                else:
+                    self.resolve_concentration_event(
+                        target, "damage", save_success=concentration_save_success)
         self.action_used = True
         self._action_kind = "attack"
         self._action_actor_id = source
