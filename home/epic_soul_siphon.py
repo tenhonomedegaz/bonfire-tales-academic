@@ -22,6 +22,7 @@ from .models import (
     TbPersonagemRecurso,
 )
 from .resource_engine import ensure_resource
+from .epic_healing_bonus import healing_bonus, mark_healing_bonuses
 
 
 SIPHON_TAG = (
@@ -163,10 +164,15 @@ def use_siphon(person, *, operation_id, distance_ft, enemy_at_zero,
     before_hp = max(0, int(locked.pv_atual or 0))
     derived_maximum = int(derive(locked, ruleset=ruleset)["pv"]["maximo_calculado"] or 0)
     maximum_hp = max(0, int(locked.pv_maximo or 0), derived_maximum)
-    after_hp = max(before_hp, min(maximum_hp, before_hp + definition["heal"]))
+    bonus, pending = (healing_bonus(
+        locked, hp=before_hp, maximum_hp=maximum_hp, ruleset=ruleset)
+        if before_hp < maximum_hp else (0, []))
+    after_hp = max(before_hp, min(maximum_hp, before_hp + definition["heal"] + bonus))
     healed = max(0, after_hp - before_hp)
     locked.pv_atual = after_hp
     locked.save(update_fields=["pv_atual"])
+    if healed:
+        mark_healing_bonuses(locked, pending)
 
     resource.atual = int(resource.atual) - 1
     resource.versao += 1

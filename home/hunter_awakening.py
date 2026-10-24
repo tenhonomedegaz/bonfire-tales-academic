@@ -93,8 +93,14 @@ def command(*, character_id, owner_id, operation_id, expected_version,
         if (not current['elder'] or not state.get('active')
                 or not current['elder_ready'] or person.pv_atual > 0):
             raise ValueError('Ímpeto Ancião exige nível 14, Forma ativa, 0 PV e uso disponível.')
-        person.pv_atual = 2 * current['level']
+        from .character_engine import derive
+        from .epic_healing_bonus import healing_bonus, mark_healing_bonuses
+        maximum = max(person.pv_maximo, derive(person, ruleset=profile.ruleset)['pv']['maximo_calculado'])
+        bonus, pending = healing_bonus(person, hp=0, maximum_hp=maximum, ruleset=profile.ruleset)
+        person.pv_atual = min(maximum, 2 * current['level'] + bonus)
         person.save(update_fields=['pv_atual'])
+        if person.pv_atual:
+            mark_healing_bonuses(person, pending)
         state['elder_ready'] = False
     elif action == 'elapsed':
         if not state.get('active') or not 1 <= seconds <= 86400:

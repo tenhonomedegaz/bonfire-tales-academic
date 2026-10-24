@@ -436,10 +436,16 @@ def command(*, character_id, owner_id, operation_id, expected_version, action,
                 raise ValueError('Informe a cura recebida de outra criatura, entre 1 e 100000 PV.')
             if side_effect_active(current, 'lagartixa-cicatrizante'):
                 amount //= 2
+        from .character_engine import derive
+        from .epic_healing_bonus import healing_bonus, mark_healing_bonuses
         before = person.pv_atual
+        maximum = max(person.pv_maximo, derive(person, ruleset=profile.ruleset)['pv']['maximo_calculado'])
+        bonus, pending = healing_bonus(person, hp=before, maximum_hp=maximum, ruleset=profile.ruleset)
         # Healing never reduces existing HP, even if a previously saved maximum is lower.
-        person.pv_atual = max(before, min(person.pv_maximo, max(0, before) + amount))
+        person.pv_atual = max(before, min(maximum, max(0, before) + amount + bonus))
         person.save(update_fields=['pv_atual'])
+        if person.pv_atual > before:
+            mark_healing_bonuses(person, pending)
         state['last_healing'] = dict(source=action, amount=person.pv_atual - before,
                                      current=person.pv_atual, turn=turn_key if action == 'regenerate' else '')
     elif action == 'elapsed':

@@ -42,6 +42,27 @@ class HunterAwakeningTests(_CriadorBase):
         data.update(changes)
         return command(**data)
 
+    def test_fortitude_bonus_on_elder_rescue(self):
+        from .epic_talent_catalog import epic_candidates
+        from .epic_healing_bonus import healing_turn_state
+        from .test_epic_healing_bonus import pin_current_origins
+        talent = TbTalento.objects.create(**next(
+            row for row in epic_candidates() if row['slug'] == 'dadiva-da-fortitude'))
+        TbPersonagemTalento.objects.create(id_personagem=self.person, id_talento=talent,
+                                           nome=talent.nome, detalhes='talent_attr:CON')
+        pin_current_origins(self.profile)
+        self.pc.nivel = 18
+        self.pc.save(update_fields=['nivel'])
+        self.person.pv_maximo = 100
+        self.person.save(update_fields=['pv_maximo'])
+        self.act('activate')
+        self.person.pv_atual = 0
+        self.person.save(update_fields=['pv_atual'])
+        self.act('elder_rescue')
+        self.person.refresh_from_db()
+        self.assertGreater(self.person.pv_atual, 36)
+        self.assertTrue(healing_turn_state(self.person))
+
     def test_form_http_replay_timer_rest_and_linked_sheet(self):
         self.assertTrue(panel(self.profile)['ready'])
         op = str(uuid.uuid4())

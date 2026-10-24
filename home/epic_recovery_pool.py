@@ -17,7 +17,7 @@ from .character_engine import (
 )
 from .models import TbOperacaoRecurso, TbPersonagem, TbPersonagemRecurso
 from .resource_engine import spend_resource
-from .tag_engine.evaluator import evaluate_tags
+from .epic_healing_bonus import healing_bonus, mark_healing_bonuses
 
 
 # This declaration deliberately contains only Recuperar Vitalidade.  The other
@@ -121,38 +121,6 @@ def _receipt(person, operation_id, fingerprint):
     return dict(receipt.resposta, replayed=True)
 
 
-def _healing_bonus(person, *, hp, maximum_hp, ruleset=None):
-    """Apply generic healing effects already declared by other active tags."""
-    derived = derive(person, ruleset=ruleset)
-    context = {
-        "resolve_runtime": True,
-        "event": "healing",
-        "self_hp": hp,
-        "self_max_hp": maximum_hp,
-        "str_mod": derived["atributos"]["FOR"]["mod"],
-        "dex_mod": derived["atributos"]["DES"]["mod"],
-        "con_mod": derived["atributos"]["CON"]["mod"],
-        "int_mod": derived["atributos"]["INT"]["mod"],
-        "wis_mod": derived["atributos"]["SAB"]["mod"],
-        "cha_mod": derived["atributos"]["CAR"]["mod"],
-    }
-    choices = _talent_attr_map(person, ruleset=ruleset)
-    bonus = 0
-    for _kind, _name, source, _level in _features_do_personagem(person, ruleset=ruleset):
-        tags = tuple(str(tag).strip() for tag in (source.tags_json or ()))
-        if (any("talent_attr_score" in tag for tag in tags)
-                and not _feature_talent_attr_sig(source, choices)):
-            continue
-        # Turn-limited effects require a turn ledger. Applying them for every
-        # pool use would bypass their declared limit.
-        immediate_tags = [tag for tag in tags if "1/turn" not in tag]
-        for operation in evaluate_tags(immediate_tags, context).operations:
-            if (operation.active and operation.op == "heal" and operation.target == "pv"
-                    and isinstance(operation.value, (int, float))):
-                bonus += max(0, int(operation.value))
-    return bonus
-
-
 def recovery_pool_state(person, ruleset=None):
     """Return the selected source's projected pool without creating a ledger row."""
     definition = _definition(person, ruleset=ruleset)
@@ -234,6 +202,11 @@ def apply_incoming_damage(person, *, operation_id, damage, use_survival, confirm
         derived_max = int(derive(locked, ruleset=ruleset)["pv"]["maximo_calculado"] or 0)
         maximum = max(0, int(locked.pv_maximo or 0), derived_max)
         after_hp = min(maximum, 1 + maximum // 2)
+        bonus, pending = healing_bonus(
+            locked, hp=1, maximum_hp=maximum, ruleset=ruleset)
+        after_hp = min(maximum, after_hp + bonus)
+        if after_hp > 1:
+            mark_healing_bonuses(locked, pending)
         triggered = True
     locked.pv_atual = after_hp
     locked.pv_temporario = before_temp - absorbed
@@ -281,12 +254,17 @@ def use_recovery_pool(person, *, operation_id, dice_count, bonus_action_availabl
     rolls = [secrets.randbelow(10) + 1 for _ in range(dice_count)]
     rolled_total = sum(rolls)
     hp_before = max(0, int(locked.pv_atual or 0))
-    maximum_hp = max(0, int(locked.pv_maximo or 0))
-    bonus = _healing_bonus(locked, hp=hp_before, maximum_hp=maximum_hp, ruleset=ruleset)
+    derived_max = int(derive(locked, ruleset=ruleset)["pv"]["maximo_calculado"] or 0)
+    maximum_hp = max(0, int(locked.pv_maximo or 0), derived_max)
+    bonus, pending = (healing_bonus(
+        locked, hp=hp_before, maximum_hp=maximum_hp, ruleset=ruleset)
+        if hp_before < maximum_hp else (0, []))
     hp_after = max(hp_before, min(maximum_hp, hp_before + rolled_total + bonus))
     healed = hp_after - hp_before
     locked.pv_atual = hp_after
     locked.save(update_fields=["pv_atual"])
+    if healed:
+        mark_healing_bonuses(locked, pending)
 
     response = {
         "operation_id": str(operation_id),

@@ -10314,6 +10314,27 @@ def personagem_salvaguarda_tempestade(request, pk):
 
 @login_required(login_url='/login/')
 @require_POST
+def personagem_iniciar_turno_cura(request, pk):
+    """Libera bônus de cura marcados uma vez por turno."""
+    from django.contrib import messages
+    from .epic_healing_bonus import begin_healing_turn
+
+    person = _ficha_editavel(request, pk)
+    try:
+        result = begin_healing_turn(
+            person, operation_id=request.POST.get('operation_id'),
+            turn_ref=request.POST.get('turn_ref'),
+            confirmed=request.POST.get('confirmed') == 'on',
+        )
+    except (TypeError, ValueError):
+        return HttpResponse('Início de turno inválido.', status=400)
+    messages.success(request, 'Bônus de cura liberados: %s.' % result['released'],
+                     extra_tags='epic-healing-turn')
+    return redirect(reverse('ficha_detail', args=[pk]) + '?aba=ficha')
+
+
+@login_required(login_url='/login/')
+@require_POST
 def personagem_usar_magia_inata(request, pk, magia_id):
     """Gasta (-1) ou devolve (+1) o uso oculto de uma magia inata/concedida."""
     from .character_engine import derive
@@ -10715,6 +10736,7 @@ def ficha_detail_view(request, pk):
     from .epic_battle_accuracy import attack_accuracy_state
     from .epic_recovery_pool import recovery_pool_state, survival_state
     from .epic_storm_save import storm_save_types
+    from .epic_healing_bonus import healing_turn_state
     import uuid
     if not request.user.is_authenticated:
         if request.method in ('GET', 'HEAD') and TbPersonagem.objects.filter(
@@ -10822,6 +10844,8 @@ def ficha_detail_view(request, pk):
         'sobrevivencia_operation_id': uuid.uuid4() if pode_editar else None,
         'tempestade_save_types': storm_save_types(p, ruleset=ruleset) if pode_editar else [],
         'tempestade_save_operation_id': uuid.uuid4() if pode_editar else None,
+        'cura_turno_bloqueada': healing_turn_state(p) if pode_editar else False,
+        'cura_turno_operation_id': uuid.uuid4() if pode_editar else None,
         'raca_linha': raca_linha,
         'magias_info': magias_info,
         'partial_spell_slots': getattr(settings, 'SPELL_SLOT_PARTIAL_ENABLED', True),

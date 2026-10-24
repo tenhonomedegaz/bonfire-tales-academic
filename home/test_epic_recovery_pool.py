@@ -17,6 +17,7 @@ from home.epic_recovery_pool import (
     recovery_pool_state,
     use_recovery_pool,
 )
+from home.epic_healing_bonus import begin_healing_turn, healing_turn_state
 from home.epic_talent_catalog import ATTRIBUTE_TAGS
 from home.models import (
     TbOperacaoRecurso,
@@ -109,15 +110,31 @@ class RecoveryPoolTests(RecoveryPoolSetup, TestCase):
         self.assertEqual((result["rolled_total"], result["healed"], result["hp_after"]),
                          (1, 5, 15))
 
-    def test_turn_limited_healing_is_not_granted_without_turn_tracking(self):
+    def test_turn_limited_healing_applies_once_then_releases_on_next_turn(self):
+        self.person.constituicao = 16
+        self.person.save(update_fields=["constituicao"])
         bonus_source = TbTalento.objects.create(
             nome="Cura limitada", slug="recovery-pool-limited-heal", tipo="geral",
             tags_json=["always_active{trigger=healing, 1/turn, instant{heal:+con_mod}}"])
         TbPersonagemTalento.objects.create(
             id_personagem=self.person, id_talento=bonus_source, nome=bonus_source.nome)
         with patch("home.epic_recovery_pool.secrets.randbelow", return_value=0):
-            result = self.use(dice_count=1)
-        self.assertEqual((result["rolled_total"], result["healed"]), (1, 1))
+            first = self.use(dice_count=1)
+            second = self.use(dice_count=1)
+        self.assertEqual((first["rolled_total"], first["healed"]), (1, 5))
+        self.assertEqual((second["rolled_total"], second["healed"]), (1, 1))
+        self.assertTrue(healing_turn_state(self.person))
+        released = begin_healing_turn(
+            self.person, operation_id=uuid.uuid4(), turn_ref="round-2",
+            confirmed=True)
+        self.assertEqual(released["released"], 1)
+        self.assertFalse(healing_turn_state(self.person))
+        with self.assertRaises(ValueError):
+            begin_healing_turn(self.person, operation_id=uuid.uuid4(),
+                               turn_ref="round-2", confirmed=True)
+        with patch("home.epic_recovery_pool.secrets.randbelow", return_value=0):
+            third = self.use(dice_count=1)
+        self.assertEqual(third["healed"], 5)
 
     def test_input_availability_idempotency_and_rollback(self):
         for changes in ({"dice_count": 0}, {"dice_count": 11},

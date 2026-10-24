@@ -10,6 +10,7 @@ from .hunter_preparation import preparation
 from .hunter_resources import contract
 from .models import TbOperacaoRecurso, TbPersonagem, TbPersonagemCacador
 from .resource_engine import spend_resource
+from .epic_healing_bonus import healing_bonus, mark_healing_bonuses
 
 
 ORDER = 'ordem-dos-exorcistas'
@@ -204,8 +205,14 @@ def command(*, character_id, owner_id, operation_id, expected_version, action,
         if mode == 'throw' and (target_undead or target_possessor):
             amount *= 2
         if mode == 'drink':
-            person.pv_atual = min(person.pv_maximo, max(0, person.pv_atual) + amount)
+            from .character_engine import derive
+            before = max(0, person.pv_atual)
+            maximum = max(person.pv_maximo, derive(person, ruleset=profile.ruleset)['pv']['maximo_calculado'])
+            bonus, pending = healing_bonus(person, hp=before, maximum_hp=maximum, ruleset=profile.ruleset)
+            person.pv_atual = max(before, min(maximum, before + amount + bonus))
             person.save(update_fields=['pv_atual'])
+            if person.pv_atual > before:
+                mark_healing_bonuses(person, pending)
         state['vials'] = current['vials'] - 1
         state['last_vial'] = {'mode': mode, 'target': target, 'amount': amount,
             'remove_exhaustion_level': mode != 'throw',

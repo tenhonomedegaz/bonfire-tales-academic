@@ -20,6 +20,33 @@ class HunterLanternTests(TestCase):
         arguments.update(changes)
         return command(**arguments)
 
+    def test_fortitude_healing_bonus_on_drunk_vial_once_per_turn(self):
+        from .epic_talent_catalog import epic_candidates
+        from .epic_healing_bonus import begin_healing_turn
+        from .test_epic_healing_bonus import pin_current_origins
+        from .models import TbTalento, TbPersonagemTalento
+        talent = TbTalento.objects.create(**next(
+            row for row in epic_candidates() if row['slug'] == 'dadiva-da-fortitude'))
+        TbPersonagemTalento.objects.create(id_personagem=self.person, id_talento=talent,
+                                           nome=talent.nome, detalhes='talent_attr:CON')
+        pin_current_origins(self.profile)
+        self.pc.nivel = 10
+        self.pc.save(update_fields=['nivel'])
+        self.person.pv_atual = 1
+        self.person.pv_maximo = 100
+        self.person.save(update_fields=['pv_atual', 'pv_maximo'])
+        self.lantern('vial', mode='drink', target='self', distance_m='0', roll_1=1, roll_2=1)
+        self.person.refresh_from_db()
+        first = self.person.pv_atual
+        self.lantern('vial', mode='drink', target='self', distance_m='0', roll_1=1, roll_2=1)
+        self.person.refresh_from_db()
+        self.assertEqual(self.person.pv_atual, first + 12)
+        begin_healing_turn(self.person, operation_id=uuid.uuid4(),
+                           turn_ref='lantern-turn-2', confirmed=True)
+        self.lantern('vial', mode='drink', target='self', distance_m='0', roll_1=1, roll_2=1)
+        self.person.refresh_from_db()
+        self.assertGreater(self.person.pv_atual, first + 24)
+
     def test_light_detection_replay_and_replacement(self):
         self.assertIsNotNone(panel(self.profile))
         response = self.client.get(self.url)

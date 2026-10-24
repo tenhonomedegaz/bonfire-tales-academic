@@ -279,6 +279,21 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
   </section>
   {% endif %}
 
+  {% if cura_turno_bloqueada and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="cura-turno-title">
+    <h2 id="cura-turno-title" class="ficha-section-title">Bônus de cura por turno</h2>
+    {% for message in messages %}{% if 'epic-healing-turn' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
+    <p>Um bônus de cura limitado por turno já foi usado. Libere-o somente quando o próximo turno começar na mesa.</p>
+    <form method="post" action="{% url 'personagem_iniciar_turno_cura' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ cura_turno_operation_id }}">
+      <label>Referência do turno <input type="text" name="turn_ref" maxlength="180" required></label>
+      <label><input type="checkbox" name="confirmed" required> Confirmo o início do próximo turno</label>
+      <button type="submit" class="banner-btn primary">Iniciar turno de cura</button>
+    </form>
+  </section>
+  {% endif %}
+
   {# ===================== LARGURA CHEIA ===================== #}
 
   {% comment %}As 4 caixinhas de RP do PDF da ficha. Edição inline (fetch) só para o dono/staff.{% endcomment %}

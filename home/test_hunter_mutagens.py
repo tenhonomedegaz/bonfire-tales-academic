@@ -32,6 +32,37 @@ class HunterMutagenTests(TestCase):
         self.execute('learn', selected=choices)
         return choices
 
+    def test_fortitude_bonus_on_lizard_regeneration_once_per_turn(self):
+        from .epic_talent_catalog import epic_candidates
+        from .epic_healing_bonus import begin_healing_turn
+        from .test_epic_healing_bonus import pin_current_origins
+        from .models import TbTalento, TbPersonagemTalento
+        talent = TbTalento.objects.create(**next(
+            row for row in epic_candidates() if row['slug'] == 'dadiva-da-fortitude'))
+        TbPersonagemTalento.objects.create(id_personagem=self.person, id_talento=talent,
+                                           nome=talent.nome, detalhes='talent_attr:CON')
+        pin_current_origins(self.profile)
+        self.pc.nivel = 7
+        self.pc.save(update_fields=['nivel'])
+        self.person.pv_atual, self.person.pv_maximo = 1, 100
+        self.person.save(update_fields=['pv_atual', 'pv_maximo'])
+        known = ['lagartixa-cicatrizante', 'guepardo-das-planicies',
+                 'salamandra-ignea', 'yeti-boreal', 'kraken-onisciente']
+        self.execute('learn', selected=known)
+        self.execute('prepare', selected=[known[0]])
+        self.execute('consume', formula=known[0])
+        self.execute('regenerate', turn_key='m1')
+        self.person.refresh_from_db()
+        first = self.person.pv_atual
+        self.execute('regenerate', turn_key='m2')
+        self.person.refresh_from_db()
+        self.assertEqual(self.person.pv_atual, first + 3)
+        begin_healing_turn(self.person, operation_id=uuid.uuid4(),
+                           turn_ref='m-turn-3', confirmed=True)
+        self.execute('regenerate', turn_key='m3')
+        self.person.refresh_from_db()
+        self.assertGreater(self.person.pv_atual, first + 6)
+
     def test_cheetah_concentration_guard_and_expiring_suppression(self):
         from .models import TbMagia
         from .resource_engine import activate_state
