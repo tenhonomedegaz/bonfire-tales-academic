@@ -245,6 +245,7 @@ urlpatterns = [
     path('jogador/personagens/<int:pk>/rolar-ataque-epico/', views.personagem_rolar_ataque_epico, name='personagem_rolar_ataque_epico'),
     path('jogador/personagens/<int:pk>/converter-ataque-epico/', views.personagem_converter_ataque_epico, name='personagem_converter_ataque_epico'),
     path('jogador/personagens/<int:pk>/iniciar-turno-ataque-epico/', views.personagem_iniciar_turno_ataque_epico, name='personagem_iniciar_turno_ataque_epico'),
+    path('jogador/personagens/<int:pk>/recuperar-vitalidade/', views.personagem_recuperar_vitalidade, name='personagem_recuperar_vitalidade'),
     path('jogador/personagens/<int:pk>/usar-item-consumivel/', views.personagem_usar_item_consumivel, name='personagem_usar_item_consumivel'),
     path('jogador/personagens/<int:pk>/usar-slot-magia/', views.personagem_usar_slot_magia, name='personagem_usar_slot_magia'),
     path('jogador/personagens/<int:pk>/descansar/', views.personagem_descansar, name='personagem_descansar'),

@@ -10237,6 +10237,30 @@ def personagem_iniciar_turno_ataque_epico(request, pk):
 
 @login_required(login_url='/login/')
 @require_POST
+def personagem_recuperar_vitalidade(request, pk):
+    """Gasta dados de recuperação de uma fonte ativa e aplica a cura na ficha."""
+    from django.contrib import messages
+    from .epic_recovery_pool import use_recovery_pool
+
+    person = _ficha_editavel(request, pk)
+    try:
+        result = use_recovery_pool(
+            person, operation_id=request.POST.get('operation_id'),
+            dice_count=int(request.POST.get('dice_count') or 0),
+            bonus_action_available=request.POST.get('bonus_action_available') == 'on',
+            confirmed=request.POST.get('confirmed') == 'on',
+            ruleset=_resource_ruleset(person),
+        )
+    except (TypeError, ValueError):
+        return HttpResponse('Recuperação de vitalidade indisponível ou inválida.', status=400)
+    messages.success(request, 'Dados: %s. Cura aplicada: %s PV. Restam %s dados.' % (
+        ', '.join(str(value) for value in result['rolls']), result['healed'],
+        result['resource_remaining']), extra_tags='epic-recovery-pool')
+    return redirect(reverse('ficha_detail', args=[pk]) + '?aba=ficha')
+
+
+@login_required(login_url='/login/')
+@require_POST
 def personagem_usar_magia_inata(request, pk, magia_id):
     """Gasta (-1) ou devolve (+1) o uso oculto de uma magia inata/concedida."""
     from .character_engine import derive
@@ -10636,6 +10660,7 @@ def ficha_detail_view(request, pk):
     from .epic_reaping import reaping_state
     from .epic_save_reroll import reroll_state
     from .epic_battle_accuracy import attack_accuracy_state
+    from .epic_recovery_pool import recovery_pool_state
     import uuid
     if not request.user.is_authenticated:
         if request.method in ('GET', 'HEAD') and TbPersonagem.objects.filter(
@@ -10737,6 +10762,8 @@ def ficha_detail_view(request, pk):
         'ataque_epico_hit_operation_id': uuid.uuid4() if pode_editar else None,
         'ataque_epico_turn_operation_id': uuid.uuid4() if pode_editar else None,
         'ataque_epico_rolagem_id': request.GET.get('ataque_epico', '') if pode_editar else '',
+        'recuperacao_pool': recovery_pool_state(p, ruleset=ruleset) if pode_editar else None,
+        'recuperacao_pool_operation_id': uuid.uuid4() if pode_editar else None,
         'raca_linha': raca_linha,
         'magias_info': magias_info,
         'partial_spell_slots': getattr(settings, 'SPELL_SLOT_PARTIAL_ENABLED', True),

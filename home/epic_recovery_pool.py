@@ -1,0 +1,209 @@
+"""Runtime for the bonus-action healing dice declared by an epic tag."""
+
+import hashlib
+import json
+import re
+import secrets
+import uuid
+
+from django.db import transaction
+
+from .character_engine import (
+    _feature_identity,
+    _feature_talent_attr_sig,
+    _features_do_personagem,
+    _talent_attr_map,
+    derive,
+)
+from .models import TbOperacaoRecurso, TbPersonagem, TbPersonagemRecurso
+from .resource_engine import spend_resource
+from .tag_engine.evaluator import evaluate_tags
+
+
+# This declaration deliberately contains only Recuperar Vitalidade.  The other
+# benefit of Dádiva da Recuperação remains unpublished until its zero-HP runtime
+# exists.
+RECOVERY_POOL_TAG = (
+    "define{recovery_pool: max:10, die:d10, reset:short_or_long}, "
+    "action:bonus_action, uses{10, reset:short_or_long}, "
+    "heal:sum(rolled_d10)@self"
+)
+RECOVERY_POOL_KEY = "epic:recovery_pool"
+
+_RECOVERY_POOL_RE = re.compile(
+    r"^define\{\s*recovery_pool\s*:\s*max\s*:\s*(?P<maximum>\d+)\s*,\s*"
+    r"die\s*:\s*d(?P<faces>\d+)\s*,\s*reset\s*:\s*(?P<reset>[a-z_]+)\s*\}\s*,\s*"
+    r"action\s*:\s*bonus_action\s*,\s*uses\{\s*(?P<uses>\d+)\s*,\s*"
+    r"reset\s*:\s*(?P=reset)\s*\}\s*,\s*"
+    r"heal\s*:\s*sum\(\s*rolled_d(?P=faces)\s*\)@self$"
+)
+
+
+def _definition(person, ruleset=None):
+    """Find the selected active source that declares this exact pool."""
+    choices = _talent_attr_map(person, ruleset=ruleset)
+    for _kind, display_name, source, _level in _features_do_personagem(
+            person, ruleset=ruleset):
+        tags = tuple(str(tag).strip() for tag in (source.tags_json or ()))
+        if (any("talent_attr_score" in tag for tag in tags)
+                and not _feature_talent_attr_sig(source, choices)):
+            continue
+        for tag in tags:
+            match = _RECOVERY_POOL_RE.fullmatch(tag)
+            if match is None:
+                continue
+            maximum = int(match.group("maximum"))
+            if (maximum != int(match.group("uses")) or maximum != 10
+                    or int(match.group("faces")) != 10
+                    or match.group("reset") != "short_or_long"):
+                continue
+            return {
+                "name": str(getattr(source, "nome", "") or display_name or "").strip(),
+                "maximum": maximum,
+                "faces": int(match.group("faces")),
+                "reset": match.group("reset"),
+                "origin": _feature_identity(source),
+            }
+    return None
+
+
+def _contract(definition):
+    return {
+        "key": RECOVERY_POOL_KEY,
+        "name": definition["name"] or "Recuperar Vitalidade",
+        "maximum": definition["maximum"],
+        "reset": definition["reset"],
+        "origin": definition["origin"],
+    }
+
+
+def _operation_id(value):
+    try:
+        return uuid.UUID(str(value))
+    except (ValueError, TypeError, AttributeError) as exc:
+        raise ValueError("Identificador da operação inválido.") from exc
+
+
+def _dice_count(value):
+    if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= 10:
+        raise ValueError("Informe de 1 a 10 dados da reserva.")
+    return value
+
+
+def _boolean(value, label):
+    if value is not True and value is not False:
+        raise ValueError(f"{label} deve ser booleano.")
+    return value
+
+
+def _fingerprint(dice_count, bonus_action_available, confirmed):
+    payload = ["recovery-pool", dice_count, bonus_action_available, confirmed]
+    return hashlib.sha256(json.dumps(payload, separators=(",", ":")).encode()).hexdigest()
+
+
+def _receipt(person, operation_id, fingerprint):
+    receipt = TbOperacaoRecurso.objects.filter(
+        id_personagem=person, operation_id=operation_id).first()
+    if receipt is None:
+        return None
+    if receipt.fingerprint != fingerprint:
+        raise ValueError("Esta operação já foi usada com outros dados.")
+    return dict(receipt.resposta, replayed=True)
+
+
+def _healing_bonus(person, *, hp, maximum_hp, ruleset=None):
+    """Apply generic healing effects already declared by other active tags."""
+    derived = derive(person, ruleset=ruleset)
+    context = {
+        "resolve_runtime": True,
+        "event": "healing",
+        "self_hp": hp,
+        "self_max_hp": maximum_hp,
+        "str_mod": derived["atributos"]["FOR"]["mod"],
+        "dex_mod": derived["atributos"]["DES"]["mod"],
+        "con_mod": derived["atributos"]["CON"]["mod"],
+        "int_mod": derived["atributos"]["INT"]["mod"],
+        "wis_mod": derived["atributos"]["SAB"]["mod"],
+        "cha_mod": derived["atributos"]["CAR"]["mod"],
+    }
+    choices = _talent_attr_map(person, ruleset=ruleset)
+    bonus = 0
+    for _kind, _name, source, _level in _features_do_personagem(person, ruleset=ruleset):
+        tags = tuple(str(tag).strip() for tag in (source.tags_json or ()))
+        if (any("talent_attr_score" in tag for tag in tags)
+                and not _feature_talent_attr_sig(source, choices)):
+            continue
+        # Turn-limited effects require a turn ledger. Applying them for every
+        # pool use would bypass their declared limit.
+        immediate_tags = [tag for tag in tags if "1/turn" not in tag]
+        for operation in evaluate_tags(immediate_tags, context).operations:
+            if (operation.active and operation.op == "heal" and operation.target == "pv"
+                    and isinstance(operation.value, (int, float))):
+                bonus += max(0, int(operation.value))
+    return bonus
+
+
+def recovery_pool_state(person, ruleset=None):
+    """Return the selected source's projected pool without creating a ledger row."""
+    definition = _definition(person, ruleset=ruleset)
+    if definition is None:
+        return None
+    resource = TbPersonagemRecurso.objects.filter(
+        id_personagem=person, chave=RECOVERY_POOL_KEY).first()
+    current = definition["maximum"] if resource is None else max(
+        0, min(definition["maximum"], int(resource.atual or 0)))
+    return {"available": current, "max": definition["maximum"]}
+
+
+@transaction.atomic
+def use_recovery_pool(person, *, operation_id, dice_count, bonus_action_available,
+                      confirmed, ruleset=None):
+    """Spend dice, roll them once, heal, and store an idempotent receipt."""
+    operation_id = _operation_id(operation_id)
+    dice_count = _dice_count(dice_count)
+    bonus_action_available = _boolean(bonus_action_available, "Ação bônus disponível")
+    confirmed = _boolean(confirmed, "Confirmação")
+    fingerprint = _fingerprint(dice_count, bonus_action_available, confirmed)
+
+    locked = TbPersonagem.objects.select_for_update().get(pk=person.pk)
+    replay = _receipt(locked, operation_id, fingerprint)
+    if replay is not None:
+        return replay
+    definition = _definition(locked, ruleset=ruleset)
+    if definition is None:
+        raise ValueError("O personagem não possui uma fonte ativa para Recuperar Vitalidade.")
+    if not bonus_action_available:
+        raise ValueError("A ação bônus precisa estar disponível.")
+    if not confirmed:
+        raise ValueError("Confirme o uso declarado na mesa.")
+    if dice_count > definition["maximum"]:
+        raise ValueError("A quantidade de dados excede a reserva declarada.")
+
+    spent, resource = spend_resource(locked, _contract(definition), dice_count)
+    if not spent:
+        raise ValueError("Não há dados suficientes na reserva de Recuperar Vitalidade.")
+
+    rolls = [secrets.randbelow(10) + 1 for _ in range(dice_count)]
+    rolled_total = sum(rolls)
+    hp_before = max(0, int(locked.pv_atual or 0))
+    maximum_hp = max(0, int(locked.pv_maximo or 0))
+    bonus = _healing_bonus(locked, hp=hp_before, maximum_hp=maximum_hp, ruleset=ruleset)
+    hp_after = max(hp_before, min(maximum_hp, hp_before + rolled_total + bonus))
+    healed = hp_after - hp_before
+    locked.pv_atual = hp_after
+    locked.save(update_fields=["pv_atual"])
+
+    response = {
+        "operation_id": str(operation_id),
+        "rolls": rolls,
+        "rolled_total": rolled_total,
+        "healed": healed,
+        "hp_before": hp_before,
+        "hp_after": hp_after,
+        "resource_remaining": resource["current"],
+        "replayed": False,
+    }
+    TbOperacaoRecurso.objects.create(
+        id_personagem=locked, operation_id=operation_id, fingerprint=fingerprint,
+        resposta=response, status_http=200)
+    return response

@@ -227,6 +227,24 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
   </section>
   {% endif %}
 
+  {% if recuperacao_pool and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="recuperacao-pool-title">
+    <h2 id="recuperacao-pool-title" class="ficha-section-title">Recuperar Vitalidade</h2>
+    {% for message in messages %}{% if 'epic-recovery-pool' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
+    <p>Dados de recuperação disponíveis: {{ recuperacao_pool.available }}/{{ recuperacao_pool.max }}. A cura é rolada no servidor e não ultrapassa seus PV máximos.</p>
+    {% if recuperacao_pool.available %}
+    <form method="post" action="{% url 'personagem_recuperar_vitalidade' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ recuperacao_pool_operation_id }}">
+      <label>Dados d10 a gastar <input type="number" name="dice_count" min="1" max="{{ recuperacao_pool.available }}" required></label>
+      <label><input type="checkbox" name="bonus_action_available" required> Minha ação bônus está disponível</label>
+      <label><input type="checkbox" name="confirmed" required> Confirmo o uso na mesa</label>
+      <button type="submit" class="banner-btn primary">Gastar dados e recuperar PV</button>
+    </form>
+    {% else %}<p>Os dados gastos retornam no fim de um descanso curto ou longo.</p>{% endif %}
+  </section>
+  {% endif %}
+
   {# ===================== LARGURA CHEIA ===================== #}
 
   {% comment %}As 4 caixinhas de RP do PDF da ficha. Edição inline (fetch) só para o dono/staff.{% endcomment %}
