@@ -36,6 +36,11 @@ VERIFIED_EFFECTS = {
 # Efeitos conferidos isoladamente. Estes talentos ainda não entram em epic_candidates:
 # faltam outros efeitos da mesma definição e a carga permanece fechada até cobertura integral.
 PARTIAL_EFFECTS = {
+    "dadiva-do-ceifador-de-almas": [
+        "immune:veneno",
+        "cond_immune:envenenado",
+        "adv:death_save",
+    ],
     "dadiva-da-memoria-arcana": [
         "if(already:prof{arcanismo}): expertise:arcanismo else: prof:arcanismo",
         "pick:pericia_expertise:1(requires:already_expertise{arcanismo})",
