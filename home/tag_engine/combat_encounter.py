@@ -43,12 +43,16 @@ class CombatEncounter:
                 raise ValueError("Invalid combatant") from error
             if not all(isinstance(tag, str) for tag in defensive_tags + offensive_tags):
                 raise ValueError("Invalid combatant")
+            tag_context = dict(tag_context)
+            tag_context.setdefault("in_dim_light", False)
+            if type(tag_context["in_dim_light"]) is not bool:
+                raise ValueError("Declare whether the combatant is in dim light or darkness")
             self._combatants[actor] = {
                 "team": team, "max_hp": maximum, "hp": hp,
                 "temp_hp": temp_hp,
                 "defensive_tags": defensive_tags,
                 "offensive_tags": offensive_tags,
-                "tag_context": dict(tag_context),
+                "tag_context": tag_context,
             }
         if len({entry["team"] for entry in self._combatants.values()}) < 2:
             raise ValueError("An encounter needs at least two teams")
@@ -59,6 +63,8 @@ class CombatEncounter:
         self.finished = False
         self._events = []
         self._dodge_active = set()
+        self._bonus_invisible = set()
+        self._reactions_used = set()
         self._attack_reach_bonus = {}
         self._healing_tag_uses = set()
         self._fall_progress = {}
@@ -97,9 +103,79 @@ class CombatEncounter:
         self.action_used = False
         self.bonus_action_used = False
         self._dodge_active.discard(actor)
+        self._reactions_used.discard(actor)
         self._attack_reach_bonus.pop(actor, None)
         self._events.append(("turn_start", actor, turn_id))
         return True
+
+    def set_lighting(self, actor, *, in_dim_light):
+        """Apply the table's current lighting fact to conditional tags."""
+        self._living(actor)
+        if type(in_dim_light) is not bool:
+            raise ValueError("Lighting must be declared")
+        self._combatants[actor]["tag_context"]["in_dim_light"] = in_dim_light
+        self._events.append(("lighting", actor, in_dim_light))
+
+    def invisibility_state(self, actor):
+        """Project invisibility granted by this encounter's action tags."""
+        if actor not in self._combatants:
+            raise ValueError("Unknown combatant")
+        return actor in self._bonus_invisible and self._combatants[actor]["hp"] > 0
+
+    def _break_invisibility(self, actor):
+        if actor in self._bonus_invisible:
+            self._bonus_invisible.remove(actor)
+            self._events.append(("invisibility_end", actor))
+
+    def bonus_action_invisibility(self):
+        """Spend the current actor's bonus action when a light-gated tag grants it."""
+        actor = self.current_actor
+        if self.finished or actor is None or self.bonus_action_used:
+            raise ValueError("No bonus action is available")
+        self._living(actor)
+        if actor in self._bonus_invisible:
+            raise ValueError("Already invisible from this source")
+        entry = self._combatants[actor]
+        context = dict(entry["tag_context"])
+        context.update(resolve_runtime=True, event="bonus_action",
+                       self_hp=entry["hp"], self_max_hp=entry["max_hp"])
+        tags = entry["defensive_tags"] + tuple(
+            tag for tag in entry["offensive_tags"]
+            if tag not in entry["defensive_tags"])
+        granted = any(
+            operation.active and operation.op == "apply_condition"
+            and operation.value == "invisivel"
+            and operation.params.get("kwargs", {}).get("target") == "self"
+            and re.search(r"action\s*:\s*bonus_action\b", tag)
+            for tag in tags
+            for operation in evaluate_tags((tag,), context).operations
+        )
+        if not granted:
+            raise ValueError("No bonus-action invisibility is granted")
+        self.bonus_action_used = True
+        self._bonus_invisible.add(actor)
+        self._events.append(("invisibility_start", actor, "bonus_action"))
+        return True
+
+    def register_action(self, actor, kind):
+        """Record a table-resolved action, bonus action or reaction not modeled here."""
+        self._living(actor)
+        if self.finished or kind not in {"action", "bonus_action", "reaction"}:
+            raise ValueError("Invalid action")
+        if kind == "action":
+            if actor != self.current_actor or self.action_used:
+                raise ValueError("No action is available")
+            self.action_used = True
+        elif kind == "bonus_action":
+            if actor != self.current_actor or self.bonus_action_used:
+                raise ValueError("No bonus action is available")
+            self.bonus_action_used = True
+        else:
+            if actor in self._reactions_used:
+                raise ValueError("No reaction is available")
+            self._reactions_used.add(actor)
+        self._break_invisibility(actor)
+        self._events.append(("action", actor, kind))
 
     def bonus_action_dodge(self):
         """Use a bonus action to Dodge when a currently active tag grants it."""
@@ -123,6 +199,7 @@ class CombatEncounter:
         )
         if not granted:
             raise ValueError("No bonus-action Dodge is granted")
+        self._break_invisibility(actor)
         self.bonus_action_used = True
         self._dodge_active.add(actor)
         self._events.append(("dodge", actor, "bonus_action"))
@@ -253,7 +330,8 @@ class CombatEncounter:
 
     def attack(self, target, tags, *, hit, damage=0, damage_type=None,
                critical=False, dodge_disadvantage_applied=False,
-               melee_weapon=False):
+               melee_weapon=False, invisible_advantage_applied=False,
+               invisible_disadvantage_applied=False):
         source = self._action_actor()
         self._living(target)
         tags = tuple(tags)
@@ -262,10 +340,16 @@ class CombatEncounter:
                 (damage_type is not None and
                  (not isinstance(damage_type, str) or not damage_type.strip())) or
                 (not hit and damage) or type(dodge_disadvantage_applied) is not bool
-                or type(melee_weapon) is not bool):
+                or type(melee_weapon) is not bool
+                or type(invisible_advantage_applied) is not bool
+                or type(invisible_disadvantage_applied) is not bool):
             raise ValueError("Declare a valid hit and rolled damage")
         if target in self._dodge_active and not dodge_disadvantage_applied:
             raise ValueError("Resolve the dodging target's attack disadvantage")
+        if self.invisibility_state(source) and not invisible_advantage_applied:
+            raise ValueError("Resolve the invisible attacker's advantage")
+        if self.invisibility_state(target) and not invisible_disadvantage_applied:
+            raise ValueError("Resolve the invisible target's attack disadvantage")
         if melee_weapon:
             source_entry = self._combatants[source]
             attack_context = dict(source_entry["tag_context"])
@@ -310,6 +394,7 @@ class CombatEncounter:
             target_entry["temp_hp"] -= absorbed
             target_entry["hp"] = max(0, target_entry["hp"] - (damage - absorbed))
         self.action_used = True
+        self._break_invisibility(source)
         self._events.append(("attack", source, target, hit, damage))
         self._finish_if_decided()
         return operations
@@ -319,6 +404,7 @@ class CombatEncounter:
         self._living(target)
         if type(amount) is not int or amount < 0:
             raise ValueError("Declare a nonnegative healing amount")
+        self._break_invisibility(source)
         blocked = self.conditions.blocks_healing(target)
         if not blocked:
             entry = self._combatants[target]
@@ -341,6 +427,7 @@ class CombatEncounter:
         self._living(target)
         if type(amount) is not int or amount < 0:
             raise ValueError("Declare a nonnegative temporary HP amount")
+        self._break_invisibility(source)
         entry = self._combatants[target]
         received = (amount + self._temporary_hp_tag_bonus(target)
                     if amount else 0)

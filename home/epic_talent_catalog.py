@@ -25,6 +25,12 @@ ATTRIBUTE_TAGS = [
 
 # Só publicar entradas cujos efeitos adicionais foram conferidos contra o motor.
 VERIFIED_EFFECTS = {
+    "dadiva-do-espirito-noturno": [
+        "while_active{requires:in_dim_light, action:bonus_action, "
+        "instant{apply:invisivel(target:self)}}",
+        "while_active{requires:in_dim_light, resist:concussao, "
+        "resist:cortante, resist:perfurante}",
+    ],
     "dadiva-do-ceifador-de-almas": [
         "immune:veneno",
         "cond_immune:envenenado",
