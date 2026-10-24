@@ -153,10 +153,12 @@ VERIFIED_EFFECTS = {
 # faltam outros efeitos da mesma definição e a carga permanece fechada até cobertura integral.
 PARTIAL_EFFECTS = {}
 
-# These tags are deliberately carried into the catalog and VTT export, but the
-# site has no matching runtime consumer yet.  Keeping the source constraints in
-# the DSL is preferable to inventing a transformation, mark, or aura state.
-DECLARATIVE_EFFECTS = {
+# Regras preservadas para o futuro VTT. Elas usam a DSL para manter a fonte
+# estruturada, mas não entram em ``tags_json``: há consumidores genéricos para
+# parte desses verbos (spell_selection, cast e always_active) e publicá-las na
+# ficha concederia efeitos incompletos. Cada lacuna abaixo precisa de um
+# consumidor que respeite a relação específica da fonte antes de ser ativada.
+VTT_DECLARATIVE_TAGS = {
     "dadiva-da-maestria-de-escola-arcana": [
         "spell_selection:any{nivel:1, qtd:1, escola:pick:escola_dominada, "
         "always_prepared, extra, fora_do_limite}",
@@ -180,6 +182,25 @@ DECLARATIVE_EFFECTS = {
         "aura{radius:30ft,target:allies,effects{temp_hp:+10}}",
         "if(already:resist{radiante}): immune:radiante else: resist:radiante",
     ],
+}
+
+DECLARATIVE_GAPS = {
+    "dadiva-da-maestria-de-escola-arcana": (
+        "Falta vincular uma escola dominada às duas escolhas de magia e aos usos "
+        "distintos de conjuração."
+    ),
+    "dadiva-da-marca-arcana-superior": (
+        "Falta resolver a Marca Arcana e seu decreto definitivo antes de conceder "
+        "a magia selecionada."
+    ),
+    "dadiva-da-manipulacao-corporea": (
+        "Falta um consumidor de transformação com lista de formas, CR e duração "
+        "para aplicar a restrição da fonte."
+    ),
+    "dadiva-do-alvorecer-ardente": (
+        "Falta ciclo de vida da aura e seus gatilhos de incapacitação, escuridão e "
+        "ataque para aplicar a fonte sem simplificá-la."
+    ),
 }
 
 CATEGORIES = {
@@ -211,9 +232,7 @@ def epic_candidates(path=STAGING_PATH):
             raise ValueError(f"Categoria épica desconhecida: {title}")
         if "+2 em um atributo à sua escolha, até o máximo de 30" not in entry["descricao_markdown"]:
             raise ValueError(f"Regra de atributo ausente: {title}")
-        effects = VERIFIED_EFFECTS.get(slug, DECLARATIVE_EFFECTS.get(slug))
-        if effects is None:
-            continue
+        effects = VERIFIED_EFFECTS.get(slug, [])
         ready.append({
             "nome": title,
             "slug": slug,
@@ -224,6 +243,8 @@ def epic_candidates(path=STAGING_PATH):
             "descricao": entry["descricao_markdown"],
             "tags_json": ATTRIBUTE_TAGS + effects,
         })
-    if not (set(VERIFIED_EFFECTS) | set(DECLARATIVE_EFFECTS)).issubset(slugs):
+    if not (set(VERIFIED_EFFECTS) | set(VTT_DECLARATIVE_TAGS)).issubset(slugs):
         raise ValueError("Mapa de efeitos contém talento ausente do staging.")
+    if set(VTT_DECLARATIVE_TAGS) != set(DECLARATIVE_GAPS):
+        raise ValueError("Lacunas declarativas sem explicação correspondente.")
     return ready

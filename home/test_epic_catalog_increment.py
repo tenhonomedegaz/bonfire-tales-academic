@@ -3,8 +3,8 @@
 from django.test import SimpleTestCase
 
 from home.epic_heroic_inspiration import TABLE_HEROIC_INSPIRATION_GRANT_TAG
-from home.epic_talent_catalog import (ATTRIBUTE_TAGS, DECLARATIVE_EFFECTS,
-                                      epic_candidates)
+from home.epic_talent_catalog import (ATTRIBUTE_TAGS, DECLARATIVE_GAPS,
+                                      VTT_DECLARATIVE_TAGS, epic_candidates)
 from home.tag_engine.library import Library
 from home.tag_engine.validator import ERROR, validate_tags_json
 
@@ -30,12 +30,14 @@ class EpicCatalogIncrementTests(SimpleTestCase):
     def test_all_staged_entries_are_cataloged_with_explicit_declarative_gaps(self):
         entries = {entry["slug"]: entry for entry in epic_candidates()}
         self.assertEqual(len(entries), 31)
-        self.assertEqual(set(DECLARATIVE_EFFECTS), {
+        self.assertEqual(set(VTT_DECLARATIVE_TAGS), {
             "dadiva-da-maestria-de-escola-arcana",
             "dadiva-da-marca-arcana-superior",
             "dadiva-da-manipulacao-corporea",
             "dadiva-do-alvorecer-ardente",
         })
-        for slug in DECLARATIVE_EFFECTS:
+        self.assertEqual(set(DECLARATIVE_GAPS), set(VTT_DECLARATIVE_TAGS))
+        for slug, tags in VTT_DECLARATIVE_TAGS.items():
             self.assertEqual([issue for issue in validate_tags_json(
-                entries[slug]["tags_json"], Library()) if issue.level == ERROR], [])
+                tags, Library()) if issue.level == ERROR], [])
+            self.assertEqual(entries[slug]["tags_json"], ATTRIBUTE_TAGS)
