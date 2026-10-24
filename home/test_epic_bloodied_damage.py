@@ -1,20 +1,23 @@
 """Focused sheet flow for the bloodied once-per-turn damage tag."""
 
 import uuid
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
 from home.epic_bloodied_damage import bloodied_attack_state
-from home.epic_talent_catalog import ATTRIBUTE_TAGS, PARTIAL_EFFECTS
+from home.epic_battle_accuracy import FORTUNE_TAG, attack_accuracy_state
+from home.epic_talent_catalog import ATTRIBUTE_TAGS, VERIFIED_EFFECTS, epic_candidates
 from home.models import (TbItemMundano, TbOperacaoRecurso, TbPersonagem,
                          TbPersonagemItem, TbPersonagemTalento, TbTalento)
 from home.tag_engine.library import Library
 from home.tag_engine.validator import validate_tags_json
 
 
-BONUS_TAG = PARTIAL_EFFECTS['dadiva-da-carnificina'][0]
+BONUS_TAG = VERIFIED_EFFECTS['dadiva-da-carnificina'][1]
+CRITICAL_TAG = VERIFIED_EFFECTS['dadiva-da-carnificina'][2]
 
 
 class BloodiedDamageSheetTests(TestCase):
@@ -115,3 +118,128 @@ class BloodiedDamageSheetTests(TestCase):
         TbPersonagemTalento.objects.create(
             id_personagem=self.person, id_talento=unrelated, nome=unrelated.nome)
         self.assertEqual(bloodied_attack_state(self.person)['bonus'], 10)
+
+    def test_bloodied_critical_margin_roll_and_source_lifecycle(self):
+        self.talent.tags_json = ATTRIBUTE_TAGS + [BONUS_TAG, CRITICAL_TAG]
+        self.talent.save(update_fields=['tags_json'])
+        self.assertEqual(validate_tags_json([CRITICAL_TAG], Library()), [])
+        self.assertEqual(attack_accuracy_state(self.person)['critical_threshold'], 19)
+        another = TbTalento.objects.create(
+            nome='Outra margem global', slug='outra-margem-bloodied', tipo='geral',
+            tags_json=['crit_range:+1'])
+        other_grant = TbPersonagemTalento.objects.create(
+            id_personagem=self.person, id_talento=another, nome=another.nome)
+        self.assertEqual(attack_accuracy_state(self.person)['critical_threshold'], 18)
+        other_grant.delete()
+        self.assertContains(self.client.get(self.sheet), 'Crítico em 19–20')
+        roll_url = reverse('personagem_rolar_ataque_epico', args=[self.person.pk])
+        operation = uuid.uuid4()
+        with patch('home.epic_battle_accuracy.secrets.randbelow', return_value=18) as dice:
+            self.assertEqual(self.client.post(roll_url, {
+                'operation_id': str(operation)}).status_code, 302)
+        dice.assert_called_once_with(20)
+        receipt = TbOperacaoRecurso.objects.get(operation_id=operation).resposta
+        self.assertEqual((receipt['applied_d20'], receipt['critical_threshold'],
+                          receipt['critical_on_hit']), (19, 19, True))
+        with patch('home.epic_battle_accuracy.secrets.randbelow',
+                   side_effect=AssertionError('replay rolled again')):
+            self.assertEqual(self.client.post(roll_url, {
+                'operation_id': str(operation)}).status_code, 302)
+        self.person.pv_atual = 70
+        self.person.save(update_fields=['pv_atual'])
+        self.assertIsNone(attack_accuracy_state(self.person))
+        self.assertEqual(self.client.post(roll_url, {
+            'operation_id': str(uuid.uuid4())}).status_code, 400)
+        self.person.pv_atual = 40
+        self.person.save(update_fields=['pv_atual'])
+        self.grant.detalhes = ''
+        self.grant.save(update_fields=['detalhes'])
+        self.assertIsNone(attack_accuracy_state(self.person))
+        self.grant.delete()
+        self.assertIsNone(attack_accuracy_state(self.person))
+
+    def test_visible_zero_grants_next_attack_and_consumes_once(self):
+        self.talent.tags_json = ATTRIBUTE_TAGS + [BONUS_TAG, CRITICAL_TAG, FORTUNE_TAG]
+        self.talent.save(update_fields=['tags_json'])
+        self.assertEqual(validate_tags_json([FORTUNE_TAG], Library()), [])
+        event_url = reverse('personagem_registrar_criatura_a_zero', args=[self.person.pk])
+        roll_url = reverse('personagem_rolar_ataque_epico', args=[self.person.pk])
+        event = {'operation_id': str(uuid.uuid4()), 'event_ref': 'queda-1',
+                 'creature_ref': 'criatura-a', 'visible_confirmed': 'on',
+                 'zero_confirmed': 'on'}
+        self.assertEqual(self.client.post(event_url, event).status_code, 302)
+        self.assertEqual(self.client.post(event_url, event).status_code, 302)
+        self.assertEqual(self.client.post(event_url, dict(
+            event, operation_id=str(uuid.uuid4()))).status_code, 400)
+        self.assertTrue(attack_accuracy_state(self.person)['fortune_pending'])
+        operation = uuid.uuid4()
+        with patch('home.epic_battle_accuracy.secrets.randbelow', side_effect=[3, 18]) as dice:
+            self.assertEqual(self.client.post(roll_url, {
+                'operation_id': str(operation), 'disadvantage': 'on'}).status_code, 302)
+        dice.assert_called_once_with(20)
+        receipt = TbOperacaoRecurso.objects.get(operation_id=operation).resposta
+        self.assertEqual(receipt['mode'], 'normal')
+        self.assertTrue(receipt['fortune_consumed'])
+        self.assertFalse(attack_accuracy_state(self.person)['fortune_pending'])
+        with patch('home.epic_battle_accuracy.secrets.randbelow',
+                   side_effect=AssertionError('replay rolled again')):
+            self.assertEqual(self.client.post(roll_url, {
+                'operation_id': str(operation), 'disadvantage': 'on'}).status_code, 302)
+        self.assertEqual(self.client.post(event_url, dict(
+            event, operation_id=str(uuid.uuid4()), event_ref='queda-1b')).status_code, 302)
+        with patch('home.epic_battle_accuracy.secrets.randbelow', side_effect=[3, 18]) as dice:
+            second = uuid.uuid4()
+            self.assertEqual(self.client.post(roll_url, {
+                'operation_id': str(second)}).status_code, 302)
+        self.assertEqual(dice.call_count, 2)
+        self.assertEqual(TbOperacaoRecurso.objects.get(
+            operation_id=second).resposta['mode'], 'advantage')
+        self.assertEqual(self.client.post(event_url, dict(
+            event, operation_id=str(uuid.uuid4()), event_ref='queda-1c')).status_code, 302)
+        self.grant.delete()
+        self.assertIsNone(attack_accuracy_state(self.person))
+        self.assertEqual(self.client.post(roll_url, {
+            'operation_id': str(uuid.uuid4())}).status_code, 400)
+
+    def test_fortune_expires_at_next_turn_end_and_choice_gates_event(self):
+        self.talent.tags_json = ATTRIBUTE_TAGS + [FORTUNE_TAG]
+        self.talent.save(update_fields=['tags_json'])
+        event_url = reverse('personagem_registrar_criatura_a_zero', args=[self.person.pk])
+        turn_url = reverse('personagem_encerrar_turno_fortuna', args=[self.person.pk])
+        event = {'operation_id': str(uuid.uuid4()), 'event_ref': 'queda-2',
+                 'creature_ref': 'criatura-b', 'visible_confirmed': 'on',
+                 'zero_confirmed': 'on', 'during_own_turn': 'on'}
+        self.assertEqual(self.client.post(event_url, dict(
+            event, zero_confirmed='')).status_code, 400)
+        self.client.force_login(self.other)
+        self.assertEqual(self.client.post(event_url, event).status_code, 404)
+        self.client.force_login(self.owner)
+        self.assertEqual(self.client.post(event_url, event).status_code, 302)
+        self.assertTrue(attack_accuracy_state(self.person)['fortune_pending'])
+        first = {'operation_id': str(uuid.uuid4()), 'turn_ref': 'turno-1',
+                 'confirmed': 'on'}
+        self.assertEqual(self.client.post(turn_url, first).status_code, 302)
+        self.assertEqual(self.client.post(turn_url, first).status_code, 302)
+        self.assertTrue(attack_accuracy_state(self.person)['fortune_pending'])
+        self.assertEqual(self.client.post(turn_url, dict(
+            first, operation_id=str(uuid.uuid4()))).status_code, 400)
+        self.assertEqual(self.client.post(turn_url, {
+            'operation_id': str(uuid.uuid4()), 'turn_ref': 'turno-2',
+            'confirmed': 'on'}).status_code, 302)
+        self.assertFalse(attack_accuracy_state(self.person)['fortune_pending'])
+        self.grant.detalhes = ''
+        self.grant.save(update_fields=['detalhes'])
+        self.assertIsNone(attack_accuracy_state(self.person))
+        self.assertEqual(self.client.post(event_url, dict(
+            event, operation_id=str(uuid.uuid4()), event_ref='queda-3')).status_code, 400)
+
+    def test_complete_candidate_retains_source_markdown_and_existing_requirements(self):
+        candidate = next(row for row in epic_candidates()
+                         if row['slug'] == 'dadiva-da-carnificina')
+        self.assertEqual(candidate['tags_json'], ATTRIBUTE_TAGS +
+                         VERIFIED_EFFECTS['dadiva-da-carnificina'])
+        self.assertEqual(candidate['pre_requisito'], '')
+        self.assertIn('Fortuna do Assassino', candidate['descricao'])
+        self.assertIn('Momento de Violência', candidate['descricao'])
+        self.assertIn('Sede de Sangue', candidate['descricao'])
+        self.assertEqual(validate_tags_json(candidate['tags_json'], Library()), [])

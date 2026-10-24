@@ -10292,10 +10292,56 @@ def personagem_rolar_ataque_epico(request, pk):
         )
     except (TypeError, ValueError):
         return HttpResponse('Rolagem de ataque indisponível ou inválida.', status=400)
-    messages.success(request, 'D20 aplicado no ataque: %s (%s).' % (
-        result['applied_d20'], result['mode']), extra_tags='epic-battle-accuracy')
+    messages.success(request, 'D20 aplicado no ataque: %s (%s). Crítico em %s–20 se acertar%s' % (
+        result['applied_d20'], result['mode'], result['critical_threshold'],
+        '; margem atingida.' if result['critical_on_hit'] else '.'),
+        extra_tags='epic-battle-accuracy')
     return redirect(reverse('ficha_detail', args=[pk]) +
                     '?aba=ficha&ataque_epico=' + str(result['operation_id']))
+
+
+@login_required(login_url='/login/')
+@require_POST
+def personagem_registrar_criatura_a_zero(request, pk):
+    from django.contrib import messages
+    from .epic_battle_accuracy import record_visible_zero
+
+    person = _ficha_editavel(request, pk)
+    try:
+        record_visible_zero(
+            person, operation_id=request.POST.get('operation_id'),
+            event_ref=request.POST.get('event_ref'),
+            creature_ref=request.POST.get('creature_ref'),
+            visible_confirmed=request.POST.get('visible_confirmed') == 'on',
+            zero_confirmed=request.POST.get('zero_confirmed') == 'on',
+            during_own_turn=request.POST.get('during_own_turn') == 'on',
+            ruleset=_resource_ruleset(person))
+    except (TypeError, ValueError):
+        return HttpResponse('Evento de queda a 0 PV inválido.', status=400)
+    messages.success(request, 'Vantagem disponível na próxima jogada de ataque.',
+                     extra_tags='epic-battle-accuracy')
+    return redirect(reverse('ficha_detail', args=[pk]) + '?aba=ficha')
+
+
+@login_required(login_url='/login/')
+@require_POST
+def personagem_encerrar_turno_fortuna(request, pk):
+    from django.contrib import messages
+    from .epic_battle_accuracy import end_fortune_turn
+
+    person = _ficha_editavel(request, pk)
+    try:
+        result = end_fortune_turn(
+            person, operation_id=request.POST.get('operation_id'),
+            turn_ref=request.POST.get('turn_ref'),
+            confirmed=request.POST.get('confirmed') == 'on',
+            ruleset=_resource_ruleset(person))
+    except (TypeError, ValueError):
+        return HttpResponse('Fim de turno inválido.', status=400)
+    messages.success(request, 'Vantagem expirada.' if not result['remaining_turn_ends']
+                     else 'Vantagem disponível até o fim do próximo turno.',
+                     extra_tags='epic-battle-accuracy')
+    return redirect(reverse('ficha_detail', args=[pk]) + '?aba=ficha')
 
 
 @login_required(login_url='/login/')
@@ -11019,6 +11065,8 @@ def ficha_detail_view(request, pk):
         'nova_salvaguarda_operation_id': uuid.uuid4() if pode_editar else None,
         'nova_salvaguarda_turn_operation_id': uuid.uuid4() if pode_editar else None,
         'ataque_epico': attack_accuracy_state(p, ruleset=ruleset) if pode_editar else None,
+        'fortuna_event_operation_id': uuid.uuid4() if pode_editar else None,
+        'fortuna_turn_operation_id': uuid.uuid4() if pode_editar else None,
         'perfis_dano_implacavel': relentless_profiles(p, ruleset=ruleset) if pode_editar else [],
         'dano_implacavel_operation_id': uuid.uuid4() if pode_editar else None,
         'dano_sangrando': bloodied_attack_state(p, ruleset=ruleset) if pode_editar else None,

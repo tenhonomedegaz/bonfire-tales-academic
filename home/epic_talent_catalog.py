@@ -8,7 +8,7 @@ from django.utils.text import slugify
 from home.epic_death_seal import DEATH_SEAL_TAG
 from home.epic_reaping import REAPING_TAG
 from home.epic_save_reroll import REROLL_TAG
-from home.epic_battle_accuracy import NO_DISADVANTAGE_TAG, AUTO_HIT_TAG
+from home.epic_battle_accuracy import NO_DISADVANTAGE_TAG, AUTO_HIT_TAG, FORTUNE_TAG
 from home.epic_recovery_pool import RECOVERY_POOL_TAG, SURVIVAL_TAG
 from home.epic_storm_save import STORM_SAVE_TAG
 from home.epic_soul_siphon import SIPHON_TAG
@@ -25,6 +25,12 @@ ATTRIBUTE_TAGS = [
 
 # Só publicar entradas cujos efeitos adicionais foram conferidos contra o motor.
 VERIFIED_EFFECTS = {
+    "dadiva-da-carnificina": [
+        FORTUNE_TAG,
+        "while_active{requires:self{sangrando}, 1/turn, "
+        "instant{trigger=hit, dmg:+lvl}}",
+        "while_active{requires:self{sangrando}, crit_range:+1}",
+    ],
     "dadiva-da-velocidade": [
         "speed:+30",
         "cond_immune:paralisado",
@@ -85,10 +91,6 @@ VERIFIED_EFFECTS = {
 # Efeitos conferidos isoladamente. Estes talentos ainda não entram em epic_candidates:
 # faltam outros efeitos da mesma definição e a carga permanece fechada até cobertura integral.
 PARTIAL_EFFECTS = {
-    "dadiva-da-carnificina": [
-        "while_active{requires:self{sangrando}, 1/turn, "
-        "instant{trigger=hit, dmg:+lvl}}",
-    ],
     "dadiva-do-ceifador-de-almas": [
         "immune:veneno",
         "cond_immune:envenenado",

@@ -240,9 +240,9 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
 
   {% if ataque_epico and pode_editar %}
   <section class="ficha-panel ficha-noprint" aria-labelledby="ataque-epico-title">
-    <h2 id="ataque-epico-title" class="ficha-section-title">Aptidão de batalha</h2>
+    <h2 id="ataque-epico-title" class="ficha-section-title">Rolagem de ataque épico</h2>
     {% for message in messages %}{% if 'epic-battle-accuracy' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
-    <p>Role o d20 do ataque aqui. Se houver desvantagem, Mão Firme a ignora automaticamente. Compare o resultado com as regras da mesa.</p>
+    <p>Role o d20 do ataque aqui. Compare o resultado com as regras da mesa. Crítico em {{ ataque_epico.critical_threshold }}–20 se o ataque acertar.{% if ataque_epico.no_disadvantage %} Mão Firme ignora a desvantagem.{% endif %}</p>
     <form method="post" action="{% url 'personagem_rolar_ataque_epico' p.pk %}">
       {% csrf_token %}
       <input type="hidden" name="operation_id" value="{{ ataque_epico_operation_id }}">
@@ -250,6 +250,29 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
       <label><input type="checkbox" name="disadvantage"> O ataque teria desvantagem</label>
       <button type="submit" class="banner-btn primary">Rolar ataque</button>
     </form>
+    {% if ataque_epico.fortune_active %}
+    <h3>Fortuna do Assassino</h3>
+    <form method="post" action="{% url 'personagem_registrar_criatura_a_zero' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ fortuna_event_operation_id }}">
+      <label>Criatura <input type="text" name="creature_ref" maxlength="180" required></label>
+      <label>Identificação da queda <input type="text" name="event_ref" maxlength="180" required></label>
+      <label><input type="checkbox" name="visible_confirmed" required> Eu pude ver a criatura</label>
+      <label><input type="checkbox" name="zero_confirmed" required> A criatura caiu a 0 PV na mesa</label>
+      <label><input type="checkbox" name="during_own_turn"> A queda ocorreu no meu turno</label>
+      <button type="submit" class="banner-btn primary">Registrar vantagem</button>
+    </form>
+    {% if ataque_epico.fortune_pending %}
+    <p>Vantagem pendente para a próxima jogada de ataque.</p>
+    <form method="post" action="{% url 'personagem_encerrar_turno_fortuna' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ fortuna_turn_operation_id }}">
+      <label>Identificação do turno encerrado <input type="text" name="turn_ref" maxlength="180" required></label>
+      <label><input type="checkbox" name="confirmed" required> Meu turno terminou na mesa</label>
+      <button type="submit" class="banner-btn primary">Encerrar turno</button>
+    </form>
+    {% endif %}
+    {% endif %}
     {% if ataque_epico.auto_hit_available and ataque_epico_rolagem_id %}
     <form method="post" action="{% url 'personagem_converter_ataque_epico' p.pk %}">
       {% csrf_token %}
@@ -258,7 +281,7 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
       <label><input type="checkbox" name="miss_confirmed" required> A rolagem registrada errou conforme a mesa</label>
       <button type="submit" class="banner-btn primary">Escolher acertar</button>
     </form>
-    {% elif not ataque_epico.auto_hit_available %}
+    {% elif ataque_epico.auto_hit_active and not ataque_epico.auto_hit_available %}
     <p>Precisão Inigualável já foi usada; volta no início do próximo turno.</p>
     <form method="post" action="{% url 'personagem_iniciar_turno_ataque_epico' p.pk %}">
       {% csrf_token %}
