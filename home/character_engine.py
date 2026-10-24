@@ -1944,6 +1944,7 @@ def magias_concedidas(personagem, *, ruleset=None):
     classes = list(personagem.classes.select_related('id_classe', 'id_subclasse').order_by('-principal', 'id'))
     nivel_total = sum(int(c.nivel or 0) for c in classes) or int(personagem.nivel or 1)
     features = _features_do_personagem(personagem, classes, ruleset=ruleset)
+    talent_attrs = _talent_attr_map(personagem, ruleset=ruleset)
     escolhas, _listas = _collect_escolhas(personagem, features)
     catalog, catalog_rich = {}, {}
     class_scopes = None
@@ -1995,6 +1996,9 @@ def magias_concedidas(personagem, *, ruleset=None):
     for (_o, _f, obj, _cl) in features:
         fonte = getattr(obj, 'nome', '') or ''
         feat_tags = getattr(obj, 'tags_json', None) or []
+        if (any('attr:talent_attr_score+' in str(tag) for tag in feat_tags)
+                and not _feature_talent_attr_sig(obj, talent_attrs)):
+            continue
         if (any('spell_selection:' in str(tag) and 'always_prepared' in str(tag)
                 and 'extra' in str(tag) for tag in feat_tags)
                 and '|' in str(getattr(obj, 'descricao', '') or '')):

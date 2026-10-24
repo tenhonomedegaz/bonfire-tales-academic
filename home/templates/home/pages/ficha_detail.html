@@ -629,6 +629,7 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
 
   {# ===================== ABA 4: MAGIAS & OPÇÕES ===================== #}
   <div class="ficha-tabpanel space-y-3" data-tabpanel="magias" role="tabpanel" hidden>
+    {% for message in messages %}{% if 'epic-innate-cast' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
     <div class="spellbook-head">
       <div class="spell-title">
         <span>Magias</span>
@@ -785,14 +786,24 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
                   <span class="spell-innate-counter">{{ m.innate_atual }}/{{ m.innate_max }}</span>
                   {% if pode_editar %}
                   <span class="spell-inline-actions">
+                    {% if m.innate_without_slot and m.innate_without_components %}
+                    <form method="post" action="{% url 'personagem_usar_magia_inata' p.id_personagem m.id %}">
+                      {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+                      <input type="hidden" name="operation_id" value="{{ m.innate_operation_id }}">
+                      <button type="submit" {% if m.innate_atual == 0 %}disabled{% endif %} title="Conjurar magia inata sem espaço ou componentes">Conjurar</button>
+                    </form>
+                    {% else %}
                     <form method="post" action="{% url 'personagem_usar_magia_inata' p.id_personagem m.id %}">
                       {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
                       <button type="submit" {% if m.innate_atual == 0 %}disabled{% endif %} title="Gastar uso inato">-</button>
                     </form>
+                    {% endif %}
+                    {% if not m.innate_without_slot or not m.innate_without_components %}
                     <form method="post" action="{% url 'personagem_usar_magia_inata' p.id_personagem m.id %}">
                       {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="acao" value="desfazer">
                       <button type="submit" {% if m.innate_atual == m.innate_max %}disabled{% endif %} title="Restaurar uso inato">+</button>
                     </form>
+                    {% endif %}
                   </span>
                   {% endif %}
                   {% endif %}

@@ -5,17 +5,20 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import SimpleTestCase, TestCase
+from django.urls import reverse
+import uuid
 
 from home.character_engine import apply_tags, derive
 from home.epic_sky_runtime import fall_distance_for_turn
-from home.epic_talent_catalog import ATTRIBUTE_TAGS, PARTIAL_EFFECTS, epic_candidates
-from home.models import TbMagia, TbPersonagem, TbPersonagemTalento, TbTalento
+from home.epic_talent_catalog import ATTRIBUTE_TAGS, VERIFIED_EFFECTS, epic_candidates
+from home.models import (TbMagia, TbOperacaoRecurso, TbPersonagem,
+                         TbPersonagemTalento, TbTalento)
 from home.tag_engine.combat_encounter import CombatEncounter
 from home.views import (_innate_spell_uses, _magias_sheet_info,
                         _sync_magias_concedidas)
 
 
-EFFECT_TAGS = tuple(PARTIAL_EFFECTS["dadiva-do-dominio-do-ceu"])
+EFFECT_TAGS = tuple(VERIFIED_EFFECTS["dadiva-do-dominio-do-ceu"])
 TAGS = tuple(ATTRIBUTE_TAGS) + EFFECT_TAGS
 
 
@@ -34,10 +37,15 @@ def feature(tags=EFFECT_TAGS):
 
 
 class EpicSkyMovementTests(SimpleTestCase):
-    def test_talento_fora_da_carga_sem_consumer_do_site(self):
-        self.assertNotIn("dadiva-do-dominio-do-ceu", {
-            item["slug"] for item in epic_candidates()
-        })
+    def test_talento_incluido_com_tags_da_fonte(self):
+        from home.tag_engine.library import Library
+        from home.tag_engine.validator import ERROR, validate_tags_json
+
+        candidate = next(item for item in epic_candidates()
+                         if item['slug'] == 'dadiva-do-dominio-do-ceu')
+        self.assertEqual(candidate['tags_json'], list(TAGS))
+        self.assertEqual([issue for issue in validate_tags_json(
+            candidate['tags_json'], Library()) if issue.level == ERROR], [])
 
     @patch("home.character_engine._cond_nomes", return_value={})
     def test_applies_flight_hover_and_controlled_fall(self, _conditions):
@@ -162,3 +170,61 @@ class EpicSkySpellTests(TestCase):
         self.assertNotIn("queda_controlada", recalculated)
         self.assertEqual(_innate_spell_uses(
             self.character, recalculated), {})
+
+    def test_sheet_cast_is_idempotent_and_restores_only_on_long_rest(self):
+        from home.resource_engine import reset_resources
+
+        self.client.force_login(self.character.dono)
+        sheet_url = reverse('ficha_detail', args=[self.character.pk])
+        self.assertContains(self.client.get(sheet_url), 'Conjurar magia inata')
+        owned_spell = self.character.magias.get(id_magia=self.spell)
+        cast_url = reverse('personagem_usar_magia_inata', args=[
+            self.character.pk, owned_spell.pk])
+        self.assertEqual(self.client.post(cast_url, {'acao': 'desfazer'}).status_code, 400)
+        self.assertEqual(self.client.post(cast_url, {}).status_code, 400)
+        operation_id = str(uuid.uuid4())
+        payload = {'operation_id': operation_id}
+        self.assertEqual(self.client.post(cast_url, payload).status_code, 302)
+        receipt = TbOperacaoRecurso.objects.get(operation_id=operation_id)
+        self.assertEqual(receipt.resposta['remaining'], 0)
+        self.assertTrue(receipt.resposta['without_components'])
+        self.assertEqual(self.client.post(cast_url, payload).status_code, 302)
+        self.assertEqual(TbOperacaoRecurso.objects.filter(
+            operation_id=operation_id).count(), 1)
+        self.assertEqual(self.client.post(cast_url, {
+            'operation_id': str(uuid.uuid4())}).status_code, 400)
+        reset_resources(self.character, 'short_rest')
+        self.assertEqual(self.client.post(cast_url, {
+            'operation_id': str(uuid.uuid4())}).status_code, 400)
+        reset_resources(self.character, 'long_rest')
+        self.assertEqual(self.client.post(cast_url, {
+            'operation_id': str(uuid.uuid4())}).status_code, 302)
+
+    def test_unselected_source_and_removed_source_cannot_cast(self):
+        self.client.force_login(self.character.dono)
+        _sync_magias_concedidas(self.character)
+        spell_id = self.character.magias.get(id_magia=self.spell).pk
+        cast_url = reverse('personagem_usar_magia_inata', args=[
+            self.character.pk, spell_id])
+        self.owned.detalhes = ''
+        self.owned.save(update_fields=['detalhes'])
+        self.assertEqual(_innate_spell_uses(self.character), {})
+        self.assertEqual(self.client.post(cast_url, {
+            'operation_id': str(uuid.uuid4())}).status_code, 400)
+        _sync_magias_concedidas(self.character)
+        self.assertFalse(self.character.magias.filter(id_magia=self.spell).exists())
+        self.owned.detalhes = 'talent_attr:DES'
+        self.owned.save(update_fields=['detalhes'])
+        _sync_magias_concedidas(self.character)
+        self.owned.delete()
+        self.assertEqual(self.client.post(cast_url, {
+            'operation_id': str(uuid.uuid4())}).status_code, 400)
+
+    def test_other_account_cannot_cast(self):
+        other = get_user_model().objects.create_user(username='epic-sky-other')
+        _sync_magias_concedidas(self.character)
+        spell_id = self.character.magias.get(id_magia=self.spell).pk
+        self.client.force_login(other)
+        self.assertEqual(self.client.post(reverse('personagem_usar_magia_inata',
+            args=[self.character.pk, spell_id]), {
+                'operation_id': str(uuid.uuid4())}).status_code, 404)

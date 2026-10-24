@@ -4269,7 +4269,8 @@ def _resource_resets_on_rest(reset, longo):
     return reset in ('short-rest', 'short-or-long', 'rest')
 
 
-def _innate_spell_uses_from_features(features, catalog, ficha=None, *, ruleset=None):
+def _innate_spell_uses_from_features(features, catalog, ficha=None, *, ruleset=None,
+                                     talent_attrs=None):
     """Compila usos inatos de fontes e catalogo ja resolvidos.
 
     Mantem o leitor independente de talento, classe e persistencia: qualquer fonte
@@ -4279,6 +4280,11 @@ def _innate_spell_uses_from_features(features, catalog, ficha=None, *, ruleset=N
     for (_origem, _fonte, obj, _cl) in features:
         fonte = getattr(obj, 'nome', '') or ''
         tags = [str(t) for t in (getattr(obj, 'tags_json', None) or [])]
+        if talent_attrs is not None:
+            from .character_engine import _feature_talent_attr_sig
+            if (any('attr:talent_attr_score+' in tag for tag in tags)
+                    and not _feature_talent_attr_sig(obj, talent_attrs)):
+                continue
         ctx = _uses_eval_ctx(ficha, _cl)
         source_meta = None
         for t in tags:
@@ -4312,13 +4318,14 @@ def _innate_spell_uses_from_features(features, catalog, ficha=None, *, ruleset=N
 
 def _innate_spell_uses(personagem, ficha=None, *, ruleset=None):
     """Mapeia (fonte, spell_slug) -> metadados de uso inato vindos das tags."""
-    from .character_engine import _features_do_personagem
+    from .character_engine import _features_do_personagem, _talent_attr_map
     from .versioned_spells import spell_catalog
     features = _features_do_personagem(personagem, ruleset=ruleset)
     catalog = ({m.slug for m in spell_catalog(ruleset).values()} if ruleset is not None
                else set(TbMagia.objects.values_list('slug', flat=True)))
     return _innate_spell_uses_from_features(
-        features, catalog, ficha, ruleset=ruleset)
+        features, catalog, ficha, ruleset=ruleset,
+        talent_attrs=_talent_attr_map(personagem, ruleset=ruleset))
 
 
 def _innate_spell_labels(personagem, *, ruleset=None):
@@ -4491,6 +4498,7 @@ def _magias_sheet_info(personagem, ficha, essencia_pendentes, *, ruleset=None):
 
 
 def _magias_sheet_info_resolved(personagem, ficha, essencia_pendentes, *, ruleset=None):
+    import uuid
     from .models import (
         TbMagia, TbPersonagemMagia, TbPersonagemMagiaAssinatura)
     from .magic_workshop import spell_is_log_castable
@@ -4621,6 +4629,7 @@ def _magias_sheet_info_resolved(personagem, ficha, essencia_pendentes, *, rulese
             innate_meta.get('without_components'))
         row['innate_without_lethargy'] = bool(
             innate_meta.get('without_lethargy'))
+        row['innate_operation_id'] = uuid.uuid4() if innate_key else None
         assinatura = assinaturas.get(m.pk)
         if assinatura is not None:
             mods = assinatura.modificacoes_json or {}
@@ -10444,6 +10453,18 @@ def personagem_usar_magia_inata(request, pk, magia_id):
     from .models import TbPersonagemMagia
     from .resource_engine import mutate_resource
     p = _ficha_editavel(request, pk)
+    if request.POST.get('operation_id') and request.POST.get('acao') != 'desfazer':
+        from django.contrib import messages
+        from .epic_innate_cast import cast_tagged_innate_spell
+        try:
+            result = cast_tagged_innate_spell(
+                p, operation_id=request.POST.get('operation_id'),
+                owned_spell_id=magia_id, ruleset=_resource_ruleset(p))
+        except (TypeError, ValueError):
+            return HttpResponse('Conjuração inata indisponível ou inválida.', status=400)
+        messages.success(request, '%s conjurada sem espaço ou componentes. Restam %s usos.' % (
+            result['spell_name'], result['remaining']), extra_tags='epic-innate-cast')
+        return _redirect_next_or(request, reverse('ficha_detail', args=[pk]) + '?aba=magias')
     m = get_object_or_404(TbPersonagemMagia, pk=magia_id, id_personagem=p)
     if not m.sempre_preparada:
         return _redirect_next_or(request, reverse('ficha_detail', args=[pk]) + '?aba=magias')
@@ -10453,6 +10474,8 @@ def personagem_usar_magia_inata(request, pk, magia_id):
     total = int((row or {}).get('innate_max') or 0)
     if not key or total <= 0:
         return _redirect_next_or(request, reverse('ficha_detail', args=[pk]) + '?aba=magias')
+    if row.get('innate_without_slot') and row.get('innate_without_components'):
+        return HttpResponse('Use a conjuração registrada; usos retornam no descanso.', status=400)
     delta = 1 if request.POST.get('acao') == 'desfazer' else -1
     mutate_resource(p, {
         'key': key, 'legacy_name': key, 'name': m.nome,

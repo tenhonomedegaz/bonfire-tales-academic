@@ -25,6 +25,12 @@ ATTRIBUTE_TAGS = [
 
 # Só publicar entradas cujos efeitos adicionais foram conferidos contra o motor.
 VERIFIED_EFFECTS = {
+    "dadiva-do-dominio-do-ceu": [
+        "always_active{move:fly(=walk, hover, fall_threshold:5ft, "
+        "fall_speed:60ft)}",
+        "cast{spell:caminhar-no-vento, without{slot}, without{components}, "
+        "uses{1, reset:long_rest}, always_prepared}",
+    ],
     "dadiva-do-ataque-implacavel": [
         "always_active{ignore:resist(concussao,cortante,perfurante)}",
         "always_active{crit_dmg:+talent_attr_score}",
@@ -86,12 +92,6 @@ PARTIAL_EFFECTS = {
         "cond_immune:amedrontado",
         "if(already:prof{intimidacao}): expertise:intimidacao else: prof:intimidacao",
         "pick:pericia_expertise:1(requires:already_expertise{intimidacao})",
-    ],
-    "dadiva-do-dominio-do-ceu": [
-        "always_active{move:fly(=walk, hover, fall_threshold:5ft, "
-        "fall_speed:60ft)}",
-        "cast{spell:caminhar-no-vento, without{slot}, without{components}, "
-        "uses{1, reset:long_rest}, always_prepared}",
     ],
     "dadiva-da-velocidade": [
         "speed:+30",
