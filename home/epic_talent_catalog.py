@@ -38,13 +38,16 @@ VERIFIED_EFFECTS = {
 PARTIAL_EFFECTS = {
     "dadiva-da-memoria-arcana": [
         "if(already:prof{arcanismo}): expertise:arcanismo else: prof:arcanismo",
+        "pick:pericia_expertise:1(requires:already_expertise{arcanismo})",
     ],
     "dadiva-da-folia": [
         "if(already:prof{atuacao}): expertise:atuacao else: prof:atuacao",
+        "pick:pericia_expertise:1(requires:already_expertise{atuacao})",
     ],
     "dadiva-do-horror": [
         "cond_immune:amedrontado",
         "if(already:prof{intimidacao}): expertise:intimidacao else: prof:intimidacao",
+        "pick:pericia_expertise:1(requires:already_expertise{intimidacao})",
     ],
     "dadiva-do-devorador-de-almas": [
         "if(already:resist{frio}): immune:frio else: resist:frio",

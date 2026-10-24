@@ -770,6 +770,33 @@ def _feature_talent_attr_sig(obj, attr_map):
     return attr_map.get(('nome', _slug(nome)))
 
 
+def _feature_identity(obj):
+    """Stable identity for a conditional choice attached to a source row."""
+    meta = getattr(obj, '_meta', None)
+    pk = getattr(obj, 'pk', None)
+    if meta is None or pk is None:
+        return ''
+    return '%s:%s' % (meta.label_lower, pk)
+
+
+def _active_conditional_expertise_origins(personagem, features):
+    attrs = _talent_attr_map(personagem)
+    out = set()
+    for _origin, _name, source, _level in features:
+        identity = _feature_identity(source)
+        if not identity:
+            continue
+        tags = getattr(source, 'tags_json', None) or []
+        if not any('pick:pericia_expertise:' in str(tag)
+                   and 'requires:already_expertise{' in str(tag) for tag in tags):
+            continue
+        if (any('attr:talent_attr_score+' in str(tag) for tag in tags)
+                and not _feature_talent_attr_sig(source, attrs)):
+            continue
+        out.add('conditional-expertise:' + identity)
+    return out
+
+
 RESOURCE_TIPO_TABLE_ONLY = 'table-only'
 RESOURCE_TIPO_CONSUMABLE = 'consumable'
 RESOURCE_TIPO_CHOICE = 'choice'
@@ -3474,7 +3501,7 @@ def _apply_tags(state, features, personagem=None, escolhas=None, *, ruleset=None
         original = {_slug(row.nome) for row in personagem.pericias.all()
                     if row.proficiente or row.expertise}
         original |= _pericias_escolhidas(personagem)
-        original |= _expertise_escolhidas(personagem)
+        original |= _expertise_escolhidas(personagem, features)
         for index, (requested, _) in enumerate(skill_grants_by_feature):
             if requested:
                 grants = set().union(*(source for pos, (_, source)
@@ -3485,7 +3512,7 @@ def _apply_tags(state, features, personagem=None, escolhas=None, *, ruleset=None
     if conditional_skill_upgrades and personagem is not None:
         existing = {_norm_skill_slug(_slug(row.nome)) for row in personagem.pericias.all()
                     if row.proficiente or row.expertise}
-        existing |= _pericias_escolhidas(personagem) | _expertise_escolhidas(personagem)
+        existing |= _pericias_escolhidas(personagem) | _expertise_escolhidas(personagem, features)
         for skill, feature_index in conditional_skill_upgrades:
             external = skill in existing or any(
                 skill in grants for source, grants in skill_sources.items()
@@ -3861,15 +3888,21 @@ def _pericias_escolhidas(personagem):
     return out
 
 
-def _expertise_escolhidas(personagem):
+def _expertise_escolhidas(personagem, features=None):
     """Perícias marcadas para Especialização via `pick:pericia_expertise` (TbPersonagemEscolha
     tipo='pericia_expertise') como slugs canônicos. READBACK do kind 'pericia_expertise' —
     mesmo papel de _pericias_escolhidas para 'pericia', mas materializa expertise (dobro do
     PB) no derive. Complementa o campo manual TbPersonagemPericia.expertise (criador nv1)."""
     if personagem is None:
         return set()
+    active = None
+    if features is not None:
+        active = _active_conditional_expertise_origins(personagem, features)
     out = set()
     for e in personagem.escolhas.filter(tipo='pericia_expertise'):
+        if (active is not None and e.origem.startswith('conditional-expertise:')
+                and e.origem not in active):
+            continue
         if e.valor:
             out.add(_norm_skill_slug(e.valor))
     return out
@@ -4138,7 +4171,7 @@ def _derive(personagem, *, ruleset=None):
     state['pericias'] = _pericias(personagem, atributos, pb,
                                   tag['skill_prof'] | _pericias_escolhidas(personagem),
                                   tag['check_attr'], tag['check_bonus'],
-                                  tag_skill_expertise=(tag['skill_expertise'] | _expertise_escolhidas(personagem)),
+                                  tag_skill_expertise=(tag['skill_expertise'] | _expertise_escolhidas(personagem, features)),
                                   check_all=tag['check_all'])
     from .hunter_expertise import apply_expertise
     apply_expertise(personagem, ruleset, state['pericias'], pb, state['avisos'])

@@ -4,8 +4,10 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 
 from home.character_engine import derive
+from home.picks import resolve_personagem
 from home.epic_talent_catalog import ATTRIBUTE_TAGS, PARTIAL_EFFECTS, epic_candidates
-from home.models import TbPersonagem, TbPersonagemPericia, TbPersonagemTalento, TbTalento
+from home.models import (TbPersonagem, TbPersonagemEscolha, TbPersonagemPericia,
+                         TbPersonagemTalento, TbTalento)
 from home.tag_engine.library import Library
 from home.tag_engine.validator import ERROR, validate_tags_json
 
@@ -76,6 +78,128 @@ class EpicSkillUpgradeTests(TestCase):
         self.assertFalse(self.skill("Arcanismo")["expertise"])
         owned.delete()
         self.assertTrue(self.skill("Arcanismo")["proficiente"])
+
+    def test_existing_expertise_opens_validated_alternative_and_removal_disables_it(self):
+        from home.views import _lvl_aplicar_opcao, _opcoes_ficha
+
+        for slug, name in CASES:
+            with self.subTest(slug=slug):
+                TbPersonagemPericia.objects.create(
+                    id_personagem=self.character, nome=name,
+                    proficiente=True, expertise=True,
+                )
+                TbPersonagemPericia.objects.create(
+                    id_personagem=self.character, nome="Atletismo", proficiente=True,
+                )
+                owned = self.grant(slug)
+                groups = [g for g in resolve_personagem(self.character)
+                          if g['kind'] == 'pericia_expertise'
+                          and g['origem'] == owned.nome]
+                self.assertEqual(len(groups), 1)
+                group = groups[0]
+                self.assertIn("atletismo", {row['slug'] for row in group['universo']})
+                self.assertNotIn("arcanismo", {row['slug'] for row in group['universo']}
+                                 if name == "Arcanismo" else set())
+                self.assertTrue(_lvl_aplicar_opcao(self.character, {
+                    'slug': 'pericia_expertise', 'val': 'religiao', 'classe': '',
+                }))
+                self.assertFalse(self.skill("Religião")["expertise"])
+                self.assertEqual(_lvl_aplicar_opcao(self.character, {
+                    'slug': 'pericia_expertise', 'val': 'atletismo', 'classe': '',
+                }), [])
+                self.assertTrue(self.skill("Atletismo")["expertise"])
+                self.assertTrue(self.skill(name)["expertise"])
+                selected = [g for g in resolve_personagem(self.character)
+                            if g['kind'] == 'pericia_expertise'
+                            and g['origem'] == owned.nome]
+                self.assertEqual(len(selected), 1)
+                self.assertEqual([row['valor'] for row in selected[0]['escolhidas']],
+                                 ['atletismo'])
+                card = next(row for row in _opcoes_ficha(self.character)
+                            if row['origem'] == owned.nome
+                            and row['kind'] == 'pericia_expertise')
+                self.assertEqual(card['escolhidas'][0]['valor'], 'atletismo')
+                owned.detalhes = ''
+                owned.save(update_fields=['detalhes'])
+                self.assertFalse(self.skill("Atletismo")["expertise"])
+                self.assertFalse(any(g['kind'] == 'pericia_expertise'
+                                     and g['origem'] == owned.nome
+                                     for g in resolve_personagem(self.character)))
+                owned.detalhes = 'talent_attr:INT'
+                owned.save(update_fields=['detalhes'])
+                self.assertTrue(self.skill("Atletismo")["expertise"])
+                original_tags = list(owned.id_talento.tags_json)
+                owned.id_talento.tags_json = [tag for tag in original_tags
+                                                if 'pick:pericia_expertise:' not in tag]
+                owned.id_talento.save(update_fields=['tags_json'])
+                self.assertFalse(self.skill("Atletismo")["expertise"])
+                owned.id_talento.tags_json = original_tags
+                owned.id_talento.save(update_fields=['tags_json'])
+                self.assertTrue(self.skill("Atletismo")["expertise"])
+                owned.delete()
+                self.assertFalse(self.skill("Atletismo")["expertise"])
+                self.assertTrue(self.skill(name)["expertise"])
+                TbPersonagemPericia.objects.filter(id_personagem=self.character).delete()
+        self.assertEqual(TbPersonagemEscolha.objects.filter(
+            id_personagem=self.character, tipo='pericia_expertise').count(), 3)
+
+    def test_alternative_requires_prior_expertise_and_attribute_choice(self):
+        owned = self.grant("dadiva-da-memoria-arcana")
+        self.assertFalse(any(g['kind'] == 'pericia_expertise'
+                             for g in resolve_personagem(self.character)))
+        TbPersonagemPericia.objects.create(
+            id_personagem=self.character, nome="Arcanismo",
+            proficiente=True, expertise=True,
+        )
+        TbPersonagemPericia.objects.create(
+            id_personagem=self.character, nome="Atletismo", proficiente=True,
+        )
+        owned.detalhes = ''
+        owned.save(update_fields=['detalhes'])
+        self.assertFalse(any(g['kind'] == 'pericia_expertise'
+                             for g in resolve_personagem(self.character)))
+        owned.detalhes = 'talent_attr:INT'
+        owned.save(update_fields=['detalhes'])
+        self.assertEqual(sum(g['kind'] == 'pericia_expertise'
+                             for g in resolve_personagem(self.character)), 1)
+
+    def test_expertise_tag_from_another_source_opens_alternative(self):
+        owned = self.grant('dadiva-da-memoria-arcana')
+        source = TbTalento.objects.create(
+            nome='Aptidão anterior', slug='aptidao-anterior', tipo='geral',
+            tags_json=['expertise:arcanismo', 'prof:atletismo'],
+        )
+        external = TbPersonagemTalento.objects.create(
+            id_personagem=self.character, id_talento=source, nome=source.nome,
+        )
+        self.assertEqual(sum(g['kind'] == 'pericia_expertise'
+                             for g in resolve_personagem(self.character)), 1)
+        external.delete()
+        self.assertFalse(any(g['kind'] == 'pericia_expertise'
+                             for g in resolve_personagem(self.character)))
+        owned.delete()
+
+    def test_original_proficiency_expertise_from_other_source_opens_alternative(self):
+        TbPersonagemPericia.objects.create(
+            id_personagem=self.character, nome='Arcanismo', proficiente=True,
+        )
+        TbPersonagemPericia.objects.create(
+            id_personagem=self.character, nome='Atletismo', proficiente=True,
+        )
+        owned = self.grant('dadiva-da-memoria-arcana')
+        source = TbTalento.objects.create(
+            nome='Aptidão de origem', slug='aptidao-de-origem', tipo='geral',
+            tags_json=['expertise:original_prof'],
+        )
+        external = TbPersonagemTalento.objects.create(
+            id_personagem=self.character, id_talento=source, nome=source.nome,
+        )
+        self.assertTrue(any(g['kind'] == 'pericia_expertise'
+                            for g in resolve_personagem(self.character)))
+        external.delete()
+        self.assertFalse(any(g['kind'] == 'pericia_expertise'
+                             for g in resolve_personagem(self.character)))
+        owned.delete()
 
     def test_horror_fear_immunity_follows_source_and_attribute_choice(self):
         owned = self.grant("dadiva-do-horror", choice="")

@@ -988,11 +988,18 @@ def _expertise_owned_slugs(personagem):
     from .character_engine import _slug, _norm_skill_slug
     if personagem is None:
         return set()
+    from .character_engine import (_active_conditional_expertise_origins,
+                                   _features_do_personagem)
+    active_conditional = _active_conditional_expertise_origins(
+        personagem, _features_do_personagem(personagem))
     out = set()
     for per in personagem.pericias.all():
         if per.expertise:
             out.add(_norm_skill_slug(_slug(per.nome)))
     for e in personagem.escolhas.filter(tipo='pericia_expertise'):
+        if (e.origem.startswith('conditional-expertise:')
+                and e.origem not in active_conditional):
+            continue
         if e.valor:
             out.add(_norm_skill_slug(e.valor))
     return out
@@ -1031,11 +1038,66 @@ def _pericia_expertise_restrict(ctx):
     return None
 
 
+def _prior_expertise(personagem, source, skill):
+    """Check expertise granted before this source, including direct tag grants."""
+    from .character_engine import (
+        _expertise_escolhidas, _feature_identity, _feature_talent_attr_sig,
+        _features_do_personagem, _norm_skill_slug, _pericias_escolhidas,
+        _slug, _talent_attr_map,
+    )
+    from .tag_engine import evaluate_tags
+
+    skill = _norm_skill_slug(skill)
+    source_id = _feature_identity(source)
+    features = [feature for feature in _features_do_personagem(personagem)
+                if _feature_identity(feature[2]) != source_id]
+    if any(_norm_skill_slug(_slug(row.nome)) == skill and row.expertise
+           for row in personagem.pericias.all()):
+        return True
+    if skill in _expertise_escolhidas(personagem, features):
+        return True
+    prior_prof = {_norm_skill_slug(_slug(row.nome)) for row in personagem.pericias.all()
+                  if row.proficiente or row.expertise}
+    prior_prof |= _pericias_escolhidas(personagem)
+    attrs = _talent_attr_map(personagem)
+    operations = []
+    for _origin, _name, other, _level in features:
+        tags = [tag for tag in (getattr(other, 'tags_json', None) or [])
+                if isinstance(tag, str)]
+        if (any('attr:talent_attr_score+' in tag for tag in tags)
+                and not _feature_talent_attr_sig(other, attrs)):
+            continue
+        operations.extend(op for op in evaluate_tags(tags).operations
+                          if op.active and op.op == 'grant_proficiency')
+    prior_prof.update(_norm_skill_slug(str(op.value)) for op in operations
+                      if op.verb in {'prof', 'expertise'})
+    return any(op.verb == 'expertise'
+               and (_norm_skill_slug(str(op.value)) == skill
+                    or (op.value == 'original_prof' and skill in prior_prof))
+               for op in operations)
+
+
 def _pericia_expertise_universe(ctx):
     from .character_engine import _SKILL_INFO, _norm_skill_slug
     personagem = ctx.get('personagem')
-    prof = _pericia_proficient_slugs(personagem)
+    conditional = (ctx.get('constraints') or {}).get('requires') == 'already_expertise'
+    if conditional and personagem is not None:
+        from .character_engine import derive
+        prof = {_norm_skill_slug(row['nome']) for row in derive(personagem)['pericias']
+                if row['proficiente'] or row['expertise']}
+    else:
+        prof = _pericia_proficient_slugs(personagem)
     owned = _expertise_owned_slugs(personagem)
+    if conditional and personagem is not None:
+        from .character_engine import _feature_identity
+        source_id = _feature_identity(ctx.get('source'))
+        own_origin = 'conditional-expertise:%s' % source_id
+        own_choices = {_norm_skill_slug(value) for value in
+                       personagem.escolhas.filter(tipo='pericia_expertise',
+                                                 origem=own_origin).values_list('valor', flat=True)
+                       if value}
+        # Keep persisted selections visible in their source group after readback.
+        owned -= own_choices
     restrito = _pericia_expertise_restrict(ctx)
     pool = list(restrito) if restrito is not None else (sorted(prof) if prof else list(_SKILL_INFO.keys()))
     out = []
@@ -1052,6 +1114,8 @@ def _pericia_expertise_universe(ctx):
 
 def _pericia_expertise_origem(group):
     """Origem estável POR FEATURE (separa múltiplas features de expertise). Casa persist↔readback."""
+    if (group.get('constraints') or {}).get('requires') == 'already_expertise':
+        return 'conditional-expertise:%s' % group['source_identity']
     return str(group.get('origem') or group.get('classe') or 'Especialização')[:150]
 
 
@@ -2103,6 +2167,7 @@ def _legacy_subclass_bonus_defaults(source, subclasse, token):
 
 def _build_group(token, source, classe, subclasse, nivel, personagem, escolhas_map, entry,
                  tag_text='', choice_values=None, ruleset=None):
+    from .character_engine import _feature_identity
     tipo = token.sub
     n = count_for(token.count_expr, nivel, classe, token.resource_ref, ruleset=ruleset)
     optional = token.kind == 'opcao' and tipo == 'item_magico'
@@ -2115,6 +2180,18 @@ def _build_group(token, source, classe, subclasse, nivel, personagem, escolhas_m
     if not n or n <= 0:
         return None
     constraints = dict(token.constraints or {})
+    if token.kind == 'pericia_expertise' and constraints.get('requires') == 'already_expertise':
+        from .character_engine import (
+            _feature_talent_attr_sig, _talent_attr_map,
+        )
+        match = re.search(r'requires:already_expertise\{([a-z0-9_-]+)\}',
+                          constraints.get('raw') or '')
+        tags = getattr(source, 'tags_json', None) or []
+        if (personagem is None or match is None or not _feature_identity(source)
+                or (any('attr:talent_attr_score+' in str(tag) for tag in tags)
+                    and not _feature_talent_attr_sig(source, _talent_attr_map(personagem)))
+                or not _prior_expertise(personagem, source, match.group(1))):
+            return None
     # Legacy subclass pages use ``(<subclass slug>)`` to replace the class
     # option catalog and add a choice. Interpret the frozen declaration
     # against its own option ACL without changing the snapshot.
@@ -2174,6 +2251,7 @@ def _build_group(token, source, classe, subclasse, nivel, personagem, escolhas_m
         label = tipo_display
     group = {
         'origem': getattr(source, 'nome', None) or (classe.nome if classe else ''),
+        'source_identity': _feature_identity(source) if personagem is not None else '',
         'kind': token.kind, 'tipo': tipo, 'persist_tipo': persist_tipo,
         'optional': optional, 'paired_target_is_choice': optional,
         'increment_existing': subclass_replacement or bool(bonus_count),
