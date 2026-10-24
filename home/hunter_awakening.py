@@ -9,6 +9,7 @@ from .hunter_preparation import preparation
 from .hunter_resources import contract
 from .models import TbOperacaoRecurso, TbPersonagem, TbPersonagemCacador
 from .resource_engine import spend_resource
+from .temporary_hp import grant_temporary_hp
 
 
 ORDER = 'ordem-do-despertar'
@@ -87,8 +88,7 @@ def command(*, character_id, owner_id, operation_id, expected_version,
         if not success:
             raise ValueError('Pontos de Segredo insuficientes para Despertar Final.')
         state.update(final=True, final_remaining_seconds=60)
-        person.pv_temporario = max(person.pv_temporario, 2 * current['level'])
-        person.save(update_fields=['pv_temporario'])
+        grant_temporary_hp(person, 2 * current['level'])
     elif action == 'elder_rescue':
         if (not current['elder'] or not state.get('active')
                 or not current['elder_ready'] or person.pv_atual > 0):

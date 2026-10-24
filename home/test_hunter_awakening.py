@@ -8,6 +8,7 @@ from django.urls import reverse
 from .hunter_awakening import command, on_marked_prey_death, panel
 from .hunter_catalog import compose_order_revision
 from .models import TbOperacaoRecurso, TbPersonagem, TbPersonagemClasse, TbPersonagemCacador
+from .models import TbTalento, TbPersonagemTalento
 from .test_criador import _CriadorBase
 from .test_hunter_catalog import HunterCatalogTests
 
@@ -96,6 +97,33 @@ class HunterAwakeningTests(_CriadorBase):
                          {'tipo': 'longo', 'next': self.url})
         self.profile.refresh_from_db()
         self.assertTrue(panel(self.profile)['elder_ready'])
+
+    def test_final_secret_applies_temporary_hp_tags_once_and_preserves_higher_pool(self):
+        from .epic_talent_catalog import PARTIAL_EFFECTS
+
+        talent = TbTalento.objects.create(
+            nome='Teste de PV temporários', slug='teste-pv-temporarios',
+            tipo='geral', tags_json=PARTIAL_EFFECTS['dadiva-da-saude-abundante'])
+        TbPersonagemTalento.objects.create(
+            id_personagem=self.person, id_talento=talent,
+            categoria='epico', nome=talent.nome)
+        self.pc.nivel = 18
+        self.pc.save(update_fields=['nivel'])
+        self.act('activate')
+        operation_id = uuid.uuid4()
+        response = self.act('final', operation_id=operation_id)
+        self.person.refresh_from_db()
+        self.assertEqual(self.person.pv_temporario, 41)
+        self.assertEqual(self.act('final', operation_id=operation_id,
+                                  version=response['version'] - 1), response)
+        self.person.refresh_from_db()
+        self.assertEqual(self.person.pv_temporario, 41)
+        from .temporary_hp import grant_temporary_hp
+        self.person.pv_temporario = 50
+        self.person.save(update_fields=['pv_temporario'])
+        self.assertEqual(grant_temporary_hp(self.person, 36), 41)
+        self.person.refresh_from_db()
+        self.assertEqual(self.person.pv_temporario, 50)
 
     def test_permissions_wrong_order_and_stale_event(self):
         with self.assertRaises(TbPersonagem.DoesNotExist):
