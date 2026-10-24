@@ -10171,6 +10171,72 @@ def personagem_iniciar_turno_rerrolagem(request, pk):
 
 @login_required(login_url='/login/')
 @require_POST
+def personagem_rolar_ataque_epico(request, pk):
+    """Rola o ataque na ficha e respeita imunidade a desvantagem por tag."""
+    from django.contrib import messages
+    from .epic_battle_accuracy import roll_tagged_attack
+
+    person = _ficha_editavel(request, pk)
+    try:
+        result = roll_tagged_attack(
+            person, operation_id=request.POST.get('operation_id'),
+            advantage=request.POST.get('advantage') == 'on',
+            disadvantage=request.POST.get('disadvantage') == 'on',
+            ruleset=_resource_ruleset(person),
+        )
+    except (TypeError, ValueError):
+        return HttpResponse('Rolagem de ataque indisponível ou inválida.', status=400)
+    messages.success(request, 'D20 aplicado no ataque: %s (%s).' % (
+        result['applied_d20'], result['mode']), extra_tags='epic-battle-accuracy')
+    return redirect(reverse('ficha_detail', args=[pk]) +
+                    '?aba=ficha&ataque_epico=' + str(result['operation_id']))
+
+
+@login_required(login_url='/login/')
+@require_POST
+def personagem_converter_ataque_epico(request, pk):
+    """Converte uma rolagem registrada que errou, conforme declaração da mesa."""
+    from django.contrib import messages
+    from .epic_battle_accuracy import convert_tagged_miss
+
+    person = _ficha_editavel(request, pk)
+    try:
+        result = convert_tagged_miss(
+            person, operation_id=request.POST.get('operation_id'),
+            attack_operation_id=request.POST.get('attack_operation_id'),
+            miss_confirmed=request.POST.get('miss_confirmed') == 'on',
+            ruleset=_resource_ruleset(person),
+        )
+    except (TypeError, ValueError):
+        return HttpResponse('Conversão de ataque indisponível ou inválida.', status=400)
+    messages.success(request, 'Ataque convertido em acerto.' if result['hit'] else
+                     'Ataque não convertido.', extra_tags='epic-battle-accuracy')
+    return redirect(reverse('ficha_detail', args=[pk]) + '?aba=ficha')
+
+
+@login_required(login_url='/login/')
+@require_POST
+def personagem_iniciar_turno_ataque_epico(request, pk):
+    """Libera a conversão no próximo turno declarado na mesa."""
+    from django.contrib import messages
+    from .epic_battle_accuracy import release_auto_hit_on_turn_start
+
+    person = _ficha_editavel(request, pk)
+    try:
+        release_auto_hit_on_turn_start(
+            person, operation_id=request.POST.get('operation_id'),
+            turn_ref=request.POST.get('turn_ref'),
+            confirmed=request.POST.get('confirmed') == 'on',
+        )
+    except (TypeError, ValueError):
+        return HttpResponse('Início de turno inválido.', status=400)
+    messages.success(request, 'Conversão de ataque disponível no novo turno.',
+                     extra_tags='epic-battle-accuracy')
+    return redirect(reverse('ficha_detail', args=[pk]) + '?aba=ficha')
+
+
+@login_required(login_url='/login/')
+@require_POST
 def personagem_usar_magia_inata(request, pk, magia_id):
     """Gasta (-1) ou devolve (+1) o uso oculto de uma magia inata/concedida."""
     from .character_engine import derive
@@ -10569,6 +10635,7 @@ def ficha_detail_view(request, pk):
     from .epic_death_seal import death_seal_state
     from .epic_reaping import reaping_state
     from .epic_save_reroll import reroll_state
+    from .epic_battle_accuracy import attack_accuracy_state
     import uuid
     if not request.user.is_authenticated:
         if request.method in ('GET', 'HEAD') and TbPersonagem.objects.filter(
@@ -10665,6 +10732,11 @@ def ficha_detail_view(request, pk):
         'nova_salvaguarda': reroll_state(p, ruleset=ruleset) if pode_editar else None,
         'nova_salvaguarda_operation_id': uuid.uuid4() if pode_editar else None,
         'nova_salvaguarda_turn_operation_id': uuid.uuid4() if pode_editar else None,
+        'ataque_epico': attack_accuracy_state(p, ruleset=ruleset) if pode_editar else None,
+        'ataque_epico_operation_id': uuid.uuid4() if pode_editar else None,
+        'ataque_epico_hit_operation_id': uuid.uuid4() if pode_editar else None,
+        'ataque_epico_turn_operation_id': uuid.uuid4() if pode_editar else None,
+        'ataque_epico_rolagem_id': request.GET.get('ataque_epico', '') if pode_editar else '',
         'raca_linha': raca_linha,
         'magias_info': magias_info,
         'partial_spell_slots': getattr(settings, 'SPELL_SLOT_PARTIAL_ENABLED', True),

@@ -23,7 +23,7 @@ from .models import TbOperacaoRecurso, TbPersonagem, TbPersonagemEstado
 from .resource_engine import activate_state, end_state
 
 
-NO_DISADVANTAGE_TAG = "attack_roll:no_disadvantage"
+NO_DISADVANTAGE_TAG = "attack_roll:immune(disadvantage)"
 AUTO_HIT_TAG = "trigger=failed_attack, convert:hit, lockout{self, reset:turn_start}"
 AUTO_HIT_STATE_KEY = "epic:attack_accuracy:auto_hit:turn_lock"
 _TURN_REF_RE = re.compile(r"^.{1,180}$", re.S)
@@ -164,6 +164,10 @@ def convert_tagged_miss(person, *, operation_id, attack_operation_id, miss_confi
         raise ValueError("A conversão exige um ataque anterior registrado para este personagem.")
     if miss_confirmed is not True:
         raise ValueError("A conversão exige a confirmação da falha na mesa.")
+    if TbOperacaoRecurso.objects.filter(
+            id_personagem=locked, resposta__hit=True,
+            resposta__attack_operation_id=str(attack_operation_id)).exists():
+        raise ValueError("Esta rolagem de ataque já foi convertida em acerto.")
     if TbPersonagemEstado.objects.filter(
             id_personagem=locked, chave=AUTO_HIT_STATE_KEY, ativo=True).exists():
         raise ValueError("A conversão já foi usada até o início do próximo turno.")

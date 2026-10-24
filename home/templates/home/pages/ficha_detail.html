@@ -194,6 +194,39 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
   </section>
   {% endif %}
 
+  {% if ataque_epico and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="ataque-epico-title">
+    <h2 id="ataque-epico-title" class="ficha-section-title">Aptidão de batalha</h2>
+    {% for message in messages %}{% if 'epic-battle-accuracy' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
+    <p>Role o d20 do ataque aqui. Se houver desvantagem, Mão Firme a ignora automaticamente. Compare o resultado com as regras da mesa.</p>
+    <form method="post" action="{% url 'personagem_rolar_ataque_epico' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ ataque_epico_operation_id }}">
+      <label><input type="checkbox" name="advantage"> O ataque tem vantagem</label>
+      <label><input type="checkbox" name="disadvantage"> O ataque teria desvantagem</label>
+      <button type="submit" class="banner-btn primary">Rolar ataque</button>
+    </form>
+    {% if ataque_epico.auto_hit_available and ataque_epico_rolagem_id %}
+    <form method="post" action="{% url 'personagem_converter_ataque_epico' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ ataque_epico_hit_operation_id }}">
+      <input type="hidden" name="attack_operation_id" value="{{ ataque_epico_rolagem_id }}">
+      <label><input type="checkbox" name="miss_confirmed" required> A rolagem registrada errou conforme a mesa</label>
+      <button type="submit" class="banner-btn primary">Escolher acertar</button>
+    </form>
+    {% elif not ataque_epico.auto_hit_available %}
+    <p>Precisão Inigualável já foi usada; volta no início do próximo turno.</p>
+    <form method="post" action="{% url 'personagem_iniciar_turno_ataque_epico' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ ataque_epico_turn_operation_id }}">
+      <label>Identificação do próximo turno <input type="text" name="turn_ref" maxlength="100" required></label>
+      <label><input type="checkbox" name="confirmed" required> Meu próximo turno começou na mesa</label>
+      <button type="submit" class="banner-btn primary">Iniciar próximo turno</button>
+    </form>
+    {% endif %}
+  </section>
+  {% endif %}
+
   {# ===================== LARGURA CHEIA ===================== #}
 
   {% comment %}As 4 caixinhas de RP do PDF da ficha. Edição inline (fetch) só para o dono/staff.{% endcomment %}

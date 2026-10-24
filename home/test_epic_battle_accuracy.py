@@ -77,6 +77,10 @@ class AccuracyPersistenceTests(AccuracySetup, TestCase):
             self.person, operation_id=uuid.uuid4(), turn_ref="combat-1:round-2", confirmed=True)
         self.assertTrue(released["released"])
         self.assertTrue(attack_accuracy_state(self.person)["auto_hit_available"])
+        with self.assertRaises(ValueError):
+            self.convert(attack["operation_id"])
+        another_attack = self.attack()
+        self.assertTrue(self.convert(another_attack["operation_id"])["hit"])
 
     def test_receipts_are_idempotent_and_conversion_requires_own_attack(self):
         operation = uuid.uuid4()
