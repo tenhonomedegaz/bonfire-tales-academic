@@ -10197,6 +10197,37 @@ def personagem_iniciar_turno_rerrolagem(request, pk):
 
 @login_required(login_url='/login/')
 @require_POST
+def personagem_resolver_dano_arma(request, pk):
+    """Resolve um acerto de arma declarado na mesa com as tags da ficha."""
+    from django.contrib import messages
+    from .epic_relentless_damage import resolve_weapon_hit
+
+    person = _ficha_editavel(request, pk)
+    try:
+        result = resolve_weapon_hit(
+            person, operation_id=request.POST.get('operation_id'),
+            profile_index=int(request.POST.get('profile_index') or -1),
+            rolled_damage=int(request.POST.get('rolled_damage') or -1),
+            critical=request.POST.get('critical') == 'on',
+            target_defense=request.POST.get('target_defense'),
+            confirmed=request.POST.get('confirmed') == 'on',
+            ruleset=_resource_ruleset(person),
+        )
+    except (TypeError, ValueError):
+        return HttpResponse('Dano de arma indisponível ou inválido.', status=400)
+    details = [result['profile']]
+    if result['critical_bonus']:
+        details.append('crítico +%s' % result['critical_bonus'])
+    if result['ignored_resistance']:
+        details.append('resistência ignorada')
+    messages.success(request, 'Dano %s: %s (%s).' % (
+        result['damage_type'], result['final_damage'], '; '.join(details)),
+        extra_tags='epic-relentless-damage')
+    return redirect(reverse('ficha_detail', args=[pk]) + '?aba=ficha')
+
+
+@login_required(login_url='/login/')
+@require_POST
 def personagem_rolar_ataque_epico(request, pk):
     """Rola o ataque na ficha e respeita imunidade a desvantagem por tag."""
     from django.contrib import messages
@@ -10806,6 +10837,7 @@ def ficha_detail_view(request, pk):
     from .epic_reaping import reaping_state
     from .epic_save_reroll import reroll_state
     from .epic_battle_accuracy import attack_accuracy_state
+    from .epic_relentless_damage import relentless_profiles
     from .epic_recovery_pool import recovery_pool_state, survival_state
     from .epic_storm_save import storm_save_types
     from .epic_healing_bonus import healing_turn_state
@@ -10922,6 +10954,8 @@ def ficha_detail_view(request, pk):
         'nova_salvaguarda_operation_id': uuid.uuid4() if pode_editar else None,
         'nova_salvaguarda_turn_operation_id': uuid.uuid4() if pode_editar else None,
         'ataque_epico': attack_accuracy_state(p, ruleset=ruleset) if pode_editar else None,
+        'perfis_dano_implacavel': relentless_profiles(p, ruleset=ruleset) if pode_editar else [],
+        'dano_implacavel_operation_id': uuid.uuid4() if pode_editar else None,
         'ataque_epico_operation_id': uuid.uuid4() if pode_editar else None,
         'ataque_epico_hit_operation_id': uuid.uuid4() if pode_editar else None,
         'ataque_epico_turn_operation_id': uuid.uuid4() if pode_editar else None,

@@ -1,6 +1,6 @@
 from django.test import SimpleTestCase, TestCase
 
-from home.epic_talent_catalog import ATTRIBUTE_TAGS, PARTIAL_EFFECTS
+from home.epic_talent_catalog import ATTRIBUTE_TAGS, VERIFIED_EFFECTS, epic_candidates
 from home.tag_engine import CombatEncounter
 from home.tag_engine.attack_effects import ignored_resistance_types, ignores_resistance
 from home.tag_engine.evaluator import evaluate_tags
@@ -8,7 +8,7 @@ from home.tag_engine.validator import validate_tags_json
 from home.tag_engine.library import Library
 
 
-RELENTLESS = PARTIAL_EFFECTS['dadiva-do-ataque-implacavel']
+RELENTLESS = VERIFIED_EFFECTS['dadiva-do-ataque-implacavel']
 
 
 class RelentlessAttackTests(SimpleTestCase):
@@ -90,6 +90,11 @@ class RelentlessAttackTests(SimpleTestCase):
 
 
 class RelentlessSheetTests(TestCase):
+    def test_candidate_has_both_effects(self):
+        candidate = next(row for row in epic_candidates()
+                         if row['slug'] == 'dadiva-do-ataque-implacavel')
+        self.assertEqual(candidate['tags_json'], ATTRIBUTE_TAGS + RELENTLESS)
+
     def test_owned_talent_annotates_only_matching_attack_and_removes_cleanly(self):
         from django.contrib.auth import get_user_model
         from home.character_engine import derive

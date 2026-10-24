@@ -25,6 +25,10 @@ ATTRIBUTE_TAGS = [
 
 # Só publicar entradas cujos efeitos adicionais foram conferidos contra o motor.
 VERIFIED_EFFECTS = {
+    "dadiva-do-ataque-implacavel": [
+        "always_active{ignore:resist(concussao,cortante,perfurante)}",
+        "always_active{crit_dmg:+talent_attr_score}",
+    ],
     "dadiva-da-memoria-arcana": [
         "if(already:prof{arcanismo}): expertise:arcanismo else: prof:arcanismo",
         "pick:pericia_expertise:1(requires:already_expertise{arcanismo})",
@@ -82,10 +86,6 @@ PARTIAL_EFFECTS = {
         "cond_immune:amedrontado",
         "if(already:prof{intimidacao}): expertise:intimidacao else: prof:intimidacao",
         "pick:pericia_expertise:1(requires:already_expertise{intimidacao})",
-    ],
-    "dadiva-do-ataque-implacavel": [
-        "always_active{ignore:resist(concussao,cortante,perfurante)}",
-        "always_active{crit_dmg:+talent_attr_score}",
     ],
     "dadiva-do-dominio-do-ceu": [
         "always_active{move:fly(=walk, hover, fall_threshold:5ft, "

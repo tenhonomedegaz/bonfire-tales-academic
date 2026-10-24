@@ -194,6 +194,24 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
   </section>
   {% endif %}
 
+  {% if perfis_dano_implacavel and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="dano-implacavel-title">
+    <h2 id="dano-implacavel-title" class="ficha-section-title">Dano de arma</h2>
+    {% for message in messages %}{% if 'epic-relentless-damage' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
+    <p>Após confirmar o acerto na mesa, informe o dano da arma já rolado, incluindo os dados de crítico. A ficha soma o bônus épico e aplica a defesa declarada do alvo.</p>
+    <form method="post" action="{% url 'personagem_resolver_dano_arma' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ dano_implacavel_operation_id }}">
+      <label>Arma <select name="profile_index" required>{% for profile in perfis_dano_implacavel %}<option value="{{ profile.index }}">{{ profile.name }} ({{ profile.damage_type }})</option>{% endfor %}</select></label>
+      <label>Dano rolado <input type="number" name="rolled_damage" min="0" max="100000" required></label>
+      <label>Defesa do alvo <select name="target_defense" required><option value="none">Nenhuma</option><option value="resist">Resistência a este dano</option><option value="immune">Imunidade a este dano</option></select></label>
+      <label><input type="checkbox" name="critical"> Acerto crítico confirmado</label>
+      <label><input type="checkbox" name="confirmed" required> Confirmo o acerto na mesa</label>
+      <button type="submit" class="banner-btn primary">Resolver dano</button>
+    </form>
+  </section>
+  {% endif %}
+
   {% if ataque_epico and pode_editar %}
   <section class="ficha-panel ficha-noprint" aria-labelledby="ataque-epico-title">
     <h2 id="ataque-epico-title" class="ficha-section-title">Aptidão de batalha</h2>
