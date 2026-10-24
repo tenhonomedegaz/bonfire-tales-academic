@@ -36,6 +36,16 @@ VERIFIED_EFFECTS = {
 # Efeitos conferidos isoladamente. Estes talentos ainda não entram em epic_candidates:
 # faltam outros efeitos da mesma definição e a carga permanece fechada até cobertura integral.
 PARTIAL_EFFECTS = {
+    "dadiva-da-memoria-arcana": [
+        "if(already:prof{arcanismo}): expertise:arcanismo else: prof:arcanismo",
+    ],
+    "dadiva-da-folia": [
+        "if(already:prof{atuacao}): expertise:atuacao else: prof:atuacao",
+    ],
+    "dadiva-do-horror": [
+        "cond_immune:amedrontado",
+        "if(already:prof{intimidacao}): expertise:intimidacao else: prof:intimidacao",
+    ],
     "dadiva-do-devorador-de-almas": [
         "if(already:resist{frio}): immune:frio else: resist:frio",
         "if(already:resist{necrotico}): immune:necrotico else: resist:necrotico",

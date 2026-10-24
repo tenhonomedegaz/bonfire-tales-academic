@@ -3054,6 +3054,8 @@ def _apply_tags(state, features, personagem=None, escolhas=None, *, ruleset=None
         _equipped_dsl.add('shield')
     dsl_features, dsl_operations, dsl_errors = [], [], []
     skill_grants_by_feature = []
+    skill_sources = {}
+    conditional_skill_upgrades = []  # (pericia, fonte) avaliados apos todas as fontes
     choice_pending_features = set()
 
     for feature_index, (origem, fonte, obj, classlvl) in enumerate(features):
@@ -3114,6 +3116,11 @@ def _apply_tags(state, features, personagem=None, escolhas=None, *, ruleset=None
                 and isinstance(operation.value, str))
             active_skill_ops = [op for op in dsl_result.operations
                                 if op.active and op.op == 'grant_proficiency']
+            skill_sources[feature_index] = {
+                _norm_skill_slug(op.value) for op in active_skill_ops
+                if op.verb in {'prof', 'expertise'} and isinstance(op.value, str)
+                and _norm_skill_slug(op.value) in _SKILL_INFO
+            }
             skill_grants_by_feature.append((
                 any(op.verb == 'expertise' and op.value == 'original_prof'
                     for op in active_skill_ops),
@@ -3302,6 +3309,17 @@ def _apply_tags(state, features, personagem=None, escolhas=None, *, ruleset=None
                             rng = int(mr.group(2)) if mr else 0
                             sentidos[t] = max(sentidos.get(t, 0), rng)
                 # Proficiências
+                # A promoção consulta as OUTRAS fontes após consolidá-las. Remover o
+                # trecho evita que os regex de prof/expertise apliquem os dois ramos.
+                for m in re.finditer(
+                        r'if\(already:prof\{([a-z0-9_-]+)\}\):\s*'
+                        r'expertise:([a-z0-9_-]+)\s*else:\s*prof:([a-z0-9_-]+)', seg):
+                    checked, expert, basic = map(_norm_skill_slug, m.groups())
+                    if checked == expert == basic and checked in _SKILL_INFO:
+                        conditional_skill_upgrades.append((checked, feature_index))
+                seg = re.sub(
+                    r'if\(already:prof\{[a-z0-9_-]+\}\):\s*'
+                    r'expertise:[a-z0-9_-]+\s*else:\s*prof:[a-z0-9_-]+', '', seg)
                 if 'prof' not in dsl_consumed:
                     for m in re.finditer(r'(?<![a-z_-])prof:([a-z0-9_-]+)(?:\{([^}]+)\})?', seg):
                         chave, valor = m.group(1), m.group(2)
@@ -3463,6 +3481,19 @@ def _apply_tags(state, features, personagem=None, escolhas=None, *, ruleset=None
                                        in enumerate(skill_grants_by_feature) if pos != index))
                 coll['skill_expertise'].update(
                     skill for skill in original | grants if skill in _SKILL_INFO)
+
+    if conditional_skill_upgrades and personagem is not None:
+        existing = {_norm_skill_slug(_slug(row.nome)) for row in personagem.pericias.all()
+                    if row.proficiente or row.expertise}
+        existing |= _pericias_escolhidas(personagem) | _expertise_escolhidas(personagem)
+        for skill, feature_index in conditional_skill_upgrades:
+            external = skill in existing or any(
+                skill in grants for source, grants in skill_sources.items()
+                if source != feature_index)
+            if external:
+                coll['skill_expertise'].add(skill)
+            else:
+                coll['skill_prof'].add(skill)
 
     # Bug C: resolve os bumps condicionais estáticos do desarmado agora que o DADO BASE
     # (de outras features) está consolidado. `>=` por tamanho de dado (_die_size), mesmo
