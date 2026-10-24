@@ -25,6 +25,12 @@ ATTRIBUTE_TAGS = [
 
 # Só publicar entradas cujos efeitos adicionais foram conferidos contra o motor.
 VERIFIED_EFFECTS = {
+    "dadiva-da-viagem-dimensional": [
+        "teleport:30ft(dest:unoccupied_visible, "
+        "timing:before_or_after_attack_or_magic_action)",
+        "cast{spell:porta-dimensional, always_prepared, "
+        "uses{1, reset:short_or_long}, without{slot}, without{components}}",
+    ],
     "dadiva-do-espirito-noturno": [
         "while_active{requires:in_dim_light, action:bonus_action, "
         "instant{apply:invisivel(target:self)}}",

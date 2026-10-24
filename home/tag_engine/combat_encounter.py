@@ -65,6 +65,10 @@ class CombatEncounter:
         self._dodge_active = set()
         self._bonus_invisible = set()
         self._reactions_used = set()
+        self._action_kind = None
+        self._action_actor_id = None
+        self._teleport_pending_kind = None
+        self._teleport_used = False
         self._attack_reach_bonus = {}
         self._healing_tag_uses = set()
         self._fall_progress = {}
@@ -102,6 +106,10 @@ class CombatEncounter:
         self.current_actor = actor
         self.action_used = False
         self.bonus_action_used = False
+        self._action_kind = None
+        self._action_actor_id = None
+        self._teleport_pending_kind = None
+        self._teleport_used = False
         self._dodge_active.discard(actor)
         self._reactions_used.discard(actor)
         self._attack_reach_bonus.pop(actor, None)
@@ -130,7 +138,8 @@ class CombatEncounter:
     def bonus_action_invisibility(self):
         """Spend the current actor's bonus action when a light-gated tag grants it."""
         actor = self.current_actor
-        if self.finished or actor is None or self.bonus_action_used:
+        if (self.finished or actor is None or self.bonus_action_used
+                or self._teleport_pending_kind):
             raise ValueError("No bonus action is available")
         self._living(actor)
         if actor in self._bonus_invisible:
@@ -157,7 +166,60 @@ class CombatEncounter:
         self._events.append(("invisibility_start", actor, "bonus_action"))
         return True
 
-    def register_action(self, actor, kind):
+    def teleport_around_action(self, actor, *, action_kind, phase, distance_ft,
+                               destination_ref, visible, unoccupied):
+        """Record a tagged teleport immediately before or after an eligible action.
+
+        The table resolves occupied spaces and visibility; this executor checks
+        their declared facts, range, timing and one teleport per action.
+        """
+        self._living(actor)
+        if (action_kind not in {"attack", "magic"} or phase not in {"before", "after"}
+                or type(distance_ft) is not int or distance_ft < 0
+                or not isinstance(destination_ref, str)
+                or not 0 < len(destination_ref.strip()) <= 100
+                or any(ord(char) < 32 for char in destination_ref)
+                or type(visible) is not bool or type(unoccupied) is not bool
+                or not visible or not unoccupied or self._teleport_used):
+            raise ValueError("Invalid teleport declaration")
+        if phase == "before":
+            if self.finished or actor != self.current_actor or self.action_used:
+                raise ValueError("Teleport must precede this actor's action")
+        elif (self._action_actor_id != actor or not self.action_used
+              or self._action_kind != action_kind or self._teleport_pending_kind):
+            raise ValueError("Teleport must follow the declared action")
+        if phase == "after":
+            last = self._events[-1] if self._events else ()
+            if last and last[0] == "encounter_end":
+                last = self._events[-2] if len(self._events) > 1 else ()
+            if (not last or last[0] not in {"attack", "action"}
+                    or last[1] != actor
+                    or (last[0] == "action" and last[2] != "action")):
+                raise ValueError("Teleport must immediately follow the action")
+        entry = self._combatants[actor]
+        context = dict(entry["tag_context"])
+        context.update(resolve_runtime=True, event="teleport",
+                       self_hp=entry["hp"], self_max_hp=entry["max_hp"])
+        tags = entry["defensive_tags"] + tuple(
+            tag for tag in entry["offensive_tags"]
+            if tag not in entry["defensive_tags"])
+        ranges = [operation.value for operation in evaluate_tags(tags, context).operations
+                  if operation.active and operation.op == "grant_execution"
+                  and operation.verb == "teleport"
+                  and operation.params.get("kwargs", {}).get("dest") == "unoccupied_visible"
+                  and operation.params.get("kwargs", {}).get("timing")
+                  == "before_or_after_attack_or_magic_action"
+                  and type(operation.value) is int and operation.value >= 0]
+        if not ranges or distance_ft > max(ranges):
+            raise ValueError("No tagged teleport permits this destination")
+        self._teleport_used = True
+        if phase == "before":
+            self._teleport_pending_kind = action_kind
+        self._events.append(("teleport", actor, phase, action_kind,
+                             destination_ref.strip(), distance_ft))
+        return distance_ft
+
+    def register_action(self, actor, kind, *, action_kind=None):
         """Record a table-resolved action, bonus action or reaction not modeled here."""
         self._living(actor)
         if self.finished or kind not in {"action", "bonus_action", "reaction"}:
@@ -165,12 +227,25 @@ class CombatEncounter:
         if kind == "action":
             if actor != self.current_actor or self.action_used:
                 raise ValueError("No action is available")
+            if action_kind not in {None, "magic"}:
+                raise ValueError("Invalid action kind")
+            resolved_kind = action_kind or "other"
+            if (self._teleport_pending_kind is not None
+                    and self._teleport_pending_kind != resolved_kind):
+                raise ValueError("Complete the action declared for teleport")
             self.action_used = True
+            self._action_kind = resolved_kind
+            self._action_actor_id = actor
+            self._teleport_pending_kind = None
         elif kind == "bonus_action":
+            if action_kind is not None or self._teleport_pending_kind:
+                raise ValueError("Invalid bonus action timing")
             if actor != self.current_actor or self.bonus_action_used:
                 raise ValueError("No bonus action is available")
             self.bonus_action_used = True
         else:
+            if action_kind is not None or self._teleport_pending_kind:
+                raise ValueError("Invalid reaction timing")
             if actor in self._reactions_used:
                 raise ValueError("No reaction is available")
             self._reactions_used.add(actor)
@@ -180,7 +255,8 @@ class CombatEncounter:
     def bonus_action_dodge(self):
         """Use a bonus action to Dodge when a currently active tag grants it."""
         actor = self.current_actor
-        if self.finished or actor is None or self.bonus_action_used:
+        if (self.finished or actor is None or self.bonus_action_used
+                or self._teleport_pending_kind):
             raise ValueError("No bonus action is available")
         self._living(actor)
         entry = self._combatants[actor]
@@ -333,6 +409,8 @@ class CombatEncounter:
                melee_weapon=False, invisible_advantage_applied=False,
                invisible_disadvantage_applied=False):
         source = self._action_actor()
+        if self._teleport_pending_kind not in {None, "attack"}:
+            raise ValueError("Complete the magic action declared for teleport")
         self._living(target)
         tags = tuple(tags)
         if (type(hit) is not bool or type(critical) is not bool or
@@ -394,6 +472,9 @@ class CombatEncounter:
             target_entry["temp_hp"] -= absorbed
             target_entry["hp"] = max(0, target_entry["hp"] - (damage - absorbed))
         self.action_used = True
+        self._action_kind = "attack"
+        self._action_actor_id = source
+        self._teleport_pending_kind = None
         self._break_invisibility(source)
         self._events.append(("attack", source, target, hit, damage))
         self._finish_if_decided()
@@ -401,6 +482,8 @@ class CombatEncounter:
 
     def heal(self, target, amount):
         source = self._action_actor()
+        if self._teleport_pending_kind:
+            raise ValueError("Complete the declared action for teleport")
         self._living(target)
         if type(amount) is not int or amount < 0:
             raise ValueError("Declare a nonnegative healing amount")
@@ -412,6 +495,8 @@ class CombatEncounter:
                      if amount and entry["hp"] < entry["max_hp"] else 0)
             entry["hp"] = min(entry["max_hp"], entry["hp"] + amount + bonus)
         self.action_used = True
+        self._action_kind = "heal"
+        self._action_actor_id = source
         self._events.append(("heal", source, target, amount, blocked))
         return not blocked
 
@@ -424,6 +509,8 @@ class CombatEncounter:
         restrictions.
         """
         source = self._action_actor()
+        if self._teleport_pending_kind:
+            raise ValueError("Complete the declared action for teleport")
         self._living(target)
         if type(amount) is not int or amount < 0:
             raise ValueError("Declare a nonnegative temporary HP amount")
@@ -433,6 +520,8 @@ class CombatEncounter:
                     if amount else 0)
         entry["temp_hp"] = max(entry["temp_hp"], received)
         self.action_used = True
+        self._action_kind = "temporary_hp"
+        self._action_actor_id = source
         self._events.append(("temp_hp", source, target, amount, received))
         return received
 
@@ -491,6 +580,8 @@ class CombatEncounter:
     def end_turn(self):
         if self.current_actor is None:
             raise ValueError("No turn to finish")
+        if self._teleport_pending_kind:
+            raise ValueError("Complete the action declared for teleport")
         self._events.append(("turn_end", self.current_actor))
         self._attack_reach_bonus.pop(self.current_actor, None)
         self.current_actor = None
