@@ -4118,13 +4118,22 @@ def _derive(personagem, *, ruleset=None):
     state['ataques'] = _ataques(tag, atributos, pb, state['recursos'], personagem,
                                 prof_armas, state.get('maestrias_armas'), ruleset=ruleset,
                                 weapon_grants=weapon_grants)
-    from .tag_engine.attack_effects import ignored_resistance_types, ignores_resistance
-    ignored = ignored_resistance_types(state['tag_dsl']['operations'])
+    from .tag_engine.attack_effects import (critical_damage_bonus,
+                                            ignored_resistance_types,
+                                            ignores_resistance)
+    attack_operations = state['tag_dsl']['operations']
+    ignored = ignored_resistance_types(attack_operations)
+    critical_bonus = critical_damage_bonus(attack_operations)
     for profile in state['ataques']['perfis']:
         if profile.get('tipo_dano') and ignores_resistance(ignored, profile['tipo_dano']):
             profile['ignora_resistencia'] = True
             profile['nota'] = ' · '.join(filter(None, (
                 profile.get('nota'), 'ignora resistência a este dano')))
+        if profile.get('tipo_dano') and critical_bonus:
+            profile['dano_critico_extra'] = critical_bonus
+            profile['nota'] = ' · '.join(filter(None, (
+                profile.get('nota'),
+                f'crítico: +{critical_bonus} {profile["tipo_dano"]}')))
     state['prof_multiclasse_armadura'] = _pc['multiclasse_armaduras']
     state['prof_multiclasse_arma'] = _pc['multiclasse_armas']
     state['prof_multiclasse_ferramenta'] = _pc['multiclasse_ferramentas']

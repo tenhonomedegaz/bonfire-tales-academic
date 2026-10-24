@@ -6,7 +6,8 @@ does not persist characters or pretend to resolve every RPG combat rule.
 """
 
 from .combat_conditions import CombatConditions
-from .attack_effects import ignored_resistance_types, ignores_resistance
+from .attack_effects import (critical_damage_bonus, ignored_resistance_types,
+                             ignores_resistance)
 from .evaluator import evaluate_tags
 from .parser import parse_tag
 
@@ -154,11 +155,13 @@ class CombatEncounter:
             return damage // 2
         return damage
 
-    def attack(self, target, tags, *, hit, damage=0, damage_type=None):
+    def attack(self, target, tags, *, hit, damage=0, damage_type=None,
+               critical=False):
         source = self._action_actor()
         self._living(target)
         tags = tuple(tags)
-        if (type(hit) is not bool or type(damage) is not int or damage < 0 or
+        if (type(hit) is not bool or type(critical) is not bool or
+                (critical and not hit) or type(damage) is not int or damage < 0 or
                 (damage_type is not None and
                  (not isinstance(damage_type, str) or not damage_type.strip())) or
                 (not hit and damage)):
@@ -173,6 +176,8 @@ class CombatEncounter:
             attack_effects = evaluate_tags(
                 source_entry["offensive_tags"] + tags, attack_context)
             ignored = ignored_resistance_types(attack_effects.operations)
+            if critical and damage_type is not None:
+                damage += critical_damage_bonus(attack_effects.operations)
             operations = self.conditions.resolve(
                 tags, event="hit", source=source, target=target)
             damage = self._damage_after_defenses(

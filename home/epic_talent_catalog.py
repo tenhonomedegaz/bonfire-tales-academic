@@ -38,6 +38,7 @@ VERIFIED_EFFECTS = {
 PARTIAL_EFFECTS = {
     "dadiva-do-ataque-implacavel": [
         "always_active{ignore:resist(concussao,cortante,perfurante)}",
+        "always_active{crit_dmg:+talent_attr_score}",
     ],
     "dadiva-da-tempestade": [
         "always_active{resist:raio, resist:trovejante}",

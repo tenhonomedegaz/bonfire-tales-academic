@@ -1,6 +1,6 @@
 from django.test import SimpleTestCase, TestCase
 
-from home.epic_talent_catalog import PARTIAL_EFFECTS
+from home.epic_talent_catalog import ATTRIBUTE_TAGS, PARTIAL_EFFECTS
 from home.tag_engine import CombatEncounter
 from home.tag_engine.attack_effects import ignored_resistance_types, ignores_resistance
 from home.tag_engine.evaluator import evaluate_tags
@@ -12,10 +12,12 @@ RELENTLESS = PARTIAL_EFFECTS['dadiva-do-ataque-implacavel']
 
 
 class RelentlessAttackTests(SimpleTestCase):
-    def encounter(self, offensive=RELENTLESS, defense='resist:cortante'):
+    def encounter(self, offensive=RELENTLESS, defense='resist:cortante',
+                  talent_score=18):
         encounter = CombatEncounter([
             {'id': 'atacante', 'team': 'a', 'max_hp': 20,
-             'offensive_tags': offensive},
+             'offensive_tags': offensive,
+             'tag_context': {'talent_attr_score': talent_score}},
             {'id': 'alvo', 'team': 'b', 'max_hp': 30,
              'defensive_tags': ['always_active', defense]},
         ])
@@ -46,6 +48,32 @@ class RelentlessAttackTests(SimpleTestCase):
         other.attack('alvo', [], hit=True, damage=10, damage_type='fogo')
         self.assertEqual(other.combatants['alvo']['hp'], 25)
 
+    def test_critical_bonus_uses_selected_score_and_weapon_damage_type(self):
+        critical = self.encounter(talent_score=18)
+        critical.attack('alvo', [], hit=True, critical=True, damage=10,
+                        damage_type='cortante')
+        self.assertEqual(critical.combatants['alvo']['hp'], 2)
+        self.assertEqual(critical.events[-1][-1], 28)
+        ordinary = self.encounter()
+        ordinary.attack('alvo', [], hit=True, damage=10, damage_type='cortante')
+        self.assertEqual(ordinary.combatants['alvo']['hp'], 20)
+        removed = self.encounter(offensive=[])
+        removed.attack('alvo', [], hit=True, critical=True, damage=10,
+                       damage_type='cortante')
+        self.assertEqual(removed.combatants['alvo']['hp'], 25)
+
+    def test_critical_bonus_respects_immunity_and_resistance(self):
+        immune = self.encounter(defense='immune:cortante')
+        immune.attack('alvo', [], hit=True, critical=True, damage=10,
+                      damage_type='cortante')
+        self.assertEqual(immune.combatants['alvo']['hp'], 30)
+        resistant = self.encounter(defense='resist:fogo')
+        resistant.attack('alvo', [], hit=True, critical=True, damage=10,
+                         damage_type='fogo')
+        self.assertEqual(resistant.combatants['alvo']['hp'], 16)
+        with self.assertRaises(ValueError):
+            self.encounter().attack('alvo', [], hit=False, critical=True)
+
 
 class RelentlessSheetTests(TestCase):
     def test_owned_talent_annotates_only_matching_attack_and_removes_cleanly(self):
@@ -55,7 +83,8 @@ class RelentlessSheetTests(TestCase):
                                  TbPersonagemItem, TbPersonagemTalento, TbTalento)
 
         owner = get_user_model().objects.create_user(username='epic-relentless')
-        character = TbPersonagem.objects.create(dono=owner, nome='Ataque de teste')
+        character = TbPersonagem.objects.create(
+            dono=owner, nome='Ataque de teste', forca=16)
         weapon = TbItemMundano.objects.create(
             nome='Espada de teste', slug='espada-de-teste', categoria='arma',
             subcategoria='arma_marcial', tags_json=['dmg:1d8(cortante)'])
@@ -64,10 +93,11 @@ class RelentlessSheetTests(TestCase):
             nome=weapon.nome, equipado=True, tags_json=weapon.tags_json)
         talent = TbTalento.objects.create(
             nome='Talento de teste', slug='talento-implacavel-teste',
-            descricao='Teste', tags_json=RELENTLESS)
+            descricao='Teste', tags_json=ATTRIBUTE_TAGS + RELENTLESS)
         owned = TbPersonagemTalento.objects.create(
             id_personagem=character, id_talento=talent,
-            categoria='epico', nome=talent.nome)
+            categoria='epico', nome=talent.nome,
+            detalhes='talent_attr:FOR')
 
         def weapon_profile():
             return next(p for p in derive(character)['ataques']['perfis']
@@ -76,6 +106,18 @@ class RelentlessSheetTests(TestCase):
         self.assertEqual(weapon_profile()['tipo_dano'], 'cortante')
         self.assertTrue(weapon_profile()['ignora_resistencia'])
         self.assertEqual(weapon_profile()['nota'].count('ignora resistência'), 1)
+        self.assertEqual(derive(character)['atributos']['FOR']['valor'], 18)
+        self.assertEqual(weapon_profile()['dano_critico_extra'], 18)
+        self.assertIn('crítico: +18 cortante', weapon_profile()['nota'])
+        self.assertEqual(weapon_profile()['nota'].count('crítico:'), 1)
+        character.destreza = 31
+        character.save(update_fields=['destreza'])
+        owned.detalhes = 'talent_attr:DES'
+        owned.save(update_fields=['detalhes'])
+        self.assertEqual(derive(character)['atributos']['DES']['valor'], 31)
+        self.assertEqual(weapon_profile()['dano_critico_extra'], 31)
+        self.assertEqual(weapon_profile()['nota'].count('crítico:'), 1)
         owned.delete()
         self.assertNotIn('ignora_resistencia', weapon_profile())
+        self.assertNotIn('dano_critico_extra', weapon_profile())
         self.assertNotIn('ignora resistência', weapon_profile()['nota'])

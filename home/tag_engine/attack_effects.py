@@ -31,3 +31,15 @@ def ignored_resistance_types(operations):
 
 def ignores_resistance(ignored, damage_type):
     return '*' in ignored or _damage_key(damage_type) in ignored
+
+
+def critical_damage_bonus(operations):
+    """Add evaluated critical damage operations from the attacker's sources."""
+    total = 0
+    for operation in operations:
+        active = operation.get('active') if isinstance(operation, dict) else operation.active
+        verb = operation.get('verb') if isinstance(operation, dict) else operation.verb
+        value = operation.get('value') if isinstance(operation, dict) else operation.value
+        if active and verb == 'crit_dmg' and type(value) is int and value > 0:
+            total += value
+    return total
