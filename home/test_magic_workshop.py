@@ -292,8 +292,12 @@ class MagicWorkshopTests(TestCase):
         self.assertTrue(movement.detalhes_json['componente_consumido'])
 
     def test_pergaminho_acima_do_teto_exige_teste_e_e_consumido_na_falha(self):
+        from home.resource_engine import activate_state
+        activate_state(self.personagem, 'spell:prior', origin='magia:prior',
+                       payload={'concentration': True})
+        self.spell.concentracao = True
         self.spell.nivel = 3
-        self.spell.save(update_fields=['nivel'])
+        self.spell.save(update_fields=['nivel', 'concentracao'])
         item = self.personagem.inventario.create(
             nome='Pergaminho de Fogo de Teste', qtd=1,
             origem_tipo='oficina', tags_json=[
@@ -311,7 +315,34 @@ class MagicWorkshopTests(TestCase):
         self.assertTrue(movement.detalhes_json['teste_exigido'])
         self.assertEqual(movement.detalhes_json['cd'], 13)
         self.assertEqual(movement.detalhes_json['scroll_save_dc'], 15)
+        self.assertTrue(self.personagem.estados.get(chave='spell:prior').ativo)
+        self.assertEqual(self.personagem.estados.filter(
+            ativo=True, payload_json__concentration=True).count(), 1)
         self.assertEqual(movement.detalhes_json['scroll_attack_bonus'], 7)
+
+    def test_successful_concentrating_scroll_replaces_prior_concentration(self):
+        from home.resource_engine import activate_state
+        self.spell.concentracao = True
+        self.spell.classes = 'Arquivista'
+        self.spell.classes_slugs = ['arquivista']
+        self.spell.save(update_fields=['concentracao', 'classes', 'classes_slugs'])
+        activate_state(self.personagem, 'spell:prior', origin='magia:prior',
+                       payload={'concentration': True})
+        item = self.personagem.inventario.create(
+            nome='Pergaminho concentrado', qtd=1, origem_tipo='oficina',
+            tags_json=['spell_scroll{spell:fogo_de_teste, level:1}', 'consumable'])
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse('oficina_usar_pergaminho', args=[self.personagem.pk]),
+            {'personagem': self.personagem.pk, 'item': item.pk})
+        self.assertIn('status=pergaminho_usado', response['Location'])
+        movement = self.personagem.transacoes.get()
+        self.assertTrue(movement.detalhes_json['sucesso'])
+        self.assertFalse(self.personagem.estados.get(chave='spell:prior').ativo)
+        state = self.personagem.estados.get(
+            chave=f'spell:scroll:{movement.pk}')
+        self.assertTrue(state.ativo)
+        self.assertEqual(state.payload_json['scroll_movement_id'], movement.pk)
 
     def test_escola_de_foco_reduz_transcricao_sem_nome_de_subclasse(self):
         option = TbOpcaojogo.objects.create(

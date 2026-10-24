@@ -167,7 +167,7 @@ class EpicSpeedSheetCastTests(TestCase):
         self.character = TbPersonagem.objects.create(dono=owner, nome='Velocista')
         self.spell = TbMagia.objects.create(
             nome='Velocidade', nome_ingles='Haste', slug='velocidade',
-            nivel=3, componentes='V, S, M')
+            nivel=3, componentes='V, S, M', concentracao=True)
         self.talent = TbTalento.objects.create(
             nome='Fonte epica sintetica', slug='fonte-epica-velocidade-teste',
             tipo='geral', etiqueta='combate', etiquetas_adicionais='epico',
@@ -193,15 +193,49 @@ class EpicSpeedSheetCastTests(TestCase):
         self.assertTrue(receipt.resposta['without_slot'])
         self.assertTrue(receipt.resposta['without_components'])
         self.assertTrue(receipt.resposta['without_lethargy'])
+        state = self.character.estados.get(chave=f'spell:{self.owned_spell.pk}')
+        self.assertTrue(state.ativo)
+        self.assertTrue(state.payload_json['concentration'])
+        self.assertTrue(state.payload_json['innate'])
         self.assertEqual(self.client.post(self.url, {
             'operation_id': operation_id}).status_code, 302)
         self.assertEqual(TbOperacaoRecurso.objects.filter(
             operation_id=operation_id).count(), 1)
+        state.refresh_from_db()
+        self.assertTrue(state.ativo)
         self.assertEqual(self.client.post(self.url, {
             'operation_id': str(uuid.uuid4())}).status_code, 400)
         reset_resources(self.character, 'short_rest')
         self.assertEqual(self.client.post(self.url, {
             'operation_id': str(uuid.uuid4())}).status_code, 302)
+
+    def test_concentrating_innate_replaces_prior_and_ends_on_condition(self):
+        from home.resource_engine import activate_state
+
+        activate_state(self.character, 'spell:prior', origin='magia:prior',
+                       payload={'concentration': True})
+        activate_state(self.character, 'spell:other', origin='magia:other',
+                       payload={'concentration': False})
+        self.assertEqual(self.client.post(self.url, {
+            'operation_id': str(uuid.uuid4())}).status_code, 302)
+        self.assertFalse(self.character.estados.get(chave='spell:prior').ativo)
+        self.assertTrue(self.character.estados.get(chave='spell:other').ativo)
+        self.assertTrue(self.character.estados.get(
+            chave=f'spell:{self.owned_spell.pk}').ativo)
+        event_url = reverse('oficina_evento_concentracao', args=[self.character.pk])
+        self.assertEqual(self.client.post(event_url, {
+            'operation_id': str(uuid.uuid4()), 'event': 'unconscious'
+        }).status_code, 302)
+        self.assertFalse(self.character.estados.get(
+            chave=f'spell:{self.owned_spell.pk}').ativo)
+        self.assertTrue(self.character.estados.get(chave='spell:other').ativo)
+
+    @patch('home.hunter_mutagens.concentration_blocked', return_value=True)
+    def test_blocked_concentration_does_not_spend_innate_use(self, _blocked):
+        self.assertEqual(self.client.post(self.url, {
+            'operation_id': str(uuid.uuid4())}).status_code, 400)
+        self.assertFalse(self.character.estados.filter(ativo=True).exists())
+        self.assertFalse(TbOperacaoRecurso.objects.exists())
 
     def test_choice_source_and_owner_gate(self):
         other = get_user_model().objects.create_user(username='epic-speed-other')

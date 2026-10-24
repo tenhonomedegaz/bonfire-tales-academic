@@ -18511,7 +18511,7 @@ def oficina_usar_pergaminho(request, pk):
             total = roll + modifier
             success = total >= 10 + int(spell.nivel or 0)
         _oficina_consume_one(item)
-        _registrar_transacao(
+        scroll_movement = _registrar_transacao(
             p, 'ajuste', 'Pergaminho: %s' % spell.nome, 0,
             {'operacao': 'usar_pergaminho', 'magia_id': spell.pk,
              'sucesso': success, 'teste_exigido': check_required,
@@ -18519,6 +18519,18 @@ def oficina_usar_pergaminho(request, pk):
              'cd': 10 + int(spell.nivel or 0) if check_required else None,
              'scroll_save_dc': scroll_dc,
              'scroll_attack_bonus': scroll_attack})
+        if success and spell.concentracao:
+            from .epic_concentration import begin_concentration
+            from .resource_engine import activate_state
+            state_key = 'spell:scroll:%s' % scroll_movement.pk
+            begin_concentration(p, state_key)
+            activate_state(
+                p, state_key, origin='magia:%s' % spell.slug,
+                payload={
+                    'spell_id': spell.pk, 'spell_slug': spell.slug,
+                    'spell_name': spell.nome, 'scroll_movement_id': scroll_movement.pk,
+                    'concentration': True,
+                }, ends_on=['dispelled', 'dismissed'])
     request.session['oficina_resultado'] = (
         '%s foi conjurada pelo pergaminho.' % spell.nome if success else
         'O teste para %s falhou (%s contra CD %s); o pergaminho foi consumido.' % (

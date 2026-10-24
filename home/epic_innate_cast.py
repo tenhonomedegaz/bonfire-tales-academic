@@ -42,6 +42,10 @@ def cast_tagged_innate_spell(person, *, operation_id, owned_spell_id, ruleset=No
             or not spell.get('innate_without_slot')
             or not spell.get('innate_without_components')):
         raise ValueError('Magia inata indisponível.')
+    if spell.get('concentracao'):
+        from .hunter_mutagens import concentration_blocked
+        if concentration_blocked(locked):
+            raise ValueError('Concentracao bloqueada pelo efeito ativo.')
     key = spell['innate_key']
     ok, snapshot = spend_resource(locked, {
         'key': key, 'legacy_name': key, 'name': spell['nome'],
@@ -51,6 +55,22 @@ def cast_tagged_innate_spell(person, *, operation_id, owned_spell_id, ruleset=No
     })
     if not ok:
         raise ValueError('Uso inato esgotado.')
+    if spell.get('concentracao'):
+        from .epic_concentration import begin_concentration
+        from .models import TbPersonagemMagia
+        from .resource_engine import activate_state
+
+        owned = TbPersonagemMagia.objects.select_related('id_magia').get(
+            pk=owned_spell_id, id_personagem=locked)
+        state_key = 'spell:%s' % owned_spell_id
+        begin_concentration(locked, state_key)
+        activate_state(
+            locked, state_key, origin='magia:%s' % spell['slug'],
+            payload={
+                'spell_id': owned.id_magia_id, 'spell_slug': spell['slug'],
+                'spell_name': spell['nome'], 'owned_id': owned_spell_id,
+                'concentration': True, 'innate': True,
+            }, ends_on=['dispelled', 'dismissed'])
     response = {
         'operation_id': str(operation_id), 'spell_id': owned_spell_id,
         'spell_name': spell['nome'], 'without_slot': True,
