@@ -12595,6 +12595,9 @@ def _editor_json_body(request):
 
 
 def _talent_payload(talent):
+    from .epic_talents import talent_category
+
+    tipo = talent_category(talent.tipo, talent.etiquetas_adicionais)
     atributos = []
     if talent.atrib_forca:
         atributos.append('Forca')
@@ -12613,8 +12616,8 @@ def _talent_payload(talent):
         'id': talent.id_talento,
         'nome': talent.nome,
         'slug': talent.slug,
-        'tipo': talent.get_tipo_display(),
-        'tipo_key': talent.tipo,
+        'tipo': dict(TbTalento.TIPO_CHOICES).get(tipo, tipo),
+        'tipo_key': tipo,
         'etiqueta': talent.get_etiqueta_display(),
         'etiqueta_key': talent.etiqueta,
         'etiquetas_adicionais': talent.etiquetas_adicionais or '',
@@ -14399,6 +14402,7 @@ def wiki_batch_save_map(request):
 
 @ensure_csrf_cookie  # edição inline (wiki) lê o csrftoken do cookie
 def talentos_view(request):
+    from .epic_talents import talent_category
 
 
 
@@ -14422,7 +14426,7 @@ def talentos_view(request):
             if t.get('Atrib_Carisma'):
                 atributos.append('Carisma')
 
-            tipo = t.get('Tipo') or 'geral'
+            tipo = talent_category(t.get('Tipo'), t.get('EtiquetasAdicionais'))
             etiqueta = t.get('Etiqueta') or 'combate'
             talentos_lista.append({
                 'id': t.get('Id_Talento'),

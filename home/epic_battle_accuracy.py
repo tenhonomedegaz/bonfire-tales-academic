@@ -201,7 +201,7 @@ def roll_tagged_attack(person, *, operation_id, advantage=False, disadvantage=Fa
     TbOperacaoRecurso.objects.create(
         id_personagem=locked, operation_id=operation_id, fingerprint=fingerprint,
         resposta=response, status_http=200)
-    if has_fate and applied in (1, 20):
+    if has_fate and applied in (1, 20) and fate_source(locked, ruleset=ruleset, recovery=True):
         from .epic_fate import recover_fate
         fate = recover_fate(
             locked, operation_id=uuid.uuid5(uuid.NAMESPACE_URL,

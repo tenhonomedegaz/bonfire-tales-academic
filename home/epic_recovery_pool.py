@@ -18,6 +18,7 @@ from .character_engine import (
 from .models import TbOperacaoRecurso, TbPersonagem, TbPersonagemRecurso
 from .resource_engine import spend_resource
 from .epic_healing_bonus import healing_bonus, mark_healing_bonuses
+from .tag_engine.runtime_values import dice_spec, roll_dice
 
 
 # This declaration deliberately contains only Recuperar Vitalidade.  The other
@@ -63,9 +64,12 @@ def _definition(person, ruleset=None):
             if match is None:
                 continue
             maximum = int(match.group("maximum"))
-            if (maximum != int(match.group("uses")) or maximum != 10
-                    or int(match.group("faces")) != 10
-                    or match.group("reset") != "short_or_long"):
+            if (maximum != int(match.group("uses"))
+                    or match.group("reset") not in {"short_rest", "long_rest", "short_or_long"}):
+                continue
+            try:
+                dice_spec(f"{maximum}d{match.group('faces')}")
+            except ValueError:
                 continue
             return {
                 "name": str(getattr(source, "nome", "") or display_name or "").strip(),
@@ -95,8 +99,8 @@ def _operation_id(value):
 
 
 def _dice_count(value):
-    if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= 10:
-        raise ValueError("Informe de 1 a 10 dados da reserva.")
+    if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= 100:
+        raise ValueError("Informe uma quantidade válida de dados da reserva.")
     return value
 
 
@@ -251,7 +255,7 @@ def use_recovery_pool(person, *, operation_id, dice_count, bonus_action_availabl
     if not spent:
         raise ValueError("Não há dados suficientes na reserva de Recuperar Vitalidade.")
 
-    rolls = [secrets.randbelow(10) + 1 for _ in range(dice_count)]
+    rolls = roll_dice(f"{dice_count}d{definition['faces']}", secrets.randbelow)
     rolled_total = sum(rolls)
     hp_before = max(0, int(locked.pv_atual or 0))
     derived_max = int(derive(locked, ruleset=ruleset)["pv"]["maximo_calculado"] or 0)

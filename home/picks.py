@@ -1304,9 +1304,10 @@ def _idioma_readback(personagem, group):
 # ---------------------------------------------------------------------------
 _TALENTO_ORIGEM_RE = re.compile(r'talento_de_origem|\btipo\s*:\s*origem\b')
 # GERAL: `from:any_raca` (Multitalentoso — "Talento (Feat) de qualquer raça para a qual
-# cumpra os pré-requisitos") ou um `tipo:geral` explícito. No modelo de dados só existem
-# talentos 'origem' e 'geral' (não há talentos "raciais"), então "de qualquer raça" = GERAL.
+# cumpra os pré-requisitos") ou um `tipo:geral` explícito. Epicos exigem uma
+# concessao explicita `tipo:epico`; nao entram nos picks genericos de nivel baixo.
 _TALENTO_GERAL_RE = re.compile(r'\bfrom\s*:\s*any_raca\b|\btipo\s*:\s*geral\b')
+_TALENTO_TIPO_RE = re.compile(r'\btipo\s*:\s*([a-z_]+)\b', re.I)
 _TALENTO_PREREQ_RE = re.compile(r'requires\s*:\s*prereq')
 
 
@@ -1331,23 +1332,26 @@ def _talento_owned_slugs(personagem):
 
 def _talento_universe(ctx):
     from .models import TbTalento
-    from .epic_talents import is_epic_talent
+    from .epic_talents import is_epic_talent, talent_category
     text = _talento_constraint_text(ctx)
     if ctx.get('ruleset') is not None:
         from .versioned_origins import VersionedOrigins
         talents = VersionedOrigins(ctx['ruleset']).objects(TbTalento)
     else:
         talents = TbTalento.objects.all()
-    talents = [t for t in talents if not is_epic_talent(t)]
+    requested = {value.casefold() for value in _TALENTO_TIPO_RE.findall(text)}
     if _TALENTO_ORIGEM_RE.search(text) or (ctx.get('kind') or '') == 'talento_de_origem':
-        talents = [t for t in talents if (t.tipo or '').lower() == 'origem']
-    elif _TALENTO_GERAL_RE.search(text):
-        # `from:any_raca`/`tipo:geral` (Multitalentoso): pool = talentos GERAIS que o
-        # personagem qualifica (requires:prereq abaixo) — NUNCA os de origem. Sem este
-        # ramo o universo caía no `all()` e misturava os 43 de origem, e — quando o
-        # personagem tinha TAMBÉM um pick de origem (Erthari) — o grupo de origem vencia
-        # o desempate por persist_tipo e o talento geral acusava "fora do universo".
-        talents = [t for t in talents if (t.tipo or '').lower() == 'geral']
+        requested.add('origem')
+    if _TALENTO_GERAL_RE.search(text):
+        requested.add('geral')
+    if len(requested) > 1 or not requested <= set(dict(TbTalento.TIPO_CHOICES)):
+        return []
+    if requested:
+        category = next(iter(requested))
+        talents = [t for t in talents if talent_category(
+            t.tipo, getattr(t, 'etiquetas_adicionais', None)) == category]
+    else:
+        talents = [t for t in talents if not is_epic_talent(t)]
     personagem = ctx.get('personagem')
     owned = _talento_owned_slugs(personagem)
     # `requires:prereq` → filtra pelo mesmo checador do ASI (views._talento_prereq_ok, que
@@ -1366,7 +1370,7 @@ def _talento_universe(ctx):
             continue
         out.append({'id': t.id_talento, 'slug': t.slug, 'nome': t.nome,
                     'descricao': (t.descricao or ''), 'pre': (t.pre_requisito or ''),
-                    'tipo': t.tipo or ''})
+                    'tipo': talent_category(t.tipo, getattr(t, 'etiquetas_adicionais', None))})
     return out
 
 
@@ -1377,6 +1381,7 @@ def _talento_origem(group):
 
 def _talento_persist(personagem, group, valores):
     from .models import TbPersonagemEscolha, TbPersonagemTalento, TbTalento
+    from .epic_talents import talent_category
     origem = _talento_origem(group)
     base = int(group.get('slot_base') or 0)
     nivel = int(group.get('nivel') or getattr(personagem, 'nivel', 1) or 1)
@@ -1390,15 +1395,15 @@ def _talento_persist(personagem, group, valores):
             if t is None:
                 raise ValueError('Selected talent no longer exists.')
             slug, name = frozen['slug'], frozen['nome']
-            category = 'origem' if (frozen.get('tipo') or '').lower() == 'origem' else 'geral'
+            category = frozen.get('tipo') or 'geral'
         else:
             t = (TbTalento.objects.filter(id_talento=v).first() if str(v).isdigit() else None) \
                 or TbTalento.objects.filter(slug=v).first()
             if not t:
                 continue
             slug, name = t.slug, t.nome
-            category = 'origem' if (t.tipo or '').lower() == 'origem' else 'geral'
-        # categoria conforme a fonte/tipo do talento escolhido (origem vs geral).
+            category = talent_category(t.tipo, t.etiquetas_adicionais)
+        # A categoria persistida acompanha o catalogo, inclusive concessoes epicas.
         TbPersonagemEscolha.objects.update_or_create(
             id_personagem=personagem, origem=origem, tipo='talento', slot=base + i,
             defaults={'valor': slug})

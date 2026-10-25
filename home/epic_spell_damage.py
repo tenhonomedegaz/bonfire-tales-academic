@@ -18,12 +18,12 @@ SPELL_DIE_FLOOR_TAG = (
     "trigger=cast_spell(circle:1+), damage_die_floor:3(roll:1|2)"
 )
 _TAG_RE = re.compile(
-    r"^trigger=cast_spell\(circle:1\+\), "
-    r"damage_die_floor:3\(roll:1\|2\)$"
+    r"^trigger=cast_spell\(circle:(?P<circle>\d+)\+\), "
+    r"damage_die_floor:(?P<floor>\d+)\(roll:(?P<rolls>\d+(?:\|\d+)*)\)$"
 )
 
 
-def _active(person, ruleset=None):
+def _definition(person, ruleset=None):
     choices = _talent_attr_map(person, ruleset=ruleset)
     for _kind, _name, source, _level in _features_do_personagem(
             person, ruleset=ruleset):
@@ -31,19 +31,30 @@ def _active(person, ruleset=None):
         if (any("talent_attr_score" in tag for tag in tags)
                 and not _feature_talent_attr_sig(source, choices)):
             continue
-        if any(_TAG_RE.fullmatch(tag) for tag in tags):
-            return True
-    return False
+        for tag in tags:
+            match = _TAG_RE.fullmatch(tag)
+            if match is None:
+                continue
+            floor, circle = int(match.group("floor")), int(match.group("circle"))
+            rolls = {int(value) for value in match.group("rolls").split("|")}
+            if 1 <= circle <= 9 and 2 <= floor <= 100 and all(1 <= roll < floor for roll in rolls):
+                return {"floor": floor, "circle": circle, "rolls": rolls}
+    return None
+
+
+def _active(person, ruleset=None):
+    return _definition(person, ruleset=ruleset) is not None
 
 
 def damage_spell_options(person, ruleset=None):
-    if not _active(person, ruleset=ruleset):
+    definition = _definition(person, ruleset=ruleset)
+    if definition is None:
         return []
     options = []
     for owned in TbPersonagemMagia.objects.filter(
             id_personagem=person).select_related("id_magia"):
         spell = owned.id_magia
-        if (spell is None or spell.nivel < 1
+        if (spell is None or spell.nivel < definition["circle"]
                 or not (owned.preparada or owned.sempre_preparada)):
             continue
         damage_types = _spell_damage_types(spell)
@@ -60,7 +71,7 @@ def _dice(value):
     for row in value:
         if (not isinstance(row, (list, tuple)) or len(row) != 2
                 or type(row[0]) is not int or type(row[1]) is not int
-                or not 3 <= row[0] <= 100 or not 1 <= row[1] <= row[0]):
+                or not 2 <= row[0] <= 100 or not 1 <= row[1] <= row[0]):
             raise ValueError("Declare faces e resultado válidos para cada dado.")
         out.append((row[0], row[1]))
     return out
@@ -89,16 +100,21 @@ def resolve_spell_damage(person, *, operation_id, owned_spell_id,
         if receipt.fingerprint != fingerprint:
             raise ValueError("Esta operação já foi usada com outros dados.")
         return dict(receipt.resposta, replayed=True)
-    if not _active(locked, ruleset=ruleset):
+    definition = _definition(locked, ruleset=ruleset)
+    if definition is None:
         raise ValueError("Fonte de dano mágico refinado indisponível.")
     owned = TbPersonagemMagia.objects.select_related("id_magia").filter(
         pk=owned_spell_id, id_personagem=locked).first()
     spell = owned.id_magia if owned else None
-    if (spell is None or spell.nivel < 1
+    if (spell is None or spell.nivel < definition["circle"]
             or not (owned.preparada or owned.sempre_preparada)
             or damage_type not in _spell_damage_types(spell)):
         raise ValueError("Magia danosa preparada e tipo de dano são obrigatórios.")
-    applied = [max(3, rolled) for _sides, rolled in declared]
+    if any(definition["floor"] > sides for sides, rolled in declared
+           if rolled in definition["rolls"]):
+        raise ValueError("O mínimo declarado excede as faces do dado.")
+    applied = [definition["floor"] if rolled in definition["rolls"] else rolled
+               for _sides, rolled in declared]
     total = sum(applied) + fixed
     if total < 0:
         raise ValueError("O dano total não pode ser negativo.")

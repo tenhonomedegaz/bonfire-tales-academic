@@ -13,6 +13,7 @@ from .character_engine import (
 )
 from .models import TbOperacaoRecurso, TbPersonagem, TbPersonagemEstado
 from .resource_engine import activate_state, end_state
+from .tag_engine.runtime_values import d20_adjustment, roll_dice
 
 
 ALTER_FATE_TAG = "trigger=d20_result, range:60ft, roll:2d4, buff:d20(plus_or_minus:2d4), uses{1, reset:initiative_or_short_or_long}"
@@ -21,27 +22,39 @@ FATE_LOCK_KEY = "epic:fate:alter_fate:used"
 FATE_RECOVERY_KEY = "epic:fate:alter_fate:recovered"
 
 
-def _source(person, ruleset=None):
+def _definition(person, ruleset=None):
     choices = _talent_attr_map(person, ruleset=ruleset)
     for _kind, _name, source, _level in _features_do_personagem(person, ruleset=ruleset):
         tags = tuple(str(tag).strip() for tag in source.tags_json or [])
         if any("talent_attr_score" in tag for tag in tags) and not _feature_talent_attr_sig(source, choices):
             continue
-        if ALTER_FATE_TAG in tags and REVERBERANT_FATE_TAG in tags:
-            return _feature_identity(source)
+        for tag in tags:
+            definition = d20_adjustment(tag)
+            if definition:
+                return dict(definition, origin=_feature_identity(source),
+                            recover_on_critical=REVERBERANT_FATE_TAG in tags)
     return None
 
 
+def _source(person, ruleset=None, *, recovery=False):
+    definition = _definition(person, ruleset=ruleset)
+    if recovery and definition and not definition["recover_on_critical"]:
+        return None
+    return definition["origin"] if definition else None
+
+
 def fate_state(person, ruleset=None):
-    origin = _source(person, ruleset=ruleset)
-    if origin is None:
+    definition = _definition(person, ruleset=ruleset)
+    if definition is None:
         return None
     locked = TbPersonagemEstado.objects.filter(
         id_personagem=person, chave=FATE_LOCK_KEY, ativo=True).exists()
     recovery = TbPersonagemEstado.objects.filter(
         id_personagem=person, chave=FATE_RECOVERY_KEY, ativo=True).first()
     return {"available": not locked, "direction": (
-        (recovery.payload_json or {}).get("direction") if recovery and not locked else None)}
+        (recovery.payload_json or {}).get("direction") if recovery and not locked else None),
+        "dice": definition["dice"], "range_ft": definition["range_ft"],
+        "recover_on_critical": definition["recover_on_critical"]}
 
 
 def _uuid(value):
@@ -81,14 +94,14 @@ def _save_receipt(person, operation_id, fingerprint, response):
 @transaction.atomic
 def alter_fate(person, *, operation_id, roll_ref, distance_ft, direction,
                d20_result_confirmed, ruleset=None):
-    """Roll two d4 on the server after a declared d20 success or failure."""
+    """Roll the tagged adjustment after a declared d20 success or failure."""
     operation_id = _uuid(operation_id)
     roll_ref = _ref(roll_ref)
     try:
         distance_ft = int(distance_ft)
     except (TypeError, ValueError) as exc:
         raise ValueError("Distância inválida.") from exc
-    if not 0 <= distance_ft <= 60 or direction not in ("increase", "decrease"):
+    if distance_ft < 0 or direction not in ("increase", "decrease"):
         raise ValueError("Alvo fora do alcance ou direção inválida.")
     if d20_result_confirmed is not True:
         raise ValueError("Confirme o resultado da rolagem d20 na mesa.")
@@ -97,16 +110,19 @@ def alter_fate(person, *, operation_id, roll_ref, distance_ft, direction,
     fingerprint, replay = _receipt(locked_person, operation_id, "use", payload)
     if replay is not None:
         return replay
-    origin = _source(locked_person, ruleset=ruleset)
-    if origin is None:
+    definition = _definition(locked_person, ruleset=ruleset)
+    if definition is None:
         raise ValueError("Fonte ativa de Alterar Destino indisponível.")
+    origin = definition["origin"]
+    if distance_ft > definition["range_ft"]:
+        raise ValueError("Alvo fora do alcance declarado.")
     if TbOperacaoRecurso.objects.filter(
             id_personagem=locked_person, resposta__fate_roll_ref=roll_ref).exists():
         raise ValueError("Esta rolagem já foi alterada.")
     state = fate_state(locked_person, ruleset=ruleset)
     if not state["available"] or state["direction"] not in (None, direction):
         raise ValueError("Uso indisponível para esta direção.")
-    dice = [secrets.randbelow(4) + 1 for _ in range(2)]
+    dice = roll_dice(definition["dice"], secrets.randbelow)
     activate_state(locked_person, FATE_LOCK_KEY, origin=origin,
                    payload={"roll_ref": roll_ref}, ends_on=["short_rest", "long_rest"])
     end_state(locked_person, FATE_RECOVERY_KEY)
@@ -131,9 +147,10 @@ def recover_fate(person, *, operation_id, event_ref, natural_d20,
                                    [event_ref, natural_d20])
     if replay is not None:
         return replay
-    origin = _source(locked_person, ruleset=ruleset)
-    if origin is None:
+    definition = _definition(locked_person, ruleset=ruleset)
+    if definition is None or not definition["recover_on_critical"]:
         raise ValueError("Fonte ativa de Causalidade Reverberante indisponível.")
+    origin = definition["origin"]
     if TbOperacaoRecurso.objects.filter(
             id_personagem=locked_person, resposta__fate_critical_ref=event_ref).exists():
         raise ValueError("Este crítico já foi registrado.")

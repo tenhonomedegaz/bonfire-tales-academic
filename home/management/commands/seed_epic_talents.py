@@ -7,6 +7,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import connection, transaction
 
 from home.epic_talent_catalog import epic_candidates
+from home.epic_talents import is_epic_talent
 from home.models import TbTalento
 
 
@@ -28,9 +29,7 @@ class Command(BaseCommand):
         names = list(TbTalento.objects.filter(nome__in=[item["nome"] for item in ready]))
         for current in existing + names:
             expected = next((item for item in ready if item["slug"] == current.slug), None)
-            if expected is None or expected["nome"] != current.nome or "epico" not in {
-                tag.strip().casefold() for tag in (current.etiquetas_adicionais or "").split(",")
-            }:
+            if expected is None or expected["nome"] != current.nome or not is_epic_talent(current):
                 raise CommandError(f"Colisão com conteúdo existente: {current.slug}")
         self.stdout.write(f"Candidatos completos: {len(ready)}/31; pendentes: {31-len(ready)}")
         if not options["apply"]:

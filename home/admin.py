@@ -3682,7 +3682,7 @@ class TbOrganizacaoAdmin(BonfireAdminMixin, admin.ModelAdmin):
 class TbItemMundanoAdmin(BonfireAdminMixin, admin.ModelAdmin):
     list_display = ("nome", "categoria", "subcategoria", "preco", "peso", "tags_preview")
     list_filter = ("categoria", "subcategoria")
-    search_fields = ("nome", "nome_ingles", "slug", "descricao_markdown")
+    search_fields = ("nome", "slug", "descricao_markdown")
     prepopulated_fields = {"slug": ("nome",)}
     readonly_fields = ("mecanica_resumo",)
     fieldsets = (

@@ -16,6 +16,7 @@ from .character_engine import (
 )
 from .models import TbOperacaoRecurso, TbPersonagem, TbPersonagemEstado
 from .resource_engine import activate_state, end_state
+from .tag_engine.runtime_values import dice_spec, roll_dice
 
 
 DAMAGE_TYPES = (
@@ -35,7 +36,7 @@ CHOICE_STATE_KEY = "epic:relentless_resistance:choices"
 ROUND_LOCK_KEY = "epic:relentless_resistance:alter_ruin:round"
 
 _CHOICE_RE = re.compile(
-    r"^pick:damage_resistance:2\(from:(?P<types>[a-z_]+(?:\|[a-z_]+)*), "
+    r"^pick:damage_resistance:(?P<count>\d+)\(from:(?P<types>[a-z_]+(?:\|[a-z_]+)*), "
     r"upgrade:resist_to_immune, swap:long_rest\)$"
 )
 _RUIN_RE = re.compile(
@@ -97,12 +98,19 @@ def _definition(person, ruleset=None):
         ruin_match = next((_RUIN_RE.fullmatch(tag) for tag in tags
                            if _RUIN_RE.fullmatch(tag)), None)
         if choice_match is not None and ruin_match is not None:
+            try:
+                dice_spec(ruin_match.group("dice"))
+            except ValueError:
+                continue
             types = tuple(choice_match.group("types").split("|"))
-            if len(types) != len(set(types)) or set(types) != set(DAMAGE_TYPES):
+            count = int(choice_match.group("count"))
+            if (len(types) != len(set(types)) or not set(types) <= set(DAMAGE_TYPES)
+                    or not 1 <= count <= len(types)):
                 continue
             return {
                 "origin": _feature_identity(source),
                 "types": types,
+                "count": count,
                 "range_ft": int(ruin_match.group("range")),
                 "dice": ruin_match.group("dice"),
             }
@@ -135,7 +143,8 @@ def _choice_state(person, definition):
     if state is None or state.origem != definition["origin"]:
         return None
     selected = tuple((state.payload_json or {}).get("types") or ())
-    if len(selected) != 2 or len(set(selected)) != 2 or not set(selected) <= set(definition["types"]):
+    if (len(selected) != definition["count"] or len(set(selected)) != definition["count"]
+            or not set(selected) <= set(definition["types"])):
         return None
     return state, selected
 
@@ -148,7 +157,9 @@ def resistance_state(person, *, ruleset=None):
     selected_state = _choice_state(person, definition)
     if selected_state is None:
         return {"available_types": list(definition["types"]), "types": [], "defenses": [],
-                "configured": False, "state_key": CHOICE_STATE_KEY}
+                "configured": False, "state_key": CHOICE_STATE_KEY,
+                "range_ft": definition["range_ft"], "dice": definition["dice"],
+                "choice_slots": list(range(1, definition["count"] + 1))}
     _state, selected = selected_state
     other = _other_defenses(person, definition["origin"], ruleset=ruleset)
     defenses = []
@@ -158,7 +169,9 @@ def resistance_state(person, *, ruleset=None):
         defenses.append({"damage_type": damage_type, "defense": level,
                          "upgraded": level == "immune", "other_defense": prior})
     return {"available_types": list(definition["types"]), "types": list(selected),
-            "defenses": defenses, "configured": True, "state_key": CHOICE_STATE_KEY}
+            "defenses": defenses, "configured": True, "state_key": CHOICE_STATE_KEY,
+            "range_ft": definition["range_ft"], "dice": definition["dice"],
+            "choice_slots": list(range(1, definition["count"] + 1))}
 
 
 def apply_resistance_state(state, person, *, ruleset=None):
@@ -196,10 +209,10 @@ def choose_resistances(person, *, operation_id, damage_types, long_rest_ref=None
     """Set the initial two choices, or replace them after a confirmed long rest."""
     operation_id = _operation_id(operation_id)
     if not isinstance(damage_types, (list, tuple)):
-        raise ValueError("Escolha exatamente dois tipos de dano.")
+        raise ValueError("Informe os tipos de dano escolhidos.")
     selected = tuple(str(value or "").strip().casefold() for value in damage_types)
-    if len(selected) != 2 or len(set(selected)) != 2:
-        raise ValueError("Escolha exatamente dois tipos de dano distintos.")
+    if not selected or len(selected) != len(set(selected)):
+        raise ValueError("Escolha tipos de dano distintos.")
     long_rest_ref = (None if long_rest_ref is None else _ref(long_rest_ref, "descanso longo"))
     payload = {"types": selected, "long_rest_ref": long_rest_ref,
                "long_rest_confirmed": long_rest_confirmed}
@@ -208,7 +221,8 @@ def choose_resistances(person, *, operation_id, damage_types, long_rest_ref=None
     if replay is not None:
         return replay
     definition = _definition(locked, ruleset=ruleset)
-    if definition is None or not set(selected) <= set(definition["types"]):
+    if (definition is None or len(selected) != definition["count"]
+            or not set(selected) <= set(definition["types"])):
         raise ValueError("A fonte ativa não permite esses tipos de dano.")
     current = _choice_state(locked, definition)
     changing = current is not None and current[1] != selected
@@ -282,7 +296,7 @@ def alter_ruin(person, *, operation_id, round_ref, damage_type, damage_received,
     save_die = secrets.randbelow(20) + 1
     save_total = save_die + target_save_modifier
     succeeded = save_total >= save_dc
-    dice = [secrets.randbelow(12) + 1 for _ in range(3)] if not succeeded else []
+    dice = roll_dice(definition["dice"], secrets.randbelow) if not succeeded else []
     damage = sum(dice) + modifier if dice else 0
     activate_state(locked, ROUND_LOCK_KEY, origin=definition["origin"],
                    payload={"round_ref": round_ref}, ends_on=["round"])

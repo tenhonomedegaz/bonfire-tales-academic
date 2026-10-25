@@ -62,7 +62,8 @@ class FateTests(TestCase):
         self.assertLess(second["modifier"], 0)
         reset_fate_on_initiative(self.person, operation_id=uuid.uuid4(),
                                  initiative_ref="encounter-2:initiative", confirmed=True)
-        self.assertEqual(fate_state(self.person), {"available": True, "direction": None})
+        self.assertEqual(fate_state(self.person), {"available": True, "direction": None,
+                         "dice": "2d4", "range_ft": 60, "recover_on_critical": True})
         self.assertGreater(self.use()["modifier"], 0)
 
     def test_source_removal_range_critical_and_duplicate_gates(self):
@@ -117,7 +118,8 @@ class FateTests(TestCase):
         self.use()
         from home.resource_engine import end_states_on
         end_states_on(self.person, "short_rest")
-        self.assertEqual(fate_state(self.person), {"available": True, "direction": None})
+        self.assertEqual(fate_state(self.person), {"available": True, "direction": None,
+                         "dice": "2d4", "range_ft": 60, "recover_on_critical": True})
         self.use()
         self.choice.delete()
         self.assertIsNone(fate_state(self.person))

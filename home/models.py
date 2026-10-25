@@ -587,6 +587,7 @@ class TbTalento(models.Model):
     TIPO_CHOICES = [
         ('origem', 'Origem'),
         ('geral', 'Geral'),
+        ('epico', 'Épico'),
     ]
 
     ETIQUETA_CHOICES = [

@@ -292,17 +292,18 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
     <h2 id="destino-epico-title" class="ficha-section-title">Alterar Destino</h2>
     {% for message in messages %}{% if 'epic-fate' in message.tags or 'epic-battle-accuracy' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
     {% if destino_epico.available %}
-    <p>Após uma rolagem d20 de sucesso ou falha, role 2d4 e aplique o total.{% if destino_epico.direction %} Este uso recuperado só permite {{ destino_epico.direction }}.{% endif %}</p>
+    <p>Após uma rolagem d20 de sucesso ou falha, role {{ destino_epico.dice }} e aplique o total.{% if destino_epico.direction %} Este uso recuperado só permite {{ destino_epico.direction }}.{% endif %}</p>
     <form method="post" action="{% url 'personagem_alterar_destino' p.pk %}">
       {% csrf_token %}
       <input type="hidden" name="operation_id" value="{{ destino_use_operation_id }}">
       <label>Rolagem na mesa <input name="roll_ref" maxlength="180" required></label>
-      <label>Distância em pés <input type="number" name="distance_ft" min="0" max="60" value="0" required></label>
+      <label>Distância em pés <input type="number" name="distance_ft" min="0" max="{{ destino_epico.range_ft }}" value="0" required></label>
       <label>Aplicar como <select name="direction"><option value="increase">Bônus</option><option value="decrease">Penalidade</option></select></label>
       <label><input type="checkbox" name="confirmed" required> Sucesso ou falha em d20 confirmado na mesa</label>
-      <button type="submit" class="banner-btn primary">Rolar 2d4</button>
+      <button type="submit" class="banner-btn primary">Rolar {{ destino_epico.dice }}</button>
     </form>
-    {% else %}<p>Uso gasto até iniciativa, descanso ou crítico natural próprio.</p>{% endif %}
+    {% else %}<p>Uso gasto até iniciativa ou descanso{% if destino_epico.recover_on_critical %}, ou crítico natural próprio{% endif %}.</p>{% endif %}
+    {% if destino_epico.recover_on_critical %}
     <form method="post" action="{% url 'personagem_rolar_ataque_epico' p.pk %}">
       {% csrf_token %}
       <input type="hidden" name="operation_id" value="{{ destino_attack_operation_id }}">
@@ -319,6 +320,7 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
       <label><input type="checkbox" name="critical_confirmed" required> Crítico natural confirmado</label>
       <button type="submit" class="banner-btn primary">Registrar crítico</button>
     </form>
+    {% endif %}
     <form method="post" action="{% url 'personagem_iniciativa_destino' p.pk %}">
       {% csrf_token %}
       <input type="hidden" name="operation_id" value="{{ destino_initiative_operation_id }}">
@@ -391,8 +393,9 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
     {% for message in messages %}{% if 'epic-relentless' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
     <form method="post" action="{% url 'personagem_resistencia_implacavel' p.pk %}">{% csrf_token %}
       <input type="hidden" name="operation_id" value="{{ resistencia_implacavel_operation_id }}">
-      <label>Primeiro tipo <select name="damage_types">{% for type in resistencia_implacavel.available_types %}<option value="{{ type }}">{{ type }}</option>{% endfor %}</select></label>
-      <label>Segundo tipo <select name="damage_types">{% for type in resistencia_implacavel.available_types %}<option value="{{ type }}">{{ type }}</option>{% endfor %}</select></label>
+      {% for slot in resistencia_implacavel.choice_slots %}
+      <label>Tipo {{ slot }} <select name="damage_types">{% for type in resistencia_implacavel.available_types %}<option value="{{ type }}">{{ type }}</option>{% endfor %}</select></label>
+      {% endfor %}
       <label>Descanso longo para trocar <input name="long_rest_ref" maxlength="180"></label>
       <label><input type="checkbox" name="long_rest_confirmed"> Descanso longo confirmado</label>
       <button type="submit" class="banner-btn primary">Salvar resistências</button>
@@ -402,7 +405,7 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
       <input type="hidden" name="operation_id" value="{{ alterar_ruina_operation_id }}">
       <label>Rodada <input name="round_ref" maxlength="180" required></label>
       <label>Tipo recebido <select name="damage_type">{% for type in resistencia_implacavel.types %}<option value="{{ type }}">{{ type }}</option>{% endfor %}</select></label>
-      <label>Distância <input name="target_distance_ft" type="number" min="0" max="60" required></label>
+      <label>Distância <input name="target_distance_ft" type="number" min="0" max="{{ resistencia_implacavel.range_ft }}" required></label>
       <label>Modificador da salvaguarda <input name="target_save_modifier" type="number" value="0" required></label>
       <label>Modificador <select name="declared_modifier"><option value="spell">Conjuração</option><option value="constitution">Constituição</option></select></label>
       <label><input type="checkbox" name="damage_received" required> Recebi dano escolhido</label><label><input type="checkbox" name="target_visible" required> Vejo o alvo</label><label><input type="checkbox" name="target_has_total_cover"> Alvo tem cobertura total</label>
