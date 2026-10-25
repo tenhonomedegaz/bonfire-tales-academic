@@ -12596,6 +12596,7 @@ def _editor_json_body(request):
 
 def _talent_payload(talent):
     from .epic_talents import talent_category
+    from .talent_presentation import attribute_presentation
 
     tipo = talent_category(talent.tipo, talent.etiquetas_adicionais)
     atributos = []
@@ -12631,6 +12632,7 @@ def _talent_payload(talent):
         'atrib_sabedoria': talent.atrib_sabedoria,
         'atrib_carisma': talent.atrib_carisma,
         'descricao': talent.descricao,
+        **attribute_presentation(talent.tags_json, atributos),
     }
 
 
@@ -14403,6 +14405,7 @@ def wiki_batch_save_map(request):
 @ensure_csrf_cookie  # edição inline (wiki) lê o csrftoken do cookie
 def talentos_view(request):
     from .epic_talents import talent_category
+    from .talent_presentation import attribute_presentation
 
 
 
@@ -14447,6 +14450,7 @@ def talentos_view(request):
                 'atrib_sabedoria': bool(t.get('Atrib_Sabedoria')),
                 'atrib_carisma': bool(t.get('Atrib_Carisma')),
                 'descricao': t.get('Descricao') or '',
+                **attribute_presentation(t.get('TagsJSON'), atributos),
             })
         return render(request, 'home/pages/talentos.html', {
             'page_title': 'Talentos',
