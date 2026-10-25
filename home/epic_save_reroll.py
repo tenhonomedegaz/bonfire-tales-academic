@@ -26,7 +26,8 @@ REROLL_STATE_KEY = "epic:save_reroll:turn_lock"
 
 _REROLL_RE = re.compile(
     r"^trigger\s*=\s*failed_save\(\s*kind\s*:\s*"
-    r"(?P<kinds>any\|death)\s*\)\s*,\s*"
+    r"(?P<kinds>(?:any|str|dex|con|int|wis|cha|death)"
+    r"(?:\|(?:any|str|dex|con|int|wis|cha|death))*)\s*\)\s*,\s*"
     r"reroll\s*:\s*d20\(\s*keep\s*:\s*(?P<keep>new)\s*\)\s*,\s*"
     r"lockout\{\s*(?P<scope>self)\s*,\s*reset\s*:\s*"
     r"(?P<reset>turn_start)\s*\}$"
@@ -46,7 +47,8 @@ def _definition(person, ruleset=None):
         for tag in tags:
             match = _REROLL_RE.fullmatch(tag)
             if match is not None:
-                return {"origin": _feature_identity(source), "tag": tag}
+                return {"origin": _feature_identity(source), "tag": tag,
+                        "kinds": match.group("kinds").split("|")}
     return None
 
 
@@ -124,6 +126,8 @@ def use_save_reroll(person, *, operation_id, save_kind, failed, original_roll,
         raise ValueError("O personagem não possui uma fonte ativa para esta rerrolagem.")
     if failed is not True:
         raise ValueError("A rerrolagem exige uma salvaguarda que falhou.")
+    if "any" not in definition["kinds"] and save_kind not in definition["kinds"]:
+        raise ValueError("A fonte ativa nao permite esta especie de salvaguarda.")
     if TbPersonagemEstado.objects.filter(
             id_personagem=locked, chave=REROLL_STATE_KEY, ativo=True).exists():
         raise ValueError("A rerrolagem já foi usada até o início do próximo turno.")

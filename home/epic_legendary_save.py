@@ -21,8 +21,10 @@ LEGENDARY_SAVE_TAG = (
 )
 LEGENDARY_SAVE_STATE_KEY = "epic:legendary_save:rest_lock"
 _TAG_RE = re.compile(
-    r"^trigger=failed_save\(kind:any\|death\), result:success, "
-    r"lockout\{self, reset:short_rest\|long_rest\}$"
+    r"^trigger=failed_save\(kind:(?P<kinds>(?:any|str|dex|con|int|wis|cha|death)"
+    r"(?:\|(?:any|str|dex|con|int|wis|cha|death))*)\), result:success, "
+    r"lockout\{self, reset:(?P<reset>(?:short_rest|long_rest)"
+    r"(?:\|(?:short_rest|long_rest))*)\}$"
 )
 _SAVE_KINDS = {"str", "dex", "con", "int", "wis", "cha", "death"}
 
@@ -35,14 +37,18 @@ def _definition(person, ruleset=None):
         if (any("talent_attr_score" in tag for tag in tags)
                 and not _feature_talent_attr_sig(source, choices)):
             continue
-        if any(_TAG_RE.fullmatch(tag) for tag in tags):
-            return _feature_identity(source)
+        for tag in tags:
+            match = _TAG_RE.fullmatch(tag)
+            if match:
+                return {"origin": _feature_identity(source),
+                        "kinds": match.group("kinds").split("|"),
+                        "ends_on": match.group("reset").split("|")}
     return None
 
 
 def legendary_save_state(person, ruleset=None):
-    origin = _definition(person, ruleset=ruleset)
-    if origin is None:
+    definition = _definition(person, ruleset=ruleset)
+    if definition is None:
         return None
     spent = TbPersonagemEstado.objects.filter(
         id_personagem=person, chave=LEGENDARY_SAVE_STATE_KEY, ativo=True).exists()
@@ -68,15 +74,17 @@ def use_legendary_save(person, *, operation_id, save_kind, failed, ruleset=None)
         if receipt.fingerprint != fingerprint:
             raise ValueError("Esta operação já foi usada com outros dados.")
         return dict(receipt.resposta, replayed=True)
-    origin = _definition(locked, ruleset=ruleset)
-    if origin is None:
+    definition = _definition(locked, ruleset=ruleset)
+    if definition is None:
         raise ValueError("Fonte de resistência lendária indisponível.")
+    if "any" not in definition["kinds"] and save_kind not in definition["kinds"]:
+        raise ValueError("A fonte ativa nao permite esta especie de salvaguarda.")
     if TbPersonagemEstado.objects.filter(
             id_personagem=locked, chave=LEGENDARY_SAVE_STATE_KEY, ativo=True).exists():
         raise ValueError("Resistência lendária já utilizada neste descanso.")
-    activate_state(locked, LEGENDARY_SAVE_STATE_KEY, origin=origin,
+    activate_state(locked, LEGENDARY_SAVE_STATE_KEY, origin=definition["origin"],
                    payload={"save_kind": save_kind},
-                   ends_on=["short_rest", "long_rest"])
+                   ends_on=definition["ends_on"])
     response = {"ok": True, "operation_id": str(operation_id),
                 "save_kind": save_kind, "result": "success", "replayed": False}
     TbOperacaoRecurso.objects.create(
