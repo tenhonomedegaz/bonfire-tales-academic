@@ -1,5 +1,9 @@
 # Guia operacional da API geral do Bonfire
 
+## Atualizacao: catalogos e comparacao por slug
+
+Esta entrega adiciona GET/POST/PATCH de `talento`, `magia`, `bestiario`, `item_mundano` e `item_magico`, com descricoes e tags completas, mantendo PKs imutaveis, escopos, versao e idempotencia. A chave existente pode ser reutilizada apos instalar o codigo; nao e necessario rotaciona-la. `schema/` passa a listar os campos/choices/referencias. A nova operacao `catalog-upsert-preview` compara lotes por slug sem gravar conteudo. Procedimento completo e exemplos: [API de catalogos](catalog_api.md). O manifesto de 31 epicos em `docs/integracao/talentos-epicos-api-plan.json` e desejado/nao aplicado, nao uma confirmacao da producao.
+
 Este é o procedimento único para operar a API restrita de conteúdo e revisões de classe. Ela não oferece SQL, DDL, shell, dumps, contas ou chaves por token. As rotas da API são registradas em `bonfire/urls.py`; `home/urls.py` não as registra.
 
 Código a instalar: [BonfireSite, branch `dev`](https://github.com/bonfiretales-dev/BonfireSite/tree/dev), a partir de `cae6c85` e com este guia atualizado; [JARVIS-Project, branch `dev`](https://github.com/tenhonomedegaz/JARVIS-Project/tree/dev), commit `4ba93531c73c4b6152209ed3344e2447b7126602`. O servidor usa apenas o commit do Bonfire; o painel local usa o commit do Jarvis. Confira o hash implantado de cada repositório antes de gerar a chave.
@@ -70,7 +74,7 @@ Os únicos escopos são `read`, `write` e `publish`. Em incidente ou perda de se
 
 O Jarvis envia `Authorization: Bearer` por HTTPS internamente. O segredo fica no cofre local e nao precisa ser copiado para comandos, prompts ou historico. Use **Testar conexao e escopos** em Integracoes para consultar `session/`; o agente consulta `schema/` pela ferramenta protegida.
 
-`schema/` é a fonte de verdade para modelos, campos e operações expostos pela versão implantada. `session/` confirma conexão, escopos e expiração. Os modelos atuais são `regra`, `idioma`, `condicao`, `raca`, `linhagem`, `opcao_jogo` e `acesso_opcao`; a allowlist não inclui usuários, chaves, auditoria, revisões, rulesets ou personagens. `opcao_jogo` e `acesso_opcao` expõem somente consulta estruturada; seus campos aparecem com `writable: false` no schema. A publicação de opções e vínculos de acesso requer um fluxo especializado ou decisão de contrato própria, pois alterar esses vínculos afeta a elegibilidade de personagens.
+`schema/` é a fonte de verdade para modelos, campos e operações expostos pela versão implantada. `session/` confirma conexão, escopos e expiração. Os modelos sao `regra`, `idioma`, `condicao`, `raca`, `linhagem`, `opcao_jogo`, `acesso_opcao`, `talento`, `magia`, `bestiario`, `item_mundano` e `item_magico`; a allowlist não inclui usuários, chaves, auditoria, revisões, rulesets ou personagens. `opcao_jogo` e `acesso_opcao` expõem somente consulta estruturada; seus campos aparecem com `writable: false` no schema. A publicação de opções e vínculos de acesso requer um fluxo especializado ou decisão de contrato própria, pois alterar esses vínculos afeta a elegibilidade de personagens.
 
 | Método | URL | Escopo | Regras |
 | --- | --- | --- | --- |

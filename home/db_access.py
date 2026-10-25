@@ -3,9 +3,10 @@ import hashlib
 import json
 from dataclasses import dataclass
 from datetime import timedelta
+from decimal import Decimal
 
 from django.core.exceptions import ValidationError
-from django.db import models, transaction
+from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
 from . import models as home_models
@@ -27,6 +28,7 @@ class ModelAccess:
     writable: tuple
     filterable: tuple
     sortable: tuple
+    json_references: tuple = ()
 
 
 @dataclass(frozen=True)
@@ -122,6 +124,64 @@ MODEL_ALLOWLIST = {
         ('id_acessoopcao', 'id_opcao', 'id_classe', 'id_subclasse',
          'nivel_recebimento'),
     ),
+    'talento': ModelAccess(
+        home_models.TbTalento,
+        ('id_talento', 'nome', 'nome_ingles', 'slug', 'tipo', 'etiqueta',
+         'etiquetas_adicionais', 'pre_requisito', 'descricao', 'tags_json',
+         'atrib_forca', 'atrib_destreza', 'atrib_constituicao',
+         'atrib_inteligencia', 'atrib_sabedoria', 'atrib_carisma'),
+        ('nome', 'nome_ingles', 'slug', 'tipo', 'etiqueta', 'etiquetas_adicionais',
+         'pre_requisito', 'descricao', 'tags_json', 'atrib_forca',
+         'atrib_destreza', 'atrib_constituicao', 'atrib_inteligencia',
+         'atrib_sabedoria', 'atrib_carisma'),
+        ('id_talento', 'slug', 'nome', 'tipo', 'etiqueta'),
+        ('id_talento', 'slug', 'nome', 'tipo', 'etiqueta'),
+    ),
+    'magia': ModelAccess(
+        home_models.TbMagia,
+        ('id_magia', 'nome', 'nome_ingles', 'slug', 'nivel', 'casting_time',
+         'ritual', 'duracao', 'concentracao', 'escola', 'alcance', 'componentes',
+         'classes', 'classes_slugs', 'descricao', 'em_niveis_superiores', 'tags_json'),
+        ('nome', 'nome_ingles', 'slug', 'nivel', 'casting_time', 'ritual', 'duracao',
+         'concentracao', 'escola', 'alcance', 'componentes', 'classes',
+         'classes_slugs', 'descricao', 'em_niveis_superiores', 'tags_json'),
+        ('id_magia', 'slug', 'nome', 'nivel', 'escola', 'ritual', 'concentracao'),
+        ('id_magia', 'slug', 'nome', 'nivel', 'escola'),
+        json_references=(('classes_slugs', home_models.TbClasse, 'slug'),),
+    ),
+    'bestiario': ModelAccess(
+        home_models.TbBestiario,
+        ('id_criatura', 'nome', 'slug', 'tipo', 'tamanho', 'nd', 'alinhamento',
+         'ca', 'pv', 'statblock_json', 'tags_json', 'companheiro_classe',
+         'companheiro_subclasse', 'escala_com_dono', 'descricao_markdown',
+         'imagem_url', 'comunidade'),
+        ('nome', 'slug', 'tipo', 'tamanho', 'nd', 'alinhamento', 'ca', 'pv',
+         'statblock_json', 'tags_json', 'escala_com_dono', 'descricao_markdown',
+         'imagem_url'),
+        ('id_criatura', 'slug', 'nome', 'tipo', 'tamanho', 'nd',
+         'companheiro_classe', 'companheiro_subclasse', 'comunidade'),
+        ('id_criatura', 'slug', 'nome', 'tipo', 'nd'),
+    ),
+    'item_mundano': ModelAccess(
+        home_models.TbItemMundano,
+        ('id_item', 'nome', 'slug', 'categoria', 'subcategoria', 'peso', 'preco',
+         'descricao_markdown', 'imagem_url', 'tags_json'),
+        ('nome', 'slug', 'categoria', 'subcategoria', 'peso', 'preco',
+         'descricao_markdown', 'imagem_url', 'tags_json'),
+        ('id_item', 'slug', 'nome', 'categoria', 'subcategoria'),
+        ('id_item', 'slug', 'nome', 'categoria', 'peso'),
+    ),
+    'item_magico': ModelAccess(
+        home_models.TbItemMagico,
+        ('id_item', 'nome', 'nome_ingles', 'slug', 'raridade', 'requer_sintonizacao',
+         'detalhes_sintonizacao', 'slot', 'loja', 'preco', 'tipo',
+         'descricao_markdown', 'imagem_url', 'tags_json'),
+        ('nome', 'nome_ingles', 'slug', 'raridade', 'requer_sintonizacao',
+         'detalhes_sintonizacao', 'slot', 'loja', 'preco', 'tipo',
+         'descricao_markdown', 'imagem_url', 'tags_json'),
+        ('id_item', 'slug', 'nome', 'raridade', 'slot', 'loja', 'requer_sintonizacao'),
+        ('id_item', 'slug', 'nome', 'raridade', 'slot', 'loja', 'preco'),
+    ),
 }
 
 
@@ -154,6 +214,8 @@ def _field(access, name):
 
 
 def serialize_value(value):
+    if isinstance(value, Decimal):
+        return str(value)
     if hasattr(value, 'isoformat'):
         return value.isoformat()
     if hasattr(value, 'hex') and value.__class__.__module__ == 'uuid':
@@ -204,6 +266,22 @@ def clean_values(access, payload, *, partial):
                 cleaned[field.attname] = pk
             else:
                 converted = field.to_python(value)
+                if isinstance(field, models.JSONField) and field.default in (list, dict):
+                    if not isinstance(converted, field.default):
+                        raise ValidationError('Formato JSON deve ser %s.' % field.default.__name__)
+                    if name == 'tags_json' and not all(isinstance(tag, str) for tag in converted):
+                        raise ValidationError('Tags devem ser uma lista de textos.')
+                for reference_name, target_model, target_field in access.json_references:
+                    if name != reference_name:
+                        continue
+                    if (not isinstance(converted, list)
+                            or not all(isinstance(item, str) and item for item in converted)
+                            or len(set(converted)) != len(converted)):
+                        raise ValidationError('Referencias devem ser textos distintos em uma lista.')
+                    available = set(target_model._default_manager.filter(
+                        **{target_field + '__in': converted}).values_list(target_field, flat=True))
+                    if set(converted) != available:
+                        raise ValidationError('Uma ou mais referencias nao existem no catalogo.')
                 field.run_validators(converted)
                 cleaned[field.attname] = converted
         except (ValidationError, TypeError, ValueError) as exc:
@@ -216,9 +294,28 @@ def clean_values(access, payload, *, partial):
 def validate_instance(instance, access, *, exclude_untouched=()):
     try:
         instance.full_clean(exclude=list(exclude_untouched), validate_unique=True)
+        if 'tags_json' in access.writable and 'tags_json' not in exclude_untouched:
+            from .tag_engine.library import Library
+            from .tag_engine.validator import ERROR, validate_tags_json
+            issues = validate_tags_json(instance.tags_json, Library())
+            errors = [issue.message for issue in issues if issue.level == ERROR]
+            if errors:
+                raise ValidationError({'tags_json': errors})
     except ValidationError as exc:
         details = getattr(exc, 'message_dict', {'__all__': exc.messages})
         raise ApiProblem(400, 'validation_error', 'Registro invalido.', details=details) from None
+
+
+def save_instance(instance, **kwargs):
+    """Keep model/signal validation failures inside the structured API contract."""
+    try:
+        instance.save(**kwargs)
+    except ValidationError as exc:
+        details = getattr(exc, 'message_dict', {'__all__': exc.messages})
+        raise ApiProblem(400, 'validation_error', 'Registro invalido.', details=details) from None
+    except IntegrityError:
+        raise ApiProblem(409, 'constraint_conflict',
+                         'Conflito de integridade; releia o catalogo antes de tentar novamente.') from None
 
 
 def authenticate(request, scope):
@@ -287,6 +384,10 @@ def schema_document():
                 'writable': field_name in access.writable,
                 'filterable': field_name in access.filterable,
                 'sortable': field_name in access.sortable,
+                'choices': list(field.flatchoices) if field.choices else [],
+                'max_length': field.max_length,
+                'json_reference': next(({'model': model._meta.label_lower, 'field': target}
+                    for name, model, target in access.json_references if name == field_name), None),
             }
         output[name] = {'fields': fields}
     return {'models': output, 'operations': {

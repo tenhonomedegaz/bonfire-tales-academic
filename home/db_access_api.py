@@ -11,9 +11,10 @@ from .db_access import (
     ApiProblem, MAX_BODY_BYTES, MAX_FILTERS, MAX_PAGE_SIZE, MODEL_ALLOWLIST,
     OPERATION_HANDLERS, audit,
     authenticate, clean_values, parse_json_body, row_version, schema_document,
-    serialize_instance, validate_instance, register_operation_handler,
+    serialize_instance, validate_instance, save_instance, register_operation_handler,
 )
 from .db_access_models import DbAccessIdempotency, ManagedApiKey
+from .catalog_api_preview import catalog_upsert_preview
 from .class_revision_editor import class_revision_operation, class_revision_preview_operation
 from .class_publication import class_publication_operation, class_publication_preview_operation
 from .catalog_sync_api import (
@@ -35,6 +36,8 @@ register_operation_handler('catalog-sync', catalog_sync_operation, scope='publis
 register_operation_handler('bestiary-patch-preview', bestiary_patch_preview_operation,
                            require_base_version=False, scope='read')
 register_operation_handler('bestiary-patch', bestiary_patch_operation, scope='publish')
+register_operation_handler('catalog-upsert-preview', catalog_upsert_preview,
+                           require_base_version=False, scope='read')
 
 
 def _response(payload, status=200, *, version=None):
@@ -183,7 +186,7 @@ def db_collection(request, model_name):
             cleaned = clean_values(access, payload, partial=False)
             instance = access.model(**cleaned)
             validate_instance(instance, access)
-            instance.save()
+            save_instance(instance)
             version = row_version(instance, access)
             body = {'item': serialize_instance(instance, access), 'version': version}
             DbAccessIdempotency.objects.create(
@@ -243,7 +246,7 @@ def db_object(request, model_name, object_pk):
                 setattr(instance, attname, value)
             untouched = set(access.writable) - set(payload)
             validate_instance(instance, access, exclude_untouched=untouched)
-            instance.save(update_fields=list(cleaned))
+            save_instance(instance, update_fields=list(cleaned))
             version = row_version(instance, access)
             body = {'item': serialize_instance(instance, access), 'version': version}
             DbAccessIdempotency.objects.create(

@@ -169,7 +169,8 @@ class StructuredDbApiTests(TestCase):
         self.assertEqual(
             set(response.json()['models']),
             {'regra', 'idioma', 'condicao', 'raca', 'linhagem',
-             'opcao_jogo', 'acesso_opcao'},
+             'opcao_jogo', 'acesso_opcao', 'talento', 'magia', 'bestiario',
+             'item_mundano', 'item_magico'},
         )
         self.assertNotIn('user', json.dumps(response.json()).lower())
 
