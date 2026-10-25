@@ -2315,6 +2315,11 @@
       "op": "set_value",
       "doc": "Níveis DA classe com característica de subclasse; o 1º é onde se escolhe a subclasse."
     },
+    "progression": {
+      "sintaxe": "progression{adventures:160,level:20}",
+      "op": "set_value",
+      "doc": "Metadado de Marco de Progressao em TbOpcaojogo. Abre concessao global ao atingir aventuras e nivel total de classe; pick:talento:1 define o catalogo. Nao aumenta niveis de classe."
+    },
     "asi_choices": {
       "sintaxe": "asi_choices{4, 8, 12, 16, 19}",
       "op": "set_value",

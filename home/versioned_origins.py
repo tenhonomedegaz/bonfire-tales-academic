@@ -49,11 +49,16 @@ class VersionedOrigins:
         return [('antecedente', obj.nome, obj, None)]
 
     def talents(self, personagem):
+        from .progression_choices import is_progression_talent
         talents = {t.pk: t for t in self.objects(TbTalento)}
         traits = self.objects(TbTracoracial)
         out = []
         for selected in personagem.talentos.all():
             if selected.id_talento_id:
+                # Global adventure grants are independent of a pinned class catalog.
+                if is_progression_talent(selected):
+                    out.append(('talento', selected.categoria or 'talento', selected.id_talento, None))
+                    continue
                 if selected.id_talento_id not in talents:
                     raise ValueError('Talent absent from pinned ruleset.')
                 out.append(('talento', selected.categoria or 'talento',

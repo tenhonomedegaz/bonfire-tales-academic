@@ -7347,6 +7347,8 @@ def _subir_nivel_experiencia(request, p):
                 and limite_antes is not None and grupo['limite'] > limite_antes
                 and grupo['escolhidas'] and grupo['disponiveis'])
         talentos = _talentos_asi_catalogo(p, ficha_alvo)
+        from .progression_choices import pending as milestone_pending
+        marcos_pendentes = milestone_pending(p, ficha_alvo)
         # nível-alvo da classe: re-lê do banco DENTRO da transação (o `pc` de fora é o nível
         # atual; `_lvl_aplicar_subir_nivel` gravou o novo nível numa instância própria).
         pc_alvo = (p.classes.filter(id_classe_id=classe_id).first() if classe_id else None) \
@@ -7371,6 +7373,7 @@ def _subir_nivel_experiencia(request, p):
                           or (pendm and (pendm['cantrips_pend'] or pendm['known_pend']))
                           or magias_concedidas_pend
                           or talentos_raciais_pend
+                          or marcos_pendentes
                           or any(g['pendentes'] for g in opcao_grupos))
     from . import point_buy
     return render(request, 'home/pages/subir_nivel.html', {
@@ -7388,8 +7391,10 @@ def _subir_nivel_experiencia(request, p):
         'asi_slots': list(range(int(pend['asi_pendentes'] or 0))),
         'asi_nome': asi_nome,
         'talentos_raciais_pend': talentos_raciais_pend,
+        'marcos_pendentes': marcos_pendentes,
         'opcao_grupos': opcao_grupos, 'talentos_normais': talentos,
-        'talentos_picks_json': {str(t['id']): t['picks'] for t in talentos},
+        'talentos_picks_json': {str(t['id']): t['picks'] for t in
+                               talentos + [t for m in marcos_pendentes for t in m['talentos']]},
         'atributos': point_buy.SIGLAS, 'sem_pendencias': sem_pendencias,
     })
 
@@ -9167,7 +9172,10 @@ def _lvl_aplicar_trocar_magia(personagem, payload, *, ruleset=None):
 # Despacho por `tipo` da ação + ordem estável de aplicação do lote. A ordem garante as
 # DEPENDÊNCIAS: subir de nível ANTES de subclasse/ASI/talento-racial/opções/magias, pois
 # esses passos releem o nível já gravado para liberar o slot correspondente.
+from .progression_choices import apply_choice as _lvl_aplicar_marco
+
 _LVL_ACTIONS = {
+    'marco': _lvl_aplicar_marco,
     'subir_nivel': _lvl_aplicar_subir_nivel,
     'adicionar_classe': _lvl_aplicar_adicionar_classe,
     'subclasse': _lvl_aplicar_subclasse,
@@ -9180,7 +9188,7 @@ _LVL_ACTIONS = {
 }
 _LVL_ORDEM = {'subir_nivel': 0, 'adicionar_classe': 1, 'subclasse': 2, 'asi': 3,
               'talento_racial': 4, 'opcao': 5, 'trocar_opcao': 6, 'aprender_magias': 7,
-              'magias_concedidas': 8, 'trocar_magia': 9}
+              'magias_concedidas': 8, 'trocar_magia': 9, 'marco': 10}
 
 
 def _levelup_pendencias(personagem, classe_id=None):
@@ -9191,6 +9199,8 @@ def _levelup_pendencias(personagem, classe_id=None):
     tr = _pendencias_talento_racial(personagem)
     grupos = _opcao_grupos(personagem, classe_id)
     concedidas = _criador_magias_pendentes(personagem)
+    from .progression_choices import groups as milestone_groups
+    marcos = [policy.slug for policy, group in milestone_groups(personagem) if group['pendentes']]
     cant = int(pendm['cantrips_pend']) if pendm else 0
     known = int(pendm['known_pend']) if pendm else 0
     opcoes_pend = sum(g['pendentes'] for g in grupos)
@@ -9200,12 +9210,13 @@ def _levelup_pendencias(personagem, classe_id=None):
         'subclasse': bool(pend['subclasse']),
         'asi_pendentes': int(pend['asi_pendentes']),
         'talento_racial_niveis': [b['nivel'] for b in tr],
+        'marcos_pendentes': marcos,
         'opcoes_pendentes': int(opcoes_pend),
         'cantrips_pend': cant,
         'known_pend': known,
         'magias_concedidas_pend': concedidas_pend,
         'sem_pendencias': not (pend['subclasse'] or pend['asi_pendentes']
-                               or cant or known or concedidas_pend or tr or opcoes_pend),
+                               or cant or known or concedidas_pend or tr or opcoes_pend or marcos),
     }
 
 
@@ -12155,6 +12166,7 @@ def _levelup_pendencias_total(resumo):
         int(bool(resumo.get('subclasse')))
         + int(resumo.get('asi_pendentes') or 0)
         + len(resumo.get('talento_racial_niveis') or [])
+        + len(resumo.get('marcos_pendentes') or [])
         + int(resumo.get('opcoes_pendentes') or 0)
         + int(resumo.get('cantrips_pend') or 0)
         + int(resumo.get('known_pend') or 0)

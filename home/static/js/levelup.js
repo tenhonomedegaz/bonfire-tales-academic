@@ -278,6 +278,7 @@
     var items = [];
     if (pend.subclasse) items.push('subclasse');
     if (pend.asi_pendentes) items.push(pend.asi_pendentes + ' ASI');
+    if (pend.marcos_pendentes && pend.marcos_pendentes.length) items.push(pend.marcos_pendentes.length + ' marco(s)');
     (pend.talento_racial_niveis || []).forEach(function (n) { items.push('talento racial N' + n); });
     if (pend.opcoes_pendentes) items.push(pend.opcoes_pendentes + ' opção(ões)');
     if (pend.cantrips_pend) items.push(pend.cantrips_pend + ' truque(s)');

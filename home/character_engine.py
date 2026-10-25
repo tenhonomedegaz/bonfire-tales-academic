@@ -734,6 +734,7 @@ def _parse_talent_attr_details(texto):
 
 
 def _talent_attr_map(personagem, *, ruleset=None):
+    from .progression_choices import is_progression_talent
     out = {}
     if personagem is None:
         return out
@@ -744,14 +745,15 @@ def _talent_attr_map(personagem, *, ruleset=None):
         talents = {obj.pk: obj for obj in VersionedOrigins(ruleset).objects(TbTalento)}
     rows = personagem.talentos.all() if talents is not None else personagem.talentos.select_related('id_talento').all()
     for pt in rows:
+        live_grant = is_progression_talent(pt)
         sig = _parse_talent_attr_details(pt.detalhes)
         if not sig:
             continue
         if pt.id_talento_id:
             out[('id', pt.id_talento_id)] = sig
-            if talents is not None and pt.id_talento_id not in talents:
+            if talents is not None and pt.id_talento_id not in talents and not live_grant:
                 raise ValueError('Talent attribute source absent from pinned ruleset.')
-            obj = talents[pt.id_talento_id] if talents is not None else pt.id_talento
+            obj = talents[pt.id_talento_id] if talents is not None and not live_grant else pt.id_talento
             out[('slug', getattr(obj, 'slug', ''))] = sig
         out[('nome', _slug(pt.nome))] = sig
     return out

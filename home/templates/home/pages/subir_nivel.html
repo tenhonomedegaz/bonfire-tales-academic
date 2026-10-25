@@ -45,7 +45,7 @@
     <div class="sn-nothing lvl-card">
       {% if status.no_maximo %}
         <p class="sn-nothing-title">Nível máximo atingido</p>
-        <p class="sn-nothing-sub">{{ p.nome }} já está no nível 20 — o topo da progressão.</p>
+        <p class="sn-nothing-sub">{{ p.nome }} atingiu o limite de níveis de classe. Marcos de aventuras continuam disponíveis conforme sua progressão.</p>
       {% else %}
         <p class="sn-nothing-title">Ainda não é hora de subir</p>
         <p class="sn-nothing-sub">Faltam <strong class="text-[var(--flame)]">{{ status.faltam_aventuras }}</strong> aventura{{ status.faltam_aventuras|pluralize }} para liberar o nível {{ status.nivel_alvo }}. Jogue mais mesas para avançar.</p>
@@ -216,6 +216,26 @@
       {% endif %}
 
       {# ======================= ETAPA: OPÇÕES DE CLASSE ======================= #}
+      {% if marcos_pendentes %}
+      <section class="cf-step space-y-3" data-step="marcos" data-step-name="Marcos" data-step-required="1" hidden>
+        {% for marco in marcos_pendentes %}
+        <h2 class="sn-step-title">{{ marco.nome }}</h2>
+        <div class="lvl-card" data-lvl-card="marco" data-marco="{{ marco.slug }}">
+          <div class="lvl-card__head"><span class="lvl-card__title">{{ marco.nome }}</span><span class="lvl-badge" data-lvl-badge>falta 1</span></div>
+          <div class="lvl-queued" data-lvl-chips hidden></div>
+          <div class="lvl-card__row">
+            <select class="lvl-field lvl-field--grow" data-lvl-field="talento" aria-label="Talento de {{ marco.nome }}">
+              <option value="">— Selecione —</option>
+              {% for t in marco.talentos %}<option value="{{ t.id }}" data-attrs="{{ t.attrs_csv }}" data-desc="{{ t.descricao }}">{{ t.nome }} ({{ t.aumento }})</option>{% endfor %}
+            </select>
+            <select class="lvl-field" data-lvl-field="talento_attr" aria-label="Atributo do talento de {{ marco.nome }}">{% for a in atributos %}<option value="{{ a }}">{{ a }}</option>{% endfor %}</select>
+          </div>
+          <div class="lvl-card__hint space-y-2" data-lvl-desc hidden></div>
+          <div data-lvl-talento-picks hidden></div>
+        </div>
+        {% endfor %}
+      </section>
+      {% endif %}
       {% if opcao_grupos %}
       <section class="cf-step space-y-3" data-step="opcoes" data-step-name="Opções de classe" hidden>
         <h2 class="sn-step-title">Escolhas de Classe</h2>
@@ -443,5 +463,5 @@
 <link rel="stylesheet" href="{% static 'css/pages/levelup.css' %}?v=3">
 <link rel="stylesheet" href="{% static 'css/pages/subir_nivel.css' %}?v=1">
 <link rel="stylesheet" href="{% static 'css/pages/character-workflows.css' %}?v=1">
-<script src="{% static 'js/subir_nivel.js' %}?v=4" defer></script>
+<script src="{% static 'js/subir_nivel.js' %}?v=5" defer></script>
 {% endblock %}

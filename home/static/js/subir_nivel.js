@@ -12,7 +12,7 @@
   var main = document.getElementById('sn-main');
   if (!main || !SN.previewUrl) return;
 
-  var CHOICE_STEPS = ['subclasse', 'asi', 'talento_racial', 'opcoes', 'magias', 'magias_concedidas', 'troca_magia'];
+  var CHOICE_STEPS = ['subclasse', 'asi', 'talento_racial', 'marcos', 'opcoes', 'magias', 'magias_concedidas', 'troca_magia'];
   var lote = [];       // [{tipo, payload, key, label, card, fixed}]
   var seq = 0;
   var mode = 'subir';  // 'subir' (nível na classe) | 'mc' (multiclassar)
@@ -131,7 +131,7 @@
       }
       var badge = card.querySelector('[data-lvl-badge]');
       var addBtn = card.querySelector('[data-lvl-queue]');
-      if (type === 'subclasse' || type === 'talento_racial') {
+      if (type === 'subclasse' || type === 'talento_racial' || type === 'marco') {
         setBadge(badge, 1 - mine.length);
       } else if (type === 'asi' || type === 'opcao') {
         var need = +card.dataset.need || 0;
@@ -309,7 +309,7 @@
   // uma ação pertence a um cartão de escolha do nível? (p/ limpar ao multiclassar)
   function CHOICE_STEP_CARDS(a) {
     if (!a.card) return true;   // âncoras já removidas antes
-    return ['subclasse', 'talento_racial', 'asi', 'opcao', 'trocar_opcao', 'aprender_magias', 'magias_concedidas', 'trocar_magia'].indexOf(a.card.dataset.lvlCard) === -1;
+    return ['subclasse', 'talento_racial', 'marco', 'asi', 'opcao', 'trocar_opcao', 'aprender_magias', 'magias_concedidas', 'trocar_magia'].indexOf(a.card.dataset.lvlCard) === -1;
   }
 
   function rebuildMagias(card) {
@@ -435,6 +435,7 @@
     if (!pend) return items;
     if (pend.subclasse) items.push('subclasse');
     if (pend.asi_pendentes) items.push(pend.asi_pendentes + ' ASI');
+    if (pend.marcos_pendentes && pend.marcos_pendentes.length) items.push(pend.marcos_pendentes.length + ' marco(s)');
     (pend.talento_racial_niveis || []).forEach(function (n) { items.push('talento racial N' + n); });
     if (pend.opcoes_pendentes) items.push(pend.opcoes_pendentes + ' opção(ões)');
     if (pend.cantrips_pend) items.push(pend.cantrips_pend + ' truque(s)');
@@ -596,7 +597,7 @@
     });
     // Um cartão por aprimoramento pendente: alternância atributo↔talento, atributos que o
     // talento permite e ENFILEIRAMENTO na própria seleção (sem botão "Escolher").
-    main.querySelectorAll('[data-lvl-card="asi"]').forEach(function (asi) {
+    main.querySelectorAll('[data-lvl-card="asi"], [data-lvl-card="marco"]').forEach(function (asi) {
       var attrsBlock = asi.querySelector('[data-lvl-asi-attrs]'), talBlock = asi.querySelector('[data-lvl-asi-tal]');
       asi.querySelectorAll('input[type="radio"]').forEach(function (r) {
         r.addEventListener('change', function () {
@@ -620,7 +621,29 @@
         renderTalentoPicks(asi, talSel.value);
       }
       // Depois dos ajustes acima (o listener do cartão roda por último na fase de bolha).
-      asi.addEventListener('change', function () { queueAsi(asi); });
+      asi.addEventListener('change', function () {
+        if (asi.dataset.lvlCard !== 'marco') { queueAsi(asi); return; }
+        var key = 'marco#' + asi.dataset.marco;
+        var picks = {}, incomplete = !talSel.value;
+        asi.querySelectorAll('[data-talento-pick]').forEach(function (sel) {
+          if (!sel.value) incomplete = true;
+          var k = sel.dataset.pickKey;
+          if (!picks[k]) picks[k] = [];
+          if (sel.value) picks[k].push(sel.value);
+        });
+        var desc = asi.querySelector('[data-lvl-desc]');
+        if (desc) {
+          var markdown = talSel.options[talSel.selectedIndex].dataset.desc || '';
+          if (typeof renderBonfireMarkdown === 'function' && typeof sanitizeBonfireMarkdownHtml === 'function') {
+            desc.innerHTML = sanitizeBonfireMarkdownHtml(renderBonfireMarkdown(markdown));
+          } else desc.textContent = markdown;
+          desc.hidden = !talSel.value;
+        }
+        if (incomplete) { if (inLote(key)) removeKey(key); return; }
+        addOrReplace({ tipo: 'marco', key: key, card: asi, label: optText(talSel) + ' — ' + attrSel.value,
+          payload: { marco: asi.dataset.marco, talento: talSel.value,
+            talento_attr: attrSel.value, talento_picks: picks } });
+      });
     });
     main.querySelectorAll('[data-lvl-card="aprender_magias"]').forEach(function (card) {
       card.addEventListener('change', function (e) { if (e.target && e.target.type === 'checkbox') rebuildMagias(card); });
