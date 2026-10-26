@@ -3,6 +3,20 @@ from django.conf import settings
 from .models import UserProfile
 
 
+def master_review(request):
+    """Expose the review queue only to users allowed to authorize masters."""
+    from .master_participation import can_authorize
+    from .models import TbPerfilMestre
+
+    allowed = can_authorize(request.user)
+    return {
+        'master_review_access': allowed,
+        'pending_master_requests_count': (
+            TbPerfilMestre.objects.filter(status_mestre='pendente').count() if allowed else 0
+        ),
+    }
+
+
 def user_profile(request):
     """Ensure `profile` is always available in templates for authenticated users."""
     if request.user.is_authenticated:

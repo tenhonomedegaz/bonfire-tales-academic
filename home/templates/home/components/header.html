@@ -108,6 +108,7 @@
                 <h3 class="font-rpg font-bold text-[var(--ember)] text-sm uppercase tracking-widest border-b border-[var(--stroke)] pb-2 mb-1.5">Gestão</h3>
                 <ul class="space-y-1.5">
                   <li><a href="{% url 'mestre_mercado' %}" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Mercado de Mestre</a></li>
+                  {% if master_review_access %}<li>{% include 'home/components/master_review_link.html' %}</li>{% endif %}
                 </ul>
               </div>
             </div>
@@ -292,6 +293,7 @@
             </div>
 
             <div class="p-2 space-y-1">
+              {% if master_review_access %}<div class="p-3">{% include 'home/components/master_review_link.html' %}</div>{% endif %}
               
               <details class="group/mob-cat" open>
                 <summary class="list-none cursor-pointer flex items-center justify-between p-3 rounded hover:bg-[var(--bg0)] transition-colors">

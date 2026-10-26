@@ -114,6 +114,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'home.context_processors.user_profile',
                 'home.context_processors.site_presentation',
+                'home.context_processors.master_review',
             ],
         },
     },

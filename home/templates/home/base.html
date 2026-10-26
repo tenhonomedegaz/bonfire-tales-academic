@@ -83,6 +83,7 @@
   <link rel="stylesheet" href="{% static 'css/components/ranks.css' %}?v=1">
   <link rel="stylesheet" href="{% static 'css/components/theme-compositions.css' %}?v=1">
   <link rel="stylesheet" href="{% static 'css/components/navigation-access.css' %}?v=1">
+  <link rel="stylesheet" href="{% static 'css/components/master-review.css' %}?v=1">
   <link rel="stylesheet" href="{% static 'css/components/editorial-ad.css' %}?v=2">
   <script src="{% static 'js/navigation-access.js' %}?v=1" defer></script>
   <script src="{% static 'js/brand.js' %}?v=1" defer></script>
@@ -93,6 +94,12 @@
   <div id="root">
     <div class="bft-shell flex flex-col min-h-screen bg-[var(--bg0)] text-[var(--text)] selection:bg-[var(--ember)] selection:text-white">
       {% include 'home/components/header.html' %}
+      {% if master_review_access and pending_master_requests_count %}
+      <aside class="bft-review-notice" aria-label="Solicitações de mestre pendentes">
+        <span>{{ pending_master_requests_count }} solicitaç{{ pending_master_requests_count|pluralize:'ão,ões' }} de mestre aguardando avaliação.</span>
+        <a href="{% url 'master_dashboard' %}?permissao=pendente#permissoes">Avaliar solicitações →</a>
+      </aside>
+      {% endif %}
       
       <div class="flex-1 flex flex-row w-full justify-center">
           {% block ad_containers %}

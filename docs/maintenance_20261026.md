@@ -64,7 +64,27 @@ Nao ha migration ou dependencia nova neste lote. Deploy pelo `/site update`
 habitual, incluindo estaticos. A unica escrita de producao deste trabalho foi a
 correcao editorial de loja descrita acima. Nenhuma solicitacao real foi aprovada.
 
-## Fora deste lote
+## Acesso e aviso da fila de mestres
+
+O contexto compartilhado `home.context_processors.master_review` fornece o
+acesso e a contagem de pedidos pendentes, sem depender de cada view preencher
+`can_authorize`. A vitrine antes nao recebia essa variavel e escondia o atalho.
+
+- Menu Mestre (Gestao), menu mobile e navegacao de mestragem apontam para a
+  fila filtrada em pendentes; o link permanece disponivel quando a fila zera.
+- Com pedidos pendentes, um aviso abaixo do cabecalho aparece em todas as
+  paginas que usam a base do site. O painel inicial do admin mostra a contagem.
+- Restrito a superusers ativos ou staff ativo com `home.autorizar_mestres`,
+  exatamente a permissao ja exigida no endpoint de avaliacao.
+- A contagem e lida do banco ao renderizar a pagina, sem polling nem disparos
+  Discord. Recarregar reflete novos pedidos ou decisoes. Usuarios comuns e
+  anonimos nao consultam a fila nem recebem contagens.
+- 12 testes focados passaram, incluindo contexto por permissao, navegacao na
+  vitrine e retirada do aviso apos avaliar um pedido sintetico. Layout conferido
+  em 1440 e 390 pixels, sem overflow horizontal. Nenhum pedido real alterado.
+- Sem migration. Ativar com `/site update`, incluindo coleta dos estaticos.
+
+## Pendencias fora do lote
 
 Permanecem as quatro mecanicas epicas adicionais declarativas, a matriz ampla de
 classes/subclasses, mudancas de politica/economia e o formato especifico Foundry.

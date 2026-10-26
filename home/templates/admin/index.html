@@ -32,8 +32,8 @@
     <section class="bonfire-admin-tools" aria-labelledby="admin-tools-title">
         <h2 id="admin-tools-title">Ferramentas editoriais</h2>
         <div class="bonfire-admin-tools-grid">
-            {% if request.user.is_superuser or perms.home.autorizar_mestres %}
-            <a href="{% url 'master_dashboard' %}#permissoes"><strong>Solicitações de mestre</strong><span>Pedidos aguardando avaliação da administração.</span></a>
+            {% if master_review_access %}
+            <a href="{% url 'master_dashboard' %}#permissoes"><strong>Solicitações de mestre</strong><span>{{ pending_master_requests_count }} pendente{{ pending_master_requests_count|pluralize:'s' }} aguardando avaliação da administração.</span></a>
             {% endif %}
             <a href="{% url 'mundo_jornal' %}">
                 <strong>Jornal</strong>

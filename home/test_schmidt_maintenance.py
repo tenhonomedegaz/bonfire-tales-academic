@@ -6,12 +6,14 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 from django.contrib import admin
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AnonymousUser, Permission
 from django.template.loader import render_to_string
 from django.test import Client, RequestFactory, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
 from .master_participation import participation
+from .context_processors import master_review
 from .models import TbItemMundano, TbPerfilMestre
 
 
@@ -21,7 +23,8 @@ from .models import TbItemMundano, TbPerfilMestre
     'OPTIONS':{'libraries':{'humanize':'django.contrib.humanize.templatetags.humanize'},
                'context_processors':['django.template.context_processors.request',
                                      'django.contrib.auth.context_processors.auth',
-                                     'django.contrib.messages.context_processors.messages']},
+                                     'django.contrib.messages.context_processors.messages',
+                                     'home.context_processors.master_review']},
 }], MIDDLEWARE=['django.contrib.sessions.middleware.SessionMiddleware',
                 'django.middleware.csrf.CsrfViewMiddleware',
                 'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -96,6 +99,53 @@ class SchmidtMaintenanceTests(TestCase):
         response = self.client.get(reverse('admin:index'))
         self.assertContains(response, reverse('master_dashboard') + '#permissoes')
         self.assertContains(response, reverse('admin:catalog_export'))
+
+    def test_review_context_does_not_query_queue_for_players_or_anonymous(self):
+        request = RequestFactory().get('/')
+        for user in (AnonymousUser(), self.player):
+            request.user = user
+            with self.assertNumQueries(0):
+                self.assertEqual(master_review(request), {
+                    'master_review_access':False, 'pending_master_requests_count':0})
+
+    def test_directory_exposes_pending_notice_only_to_authorizers(self):
+        TbPerfilMestre.objects.create(user=self.player, status_mestre='pendente')
+        url = reverse('masters_directory')
+        moderator = get_user_model().objects.create_user('qa-moderator', is_staff=True)
+        for user in (None, self.player, moderator):
+            if user:
+                self.client.force_login(user)
+            else:
+                self.client.logout()
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200)
+            self.assertNotContains(response, 'bft-review-notice')
+            self.assertNotContains(response, 'class="bft-master-review-link"')
+        moderator.user_permissions.add(Permission.objects.get(codename='autorizar_mestres'))
+        for user in (moderator, self.staff):
+            self.client.force_login(user)
+            response = self.client.get(url)
+            self.assertEqual(response.context['pending_master_requests_count'], 1)
+            html = BeautifulSoup(response.content, 'html.parser')
+            self.assertIn('1 solicitação de mestre', html.select_one('.bft-review-notice').get_text())
+            for selector in ('.mh-nav', '.site-mobile-menu-panel', 'nav'):
+                self.assertIsNotNone(html.select_one(selector + ' .bft-master-review-link'))
+            for link in html.select('.bft-master-review-link'):
+                self.assertEqual(link['href'], reverse('master_dashboard') + '?permissao=pendente#permissoes')
+                self.assertEqual(link.select_one('.bft-review-count').get_text(), '1')
+
+    def test_pending_notice_clears_after_review_but_shortcut_remains(self):
+        TbPerfilMestre.objects.create(user=self.player, status_mestre='pendente', versao=1)
+        self.client.force_login(self.staff)
+        self.assertContains(self.client.get(reverse('masters_directory')), 'bft-review-notice')
+        response = self.client.post(reverse('master_authorize', args=[self.player.pk]), {
+            'acao':'autorizar', 'versao':'1', 'confirmar':'sim'})
+        self.assertEqual(response.status_code, 302)
+        response = self.client.get(reverse('masters_directory'))
+        self.assertEqual(response.context['pending_master_requests_count'], 0)
+        self.assertNotContains(response, 'bft-review-notice')
+        self.assertContains(response, 'class="bft-master-review-link"')
+        self.assertNotContains(response, 'class="bft-review-count"')
 
     def test_admin_item_search_accepts_numeric_and_text_queries(self):
         item = TbItemMundano.objects.create(nome='Espada 100', slug='qa-espada-100')
