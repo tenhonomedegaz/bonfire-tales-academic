@@ -3503,6 +3503,35 @@ def _create_asaas_checkout(order, product, display_name, callback_base):
 
 
 @login_required(login_url='/login/')
+@require_http_methods(['GET'])
+def cosmetic_shop(request):
+    """Canonical storefront; all purchases keep their existing POST endpoint."""
+    return cosmetic_checkout(request)
+
+
+def _cosmetic_shop_preview(cosmetic):
+    """Public display data only; never grants or applies the cosmetic."""
+    from .cosmetic_packages import load_package
+    from .cosmetics import sanitize_definicao_tema
+    from .editorial_links import safe_editorial_image
+
+    prefix = cosmetic.tipo + '-'
+    key = cosmetic.slug[len(prefix):] if cosmetic.slug.startswith(prefix) else cosmetic.slug
+    scope = 'ficha' if cosmetic.escopo == 'ficha' else 'perfil'
+    asset = (cosmetic.asset_efetivo or '').strip()
+    image = safe_editorial_image(asset)
+    glyph = (asset if cosmetic.tipo == 'badge' and not image and len(asset) <= 24
+             and asset.isprintable() and not any(char in asset for char in '/:\\') else '')
+    definition = sanitize_definicao_tema(cosmetic.definicao_json) if cosmetic.tipo == 'tema' else {}
+    return {
+        'package': load_package(cosmetic.tipo, key, scope),
+        'image': image, 'glyph': glyph,
+        'theme_style': ';'.join('--shop-' + key + ':' + definition[key]
+                               for key in ('accent', 'accent2', 'surface', 'deep') if key in definition),
+    }
+
+
+@login_required(login_url='/login/')
 @require_http_methods(['GET', 'POST'])
 def event_cosmetic_shop(request):
     """Ofertas gratuitas ou por braseiros; direito adquirido persiste."""
@@ -3588,6 +3617,7 @@ def event_cosmetic_shop(request):
             'eligible_characters': eligible_characters,
             'badge_image': badge_image,
             'badge_glyph': badge_glyph,
+            'shop_preview': _cosmetic_shop_preview(offer.cosmetico),
         })
     redemption = (EventCosmeticRedemption.objects.select_related('cosmetico', 'character')
                   .filter(pk=request.GET.get('resgate'), user=request.user).first()
@@ -3620,6 +3650,12 @@ def cosmetic_checkout(request):
     ).exclude(cosmetico__tipo='tema', cosmetico__origem='loja_mm').exclude(
         cosmetico__slug__in=PILOT_CASH_DISABLED_SLUGS, cosmetico__css_class='theme-data')
     if request.method == 'GET':
+        from .cosmetic_entitlements import permanent_cosmetic_slugs
+        owned = permanent_cosmetic_slugs(request.user)
+        offers = list(offers)
+        for offer in offers:
+            offer.owned = offer.cosmetico.slug in owned
+            offer.shop_preview = _cosmetic_shop_preview(offer.cosmetico)
         return render(request, 'home/pages/cosmetic_checkout.html', {'offers': offers})
     offer = offers.filter(cosmetico__slug=(request.POST.get('slug') or '').strip()).first()
     if not offer:

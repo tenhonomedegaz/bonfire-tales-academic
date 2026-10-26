@@ -1,0 +1,71 @@
+/* Storefront only: no pricing, entitlement or shared profile renderer changes. */
+.bft-cosmetic-shop .co-main{box-sizing:border-box;max-width:1216px;min-width:0;padding:24px}
+.bft-cosmetic-shop .co-main *{box-sizing:border-box;letter-spacing:0}
+.bft-cosmetic-shop [hidden]{display:none!important}
+.bft-cosmetic-shop .co-nav{display:flex;flex-wrap:wrap;gap:6px 22px;padding:0 0 14px;border-bottom:1px solid var(--stroke,#4a4a4a)}
+.bft-cosmetic-shop .co-nav a{display:inline-flex;align-items:center;min-height:40px;color:var(--muted,#aaa);font-size:14px;text-decoration:none}
+.bft-cosmetic-shop .co-nav a[aria-current]{color:var(--text,#eee);text-decoration:underline;text-decoration-color:var(--ember,#d85b43);text-underline-offset:9px}
+.bft-cosmetic-shop .co-hero{display:block;padding:24px 0;margin:0;border:0;border-bottom:1px solid var(--stroke,#4a4a4a);background:none}
+.bft-cosmetic-shop .co-hero h1{margin:4px 0 8px;font-size:30px;line-height:1.2}
+.bft-cosmetic-shop .co-hero p{margin:0;font-size:14px;max-width:65ch}
+.bft-cosmetic-shop .co-eyebrow{margin:0 0 8px;letter-spacing:0;font-size:11px;color:var(--muted,#bbb)}
+.bft-cosmetic-shop .co-store{display:grid;grid-template-columns:200px minmax(0,1fr);gap:28px;padding-top:24px}
+.bft-cosmetic-shop .co-store>section{min-width:0;margin:0}
+.bft-cosmetic-shop .co-filters{align-self:start;display:grid;gap:10px;min-width:0}
+.bft-cosmetic-shop label{font-size:12px;line-height:1.5;color:var(--muted,#bbb)}
+.bft-cosmetic-shop :is(input[type=search],select){width:100%;min-width:0;min-height:40px;padding:8px 10px;border:1px solid var(--stroke,#555);border-radius:5px;background:var(--bg0,#141416);color:var(--text,#eee);font:inherit;font-size:13px}
+.bft-cosmetic-shop .co-reset{justify-self:start;background:none;border:0;color:var(--muted,#bbb);font-size:12px;text-decoration:underline;cursor:pointer;min-height:36px}
+.bft-cosmetic-shop .co-filter-note{margin-top:12px;padding-top:16px;border-top:1px solid var(--stroke,#444);font-size:12px;line-height:1.6;color:var(--muted,#bbb)}
+.bft-cosmetic-shop :is(.co-filter-note a,.co-text-link,.co-order-links a){color:var(--text,#eee);text-decoration:underline;text-underline-offset:3px}
+.bft-cosmetic-shop .co-catalog-head{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.bft-cosmetic-shop .co-catalog-head h2{margin:0;font-size:18px}
+.bft-cosmetic-shop .co-catalog-head p{margin:0;font-size:12px}
+.bft-cosmetic-shop .co-product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(228px,100%),1fr));gap:16px;align-items:stretch}
+.bft-cosmetic-shop .co-product{display:flex;flex-direction:column;min-width:0;border:1px solid var(--stroke,#444);border-radius:8px;overflow:hidden;background:var(--bg1,#1c1c20)}
+.bft-cosmetic-shop .co-visual{display:flex;align-items:center;justify-content:center;position:relative;isolation:isolate;width:100%;height:150px;flex:none;padding:18px;background:#22262c;overflow:hidden}
+.bft-cosmetic-shop .co-visual .co-preview-avatar{position:relative;isolation:isolate;display:flex;align-items:center;justify-content:center;width:78px;height:78px;flex:none;border-radius:50%;color:#eee;background:#343941}
+.bft-cosmetic-shop .co-preview-initial{font:600 28px Georgia,serif}
+.bft-cosmetic-shop .co-preview-avatar .co-frame-image{position:absolute;inset:-16%;width:132%;height:132%;max-width:none;object-fit:contain;border-radius:0;pointer-events:none}
+.bft-cosmetic-shop .co-visual .co-effect-sample,.bft-cosmetic-shop .co-theme-sample{display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;isolation:isolate;overflow:hidden;width:100%;height:110px;border-radius:4px;background:#30363d;color:#f4f4f4;font:600 20px Georgia,serif}
+.bft-cosmetic-shop .co-effect-sample>span:not(.cosmetic-layers):not(.profile-effect-layer),.bft-cosmetic-shop .co-theme-sample>span:not(.cosmetic-layers){position:relative;z-index:3}
+.bft-cosmetic-shop .co-theme-sample{gap:12px;color:var(--shop-accent,#e1b170);background:var(--shop-surface,#242933);border-top:3px solid var(--shop-accent,#e1b170)}
+.bft-cosmetic-shop .co-theme-lines{display:block;width:70%;height:22px;border-top:5px solid var(--shop-accent2,#7fbeb6);border-bottom:5px solid var(--shop-deep,#101215)}
+.bft-cosmetic-shop .co-preview-image{max-width:100%;width:auto;height:100%;object-fit:contain}
+.bft-cosmetic-shop .co-preview-glyph{font-size:44px}
+.bft-cosmetic-shop .co-preview-title{font:600 20px Georgia,serif;text-align:center;overflow-wrap:anywhere}
+.bft-cosmetic-shop .co-product-body{display:flex;flex:1;flex-direction:column;min-width:0;padding:16px;gap:10px}
+.bft-cosmetic-shop .co-product-body :is(h3,p){margin:0;overflow-wrap:anywhere}
+.bft-cosmetic-shop .co-product h3{font-size:17px;line-height:1.4}
+.bft-cosmetic-shop .co-description{font-size:13px;line-height:1.6;color:var(--muted,#bbb)}
+.bft-cosmetic-shop :is(.co-event-window,.co-micro,.co-footnote){font-size:11px;line-height:1.6;color:var(--muted,#bbb)}
+.bft-cosmetic-shop .co-product-price{display:flex;flex-wrap:wrap;align-items:baseline;gap:5px 10px;margin-top:auto;padding-top:10px}
+.bft-cosmetic-shop .co-product-price strong{font-size:17px}
+.bft-cosmetic-shop .co-product-price span{font-size:11px;color:var(--muted,#bbb)}
+.bft-cosmetic-shop .co-product form{display:grid;gap:8px;margin:0}
+.bft-cosmetic-shop .co-btn{display:inline-flex;align-items:center;gap:8px;min-height:42px;max-width:100%;border-radius:5px;font-size:12px;text-align:center;line-height:1.5;white-space:normal;overflow-wrap:anywhere;cursor:pointer;text-decoration:none}
+.bft-cosmetic-shop .co-btn:disabled{opacity:.6;cursor:not-allowed}
+.bft-cosmetic-shop .co-btn-secondary{color:var(--text,#eee);border-color:var(--stroke,#555)}
+.bft-cosmetic-shop .co-owned-label{color:#86d3b2;font-size:12px}
+.bft-cosmetic-shop .co-insufficient{font-size:12px;color:var(--muted,#bbb)}
+.bft-cosmetic-shop .co-empty{grid-column:1/-1;padding:24px 0;font-size:14px;line-height:1.6}
+.bft-cosmetic-shop .co-empty h3{font-size:18px}
+.bft-cosmetic-shop .co-large-symbol{display:block;width:96px;height:72px;color:var(--muted,#bbb)}
+.bft-cosmetic-shop .co-large-symbol svg{width:100%;height:100%}
+.bft-cosmetic-shop .co-footnote{margin-top:20px}
+.bft-cosmetic-shop .co-notice{border-radius:5px;margin:16px 0;line-height:1.6;font-size:13px}
+.bft-cosmetic-shop .co-feedback-error{border-color:#db7b7b}
+.bft-cosmetic-shop .co-feedback-success{border-color:#86d3b2}
+.bft-cosmetic-shop .co-checkout-layout{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:32px;padding-top:24px}
+.bft-cosmetic-shop :is(.co-checkout,.co-checkout-aside){min-width:0;margin:0}
+.bft-cosmetic-shop .co-checkout h1{font-size:28px}
+.bft-cosmetic-shop .co-checkout h2{font-size:18px}
+.bft-cosmetic-shop .co-checkout-aside{padding-left:24px;border-left:1px solid var(--stroke,#444);line-height:1.6;font-size:13px;color:var(--muted,#bbb)}
+.bft-cosmetic-shop .co-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:20px 0}
+.bft-cosmetic-shop .co-summary-wide{grid-column:1/-1}
+.bft-cosmetic-shop .co-summary dt{font-size:12px;color:var(--muted,#bbb)}
+.bft-cosmetic-shop .co-summary dd{margin:5px 0 0;font-size:14px;overflow-wrap:anywhere}
+.bft-cosmetic-shop .co-order-state{padding:14px 0;border-bottom:1px solid var(--stroke,#444);line-height:1.6}
+.bft-cosmetic-shop .co-order-links{display:flex;flex-wrap:wrap;gap:16px;margin-top:24px;font-size:13px}
+.bft-cosmetic-shop .co-history{padding-left:20px;font-size:13px;line-height:1.8;overflow-wrap:anywhere}
+.bft-cosmetic-shop :is(a,button,input,select):focus-visible{outline:2px solid var(--spark,#d9bf82);outline-offset:3px}
+@media(max-width:760px){.bft-cosmetic-shop .co-main{padding:16px}.bft-cosmetic-shop .co-store{grid-template-columns:minmax(0,1fr);gap:20px}.bft-cosmetic-shop .co-filters{grid-template-columns:1fr;gap:8px}.bft-cosmetic-shop .co-filter-note{display:none}.bft-cosmetic-shop .co-hero h1{font-size:26px}.bft-cosmetic-shop .co-checkout-layout{grid-template-columns:minmax(0,1fr)}.bft-cosmetic-shop .co-checkout-aside{padding:16px 0 0;border:0;border-top:1px solid var(--stroke,#444)}}
