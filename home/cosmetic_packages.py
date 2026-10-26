@@ -19,7 +19,8 @@ _ASSET = re.compile(r'^[a-z0-9]+(?:-[a-z0-9]+)*\.(?:png|webp|gif|svg)$')
 _TYPES = {'tema', 'moldura', 'efeito', 'banner_preset'}
 _SLOTS = {'banner', 'ornament', 'avatar'}
 _ANCHORS = {'center', 'left', 'right'}
-_MOTIONS = {'none', 'float', 'pulse'}
+_MOTIONS = {'none', 'float', 'pulse', 'helmet'}
+_SPRITES = {'full', 'open', 'closed'}
 _MAX_ASSET_BYTES = 4 * 1024 * 1024
 
 
@@ -59,11 +60,13 @@ def parse_package(raw, slug, tipo, escopo='perfil'):
     slot = layer.get('slot')
     anchor = layer.get('anchor', 'center')
     motion = layer.get('motion', 'none')
+    sprite = layer.get('sprite', 'full')
     width, height = layer.get('width'), layer.get('height')
     source = _asset_url(layer.get('file'))
     fallback = _asset_url(layer.get('fallback'))
     if (
       slot not in _SLOTS or anchor not in _ANCHORS or motion not in _MOTIONS
+      or sprite not in _SPRITES or (motion == 'helmet' and (sprite != 'closed' or slot != 'avatar'))
       or type(width) is not int or type(height) is not int
       or not 32 <= width <= 4096 or not 32 <= height <= 4096
       or not source or not fallback
@@ -72,6 +75,7 @@ def parse_package(raw, slug, tipo, escopo='perfil'):
     result[slot].append({
       'url': source, 'fallback': fallback, 'anchor': anchor,
       'motion': motion, 'width': width, 'height': height,
+      'sprite': sprite,
     })
   return result
 

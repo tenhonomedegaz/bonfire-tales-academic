@@ -29,6 +29,8 @@ class CosmeticPackageTests(SimpleTestCase):
       {'fallback': 'https://other.invalid/fallback.svg'},
       {'anchor': 'left;position:fixed'},
       {'motion': 'javascript:alert(1)'},
+      {'sprite':'other'},
+      {'motion':'helmet','sprite':'full'},
       {'width': True},
     ):
       with self.subTest(change=change):
@@ -96,3 +98,16 @@ class CosmeticPackageTests(SimpleTestCase):
     ):
       with self.subTest(name=name):
         self.assertIsNotNone(get_template(name))
+
+  @patch('home.cosmetic_packages.cosmetic_allowed',return_value=True)
+  def test_closed_rank_is_articulated_and_open_rank_is_static(self,_allowed):
+    owner = object()
+    closed = get_package(owner,'moldura','elo-esmeralda-fechada','ficha')
+    opened = get_package(owner,'moldura','elo-esmeralda-aberta','ficha')
+    self.assertEqual(closed['avatar'][0]['motion'],'helmet')
+    self.assertEqual(opened['avatar'][0]['sprite'],'open')
+    template = Template("{% include 'home/partials/_cosmetic_preview.html' with layers=layers slot='avatar' %}")
+    html = template.render(Context({'layers':closed['avatar']}))
+    for part in ('open','brow','left','right','chin'):
+      self.assertIn('cosmetic-helmet-'+part,html)
+    self.assertEqual(html.count('<img '),5)

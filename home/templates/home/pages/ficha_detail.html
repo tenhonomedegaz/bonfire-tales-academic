@@ -692,7 +692,7 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
           <label class="info-field"><span class="lbl">Moldura</span>
             <select name="foto_frame" id="ficha-frame-select">
               {% for item in appearance_frames %}
-              <option value="{{ item.key }}" {% if item.key == appearance.frame_key %}selected{% endif %} {% if item.locked %}disabled{% endif %}>{{ item.label }}{% if item.posse_origem %} ({{ item.posse_origem }}){% elif item.locked %} (bloqueado){% endif %}</option>
+              <option value="{{ item.key }}" {% if item.key == appearance.frame_key %}selected{% endif %} {% if item.locked %}disabled{% endif %}>{{ item.label }}{% if item.posse_origem %} ({{ item.posse_origem }}){% elif item.locked %} ({% if item.unlock_hint %}{{ item.unlock_hint }}{% else %}bloqueado{% endif %}){% endif %}</option>
               {% endfor %}
             </select>
           </label>

@@ -102,10 +102,12 @@ def get_catalog(tipo):
     if cached is not None:
         return cached
     from .models import TbCosmetico
+    from .rank_cosmetic_rewards import rank_unlock_metadata
     catalogo = {}
     qs = (TbCosmetico.objects.filter(tipo=tipo, ativo=True)
           .order_by('ordem', 'nome'))
     for c in qs:
+        desbloqueio, requisito = rank_unlock_metadata(c.definicao_json)
         valor = _valor_de_slug(tipo, c.slug)
         # css_url do tema (só temas com css_file). Degrada em '' se o storage
         # não tiver base_url (ex.: dev sem MEDIA configurado).
@@ -129,6 +131,9 @@ def get_catalog(tipo):
             'requer_plano': c.requer_plano,
             'escopo': c.escopo,
             'descricao': c.descricao,
+            'desbloqueio': desbloqueio,
+            'requisito': requisito,
+            'unlock_hint': requisito,
             # Tema como dado: definição sanitizada ({} = sem definição, cai no legado)
             # + url do CSS avançado, quando houver.
             'definicao': sanitize_definicao_tema(c.definicao_json) if c.tipo == 'tema' else {},
@@ -167,6 +172,9 @@ def _catalog_ownership(user, tipo):
     """Valores possuídos e origens comprovadas, sempre consultados para a conta atual."""
     if not user or not getattr(user, 'is_authenticated', False):
         return set(), {}
+    from .rank_cosmetic_rewards import sync_rank_cosmetics
+    if any(item.get('desbloqueio') for item in get_catalog(tipo).values()):
+        sync_rank_cosmetics(user)
     from .models import (CosmeticCheckoutPurchase, CosmeticMMRedemption,
                          EventCosmeticRedemption,
                          TbUsuarioCosmetico)
@@ -239,6 +247,16 @@ def cosmetic_allowed(user, tipo, value, escopo='ambos'):
         return False
     if item.get('origem') == 'livre':
         return True
+    if item.get('desbloqueio') and getattr(user, 'is_authenticated', False):
+        from .models import TbUsuarioCosmetico
+        # A persisted right needs no character scan, user lock or eligibility cache.
+        if TbUsuarioCosmetico.objects.filter(
+                user=user, cosmetico__slug=item['slug'], cosmetico__tipo=tipo,
+                cosmetico__ativo=True, suspenso_em__isnull=True,
+        ).exclude(origem__startswith='colaborador').exists():
+            return True
+        from .rank_cosmetic_rewards import sync_rank_cosmetics
+        sync_rank_cosmetics(user)
     if value in _user_inventory_values(user, tipo):
         return True
     if item.get('origem') == 'colaborador':
@@ -284,6 +302,9 @@ def catalog_options(user, tipo, escopo='ambos', selected=None):
             'preco': item['preco'],
             'requer_plano': item['requer_plano'],
             'descricao': item['descricao'],
+            'desbloqueio': item.get('desbloqueio', {}),
+            'requisito': item.get('requisito', ''),
+            'unlock_hint': item.get('unlock_hint', ''),
             # Prévia do seletor (WP3): definição sanitizada + css do tema-dado.
             'definicao': item.get('definicao', {}),
             'css_url': item.get('css_url', ''),

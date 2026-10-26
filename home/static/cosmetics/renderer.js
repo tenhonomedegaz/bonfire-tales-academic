@@ -36,6 +36,21 @@
       layer.dataset.cosmeticLayers = '';
       layer.setAttribute('aria-hidden', 'true');
       for (const entry of pack[slot]) {
+        if (entry.motion === 'helmet') {
+          const helmet = document.createElement('span');
+          helmet.className = 'cosmetic-layer cosmetic-helmet';
+          helmet.dataset.cosmeticHelmet = '';
+          for (const [sprite,part] of [['open','open'],['closed','brow'],['closed','left'],['closed','right'],['closed','chin']]) {
+            helmet.appendChild(spriteNode(entry,sprite,'cosmetic-helmet-' + part));
+          }
+          layer.appendChild(helmet);
+          continue;
+        }
+        if (['open','closed'].includes(entry.sprite)) {
+          const sprite = spriteNode(entry,entry.sprite,'cosmetic-layer');
+          layer.appendChild(sprite);
+          continue;
+        }
         const image = document.createElement('img');
         image.className = 'cosmetic-layer cosmetic-layer--' + entry.anchor + ' cosmetic-layer--' + entry.motion;
         image.src = entry.url;
@@ -48,6 +63,18 @@
       root.appendChild(layer);
     }
     mount(root);
+  }
+
+  function spriteNode(entry, sprite, extraClass) {
+    const node = document.createElement('span');
+    node.className = 'cosmetic-sprite cosmetic-sprite--' + sprite + ' ' + extraClass;
+    const image = document.createElement('img');
+    image.src = entry.url;
+    image.dataset.fallback = entry.fallback;
+    image.alt = '';
+    image.decoding = 'async';
+    node.appendChild(image);
+    return node;
   }
   window.CosmeticRenderer = { render };
 

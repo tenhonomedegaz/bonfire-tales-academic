@@ -32,5 +32,6 @@ def character_rank(character):
     return {'nome': name, 'icone_url': rank_icone_url(name), 'is_lenda': legend,
             'key': slugify(name),
             'art_url': rank_art_url(slugify(name)),
+            'open_frame_key': 'elo-' + slugify(name) + '-aberta',
             'helmet_url': static('cosmetics/knight-closed-helm.png'),
             'titulo': 'Lenda' if legend else '', 'personagem_id': character.pk}

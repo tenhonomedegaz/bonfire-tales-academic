@@ -134,24 +134,27 @@ def regra_nivel_personagem_valida(regra):
                           regra['filters']['class_slug'])))
 
 
-def ranks_verificaveis():
-    """Faixas publicadas de 5 a 20; as patentes épicas aguardam mapeamento do PO."""
+def ranks_verificaveis(*, permanentes=False):
+    """Preserva marcos legados; premios permanentes incluem inicio e Epic Boon."""
     from .character_engine import rank_por_nivel
 
     thresholds = {}
-    for level in range(5, 21):
+    for level in (range(1, 22) if permanentes else range(5, 21)):
         thresholds.setdefault(rank_por_nivel(level), level)
     return thresholds
 
 
 def regra_rank_valida(regra):
-    return (isinstance(regra, dict) and set(regra) == {
-        'schema_version', 'metric', 'scope', 'filters', 'operator', 'target'} and
+    return (isinstance(regra, dict) and set(regra) in ({
+        'schema_version', 'metric', 'scope', 'filters', 'operator', 'target'}, {
+        'schema_version', 'metric', 'scope', 'filters', 'operator', 'target', 'retention'}) and
+        ('retention' not in regra or regra['retention'] == 'permanent') and
         type(regra['schema_version']) is int and regra['schema_version'] == 1 and
         regra['metric'] == 'rank_reached' and regra['scope'] == 'account' and
         isinstance(regra['filters'], dict) and set(regra['filters']) == {'rank'} and
         type(regra['filters']['rank']) is str and
-        regra['filters']['rank'] in ranks_verificaveis() and
+        regra['filters']['rank'] in ranks_verificaveis(
+            permanentes=regra.get('retention') == 'permanent') and
         regra['operator'] == 'gte' and type(regra['target']) is int and
         regra['target'] == 1)
 
@@ -187,7 +190,7 @@ def _suspender_recompensas_sem_direito(grant, now):
 
 
 @transaction.atomic
-def conceder_conquista(user, conquista, por=None):
+def conceder_conquista(user, conquista, por=None, *, preservar_suspensoes=False):
     """Concede `conquista` a `user` (idempotente). Se ainda não tinha, cria a
     linha TbUsuarioConquista e, havendo recompensa, desbloqueia o cosmético no
     inventário (get_or_create em TbUsuarioCosmetico com origem 'conquista:<slug>').
@@ -210,6 +213,8 @@ def conceder_conquista(user, conquista, por=None):
         defaults={'concedida_por': por if getattr(por, 'pk', None) else None},
     )
     if concessao.revogada_em is not None:
+        if preservar_suspensoes:
+            return False
         concessao.revogada_em = None
         concessao.save(update_fields=['revogada_em'])
         criada = True
@@ -224,7 +229,7 @@ def conceder_conquista(user, conquista, por=None):
             user=user, cosmetico_id=reward_id,
             defaults={'origem': 'conquista:%s' % conquista.slug},
         )
-        if posse.suspenso_em:
+        if posse.suspenso_em and not preservar_suspensoes:
             posse.suspenso_em = None
             posse.origem = 'conquista:%s' % conquista.slug
             posse.save(update_fields=['suspenso_em', 'origem'])
@@ -807,6 +812,8 @@ def avaliar_nivel_personagem(user):
     from .models import (CosmeticCheckoutPurchase, TbConquista, TbUsuarioConquista,
                          TbUsuarioCosmetico)
 
+    from .rank_cosmetic_rewards import sync_rank_cosmetics
+    sync_rank_cosmetics(user)
     get_user_model().objects.select_for_update().only('pk').get(pk=user.pk)
     registrar_slot_esmeralda_comprovado(user)
     candidates = TbConquista.objects.filter(
@@ -814,7 +821,8 @@ def avaliar_nivel_personagem(user):
         criterio_json__metric__in=['character_level', 'rank_reached'],
     ).select_related('recompensa')
     rules = [rule for rule in candidates if regra_nivel_personagem_valida(rule.criterio_json)]
-    rank_rules = [rule for rule in candidates if regra_rank_valida(rule.criterio_json)]
+    rank_rules = [rule for rule in candidates if regra_rank_valida(rule.criterio_json)
+                  and rule.criterio_json.get('retention') != 'permanent']
     if not rules and not rank_rules:
         return
     levels = _niveis_comprovados(user) if rules else {}
@@ -1860,6 +1868,7 @@ def conquistas_do_usuario(user, incluir_bloqueadas=True, *, pode_ver_privados=Tr
     niveis_classe_unica = None
     quests_comprovadas = None
     rank_sources = None
+    permanent_level = None
     for c in qs:
         if (not pode_ver_privados and isinstance(c.criterio_json, dict) and
                 c.criterio_json.get('metric') in {'class_started', 'character_level',
@@ -1912,15 +1921,26 @@ def conquistas_do_usuario(user, incluir_bloqueadas=True, *, pode_ver_privados=Tr
             }
         if (pode_ver_privados and isinstance(c.criterio_json, dict) and
                 regra_rank_valida(c.criterio_json)):
-            if rank_sources is None:
-                rank_sources = _marcos_rank_comprovados(user)
-            if niveis_comprovados is None:
-                niveis_comprovados = _niveis_comprovados(user)
-            level = max(rank_sources[0][0] if rank_sources else 0,
-                        max((row[0] for row in niveis_comprovados.values()), default=0))
+            permanent = c.criterio_json.get('retention') == 'permanent'
+            threshold = ranks_verificaveis(permanentes=permanent)[c.criterio_json['filters']['rank']]
+            if permanent:
+                if permanent_level is None:
+                    from .models import TbPersonagem
+                    from .rank_cosmetic_rewards import eligible_character_level
+                    permanent_level = max((eligible_character_level(character)
+                        for character in TbPersonagem.objects.filter(dono=user)
+                        .prefetch_related('classes')), default=0)
+                level = max(permanent_level, threshold if tem else 0)
+            else:
+                if rank_sources is None:
+                    rank_sources = _marcos_rank_comprovados(user)
+                if niveis_comprovados is None:
+                    niveis_comprovados = _niveis_comprovados(user)
+                level = max(rank_sources[0][0] if rank_sources else 0,
+                            max((row[0] for row in niveis_comprovados.values()), default=0))
             item['progresso_rank'] = {
                 'atual': level,
-                'alvo': ranks_verificaveis()[c.criterio_json['filters']['rank']],
+                'alvo': threshold,
             }
         if (pode_ver_privados and isinstance(c.criterio_json, dict) and
                 regra_quest_categorizada_valida(c.criterio_json)):

@@ -1,7 +1,19 @@
 {% if layers %}
 <div class="cosmetic-layers cosmetic-layers--{{ slot }}" aria-hidden="true" data-cosmetic-layers>
   {% for layer in layers %}
+  {% if layer.motion == 'helmet' %}
+  <span class="cosmetic-layer cosmetic-helmet" data-cosmetic-helmet>
+    <span class="cosmetic-sprite cosmetic-sprite--open cosmetic-helmet-open"><img src="{{ layer.url }}" data-fallback="{{ layer.fallback }}" alt="" decoding="async" loading="lazy"></span>
+    <span class="cosmetic-sprite cosmetic-sprite--closed cosmetic-helmet-brow"><img src="{{ layer.url }}" data-fallback="{{ layer.fallback }}" alt="" decoding="async" loading="lazy"></span>
+    <span class="cosmetic-sprite cosmetic-sprite--closed cosmetic-helmet-left"><img src="{{ layer.url }}" data-fallback="{{ layer.fallback }}" alt="" decoding="async" loading="lazy"></span>
+    <span class="cosmetic-sprite cosmetic-sprite--closed cosmetic-helmet-right"><img src="{{ layer.url }}" data-fallback="{{ layer.fallback }}" alt="" decoding="async" loading="lazy"></span>
+    <span class="cosmetic-sprite cosmetic-sprite--closed cosmetic-helmet-chin"><img src="{{ layer.url }}" data-fallback="{{ layer.fallback }}" alt="" decoding="async" loading="lazy"></span>
+  </span>
+  {% elif layer.sprite == 'open' or layer.sprite == 'closed' %}
+  <span class="cosmetic-layer cosmetic-sprite cosmetic-sprite--{{ layer.sprite }}"><img src="{{ layer.url }}" data-fallback="{{ layer.fallback }}" alt="" decoding="async" loading="lazy"></span>
+  {% else %}
   <img class="cosmetic-layer cosmetic-layer--{{ layer.anchor }} cosmetic-layer--{{ layer.motion }}" src="{{ layer.url }}" data-fallback="{{ layer.fallback }}" width="{{ layer.width }}" height="{{ layer.height }}" alt="" decoding="async" loading="lazy">
+  {% endif %}
   {% endfor %}
 </div>
 {% endif %}

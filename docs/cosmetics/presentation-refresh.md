@@ -1,5 +1,9 @@
 # Aparencia: contrato compartilhado e colecoes
 
+Atualizacao: concessao permanente das duas variantes por patente, backfill e
+arte v3 com viseiras transparentes estao em `rank-rewards.md`. A direcao
+cartunesca v2 abaixo foi preservada; v3 refina as aberturas e Obsidiana.
+
 ## Entrega funcional
 
 - `home/views.py::_personagem_card` fornece a patente do proprio personagem.

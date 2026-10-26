@@ -191,7 +191,7 @@
                 <label class="profile-label" for="id_avatar_frame">Borda do Avatar</label>
                 <select class="profile-input" name="avatar_frame" id="id_avatar_frame">
                     {% for item in appearance_frame_options %}
-                    <option value="{{ item.key }}" {% if item.selected %}selected{% endif %} {% if item.estado == 'bloqueado' %}disabled{% endif %}>{{ item.label }}{% if item.posse_origem %} ({{ item.posse_origem }}){% elif item.estado == 'bloqueado' %} (bloqueado){% endif %}</option>
+                    <option value="{{ item.key }}" {% if item.selected %}selected{% endif %} {% if item.estado == 'bloqueado' %}disabled{% endif %}>{{ item.label }}{% if item.posse_origem %} ({{ item.posse_origem }}){% elif item.estado == 'bloqueado' %} ({% if item.unlock_hint %}{{ item.unlock_hint }}{% else %}bloqueado{% endif %}){% endif %}</option>
                     {% endfor %}
                 </select>
                 {% if locked_frame_preference %}<label class="profile-inline-check"><input type="checkbox" name="clear_locked_avatar_frame"> Esquecer moldura Colab guardada</label>{% endif %}

@@ -22,7 +22,7 @@ progressao de aventuras e atalhos para outras abas.{% endcomment %}
         {% if p.foto_url|safe_profile_image %}<img src="{{ p.foto_url|safe_profile_image }}" alt="Retrato de {{ p.nome }}" loading="lazy">{% else %}<span>{{ p.nome|first|upper }}</span>{% endif %}
         {% include 'home/partials/_cosmetic_preview.html' with layers=frame_package.avatar slot='avatar' %}
         {% include 'home/partials/_cosmetic_preview.html' with layers=effect_package.avatar slot='avatar' %}
-        {% if appearance.frame_key == 'none' or not appearance.frame_key %}{% include 'home/partials/_rank_frame.html' with rank=banner_rank %}{% endif %}
+        {% if appearance.frame_key == 'none' or not appearance.frame_key %}{% include 'home/partials/_rank_frame.html' with rank=banner_rank owner=p.dono %}{% endif %}
       </div>
       <div class="ficha-title-line">
         <h1 class="ficha-name">{{ p.nome }}</h1>

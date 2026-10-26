@@ -1,7 +1,7 @@
 {% load editorial_images %}
 <article class="cw-character-card flex flex-col rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3 {% if cofre %}is-vault{% endif %}" data-cw-card data-cw-search="{{ c.obj.nome }} {{ c.raca }} {{ c.classe }}" data-cw-kind="{% if cofre %}inativo{% else %}ativo{% endif %}">
   <a href="{% url 'ficha_detail' c.obj.id_personagem %}" class="cw-card-identity group flex-1">
-    <span class="cw-card-portrait rank-portrait">{% if c.obj.foto_url|safe_profile_image %}<img src="{{ c.obj.foto_url|safe_profile_image }}" alt="Retrato de {{ c.obj.nome }}" loading="lazy">{% else %}<span aria-hidden="true">{{ c.obj.nome|first|upper }}</span>{% endif %}{% include 'home/partials/_rank_frame.html' with rank=c.rank %}</span>
+    <span class="cw-card-portrait {% if c.frame_package.avatar %}is-packaged{% else %}rank-portrait{% endif %}">{% if c.obj.foto_url|safe_profile_image %}<img src="{{ c.obj.foto_url|safe_profile_image }}" alt="Retrato de {{ c.obj.nome }}" loading="lazy">{% else %}<span aria-hidden="true">{{ c.obj.nome|first|upper }}</span>{% endif %}{% if c.frame_package.avatar %}{% include 'home/partials/_cosmetic_preview.html' with layers=c.frame_package.avatar slot='avatar' %}{% else %}{% include 'home/partials/_rank_frame.html' with rank=c.rank owner=c.obj.dono %}{% endif %}</span>
     <div class="cw-card-heading">
     <div class="flex items-start justify-between gap-2">
       <h3 class="font-serif text-base font-bold text-[var(--text)] group-hover:text-[var(--ember)]">{{ c.obj.nome }}</h3>

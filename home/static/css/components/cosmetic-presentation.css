@@ -56,3 +56,23 @@
 .bf-rank>.rank-art-pair{display:block}
 .rank-portrait-frame.rank-art-pair{filter:drop-shadow(0 2px 2px #0008)}
 .cw-card-portrait.rank-portrait{background:#171315}
+.cw-card-portrait.is-packaged{position:relative;overflow:visible;border-radius:50%;background:#171315;border-color:transparent;margin:12px 8px;isolation:isolate}
+.cw-card-portrait.is-packaged>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%}
+.cw-card-portrait.is-packaged .cosmetic-layer{object-fit:contain}
+/* Articulated visor: the closed plates lift away from the same open frame. */
+.cosmetic-sprite{position:absolute;inset:0;display:block;overflow:hidden}
+.cosmetic-sprite>img{position:absolute;top:0;left:0;width:200%;height:100%;max-width:none;object-fit:fill;filter:none}
+.cosmetic-sprite--closed>img{left:-100%}
+.cosmetic-helmet{position:absolute;inset:0;display:block;overflow:visible;perspective:400px}
+.cosmetic-helmet>.cosmetic-sprite{transition:transform .48s cubic-bezier(.2,.75,.25,1),opacity .32s ease;will-change:auto;backface-visibility:hidden}
+.cosmetic-helmet-open{opacity:0;transform:scale(.94);transition-delay:.08s!important}
+.cosmetic-helmet-brow{clip-path:polygon(0 0,100% 0,100% 42%,0 42%);transform-origin:50% 18%}
+.cosmetic-helmet-left{clip-path:polygon(0 42%,50% 42%,50% 75%,0 75%);transform-origin:9% 45%}
+.cosmetic-helmet-right{clip-path:polygon(50% 42%,100% 42%,100% 75%,50% 75%);transform-origin:91% 45%}
+.cosmetic-helmet-chin{clip-path:polygon(0 75%,100% 75%,100% 100%,0 100%);transform-origin:50% 90%}
+:is(.profile-avatar-wrapper,.public-profile-avatar,.banner-character-avatar,.cw-card-portrait):is(:hover,:active,:focus-within) .cosmetic-helmet-open,.cw-card-identity:focus-visible .cosmetic-helmet-open{opacity:1;transform:none}
+:is(.profile-avatar-wrapper,.public-profile-avatar,.banner-character-avatar,.cw-card-portrait):is(:hover,:active,:focus-within) .cosmetic-helmet-brow,.cw-card-identity:focus-visible .cosmetic-helmet-brow{opacity:0;transform:translateY(-18%) rotateX(45deg)}
+:is(.profile-avatar-wrapper,.public-profile-avatar,.banner-character-avatar,.cw-card-portrait):is(:hover,:active,:focus-within) .cosmetic-helmet-left,.cw-card-identity:focus-visible .cosmetic-helmet-left{opacity:0;transform:translateX(-20%) rotate(-17deg)}
+:is(.profile-avatar-wrapper,.public-profile-avatar,.banner-character-avatar,.cw-card-portrait):is(:hover,:active,:focus-within) .cosmetic-helmet-right,.cw-card-identity:focus-visible .cosmetic-helmet-right{opacity:0;transform:translateX(20%) rotate(17deg)}
+:is(.profile-avatar-wrapper,.public-profile-avatar,.banner-character-avatar,.cw-card-portrait):is(:hover,:active,:focus-within) .cosmetic-helmet-chin,.cw-card-identity:focus-visible .cosmetic-helmet-chin{opacity:0;transform:translateY(18%) rotateX(-30deg)}
+@media(prefers-reduced-motion:reduce){.cosmetic-helmet>.cosmetic-sprite{transition:none!important;transform:none!important}}

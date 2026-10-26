@@ -5925,6 +5925,7 @@ def pathbuilder_detalhe(request):
 
 def _personagem_card(p, com_dono=False):
     from .ranks import character_rank
+    from .cosmetic_packages import get_package
     cl = p.classes.all()
     principal = next((c for c in cl if c.principal), (cl[0] if cl else None))
     card = {
@@ -5933,6 +5934,7 @@ def _personagem_card(p, com_dono=False):
         'nivel': p.nivel,
         'raca': p.id_raca.nome if p.id_raca_id else '—',
         'rank': character_rank(p),
+        'frame_package': get_package(p.dono, 'moldura', p.foto_frame or 'none', 'ficha'),
     }
     if com_dono:
         card['dono'] = p.dono.username

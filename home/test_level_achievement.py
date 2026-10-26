@@ -442,6 +442,8 @@ class LevelAchievementTests(_CriadorBase):
                             str(grant.evidencia_json['evento_id']))
 
         public_url = reverse('public_profile', args=[owner.username])
+        character.publico = False
+        character.save(update_fields=['publico'])
         self.client.logout()
         self.assertNotContains(self.client.get(public_url), rule.nome)
         self.assertNotContains(self.client.get(public_url),

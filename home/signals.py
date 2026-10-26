@@ -30,6 +30,17 @@ from .security import find_sql_danger
 logger = logging.getLogger(__name__)
 
 
+@receiver(post_save, sender='home.TbPersonagem')
+@receiver(post_save, sender='home.TbPersonagemClasse')
+def grant_permanent_rank_cosmetics(sender, instance, raw=False, **kwargs):
+    if raw:
+        return
+    from .models import TbPersonagem
+    from .rank_cosmetic_rewards import sync_rank_cosmetics
+    character = instance if sender is TbPersonagem else instance.id_personagem
+    sync_rank_cosmetics(character.dono)
+
+
 SYNCED_MODELS = (
     TbAcessoopcao,
     TbClasse,

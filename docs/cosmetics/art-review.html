@@ -3,12 +3,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Bonfire Tales · Artes de patente</title>
+<link rel="stylesheet" href="../../home/static/css/components/cosmetic-presentation.css">
+<script src="../../home/static/cosmetics/renderer.js" defer></script>
 <style>
 @font-face{font-family:Bonfire;src:url('../../home/static/brand/FrankRuhlLibre.ttf')}
 *{box-sizing:border-box}body{margin:0;background:#0a0a0a;color:#f2eee8;font:14px/1.6 Arial,sans-serif}main{max-width:1200px;margin:auto;padding:32px 24px}header{border-bottom:1px solid #633037;padding-bottom:24px}h1{font:32px Bonfire,Georgia,serif;margin:8px 0}header>p{color:#c5bdb9;max-width:70ch}a{color:#ffac81}.ranks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;margin-top:28px}figure{margin:0;border:1px solid #633037;border-radius:4px;background:#171315;min-width:0}figcaption{padding:12px 16px;border-top:1px solid #633037;font:22px Bonfire,Georgia,serif}.art{aspect-ratio:2/1;padding:12px;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,#341b2422,transparent 70%)}.art img{display:block;width:100%;height:100%;object-fit:contain}.sample{padding:15px 16px;display:flex;gap:20px;align-items:center;border-top:1px solid #633037}.avatar{position:relative;width:66px;height:66px;flex:none;border-radius:50%;background:#392229;display:grid;place-items:center;color:#f3ba8e;font:24px Bonfire,serif}.frame{position:absolute;inset:-16%;overflow:hidden;pointer-events:none}.frame img{position:absolute;left:0;top:0;width:200%;height:100%;max-width:none}.emblem{position:relative;width:40px;height:40px;overflow:hidden;flex:none}.emblem img{position:absolute;left:-100%;width:200%;height:100%;max-width:none}.label{font-size:12px;color:#c5bdb9}@media(max-width:850px){.ranks{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:560px){main{padding:24px 16px}.ranks{grid-template-columns:1fr}h1{font-size:28px}}
 </style>
 <main>
-<header><h1>Bonfire Tales · Patentes</h1><p>Direcao cartunesca: silhuetas individuais, cores de rank e pares de elmo aberto/fechado. As amostras inferiores mostram a leitura em tamanho de interface.</p></header>
+<header><h1>Bonfire Tales · Patentes</h1><p>Artes v3: viseiras transparentes, moldura aberta e moldura fechada articulada. Aponte para o retrato fechado para abrir o elmo.</p></header>
 <section class="ranks" id="ranks" aria-label="Artes por patente"></section>
 <header style="margin-top:40px"><h1>Colecoes · Luas e Halloween</h1><p>Molduras em revisao visual. Nenhuma oferta ou concessao e ativada nesta galeria.</p></header>
 <section class="ranks" id="collections" aria-label="Molduras de colecao"></section>
@@ -16,7 +18,8 @@
 <script>
 const ranks=[['obsidiana','Obsidiana'],['ametista','Ametista'],['topazio','Topazio'],['esmeralda','Esmeralda'],['ambar','Ambar'],['rubi','Rubi'],['diamante','Diamante']];
 const root=document.getElementById('ranks');
-for(const [key,name] of ranks){const src='../../home/static/cosmetics/rank-'+key+'-v2.png';const figure=document.createElement('figure');figure.innerHTML='<div class="art"><img alt="'+name+': aberto e fechado" src="'+src+'"></div><figcaption>'+name+'</figcaption><div class="sample"><div class="avatar">B<span class="frame"><img src="'+src+'" alt=""></span></div><span class="emblem"><img src="'+src+'" alt=""></span><span class="label">Retrato · patente</span></div>';root.appendChild(figure);}
+for(const [key,name] of ranks){const src='../../home/static/cosmetics/rank-'+key+'-v3.png';const figure=document.createElement('figure');figure.innerHTML='<div class="art"><img alt="'+name+': aberto e fechado" src="'+src+'"></div><figcaption>'+name+'</figcaption><div class="sample"><div class="avatar">B<span class="frame"><img src="'+src+'" alt=""></span></div><div class="avatar profile-avatar-wrapper is-packaged" data-rank-closed="'+key+'">B</div><span class="emblem"><img src="'+src+'" alt=""></span></div>';root.appendChild(figure);}
 for(const [key,name] of [['lua-vermelha','Lua Vermelha'],['lua-negra','Lua Negra'],['lua-cristal','Lua de Cristal'],['vigilia-das-lanternas','Vigilia das Lanternas']]){const src='../../home/static/cosmetics/frame-'+key+'-v2.png';const figure=document.createElement('figure');figure.innerHTML='<div class="art" style="aspect-ratio:1;height:230px"><img src="'+src+'" alt="'+name+'"></div><figcaption>'+name+'</figcaption><div class="sample"><div class="avatar">B<span class="frame"><img style="width:100%" src="'+src+'" alt=""></span></div><span class="label">Previa da moldura</span></div>';document.getElementById('collections').appendChild(figure);}
+document.addEventListener('DOMContentLoaded',()=>{for(const target of document.querySelectorAll('[data-rank-closed]')){const url='../../home/static/cosmetics/rank-'+target.dataset.rankClosed+'-v3.png';window.CosmeticRenderer.render(target,'avatar',[{avatar:[{url,fallback:url,sprite:'closed',motion:'helmet',anchor:'center',width:1774,height:887}]}]);}});
 </script>
 </html>

@@ -39,7 +39,7 @@ class AppearancePresentationTests(TestCase):
         images = BeautifulSoup(html, 'html.parser').select('img')
         self.assertTrue(images)
         self.assertTrue(all(image.get('src') for image in images))
-        self.assertIn('rank-esmeralda-v2.png', html)
+        self.assertIn('rank-esmeralda-v3.png', html)
 
     def test_anonymous_sheet_uses_owner_packages_and_real_banner(self):
         response = self.client.get(reverse('ficha_publica',args=[self.character.pk]))
@@ -86,4 +86,4 @@ class AppearancePresentationTests(TestCase):
                 self.assertEqual(image.mode,'RGBA')
                 self.assertEqual(image.width,2*image.height)
                 self.assertLessEqual(image.getpixel((image.width//4,image.height//2))[3],2)
-                self.assertGreater(image.getpixel((3*image.width//4,image.height//2))[3],128)
+                self.assertLessEqual(image.getpixel((3*image.width//4,int(image.height*.65)))[3],2)
