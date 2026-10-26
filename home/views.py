@@ -1163,6 +1163,7 @@ def _appearance_context(theme='bonfire', frame='none', effect='none',
         'frame_class': frame_item['class'],
         'effect_class': effect_item['class'],
         'theme_label': theme_item['label'],
+        'theme_motif': definicao.get('motif', 'none') if not is_custom else 'none',
         'custom': custom,
         'background_url': (background or '').strip(),
         # style inline (tema custom OU tema-dado); '' pros legados.

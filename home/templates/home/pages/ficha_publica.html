@@ -12,7 +12,7 @@
 {% cosmetic_package 'moldura' appearance.frame_key character_owner 'ficha' as frame_package %}
 {% cosmetic_package 'efeito' appearance.effect_key character_owner 'ficha' as effect_package %}
 {% if appearance.background_url|safe_profile_image %}<div class="ficha-bg-media" style="background-image:url('{{ appearance.background_url|safe_profile_image }}');" aria-hidden="true"></div>{% endif %}
-<article class="ficha cw-public-sheet {{ appearance.theme_class }} {{ appearance.effect_class }}"{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %} aria-labelledby="cw-public-name">
+<article class="ficha cw-public-sheet {{ appearance.theme_class }} {{ appearance.effect_class }}" data-theme-motif="{{ appearance.theme_motif|default:'none' }}"{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %} aria-labelledby="cw-public-name">
   {% if preview %}<p class="cw-context-note" role="status">Prévia como visitante. {% if not published %}Esta ficha ainda não está publicada.{% endif %}</p>{% endif %}
   <header class="ficha-header cw-public-hero{% if character.banner_url|safe_profile_image %} cosmetic-has-banner{% endif %}">
     {% if character.banner_url|safe_profile_image %}<div class="ficha-banner-media" style="background-image:url('{{ character.banner_url|safe_profile_image }}');" aria-hidden="true"></div>{% endif %}

@@ -23,6 +23,10 @@ class RankCosmeticRewardsTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         seed.seed_rank_rewards(apps, SimpleNamespace(connection=connection))
+        # Freeze the 0164 two-frame fixture even when the database has later data migrations.
+        themes = list(TbCosmetico.objects.filter(slug__startswith='tema-rank-'))
+        for rule in TbConquista.objects.filter(slug__startswith='elo-'):
+            rule.recompensas_extras.remove(*themes)
         cls.klass = TbClasse.objects.create(nome='Rank test class', slug='rank-test-class')
 
     def setUp(self):

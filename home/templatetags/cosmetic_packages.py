@@ -8,6 +8,21 @@ from home.cosmetic_packages import get_package, load_package
 register = template.Library()
 
 
+@register.inclusion_tag('home/includes/cosmetic_catalog.html')
+def cosmetic_catalog(options, tipo, select_id, select_name, selected_value='',
+                     escopo='perfil', label='', select_class=''):
+  """Public thumbnails do not grant access; keep the catalog's server-side locks."""
+  items = []
+  for option in options:
+    item = dict(option)
+    item['locked'] = bool(item.get('locked') or item.get('estado') == 'bloqueado')
+    item['selected'] = item['key'] == selected_value
+    item['package'] = load_package(tipo, item['key'], escopo)
+    items.append(item)
+  return {'items': items, 'tipo': tipo, 'select_id': select_id,
+          'select_name': select_name, 'label': label, 'select_class': select_class}
+
+
 @register.simple_tag(name='character_rank')
 def character_rank_tag(character):
   from home.ranks import character_rank

@@ -18,6 +18,16 @@
     for (const layer of root.querySelectorAll('[data-cosmetic-layers]')) {
       if (seen.has(layer)) continue;
       seen.add(layer);
+      const owner = layer.parentElement;
+      if (layer.dataset.apertureX) {
+        owner.classList.add('has-calibrated-portrait');
+        for (const [property, value] of [['x', layer.dataset.apertureX], ['y', layer.dataset.apertureY], ['size', layer.dataset.apertureSize]]) {
+          const number = Number(value);
+          if (Number.isFinite(number) && number > 0 && number < 100) {
+            owner.style.setProperty('--portrait-' + property, (property === 'size' ? number * 1.32 : -16 + number * 1.32) + '%');
+          }
+        }
+      }
       layer.classList.toggle('is-paused', document.hidden);
       if (observer) observer.observe(layer);
       else layer.classList.add('is-visible');
@@ -26,6 +36,10 @@
 
   function render(root, slot, packages) {
     if (!root || !['banner', 'ornament', 'avatar'].includes(slot)) return;
+    if (slot === 'avatar') {
+      root.classList.remove('has-calibrated-portrait');
+      for (const key of ['x', 'y', 'size']) root.style.removeProperty('--portrait-' + key);
+    }
     root.querySelectorAll(':scope > [data-cosmetic-layers]').forEach(layer => {
       if (layer.classList.contains('cosmetic-layers--' + slot)) layer.remove();
     });
@@ -36,6 +50,11 @@
       layer.dataset.cosmeticLayers = '';
       layer.setAttribute('aria-hidden', 'true');
       for (const entry of pack[slot]) {
+        if (entry.aperture) {
+          layer.dataset.apertureX = entry.aperture.cx;
+          layer.dataset.apertureY = entry.aperture.cy;
+          layer.dataset.apertureSize = entry.aperture.diameter;
+        }
         if (entry.motion === 'helmet') {
           const helmet = document.createElement('span');
           helmet.className = 'cosmetic-layer cosmetic-helmet';
@@ -76,7 +95,7 @@
     node.appendChild(image);
     return node;
   }
-  window.CosmeticRenderer = { render };
+  window.CosmeticRenderer = { render, mount };
 
   document.addEventListener('error', event => {
     const image = event.target;

@@ -1,0 +1,41 @@
+<fieldset class="cosmetic-catalog" data-cosmetic-catalog>
+  <legend id="{{ select_id }}-legend" class="cosmetic-catalog-legend">{{ label }}</legend>
+  <select id="{{ select_id }}" name="{{ select_name }}" class="{{ select_class }}" aria-labelledby="{{ select_id }}-legend" data-catalog-select>
+    {% for item in items %}
+    <option value="{{ item.key }}"{% if item.selected %} selected{% endif %}{% if item.locked %} disabled{% endif %}>{{ item.label }}{% if item.posse_origem %} ({{ item.posse_origem }}){% elif item.locked %} ({% if item.unlock_hint %}{{ item.unlock_hint }}{% else %}bloqueado{% endif %}){% endif %}</option>
+    {% endfor %}
+  </select>
+  <div class="cosmetic-catalog-enhanced" data-catalog-controls hidden>
+    <label class="cosmetic-catalog-filter" for="{{ select_id }}-filter">Filtrar {{ label|lower }}
+      <input type="search" id="{{ select_id }}-filter" data-catalog-filter autocomplete="off" placeholder="Buscar por nome" aria-controls="{{ select_id }}-tiles">
+    </label>
+    <div class="cosmetic-catalog-grid" id="{{ select_id }}-tiles">
+      {% for item in items %}
+      <label class="cosmetic-catalog-tile{% if item.locked %} is-locked{% endif %}" data-catalog-tile data-catalog-search="{{ item.label }} {{ item.unlock_hint }} {{ item.posse_origem }}">
+        <input type="radio" name="catalog_{{ select_id }}" value="{{ item.key }}" data-catalog-radio{% if item.selected %} checked{% endif %}{% if item.locked %} disabled{% endif %} aria-describedby="{{ select_id }}-hint-{{ forloop.counter }}">
+        <span class="cosmetic-catalog-tile-body">
+          <span class="cosmetic-catalog-preview" aria-hidden="true">
+            {% if tipo == 'moldura' %}
+            <span class="banner-character-avatar cosmetic-catalog-avatar {{ item.class }}{% if item.package.avatar %} is-packaged{% endif %}">
+              <span class="cosmetic-catalog-initial">B</span>
+              {% include 'home/partials/_cosmetic_preview.html' with layers=item.package.avatar slot='avatar' %}
+            </span>
+            {% else %}
+            <span class="cosmetic-effect-sample {{ item.class }}">
+              {% if not item.package.avatar %}<span class="cosmetic-catalog-effect-mark">Bonfire</span>{% endif %}
+              {% include 'home/partials/_cosmetic_preview.html' with layers=item.package.banner slot='banner' %}
+              {% include 'home/partials/_cosmetic_preview.html' with layers=item.package.ornament slot='ornament' %}
+              {% if item.package.avatar %}<span class="banner-character-avatar cosmetic-catalog-avatar is-packaged"><span class="cosmetic-catalog-initial">B</span>{% include 'home/partials/_cosmetic_preview.html' with layers=item.package.avatar slot='avatar' %}</span>{% endif %}
+            </span>
+            {% endif %}
+          </span>
+          <span class="cosmetic-catalog-name">{{ item.label }}</span>
+          <span class="cosmetic-catalog-hint" id="{{ select_id }}-hint-{{ forloop.counter }}">{% if item.locked %}Bloqueado{% if item.unlock_hint %} · {{ item.unlock_hint }}{% endif %}{% elif item.posse_origem %}{{ item.posse_origem }}{% else %}Disponível{% endif %}</span>
+          <span class="cosmetic-catalog-selected">Selecionado</span>
+        </span>
+      </label>
+      {% endfor %}
+    </div>
+    <p class="cosmetic-catalog-empty" data-catalog-empty role="status" hidden>Nenhum resultado.</p>
+  </div>
+</fieldset>

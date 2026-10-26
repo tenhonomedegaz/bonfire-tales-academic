@@ -60,6 +60,7 @@
 .cw-card-portrait.is-packaged>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%}
 .cw-card-portrait.is-packaged .cosmetic-layer{object-fit:contain}
 /* Articulated visor: the closed plates lift away from the same open frame. */
+.has-calibrated-portrait>img{position:absolute!important;inset:auto!important;left:var(--portrait-x,50%)!important;top:var(--portrait-y,50%)!important;width:var(--portrait-size,100%)!important;height:var(--portrait-size,100%)!important;transform:translate(-50%,-50%);border-radius:50%;object-fit:cover}
 .cosmetic-sprite{position:absolute;inset:0;display:block;overflow:hidden}
 .cosmetic-sprite>img{position:absolute;top:0;left:0;width:200%;height:100%;max-width:none;object-fit:fill;filter:none}
 .cosmetic-sprite--closed>img{left:-100%}

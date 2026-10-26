@@ -29,6 +29,8 @@ _DEFINICAO_DEFAULT = {
 }
 _PARTICULA_CHOICES = ('subir', 'cair', 'flutuar', 'nenhuma')
 _VEL_CHOICES = ('lenta', 'media', 'rapida')
+THEME_MOTIFS = ('none', 'facets', 'runes', 'sun', 'leaves', 'flames',
+                'thorns', 'crystal', 'moon', 'eclipse', 'bats')
 
 
 def sanitize_definicao_tema(raw):
@@ -56,6 +58,8 @@ def sanitize_definicao_tema(raw):
     out['vel'] = vel if vel in _VEL_CHOICES else 'media'
     glow = raw.get('glow', True)
     out['glow'] = glow in (True, 'true', 'on', '1', 1)
+    motif = raw.get('motif', 'none')
+    out['motif'] = motif if isinstance(motif, str) and motif in THEME_MOTIFS else 'none'
     return out
 
 # Mapeia o "tipo interno" de aparência (usado por perfil/ficha) para o `tipo` do

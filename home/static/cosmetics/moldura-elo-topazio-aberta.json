@@ -1,1 +1,1 @@
-{"version":1,"slug":"moldura-elo-topazio-aberta","type":"moldura","scope":"ambos","layers":[{"slot":"avatar","file":"rank-topazio-v3.png","fallback":"rank-topazio-v3.png","width":1774,"height":887,"sprite":"open","motion":"none"}]}
+{"version":1,"slug":"moldura-elo-topazio-aberta","type":"moldura","scope":"ambos","layers":[{"slot":"avatar","file":"rank-topazio-v3.png","fallback":"rank-topazio-v3.png","width":1774,"height":887,"sprite":"open","motion":"none","aperture":{"cx":50,"cy":54.115,"diameter":57.267}}]}

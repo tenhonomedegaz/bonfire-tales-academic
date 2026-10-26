@@ -6,7 +6,8 @@ from django.apps import apps
 from django.db import connection
 
 from .cosmetics import invalidate_cosmetic_cache
-from .models import TbConquistaNotificacao, TbPersonagem, TbUsuarioConquista, TbUsuarioCosmetico
+from .conquistas import recompensa_ids_da_conquista
+from .models import TbConquista, TbConquistaNotificacao, TbPersonagem, TbUsuarioConquista, TbUsuarioCosmetico
 from .pathbuilder import default_build, simulate_build
 from .test_criador import _CriadorBase
 
@@ -21,7 +22,10 @@ class RankCosmeticPreviewTests(_CriadorBase):
         data = self._payload('guerreiro')
 
         def inspect_before_rollback(ficha, character, build, *args, **kwargs):
-            self.assertEqual(TbUsuarioCosmetico.objects.filter(user=owner).count(), 2)
+            inventory = TbUsuarioCosmetico.objects.filter(user=owner)
+            self.assertEqual(inventory.filter(cosmetico__tipo='moldura').count(), 2)
+            self.assertEqual(set(inventory.values_list('cosmetico_id', flat=True)),
+                             recompensa_ids_da_conquista(TbConquista.objects.get(slug='elo-obsidiana')))
             self.assertEqual(character.nivel, 1)
             return {'checked': True}
 

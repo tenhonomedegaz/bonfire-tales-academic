@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=4">
 <link rel="stylesheet" href="{% static 'css/pages/profile-redesign.css' %}?v=1">
 <link rel="stylesheet" href="{% static 'css/pages/master-hub.css' %}?v=3">
-<script src="{% static 'js/tema_swatch.js' %}?v=2" defer></script>
+<script src="{% static 'js/tema_swatch.js' %}?v=3" defer></script>
 <script src="{% static 'js/profile-dirty.js' %}?v=1" defer></script>
 {% if appearance.theme_css_href %}<link rel="stylesheet" id="perfil-preview-theme-css" href="{{ appearance.theme_css_href }}">{% endif %}
 <title>Meu Perfil — Bonfire Tales RPG</title>
@@ -18,7 +18,7 @@
 {% block content %}
 {% if master_demo %}<p class="master-area mh-notice" role="status">Demonstração visual: este perfil e suas missões são fictícios. Nenhuma autorização real é concedida.</p>{% endif %}
 {% if appearance.background_url|safe_profile_image %}<div class="profile-bg-media" id="profile-bg-media" style="background-image:url('{{ appearance.background_url|safe_profile_image }}');"></div>{% else %}<div class="profile-bg-media" id="profile-bg-media" style="display:none"></div>{% endif %}
-<div class="profile-page {{ appearance.theme_class }} {{ appearance.effect_class }}{% if appearance.background_url|safe_profile_image %} profile-has-bg{% endif %}" id="profile-root"{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %}>
+<div class="profile-page {{ appearance.theme_class }} {{ appearance.effect_class }}{% if appearance.background_url|safe_profile_image %} profile-has-bg{% endif %}" id="profile-root" data-theme-motif="{{ appearance.theme_motif|default:'none' }}"{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %}>
 
     <!-- Toasts -->
     {% for msg in success_messages %}
@@ -188,21 +188,11 @@
 
         <div class="profile-appearance-grid">
             <div class="profile-field">
-                <label class="profile-label" for="id_avatar_frame">Borda do Avatar</label>
-                <select class="profile-input" name="avatar_frame" id="id_avatar_frame">
-                    {% for item in appearance_frame_options %}
-                    <option value="{{ item.key }}" {% if item.selected %}selected{% endif %} {% if item.estado == 'bloqueado' %}disabled{% endif %}>{{ item.label }}{% if item.posse_origem %} ({{ item.posse_origem }}){% elif item.estado == 'bloqueado' %} ({% if item.unlock_hint %}{{ item.unlock_hint }}{% else %}bloqueado{% endif %}){% endif %}</option>
-                    {% endfor %}
-                </select>
+                {% cosmetic_catalog appearance_frame_options 'moldura' 'id_avatar_frame' 'avatar_frame' appearance.frame_key 'perfil' 'Borda do Avatar' 'profile-input' %}
                 {% if locked_frame_preference %}<label class="profile-inline-check"><input type="checkbox" name="clear_locked_avatar_frame"> Esquecer moldura Colab guardada</label>{% endif %}
             </div>
             <div class="profile-field">
-                <label class="profile-label" for="id_profile_effect">Efeito do Perfil</label>
-                <select class="profile-input" name="profile_effect" id="id_profile_effect">
-                    {% for item in appearance_effect_options %}
-                    <option value="{{ item.key }}" {% if item.key == appearance.effect_key %}selected{% endif %} {% if item.estado == 'bloqueado' %}disabled{% endif %}>{{ item.label }}{% if item.posse_origem %} ({{ item.posse_origem }}){% elif item.estado == 'bloqueado' %} (bloqueado){% endif %}</option>
-                    {% endfor %}
-                </select>
+                {% cosmetic_catalog appearance_effect_options 'efeito' 'id_profile_effect' 'profile_effect' appearance.effect_key 'perfil' 'Efeito do Perfil' 'profile-input' %}
                 {% if locked_effect_preference %}<label class="profile-inline-check"><input type="checkbox" name="clear_locked_profile_effect"> Esquecer efeito Colab guardado</label>{% endif %}
             </div>
         </div>
@@ -769,6 +759,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     aplicaTemaCss(json.theme_css_href);
                     aplicaArquivosLocais();
                     mostraRecusa(json.recusados);
+                    requestAnimationFrame(() => {
+                        if (meuSeq !== seq || !window.TemaSwatch) return;
+                        window.TemaSwatch.syncAuthorizedPreview(
+                            stage.querySelector('.public-profile-page'),
+                            document.getElementById('profile-root'));
+                    });
                 })
                 .catch(() => { if (statusEl) statusEl.textContent = 'Prévia indisponível'; })
                 .finally(() => { if (meuSeq === seq) stage.classList.remove('is-carregando'); });
@@ -795,7 +791,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const tema = window.TemaSwatch.cartaoMarcado(grades, 'profile_theme');
             const alvo = stage.querySelector('.public-profile-page');
             if (tema && alvo) {
-                window.TemaSwatch.aplica(alvo, window.TemaSwatch.comCoresDoFormulario(tema, CORES_CUSTOM));
+                const escolhido = window.TemaSwatch.comCoresDoFormulario(tema, CORES_CUSTOM);
+                window.TemaSwatch.aplica(alvo, escolhido);
+                window.TemaSwatch.aplica(document.getElementById('profile-root'), escolhido);
             }
         };
 

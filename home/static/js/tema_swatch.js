@@ -21,6 +21,11 @@
     'use strict';
 
     var PREFIXO_TEMA = 'theme-';
+    var MOTIFS = ['none', 'facets', 'runes', 'sun', 'leaves', 'flames',
+                  'thorns', 'crystal', 'moon', 'eclipse', 'bats'];
+    function motifValue(value) {
+        return MOTIFS.indexOf(value) !== -1 ? value : 'none';
+    }
     var PILOT_COMPOSITIONS = {
         'forja-de-brasas': 'collection-forja-de-brasas',
         'aurora-glacial': 'collection-aurora-glacial',
@@ -42,7 +47,8 @@
             deep: d.deep || '',
             gradiente: d.gradiente === '1',
             particula: d.particula || '',
-            vel: d.vel || ''
+            vel: d.vel || '',
+            motif: motifValue(d.motif)
         };
     }
 
@@ -89,6 +95,8 @@
             classe += ' ' + PILOT_COMPOSITIONS[t.chave];
         }
         trocaClasseTema(alvo, classe);
+        alvo.setAttribute('data-theme-motif', t.accent && t.chave !== 'custom'
+                          ? motifValue(t.motif) : 'none');
         var v = varsDe(t);
         Object.keys(v).forEach(function (k) {
             if (t.accent) alvo.style.setProperty(k, v[k]);
@@ -116,8 +124,60 @@
             deep: inputs.deep ? inputs.deep.value : t.deep,
             gradiente: !!(inputs.gradiente && inputs.gradiente.checked),
             particula: t.particula || 'subir',
-            vel: t.vel || 'media'
+            vel: t.vel || 'media',
+            motif: 'none'
         };
+    }
+
+    /* Call only with the server-authorized preview, after its renderer mounts. */
+    function syncAuthorizedPreview(source, target) {
+        if (!source || !target) return;
+        function classes(from, to, accepts) {
+            Array.from(to.classList).forEach(function (name) {
+                if (accepts(name)) to.classList.remove(name);
+            });
+            Array.from(from.classList).forEach(function (name) {
+                if (accepts(name)) to.classList.add(name);
+            });
+        }
+        function variables(from, to, names) {
+            names.forEach(function (name) {
+                var value = from.style.getPropertyValue(name);
+                if (value) to.style.setProperty(name, value);
+                else to.style.removeProperty(name);
+            });
+        }
+        function layers(from, to) {
+            if (!from || !to) return;
+            Array.from(to.children).forEach(function (child) {
+                if (child.matches('[data-cosmetic-layers]')) child.remove();
+            });
+            Array.from(from.children).forEach(function (child) {
+                if (!child.matches('[data-cosmetic-layers]')) return;
+                var clone = child.cloneNode(true);
+                clone.classList.add('is-visible');
+                to.appendChild(clone);
+            });
+        }
+        classes(source, target, function (name) { return /^(theme-|effect-|collection-)/.test(name); });
+        ['data-theme-motif', 'data-fx-particula', 'data-fx-vel'].forEach(function (name) {
+            if (source.hasAttribute(name)) target.setAttribute(name, source.getAttribute(name));
+            else target.removeAttribute(name);
+        });
+        variables(source, target, Object.keys(varsDe({})));
+        var fromAvatar = source.querySelector('.public-profile-avatar');
+        var toAvatar = target.querySelector('#profile-avatar-main');
+        if (fromAvatar && toAvatar) {
+            classes(fromAvatar, toAvatar, function (name) {
+                return /^frame-/.test(name) || name === 'is-packaged' || name === 'has-calibrated-portrait';
+            });
+            variables(fromAvatar, toAvatar, ['--portrait-x', '--portrait-y', '--portrait-size']);
+            layers(fromAvatar, toAvatar);
+        }
+        layers(source.querySelector('.public-profile-banner'), target.querySelector('.profile-header'));
+        if (global.CosmeticRenderer && global.CosmeticRenderer.mount) {
+            global.CosmeticRenderer.mount(target);
+        }
     }
 
     global.TemaSwatch = {
@@ -125,6 +185,7 @@
         cartaoMarcado: cartaoMarcado,
         varsDe: varsDe,
         aplica: aplica,
-        comCoresDoFormulario: comCoresDoFormulario
+        comCoresDoFormulario: comCoresDoFormulario,
+        syncAuthorizedPreview: syncAuthorizedPreview
     };
 })(window);

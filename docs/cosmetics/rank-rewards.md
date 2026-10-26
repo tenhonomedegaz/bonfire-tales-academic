@@ -1,4 +1,4 @@
-# Molduras de elo: concessao permanente e viseira
+# Molduras de rank: concessao permanente e viseira
 
 ## Regra aprovada
 
@@ -6,6 +6,10 @@ Cada conta recebe duas molduras por patente alcancada com um personagem real:
 `moldura-elo-<rank>-aberta` e `moldura-elo-<rank>-fechada`. Um rank superior
 tambem libera os anteriores. A posse e da conta, pode ser usada em perfil e
 fichas e nao altera a patente real de outro personagem.
+
+A migration `0165_rank_themes` acrescenta um tema correspondente como terceira
+recompensa de cada marco. Tambem troca Elo por Rank nos nomes visiveis, sem
+renomear slugs ou alterar posses. Detalhes em `catalog-refresh.md`.
 
 | Patente | Nivel do personagem | Aventuras minimas |
 | --- | --- | --- |

@@ -32,7 +32,7 @@ no servidor, então o cliente sobrepõe .public-profile-banner-media,
 {% cosmetic_package 'tema' appearance.theme_key viewed_user as theme_package %}
 {% cosmetic_package 'moldura' appearance.frame_key viewed_user as frame_package %}
 {% cosmetic_package 'efeito' appearance.effect_key viewed_user as effect_package %}
-<section class="public-profile-page {{ appearance.theme_class }} {{ appearance.effect_class }}{% if appearance.background_url|safe_profile_image %} profile-has-bg{% endif %}{% if preview_mode %} is-preview{% endif %}"{% if appearance.fx_particula %} data-fx-particula="{{ appearance.fx_particula }}" data-fx-vel="{{ appearance.fx_vel }}"{% endif %}{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %}>
+<section class="public-profile-page {{ appearance.theme_class }} {{ appearance.effect_class }}{% if appearance.background_url|safe_profile_image %} profile-has-bg{% endif %}{% if preview_mode %} is-preview{% endif %}" data-theme-motif="{{ appearance.theme_motif|default:'none' }}"{% if appearance.fx_particula %} data-fx-particula="{{ appearance.fx_particula }}" data-fx-vel="{{ appearance.fx_vel }}"{% endif %}{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %}>
   {% if preview_mode %}
   <div class="perfil-preview-bg"{% if appearance.background_url|safe_profile_image %} style="background-image:url('{{ appearance.background_url|safe_profile_image }}');"{% else %} style="display:none"{% endif %}></div>
   {% else %}

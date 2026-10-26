@@ -77,6 +77,13 @@ def parse_package(raw, slug, tipo, escopo='perfil'):
       'motion': motion, 'width': width, 'height': height,
       'sprite': sprite,
     })
+    aperture = layer.get('aperture')
+    if aperture is not None:
+      if (slot != 'avatar' or not isinstance(aperture, dict)
+          or any(type(aperture.get(key)) not in (int, float) for key in ('cx', 'cy', 'diameter'))
+          or not all(0 < aperture[key] < 100 for key in ('cx', 'cy', 'diameter'))):
+        return None
+      result[slot][-1]['aperture'] = {key: aperture[key] for key in ('cx', 'cy', 'diameter')}
   return result
 
 

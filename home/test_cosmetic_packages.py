@@ -32,6 +32,9 @@ class CosmeticPackageTests(SimpleTestCase):
       {'sprite':'other'},
       {'motion':'helmet','sprite':'full'},
       {'width': True},
+      {'aperture': {'cx': '50;display:none', 'cy': 50, 'diameter': 50}},
+      {'aperture': {'cx': 50, 'cy': 50, 'diameter': float('nan')}},
+      {'aperture': {'cx': 50, 'cy': 50, 'diameter': True}},
     ):
       with self.subTest(change=change):
         candidate = json.loads(json.dumps(raw))
@@ -49,6 +52,16 @@ class CosmeticPackageTests(SimpleTestCase):
     raw['scope'] = 'ambos'
     for scope in ('ficha', 'perfil'):
       self.assertIsNotNone(parse_package(raw, raw['slug'], raw['type'], scope))
+
+  def test_rank_pairs_share_a_calibrated_portrait_aperture(self):
+    for rank in ('obsidiana', 'ametista', 'topazio', 'esmeralda', 'ambar', 'rubi', 'diamante'):
+      pairs = []
+      for form in ('aberta', 'fechada'):
+        raw = json.loads((PACKAGE_ROOT / f'moldura-elo-{rank}-{form}.json').read_text())
+        parsed = parse_package(raw, raw['slug'], raw['type'])
+        pairs.append(parsed['avatar'][0]['aperture'])
+      self.assertEqual(*pairs)
+      self.assertTrue(25 < pairs[0]['diameter'] < 65)
 
   def test_live_preview_media_excludes_locked_options(self):
     media = cosmetic_media_options([], [

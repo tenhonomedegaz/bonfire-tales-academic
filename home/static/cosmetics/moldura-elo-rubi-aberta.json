@@ -1,1 +1,1 @@
-{"version":1,"slug":"moldura-elo-rubi-aberta","type":"moldura","scope":"ambos","layers":[{"slot":"avatar","file":"rank-rubi-v3.png","fallback":"rank-rubi-v3.png","width":1774,"height":887,"sprite":"open","motion":"none"}]}
+{"version":1,"slug":"moldura-elo-rubi-aberta","type":"moldura","scope":"ambos","layers":[{"slot":"avatar","file":"rank-rubi-v3.png","fallback":"rank-rubi-v3.png","width":1774,"height":887,"sprite":"open","motion":"none","aperture":{"cx":50.225,"cy":50.507,"diameter":55.103}}]}

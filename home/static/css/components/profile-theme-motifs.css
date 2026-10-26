@@ -1,0 +1,108 @@
+/* Theme data only: patterns never change layout or intercept form actions. */
+:is([data-theme-motif], [data-motif]) {
+  --theme-motif-pattern: none;
+  --theme-motif-accent: var(--profile-accent-solid, var(--sheet-accent-solid, var(--pf-accent, #ccccd4)));
+  --theme-motif-surface: var(--profile-surface, var(--sheet-surface, #141418));
+  --theme-motif-deep: var(--profile-deep, var(--sheet-deep, #09090c));
+}
+
+:is([data-theme-motif="facets"], [data-motif="facets"]) {
+  --theme-motif-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='112' height='112' fill='none' stroke='%23fff' stroke-opacity='.10'%3E%3Cpath d='M0 0L56 24L112 0M0 56L56 24L80 80L112 56M0 112L24 80L56 112L80 80L112 112M0 56L24 80L56 24M80 80L56 112'/%3E%3C/svg%3E");
+}
+:is([data-theme-motif="runes"], [data-motif="runes"]) {
+  --theme-motif-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='112' height='112' fill='none' stroke='%23fff' stroke-opacity='.12' stroke-width='1.5'%3E%3Cpath d='M24 16V46M24 18L39 29L24 38M72 68V98M60 78L72 68L84 78M66 89H78M76 18L88 30L76 42L64 30Z'/%3E%3C/svg%3E");
+}
+:is([data-theme-motif="sun"], [data-motif="sun"]) {
+  --theme-motif-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='112' height='112' fill='none' stroke='%23fff' stroke-opacity='.12'%3E%3Ccircle cx='56' cy='56' r='17'/%3E%3Cpath d='M56 24V12M56 88V100M24 56H12M88 56H100M33 33L24 24M79 79L88 88M33 79L24 88M79 33L88 24'/%3E%3C/svg%3E");
+}
+:is([data-theme-motif="leaves"], [data-motif="leaves"]) {
+  --theme-motif-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='112' height='112' fill='none' stroke='%23fff' stroke-opacity='.11'%3E%3Cpath d='M12 100Q56 64 98 12M29 80Q8 47 55 43Q57 67 29 80ZM63 45Q60 11 98 12Q101 41 63 45ZM47 64Q83 57 91 80Q60 94 47 64Z'/%3E%3C/svg%3E");
+}
+:is([data-theme-motif="flames"], [data-motif="flames"]) {
+  --theme-motif-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='112' height='112' fill='none' stroke='%23fff' stroke-opacity='.12'%3E%3Cpath d='M32 92C5 76 46 57 31 28C66 48 44 59 59 68C67 57 64 42 73 35C66 66 106 80 81 97M38 99C27 86 47 78 49 68C55 84 75 87 65 100'/%3E%3C/svg%3E");
+}
+:is([data-theme-motif="thorns"], [data-motif="thorns"]) {
+  --theme-motif-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='112' height='112' fill='none' stroke='%23fff' stroke-opacity='.12'%3E%3Cpath d='M0 88L112 24M22 76L24 54L37 67M49 61L51 39L63 52M76 45L79 23L91 37M37 68L50 82L50 60M65 51L79 65L78 43'/%3E%3C/svg%3E");
+}
+:is([data-theme-motif="crystal"], [data-motif="crystal"]) {
+  --theme-motif-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='112' height='112' fill='none' stroke='%23fff' stroke-opacity='.13'%3E%3Cpath d='M56 10L79 32L72 82L56 103L40 82L33 32ZM33 32L56 43L79 32M56 10V103M40 82L56 72L72 82M8 53L17 42L25 55L19 77L10 70Z'/%3E%3C/svg%3E");
+}
+:is([data-theme-motif="moon"], [data-motif="moon"]) {
+  --theme-motif-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='112' height='112' fill='none' stroke='%23fff' stroke-opacity='.13'%3E%3Cpath d='M70 18A35 35 0 1 0 92 76A31 31 0 0 1 70 18Z'/%3E%3Cpath d='M23 19V27M19 23H27M91 18V30M85 24H97'/%3E%3C/svg%3E");
+}
+:is([data-theme-motif="eclipse"], [data-motif="eclipse"]) {
+  --theme-motif-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='112' height='112' fill='none' stroke='%23fff' stroke-opacity='.12'%3E%3Ccircle cx='56' cy='56' r='24'/%3E%3Cpath d='M36 26A36 36 0 0 1 86 76M56 17V8M95 56H104M56 95V104M17 56H8M83 29L92 20M29 83L20 92'/%3E%3C/svg%3E");
+}
+:is([data-theme-motif="bats"], [data-motif="bats"]) {
+  --theme-motif-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='112' height='112' fill='none' stroke='%23fff' stroke-opacity='.14'%3E%3Cpath d='M10 39Q31 45 47 58L51 47L56 53L61 47L65 58Q81 45 102 39Q90 54 94 69Q81 61 74 77Q64 69 56 86Q48 69 38 77Q31 61 18 69Q22 54 10 39Z'/%3E%3C/svg%3E");
+}
+
+:is(.profile-page, .public-profile-page, .ficha)[data-theme-motif]:not([data-theme-motif="none"]) :is(.profile-header, .public-profile-banner, .ficha-header) {
+  background-image: var(--theme-motif-pattern);
+  background-size: 112px 112px;
+  background-repeat: repeat;
+}
+.tema-swatch[data-motif][data-accent] .tema-swatch-bar {
+  background-image: var(--theme-motif-pattern), linear-gradient(100deg, var(--tsw-accent), var(--tsw-accent2));
+  background-size: 56px 56px, cover;
+}
+.tema-swatch[data-motif][data-accent] .tema-swatch-mini {
+  background-image: var(--theme-motif-pattern);
+  background-size: 56px 56px;
+}
+
+/* Override the private editor's fixed red without changing public site chrome. */
+.bft-profile #profile-root:not(.theme-bonfire)[data-theme-motif] {
+  --pf-accent: var(--profile-accent-solid, var(--profile-accent));
+  --pf-accent-2: var(--profile-accent-2);
+}
+.bft-profile #profile-root:not(.theme-bonfire)[data-theme-motif] > .profile-header.profile-hero {
+  background-color: var(--theme-motif-surface);
+  background-image: var(--theme-motif-pattern), linear-gradient(110deg,
+    color-mix(in srgb, var(--theme-motif-accent) 16%, var(--theme-motif-deep)), var(--theme-motif-surface) 80%);
+  background-size: 112px 112px, cover;
+  border-color: color-mix(in srgb, var(--theme-motif-accent) 48%, var(--theme-motif-surface));
+}
+.bft-profile #profile-root:not(.theme-bonfire)[data-theme-motif] > .profile-header::before {
+  background: var(--theme-motif-accent);
+}
+.bft-profile #profile-root:not(.theme-bonfire)[data-theme-motif] :is(.profile-nav, .profile-save-bar) {
+  background: color-mix(in srgb, var(--theme-motif-surface) 96%, transparent);
+  border-color: color-mix(in srgb, var(--theme-motif-accent) 45%, var(--theme-motif-surface));
+}
+.bft-profile #profile-root:not(.theme-bonfire)[data-theme-motif] :is(.profile-nav a, .profile-save-bar > span) {
+  color: color-mix(in srgb, var(--theme-motif-accent) 35%, #f3f3f5);
+}
+.bft-profile #profile-root:not(.theme-bonfire)[data-theme-motif] .profile-nav a:is(:hover, :focus-visible) {
+  background: color-mix(in srgb, var(--theme-motif-accent) 15%, var(--theme-motif-deep));
+  border-color: var(--theme-motif-accent);
+  color: #f3f3f5;
+}
+.bft-profile #profile-root:not(.theme-bonfire)[data-theme-motif] .profile-btn {
+  background: color-mix(in srgb, var(--theme-motif-accent) 28%, var(--theme-motif-surface));
+  border-color: color-mix(in srgb, var(--theme-motif-accent) 65%, var(--theme-motif-surface));
+  color: #f3f3f5;
+}
+.bft-profile #profile-root:not(.theme-bonfire)[data-theme-motif] .profile-btn:hover {
+  background: color-mix(in srgb, var(--theme-motif-accent) 38%, var(--theme-motif-surface));
+}
+.bft-profile #profile-root:not(.theme-bonfire)[data-theme-motif] :is(.profile-kicker, .profile-public-link) {
+  color: var(--theme-motif-accent);
+}
+.bft-profile #profile-root:not(.theme-bonfire) :is(.profile-input, .profile-file-drop, .profile-checkbox-group, .perfil-preview-pane, .perfil-preview-head, .perfil-preview-stage, .profile-account-grid>.profile-section, .profile-social-list, .mh-profile-tabs) {
+  border-color: color-mix(in srgb, var(--theme-motif-accent) 38%, var(--theme-motif-surface));
+}
+.bft-profile #profile-root:not(.theme-bonfire) :is(.perfil-preview-pane, .profile-account-grid>.profile-section) {
+  background: var(--theme-motif-surface);
+}
+.bft-profile #profile-root:not(.theme-bonfire) .mh-profile-tabs a[aria-current=page] {
+  background: color-mix(in srgb, var(--theme-motif-accent) 14%, var(--theme-motif-deep));
+  border-color: var(--theme-motif-accent);
+  color: #f3f3f5;
+}
+.bft-profile #profile-root:not(.theme-bonfire) :is(.perfil-preview-toggle, .avatar-preview-hint a) {
+  color: var(--theme-motif-accent);
+}
+.bft-profile #profile-root:not(.theme-bonfire) :is(a,button,summary):focus-visible {
+  outline-color: var(--theme-motif-accent);
+}

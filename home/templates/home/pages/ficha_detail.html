@@ -20,7 +20,7 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
 <link rel="stylesheet" href="{% static 'css/components/tema_swatch.css' %}?v=1">
 <link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=4">
 {% if appearance.theme_css_href %}<link rel="stylesheet" href="{{ appearance.theme_css_href }}">{% endif %}
-<script src="{% static 'js/tema_swatch.js' %}?v=2" defer></script>
+<script src="{% static 'js/tema_swatch.js' %}?v=3" defer></script>
 <script src="{% static 'js/mochila.js' %}?v=1" defer></script>
 <script src="{% static 'js/ficha_opcoes.js' %}?v=2" defer></script>
 <script src="{% static 'js/characters-presentation.js' %}?v=3" defer></script>
@@ -46,7 +46,7 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
 {% if appearance.background_url %}<div class="ficha-bg-media" style="background-image:url('{{ appearance.background_url }}');"></div>{% endif %}
 {% comment %}`ficha-has-bg` só sai COM imagem de fundo: é ela que liga o desfoque
 (backdrop-filter) da folha central em ficha.css. Sem imagem, folha sólida como sempre.{% endcomment %}
-<section class="ficha animate-fade-in space-y-3 {{ appearance.theme_class }} {{ appearance.effect_class }}{% if appearance.background_url %} ficha-has-bg{% endif %}"{% if appearance.fx_particula %} data-fx-particula="{{ appearance.fx_particula }}" data-fx-vel="{{ appearance.fx_vel }}"{% endif %}{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %}>
+<section class="ficha animate-fade-in space-y-3 {{ appearance.theme_class }} {{ appearance.effect_class }}{% if appearance.background_url %} ficha-has-bg{% endif %}" data-theme-motif="{{ appearance.theme_motif|default:'none' }}"{% if appearance.fx_particula %} data-fx-particula="{{ appearance.fx_particula }}" data-fx-vel="{{ appearance.fx_vel }}"{% endif %}{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %}>
 
   {# ===================== CABEÇALHO (banner estilo planilha) ===================== #}
   {% include 'home/partials/_ficha_banner.html' %}
@@ -689,20 +689,12 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
           <a class="cw-atelier-link" href="{% url 'theme_studio' %}" target="_blank" rel="noopener">Experimentar outras identidades no ateliê ↗</a><span class="hint">Abre em outra aba para preservar o que você está editando. Temas bloqueados não podem ser salvos sem aquisição.</span>
         </div>
         <div class="info-grid appearance-controls">
-          <label class="info-field"><span class="lbl">Moldura</span>
-            <select name="foto_frame" id="ficha-frame-select">
-              {% for item in appearance_frames %}
-              <option value="{{ item.key }}" {% if item.key == appearance.frame_key %}selected{% endif %} {% if item.locked %}disabled{% endif %}>{{ item.label }}{% if item.posse_origem %} ({{ item.posse_origem }}){% elif item.locked %} ({% if item.unlock_hint %}{{ item.unlock_hint }}{% else %}bloqueado{% endif %}){% endif %}</option>
-              {% endfor %}
-            </select>
-          </label>
-          <label class="info-field"><span class="lbl">Efeito</span>
-            <select name="ficha_effect" id="ficha-effect-select">
-              {% for item in appearance_effects %}
-              <option value="{{ item.key }}" {% if item.key == appearance.effect_key %}selected{% endif %} {% if item.locked %}disabled{% endif %}>{{ item.label }}{% if item.posse_origem %} ({{ item.posse_origem }}){% elif item.locked %} (bloqueado){% endif %}</option>
-              {% endfor %}
-            </select>
-          </label>
+          <div class="info-field">
+            {% cosmetic_catalog appearance_frames 'moldura' 'ficha-frame-select' 'foto_frame' appearance.frame_key 'ficha' 'Moldura' %}
+          </div>
+          <div class="info-field">
+            {% cosmetic_catalog appearance_effects 'efeito' 'ficha-effect-select' 'ficha_effect' appearance.effect_key 'ficha' 'Efeito' %}
+          </div>
         </div>
 
         {# Cores do tema Personalizado — só valem quando Tema = Personalizado #}
