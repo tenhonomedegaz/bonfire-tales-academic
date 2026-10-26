@@ -150,38 +150,6 @@ no servidor, então o cliente sobrepõe .public-profile-banner-media,
   </div>
   {% endif %}
 
-  {% if pode_ver_privados and progresso_aventuras %}
-  <div class="public-profile-section" data-adventure-progress>
-    <div class="public-profile-section-head"><h2>Progresso de aventuras</h2></div>
-    <p>Site: {{ progresso_aventuras.site_total }} aventura{{ progresso_aventuras.site_total|pluralize }} em lançamentos não estornados, incluindo personagens arquivados.</p>
-    {% if progresso_aventuras.site_vinculadas_ao_bot %}<p>Vinculadas por ID a missões finalizadas do bot: {{ progresso_aventuras.site_vinculadas_ao_bot }}. Esse vínculo não confirma, por si só, o saldo creditado pelo bot.</p>{% endif %}
-    {% if progresso_aventuras.saldo_sem_ledger %}
-    <p>Saldo sem lançamento identificado: {{ progresso_aventuras.saldo_sem_ledger }}. Esse saldo não foi convertido em missões verificadas.</p>
-    {% endif %}
-    {% if progresso_aventuras.divergencias %}
-    <p>{{ progresso_aventuras.divergencias }} ficha{{ progresso_aventuras.divergencias|pluralize }} com saldo inferior ao ledger; revisão necessária.</p>
-    {% endif %}
-    {% if progresso_aventuras.discord_vinculado %}
-      {% if progresso_aventuras.bot_disponivel %}
-        <p>Bot: saldos por ficha externa, sem soma com o site:</p>
-        {% if progresso_aventuras.bot_logs %}<ul>
-        {% for registro in progresso_aventuras.bot_logs %}
-          <li>{{ registro.characterName }}: {{ registro.adventuresPlayed }} aventura{{ registro.adventuresPlayed|pluralize }} declaradas</li>
-        {% endfor %}
-        </ul>{% else %}<p>Nenhuma ficha externa vinculada encontrada.</p>{% endif %}
-      {% else %}<p>Dados do bot temporariamente indisponíveis.</p>{% endif %}
-    {% else %}<p>Vincule o Discord para consultar as fichas do bot separadamente.</p>{% endif %}
-    {% if progresso_aventuras.total_conciliado is not None %}
-    <p>Total rastreável por lançamentos do site e recompensas individuais declaradas pelo bot: {{ progresso_aventuras.total_conciliado }} aventura{{ progresso_aventuras.total_conciliado|pluralize }}. O saldo legado sem ledger não entra nessa soma; a aplicação da recompensa na ficha externa ainda exige confirmação.</p>
-    {% else %}
-    <p>As fontes ainda não foram conciliadas; conquistas por total de aventuras aguardam validação.</p>
-    {% endif %}
-    {% if progresso_aventuras.conflitos_vinculo %}<p>{{ progresso_aventuras.conflitos_vinculo }} vínculo{{ progresso_aventuras.conflitos_vinculo|pluralize }} com crédito divergente ou duplicado; revisão da staff necessária.</p>{% endif %}
-    {% if progresso_aventuras.bot_sem_prova %}<p>{{ progresso_aventuras.bot_sem_prova }} missão{{ progresso_aventuras.bot_sem_prova|pluralize }} do bot sem crédito individual comprovado; não entram na soma.</p>{% endif %}
-    {% if progresso_aventuras.bot_creditos_estornados %}<p>{{ progresso_aventuras.bot_creditos_estornados }} missão vinculada estornada, excluída do total até novo lançamento explícito.</p>{% endif %}
-  </div>
-  {% endif %}
-
   {% if community.modo != 'mestre' %}
   <div class="public-profile-section">
     <div class="public-profile-section-head">

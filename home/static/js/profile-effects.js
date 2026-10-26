@@ -7,7 +7,11 @@
   const targets = '.profile-header.profile-hero, .public-profile-card, .ficha-header, .cosmetic-effect-sample';
   const roots = '.profile-page, .public-profile-page, .ficha';
   const effects = ['soft-glow', 'glass', 'embers', 'aurora', 'starfall'];
+  const motifs = new Set(['facets', 'runes', 'sun', 'leaves', 'flames',
+    'thorns', 'crystal', 'moon', 'eclipse', 'bats']);
+  const legacyMotifs = {bonfire: 'flames', arcane: 'runes', verdant: 'leaves', moonlit: 'moon'};
   const layerClass = 'profile-effect-layer';
+  const sceneClass = 'profile-theme-scene';
   let scheduled = false;
 
   function effectFor(target) {
@@ -40,9 +44,45 @@
     target.appendChild(layer);
   }
 
+  function renderTheme(target) {
+    if (target.matches('.cosmetic-effect-sample')) return;
+    const owner = target.closest(roots);
+    let motif = owner?.dataset.themeMotif;
+    // Legacy palettes receive the same compositions as their data-driven equivalents.
+    if (!motif || motif === 'none') {
+      const legacy = Object.keys(legacyMotifs).find(key => owner?.classList.contains(`theme-${key}`));
+      motif = legacy ? legacyMotifs[legacy] : 'none';
+    }
+    if (!motifs.has(motif)) motif = 'none';
+    const scenes = Array.from(target.children).filter(child => child.classList.contains(sceneClass));
+    if (target.dataset.profileMotif === motif &&
+        (motif === 'none' ? scenes.length === 0 : scenes.length === 1)) return;
+    scenes.forEach(scene => scene.remove());
+    target.dataset.profileMotif = motif;
+    if (motif === 'none') return;
+    const scene = document.createElement('span');
+    scene.className = sceneClass;
+    scene.setAttribute('aria-hidden', 'true');
+    for (const part of ['emblem', 'fringe']) {
+      const node = document.createElement('span');
+      node.className = `profile-theme-${part}`;
+      scene.appendChild(node);
+    }
+    for (let index = 0; index < 3; index += 1) {
+      const mote = document.createElement('span');
+      mote.className = 'profile-theme-mote';
+      mote.style.setProperty('--motif-index', index);
+      scene.appendChild(mote);
+    }
+    target.appendChild(scene);
+  }
+
   function refresh() {
     scheduled = false;
-    document.querySelectorAll(targets).forEach(render);
+    document.querySelectorAll(targets).forEach(target => {
+      render(target);
+      renderTheme(target);
+    });
   }
 
   function schedule() {
@@ -53,7 +93,7 @@
 
   function isDecoration(node) {
     return node.nodeType === 1 && (node.classList.contains(layerClass) ||
-      Boolean(node.closest(`.${layerClass}`)));
+      node.classList.contains(sceneClass) || Boolean(node.closest(`.${layerClass}, .${sceneClass}`)));
   }
 
   function start() {
@@ -73,7 +113,7 @@
       })) schedule();
     });
     observer.observe(document.body, {subtree: true, childList: true,
-      attributes: true, attributeFilter: ['class']});
+      attributes: true, attributeFilter: ['class', 'data-theme-motif']});
     document.addEventListener('visibilitychange', visibility);
   }
 

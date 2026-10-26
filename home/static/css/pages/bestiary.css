@@ -1,4 +1,9 @@
 /* Bonfire field guide. Presentation only; creature rules and shared widgets stay intact. */
+.be-list-copy small.be-type-label { display:flex;align-items:center;gap:5px;flex-wrap:wrap; }
+.be-type-icon { width:18px;height:18px;flex:0 0 18px;color:currentColor; }
+.be-list-copy small.be-challenge-meta { display:flex;gap:10px;flex-wrap:wrap;line-height:1.6;font-size:11px; }
+.be-list-copy { min-width:0;overflow-wrap:anywhere; }
+.be-list-nd b { overflow-wrap:anywhere; }
 .bft-bestiary { background:#0a0a0a; color:#f2e9e0; font-family:'Open Sans',sans-serif; }
 .be-main { width:100%; max-width:1420px; min-width:0; margin:0 auto; padding:24px 28px 44px; }
 .bestiary-shell { --be-line:#593037; --be-muted:#c0ada5; --be-gold:#ffc18b; min-width:0; }

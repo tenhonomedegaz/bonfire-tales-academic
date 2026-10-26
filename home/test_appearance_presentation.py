@@ -39,7 +39,7 @@ class AppearancePresentationTests(TestCase):
         images = BeautifulSoup(html, 'html.parser').select('img')
         self.assertTrue(images)
         self.assertTrue(all(image.get('src') for image in images))
-        self.assertIn('rank-esmeralda-v3.png', html)
+        self.assertIn('rank-esmeralda-v3.webp', html)
 
     def test_anonymous_sheet_uses_owner_packages_and_real_banner(self):
         response = self.client.get(reverse('ficha_publica',args=[self.character.pk]))

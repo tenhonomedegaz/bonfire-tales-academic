@@ -133,40 +133,47 @@
 }
 
 [data-profile-effect="aurora"] > .profile-effect-layer > .profile-effect-mark {
-  top: -10px;
+  top: -28px;
   left: -10%;
   width: 120%;
-  height: 68px;
-  clip-path: polygon(0 10%, 18% 25%, 36% 0, 56% 30%, 76% 5%, 100% 25%,
-    100% 62%, 76% 44%, 56% 88%, 36% 42%, 18% 80%, 0 55%);
-  background: linear-gradient(105deg, #2be9ad22, #64ffd7dd 22%, #7cb6ffff 45%, #e9a8ffcc 68%, #3dffd899 88%, transparent);
-  filter: drop-shadow(0 0 5px #63f5d1);
+  height: 64px;
+  border-radius: 42% 58% 48% 52%;
+  background: linear-gradient(180deg, transparent 24%, #69f4d84d 42%, #91ffeacc 53%, #9cb9ff88 61%, transparent 88%);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12% 88%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 12% 88%, transparent);
+  filter: drop-shadow(0 0 4px #63f5d180);
   animation: pe-aurora-drift 9s ease-in-out infinite alternate;
   animation-delay: var(--pe-delay);
 }
 [data-profile-effect="aurora"] > .profile-effect-layer > .profile-effect-mark::before {
   content: "";
   position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(92deg, transparent 0 7px, #c7fff566 8px, transparent 10px 16px);
+  inset: 12px 0;
+  border-radius: inherit;
+  background: repeating-linear-gradient(92deg, transparent 0 9px, #c7fff54d 10px, transparent 12px 20px);
+  -webkit-mask-image: linear-gradient(transparent, #000, transparent);
+  mask-image: linear-gradient(transparent, #000, transparent);
 }
 [data-profile-effect="aurora"] > .profile-effect-layer > :nth-child(2) {
   top: auto;
-  bottom: -28px;
-  background: linear-gradient(100deg, #8ba5ffbb, #5bf3c9cc, transparent);
+  bottom: -32px;
+  background: linear-gradient(180deg, transparent 15%, #9cafff77 38%, #7fffd8cc 51%, #60c5df55 65%, transparent 88%);
   animation-direction: alternate-reverse;
 }
 [data-profile-effect="aurora"] > .profile-effect-layer > :nth-child(n+3) {
-  top: 8%;
-  left: -36px;
-  width: 60px;
-  height: 90%;
-  background: linear-gradient(170deg, #84baffdd, #51f3bba6, transparent 90%);
+  top: -12%;
+  left: -20px;
+  width: 44px;
+  height: 120%;
+  border-radius: 50%;
+  background: linear-gradient(90deg, transparent, #9bbcff55 34%, #78f7d6bb 55%, transparent 90%);
+  -webkit-mask-image: linear-gradient(transparent, #000 24% 68%, transparent);
+  mask-image: linear-gradient(transparent, #000 24% 68%, transparent);
   animation-name: pe-aurora-curtain;
 }
 [data-profile-effect="aurora"] > .profile-effect-layer > :last-child {
   left: auto;
-  right: -30px;
+  right: -20px;
   animation-direction: alternate-reverse;
 }
 
@@ -209,10 +216,16 @@
   mask-image: linear-gradient(#000 0 10px, transparent 24px calc(100% - 24px), #000 calc(100% - 10px));
 }
 .cosmetic-effect-sample[data-profile-effect="aurora"] > .profile-effect-layer > .profile-effect-mark {
-  height: 42px;
+  top: -20px;
+  height: 52px;
+}
+.cosmetic-effect-sample[data-profile-effect="aurora"] > .profile-effect-layer > :nth-child(2) {
+  top: auto;
+  bottom: -24px;
 }
 .cosmetic-effect-sample[data-profile-effect="aurora"] > .profile-effect-layer > :nth-child(n+3) {
-  height: 90%;
+  top: -12%;
+  height: 120%;
 }
 
 /* Legacy frame polish only. Leave rank, ember-ring and arcane-pulse untouched. */
@@ -238,6 +251,42 @@
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
   mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
   animation: pe-frame-glint var(--pe-frame-duration) ease-in-out infinite;
+}
+
+/* The same authored silhouette is used by the package and the CSS-only fallback. */
+.frame-gold-trim { --pe-frame-art: url("../../cosmetics/frame-gold-trim.svg"); }
+.frame-frost { --pe-frame-art: url("../../cosmetics/frame-frost.svg"); }
+.frame-verdant { --pe-frame-art: url("../../cosmetics/frame-verdant.svg"); }
+:is(.frame-gold-trim, .frame-frost, .frame-verdant) {
+  overflow: visible;
+  border-color: transparent;
+  box-shadow: none;
+}
+:is(.frame-gold-trim, .frame-frost, .frame-verdant)::before {
+  inset: -16%;
+  border-radius: 0;
+  background: var(--pe-frame-art) center / contain no-repeat;
+  -webkit-mask: none;
+  mask: none;
+  animation: none;
+  opacity: 1;
+  transform: none;
+}
+:is(.frame-gold-trim, .frame-frost, .frame-verdant)::after {
+  content: "";
+  position: absolute;
+  inset: -16%;
+  z-index: 4;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 42%, #fff4 47%, #fff 50%, transparent 55%) 160% 0 / 300% 100%;
+  -webkit-mask: var(--pe-frame-art) center / contain no-repeat;
+  mask: var(--pe-frame-art) center / contain no-repeat;
+  animation: pe-frame-etch-light var(--pe-frame-duration) ease-in-out infinite;
+  opacity: .8;
+}
+@keyframes pe-frame-etch-light {
+  0%, 60% { background-position: 160% 0; }
+  88%, 100% { background-position: -60% 0; }
 }
 
 @keyframes pe-glint-travel {
@@ -281,6 +330,7 @@
 
 [data-profile-effects-paused] .profile-effect-mark,
 [data-profile-effects-paused] .profile-effect-mark::after,
+[data-profile-effects-paused] :is(.frame-gold-trim, .frame-frost, .frame-verdant)::after,
 [data-profile-effects-paused] :is(.frame-gold-trim, .frame-frost, .frame-verdant, .frame-mestre-ouro)::before {
   animation-play-state: paused !important;
 }
@@ -288,6 +338,7 @@
 @media (prefers-reduced-motion: reduce) {
   .profile-effect-mark,
   .profile-effect-mark::after,
+  :is(.frame-gold-trim, .frame-frost, .frame-verdant)::after,
   :is(.frame-gold-trim, .frame-frost, .frame-verdant, .frame-mestre-ouro)::before {
     animation: none !important;
   }
@@ -299,6 +350,7 @@
 
 @media (forced-colors: active) {
   .profile-effect-layer,
+  :is(.frame-gold-trim, .frame-frost, .frame-verdant)::after,
   :is(.frame-gold-trim, .frame-frost, .frame-verdant, .frame-mestre-ouro)::before {
     display: none;
   }

@@ -1,0 +1,51 @@
+/* Organization reader only; no constraints leak into the other catalogs. */
+.catalog-shell--organizations { color:#e5e7eb;gap:20px;min-width:0; }
+.catalog-shell--organizations .catalog-title { font-size:36px;line-height:1.2;letter-spacing:0;text-transform:none; }
+.catalog-shell--organizations .catalog-subtitle { font-size:14px;line-height:1.7;color:#b9bdc7; }
+.catalog-shell--organizations .catalog-grid {
+  grid-template-columns:minmax(245px, .72fr) minmax(0, 1.7fr);
+  gap:22px;height:calc(100dvh - 245px);min-height:460px;align-items:stretch;
+}
+.catalog-shell--organizations .catalog-sidebar { display:grid;grid-template-rows:auto minmax(0,1fr);min-height:0; }
+.catalog-shell--organizations .catalog-list { display:flex;flex-direction:column;max-height:none;min-height:0;overflow:auto; }
+.catalog-shell--organizations .catalog-card { flex:0 0 auto;border-radius:4px;padding:13px; }
+.catalog-shell--organizations .catalog-card-title { font-size:17px;line-height:1.35;text-transform:none;overflow-wrap:anywhere; }
+.catalog-shell--organizations .catalog-card-meta { font-size:11px;line-height:1.5;letter-spacing:0; }
+.catalog-shell--organizations .catalog-detail {
+  min-width:0;min-height:0;height:100%;overflow:auto;position:relative;top:auto;
+  border-radius:4px;padding:24px;background:#121215;scrollbar-gutter:stable;
+}
+.catalog-shell--organizations .detail-title { font-size:29px;line-height:1.25;letter-spacing:0;text-transform:none;overflow-wrap:anywhere; }
+.catalog-shell--organizations .organization-image {
+  display:grid;place-items:center;width:100%;aspect-ratio:16/7;max-height:280px;
+  background:#0b0c0f;border-bottom:1px solid #3c414c;margin:0 0 22px;overflow:hidden;
+}
+.catalog-shell--organizations .organization-image img { display:block;width:100%;height:100%;max-height:280px;object-fit:contain; }
+.catalog-shell--organizations .organization-image span { color:#9da3af;font-size:13px; }
+.catalog-shell--organizations .detail-meta-grid { grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:12px;margin:20px 0; }
+.catalog-shell--organizations .detail-meta-item { border:0;border-bottom:1px solid #343944;border-radius:0;background:none;padding:8px 0;min-width:0; }
+.catalog-shell--organizations .detail-meta-label { letter-spacing:0;font-size:11px; }
+.catalog-shell--organizations .detail-meta-value { font-size:14px;line-height:1.7;overflow-wrap:anywhere; }
+.catalog-shell--organizations .tag-chip { letter-spacing:0;font-size:11px;text-transform:none; }
+.catalog-shell--organizations .organization-prose { font-size:15px;line-height:1.85;max-width:78ch;overflow-wrap:anywhere; }
+.catalog-shell--organizations .organization-prose :is(h1,h2,h3,h4) { letter-spacing:0;line-height:1.35;margin:26px 0 12px;color:#f0f1f4; }
+.catalog-shell--organizations .organization-prose h1 { font-size:27px; }
+.catalog-shell--organizations .organization-prose h2 { font-size:23px; }
+.catalog-shell--organizations .organization-prose h3 { font-size:19px; }
+.catalog-shell--organizations .organization-prose :is(p,ul,ol,blockquote) { margin:12px 0; }
+.catalog-shell--organizations .organization-prose :is(ul,ol) { padding-left:24px; }
+.catalog-shell--organizations .organization-prose ul { list-style:disc; }
+.catalog-shell--organizations .organization-prose ol { list-style:decimal; }
+.catalog-shell--organizations .organization-prose li { margin:6px 0; }
+.catalog-shell--organizations .organization-prose img { max-width:100%;height:auto;object-fit:contain; }
+.catalog-shell--organizations .organization-prose table { display:block;max-width:100%;overflow:auto; }
+.catalog-shell--organizations .organization-prose pre { max-width:100%;overflow:auto; }
+.catalog-shell--organizations .organization-prose a { color:#8ac7db;text-decoration:underline;text-underline-offset:3px; }
+@media(max-width:1100px) {
+  .catalog-shell--organizations .catalog-grid { grid-template-columns:minmax(0,1fr);height:auto;min-height:0; }
+  .catalog-shell--organizations .catalog-sidebar { display:flex;flex-direction:column; }
+  .catalog-shell--organizations .catalog-list { flex:1; }
+  .catalog-shell--organizations .catalog-detail { height:auto;max-height:none;overflow:visible;padding:18px; }
+  .catalog-shell--organizations .catalog-title { font-size:30px; }
+  .catalog-shell--organizations .detail-title { font-size:25px; }
+}

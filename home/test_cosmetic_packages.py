@@ -63,6 +63,18 @@ class CosmeticPackageTests(SimpleTestCase):
       self.assertEqual(*pairs)
       self.assertTrue(25 < pairs[0]['diameter'] < 65)
 
+  def test_rank_delivery_uses_small_derivatives_with_original_fallback(self):
+    total = 0
+    for rank in ('obsidiana', 'ametista', 'topazio', 'esmeralda', 'ambar', 'rubi', 'diamante'):
+      source = PACKAGE_ROOT / f'rank-{rank}-v3.webp'
+      total += source.stat().st_size
+      self.assertEqual(source.read_bytes()[8:12], b'WEBP')
+      for form in ('aberta', 'fechada'):
+        raw = json.loads((PACKAGE_ROOT / f'moldura-elo-{rank}-{form}.json').read_text())
+        self.assertEqual(raw['layers'][0]['file'], source.name)
+        self.assertEqual(raw['layers'][0]['fallback'], f'rank-{rank}-v3.png')
+    self.assertLess(total, 1_500_000)
+
   def test_live_preview_media_excludes_locked_options(self):
     media = cosmetic_media_options([], [
       {'key':'lua-cristal','locked':False},

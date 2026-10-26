@@ -24,48 +24,19 @@ class AdventureProgressProfileTests(_CriadorBase):
             qtd_aventuras=2, revertido=True)
         self.url = reverse('public_profile', args=[self.owner.username])
 
-    def test_owner_sees_distinct_sources_and_legacy_balance_visitor_does_not(self):
-        external = MagicMock()
-        external.order_by.return_value.values.return_value = [{
-            'id': 'bot-log-1', 'characterName': 'Ficha externa', 'adventuresPlayed': 7,
-        }]
-        with patch('home.models.BotCharacterLog.objects.filter', return_value=external) as bot_query:
-            self.client.force_login(self.owner)
-            owner_page = self.client.get(self.url)
-            self.assertContains(owner_page, 'Site: 3 aventuras')
-            self.assertContains(owner_page, 'Saldo sem lançamento identificado: 2')
-            self.assertContains(owner_page, 'Ficha externa: 7 aventuras declaradas')
-            self.assertContains(owner_page, 'fontes ainda não foram conciliadas')
-            bot_query.assert_called_once_with(discordUserId='123456789012345678')
-
-        self.client.logout()
-        with patch('home.conquistas.progresso_aventuras_por_origem') as progress:
-            visitor_page = self.client.get(self.url)
-            progress.assert_not_called()
-        self.assertNotContains(visitor_page, 'Progresso de aventuras')
-        self.assertNotContains(visitor_page, 'Ficha externa')
-        self.client.force_login(self.staff)
-        staff_page = self.client.get(self.url)
-        self.assertContains(staff_page, 'Site: 3 aventuras')
-
-    def test_missing_external_table_does_not_hide_verified_site_progress(self):
-        self.client.force_login(self.owner)
-        with patch('home.models.BotCharacterLog.objects.filter',
-                   side_effect=ProgrammingError('bot indisponível')):
-            page = self.client.get(self.url)
-        self.assertContains(page, 'Site: 3 aventuras')
-        self.assertContains(page, 'Dados do bot temporariamente indisponíveis')
-
-    def test_divergent_balance_is_flagged_without_inventing_missions(self):
-        self.archived.aventuras = 1
-        self.archived.save(update_fields=['aventuras'])
-        self.client.force_login(self.owner)
-        with patch('home.models.BotCharacterLog.objects.filter', return_value=MagicMock()) as bot_query:
-            # A lista externa vazia é um caso válido; a divergência é do ledger local.
-            bot_query.return_value.order_by.return_value.values.return_value = []
-            page = self.client.get(self.url)
-        self.assertContains(page, 'Site: 3 aventuras')
-        self.assertContains(page, '1 ficha com saldo inferior ao ledger')
+    def test_public_profile_never_renders_or_queries_adventure_tracking(self):
+        for visitor in (None, self.owner, self.staff):
+            with self.subTest(visitor=visitor):
+                self.client.logout()
+                if visitor:
+                    self.client.force_login(visitor)
+                with patch('home.conquistas.progresso_aventuras_por_origem') as progress:
+                    page = self.client.get(self.url)
+                    progress.assert_not_called()
+                self.assertEqual(page.status_code, 200)
+                self.assertNotContains(page, 'data-adventure-progress')
+                self.assertNotContains(page, 'Progresso de aventuras')
+                self.assertNotContains(page, 'Saldo sem lançamento identificado')
 
     def test_community_reward_is_excluded_from_site_adventure_progress(self):
         TbPersonagemAventura.objects.create(
@@ -99,7 +70,7 @@ class AdventureProgressProfileTests(_CriadorBase):
             self.assertEqual(progress['total_conciliado'], 3)
             self.assertEqual(progress['bot_creditos_adicionais'], 2)
             self.client.force_login(self.owner)
-            self.assertContains(self.client.get(self.url), 'Total rastreável por lançamentos')
+            self.assertNotContains(self.client.get(self.url), 'Total rastreável por lançamentos')
 
     def test_reverted_bot_link_stays_out_of_total_until_explicit_relink(self):
         TbPersonagemAventura.objects.filter(id_personagem=self.archived).update(revertido=True)
@@ -121,7 +92,7 @@ class AdventureProgressProfileTests(_CriadorBase):
             self.assertEqual(reversed_progress['total_conciliado'], 0)
             self.assertEqual(reversed_progress['bot_creditos_estornados'], 1)
             self.client.force_login(self.owner)
-            self.assertContains(self.client.get(self.url),
+            self.assertNotContains(self.client.get(self.url),
                                 'missão vinculada estornada, excluída do total')
             TbPersonagemAventura.objects.create(
                 id_personagem=self.archived, nome_aventura='Relançada', qtd_aventuras=2,

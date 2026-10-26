@@ -1,5 +1,5 @@
 {% extends 'home/base.html' %}
-{% load static %}
+{% load static editorial_images %}
 
 {% block body_class %}{% if kind == 'antecedentes' %}bft-backgrounds{% endif %}{% endblock %}
 {% block main_class %}{% if kind == 'antecedentes' %}flex-1 w-full bft-backgrounds-main{% else %}flex-1 w-full max-w-7xl mx-auto px-4 md:px-8 py-4{% endif %}{% endblock %}
@@ -11,6 +11,7 @@
 <script defer src="{% static 'js/antecedentes.js' %}?v=3"></script>
 {% else %}
 <link rel="stylesheet" href="{% static 'css/pages/catalogo.css' %}?v=8">
+{% if kind == 'organizacoes' %}<link rel="stylesheet" href="{% static 'css/pages/organizations.css' %}?v=1">{% endif %}
 {% endif %}
 {% endblock %}
 
@@ -18,7 +19,7 @@
 {% if kind == 'antecedentes' %}
 {% include 'home/partials/antecedentes_content.html' %}
 {% else %}
-<section class="catalog-shell">
+<section class="catalog-shell{% if kind == 'organizacoes' %} catalog-shell--organizations{% endif %}">
   <header class="catalog-header">
     <h1 class="catalog-title">{{ title }}</h1>
     <p class="catalog-subtitle">{{ subtitle }}</p>
@@ -76,10 +77,11 @@
     <article class="catalog-detail" id="catalogDetail">
       {% with first=items.0 %}
       {% if first %}
+      {% if kind == 'organizacoes' %}<figure class="organization-image">{% if first.imagem|safe_profile_image %}<img src="{{ first.imagem|safe_profile_image }}" alt="{{ first.imagem_alt|default:first.nome }}">{% else %}<span>Sem imagem cadastrada</span>{% endif %}</figure>{% endif %}
       <div class="catalog-card-meta">{{ first.tipo }}</div>
       <h2 class="detail-title" id="{{ first.slug }}">{{ first.nome }}</h2>
       {% if first.resumo %}<p class="catalog-subtitle">{{ first.resumo }}</p>{% endif %}
-      <div class="bonfire-markdown prose prose-invert max-w-none" style="margin-top:0.75rem;">{{ first.descricao|linebreaks }}</div>
+      {% if kind == 'organizacoes' %}<div class="bonfire-markdown organization-prose" data-markdown-source>{{ first.descricao_leitura|escape }}</div>{% else %}<div class="bonfire-markdown prose prose-invert max-w-none" style="margin-top:0.75rem;">{{ first.descricao|linebreaks }}</div>{% endif %}
       {% else %}
       <p class="catalog-empty">Nenhum conteúdo cadastrado.</p>
       {% endif %}
@@ -92,6 +94,7 @@
 <script>
 (function() {
   const items = JSON.parse(document.getElementById('catalog-data')?.textContent || '[]');
+  const organizationCatalog = '{{ kind|escapejs }}' === 'organizacoes';
   const list = document.getElementById('catalogList');
   const detail = document.getElementById('catalogDetail');
   const search = document.getElementById('catalogSearch');
@@ -233,6 +236,7 @@
         : esc(ref.label)).join(', ');
     };
     detail.innerHTML = `
+      ${organizationCatalog ? `<figure class="organization-image">${item.imagem ? `<img src="${esc(item.imagem)}" alt="${esc(item.imagem_alt || item.nome)}">` : '<span>Sem imagem cadastrada</span>'}</figure>` : ''}
       <div class="catalog-card-meta">${esc(item.tipo || '')}</div>
       <h2 class="detail-title" id="${esc(item.slug)}" tabindex="-1">${esc(item.nome || 'Sem nome')}</h2>
       <div class="tag-row">${visibleTags(item).map(tag => `<span class="tag-chip">${esc(tag)}</span>`).join('')}</div>
@@ -243,7 +247,7 @@
           <span class="detail-meta-value">${metaValue(label, value)}</span>
         </div>
       `).join('')}</div>` : ''}
-      <div class="bonfire-markdown prose prose-invert max-w-none" style="margin-top:0.75rem;">${markdown(item.descricao || '') || '<p class="catalog-empty">Sem descricao cadastrada.</p>'}</div>
+      <div class="bonfire-markdown prose prose-invert max-w-none${organizationCatalog ? ' organization-prose' : ''}" style="margin-top:0.75rem;">${markdown((organizationCatalog ? item.descricao_leitura : item.descricao) || '') || '<p class="catalog-empty">Sem descricao cadastrada.</p>'}</div>
     `;
   }
 

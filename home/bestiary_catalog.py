@@ -154,3 +154,67 @@ def cr_display(value):
     raw = '' if value is None else str(value).strip()
     key, _, label = cr_classification(raw)
     return 'pendente' if key == 'pending' else label if key == 'unrated' else raw
+
+
+def cr_components(value, statblock=None):
+    """Separate source-provided CR, XP and proficiency without inferring mechanics."""
+    statblock = statblock if isinstance(statblock, dict) else {}
+    structured = value if isinstance(value, dict) else {}
+    value = structured.get('cr') if structured else value
+    raw = '' if value is None else str(value).strip()
+    key, _, label = cr_classification(raw)
+    nd = 'pendente' if key == 'pending' else label if key.startswith('nd:') or key == 'unrated' else raw
+    xp_match = re.search(r'\b(?:XP|PX)\s*:?\s*(\d[\d., ]*)', raw, re.I)
+    if xp_match is None:
+        xp_match = re.search(r'(\d[\d., ]*)\s*(?:XP|PX)\b', raw, re.I)
+    pb_match = re.search(
+        r'\b(?:PB|BP|b[oô]nus de profici[eê]ncia)\s*:?\s*(.*?)(?=[;)]|\b(?:XP|PX)\b|$)', raw, re.I)
+
+    def explicit(keys):
+        nested = statblock.get('cr') if isinstance(statblock.get('cr'), dict) else {}
+        for source in (structured, nested, statblock):
+            for field in keys:
+                candidate = source.get(field)
+                if isinstance(candidate, (str, int, float)) and not isinstance(candidate, bool):
+                    return str(candidate).strip()
+        return ''
+
+    xp = xp_match.group(1).strip(' ,;') if xp_match else explicit(('xp', 'experience', 'experience_points'))
+    pb = pb_match.group(1).strip(' ,;') if pb_match else explicit(('pb', 'proficiency_bonus', 'proficiencyBonus'))
+    notes = raw
+    for match in sorted((match for match in (xp_match, pb_match) if match),
+                        key=lambda match: match.start(), reverse=True):
+        notes = notes[:match.start()] + notes[match.end():]
+    if key.startswith('nd:'):
+        notes = re.sub(r'^\s*\d+(?:/\d+)?', '', notes)
+    elif key == 'unrated':
+        notes = re.sub(r'^None\b', '', notes, flags=re.I)
+    else:
+        notes = ''
+    return {'nd': nd, 'xp': xp, 'pb': pb, 'notes': notes.strip(' ();,\t'), 'source': raw}
+
+
+# Native SVG paths, keyed by canonical creature type rather than creature name.
+TYPE_ICON_PATHS = {
+    'aberracao': ('M3 12Q12 2 21 12Q12 22 3 12Z', 'M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6', 'M5 5L3 2M19 5L21 2M5 19L3 22M19 19L21 22'),
+    'besta': ('M7 18Q5 14 9 13Q12 10 15 13Q19 14 17 18Q15 21 12 19Q9 21 7 18Z', 'M5 8a2 3 0 1 0 0 .1M10 5a2 3 0 1 0 0 .1M15 5a2 3 0 1 0 0 .1M20 8a2 3 0 1 0 0 .1'),
+    'celestial': ('M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6', 'M8 10L2 5L3 12L8 15M16 10L22 5L21 12L16 15M12 2V5M12 19V22'),
+    'construto': ('M6 5H18V20H6ZM9 2V5M15 2V5M2 9H6M18 9H22M2 16H6M18 16H22', 'M9 10H10M14 10H15M9 16H15'),
+    'corruptor': ('M6 9L3 2L10 6M18 9L21 2L14 6', 'M5 9Q12 3 19 9V15L12 22L5 15ZM8 11L10 12M16 11L14 12M9 17H15'),
+    'dragao': ('M3 18L6 10L4 3L11 7L19 6L22 11L17 16H12L9 21', 'M11 7L14 2L15 7M17 10H18M7 13L12 15'),
+    'elemental': ('M12 2C15 8 22 9 20 16A8 8 0 0 1 4 16C2 11 9 9 8 5L12 9Z', 'M12 12C17 16 14 21 10 19C7 17 10 15 12 12Z'),
+    'feerico': ('M12 7V21M10 3L12 7L14 3', 'M12 10C3 0 0 10 8 13C0 18 7 23 12 16C17 23 24 18 16 13C24 10 21 0 12 10Z'),
+    'gigante': ('M2 21L8 7L12 15L16 4L22 21Z', 'M14 12L16 9L19 15M6 21V17H8V21'),
+    'humanoide': ('M12 3a4 4 0 1 0 0 8a4 4 0 1 0 0-8', 'M4 22V19a8 8 0 0 1 16 0V22'),
+    'limo': ('M3 18Q0 14 6 12Q7 0 14 5Q20 3 20 12Q26 18 20 21H5Z', 'M10 13H11M15 12H16M11 17Q14 19 17 16'),
+    'monstruosidade': ('M3 21L7 3L11 16M10 21L14 2L17 16M17 21L21 5L22 19',),
+    'morto-vivo': ('M5 15A9 9 0 1 1 19 15L17 17V21H7V17Z', 'M8 10H9M15 10H16M12 13L10 16H14ZM10 18V21M14 18V21'),
+    'planta': ('M12 22V10M12 16C2 18 1 8 2 5C10 5 14 9 12 16ZM12 12C11 4 18 1 22 2C23 9 18 14 12 12Z',),
+}
+
+
+def creature_type_icons(value):
+    keys = type_keys(value) or ('pending',)
+    return [{'key': key, 'label': TYPE_LABELS.get(key, 'Tipo pendente'),
+             'paths': TYPE_ICON_PATHS.get(key, ('M12 2L22 12L12 22L2 12Z', 'M12 7V13M12 17H12.01'))}
+            for key in keys]

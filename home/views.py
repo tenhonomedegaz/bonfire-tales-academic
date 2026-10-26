@@ -1559,10 +1559,6 @@ def public_profile_view(request, username):
         request.user.pk == viewed_user.pk or perms.is_staff_user(request.user)
     )
     personagens = _perfil_personagens(viewed_user, pode_ver_privados)
-    progresso_aventuras = (
-        _conquistas.progresso_aventuras_por_origem(viewed_user, profile.discord_user_id)
-        if pode_ver_privados else None
-    )
     recompensas_privadas = (
         set() if pode_ver_privados else
         _conquistas.visibilidade_conquistas_de_personagem([viewed_user])[1][viewed_user.pk]
@@ -1589,7 +1585,6 @@ def public_profile_view(request, username):
         'profile': profile,
         'personagens': personagens,
         'pode_ver_privados': pode_ver_privados,
-        'progresso_aventuras': progresso_aventuras,
         'appearance': _appearance_context(tema_visivel, moldura_visivel,
                                           efeito_visivel, profile.theme_custom,
                                           profile.background_url, user=viewed_user),
@@ -14707,14 +14702,17 @@ def _bestiary_payload(document):
 
 
 def _organization_catalog_payload(document):
+    from .organization_presentation import organization_presentation
     payload = _organization_payload(document)
+    presentation = organization_presentation(payload['descricao'], _doc_value(
+        document, ['ImagemUrl', 'imagem_url', 'Imagem', 'imagem', 'ImageUrl', 'image_url', 'FotoUrl', 'foto_url']))
     return {
         'nome': payload['nome'],
         'slug': payload['slug'],
         'tipo': payload['tipo'],
         'tags': payload['tags'] + payload['regioes'] + payload['territorios'],
         'resumo': payload['sede'],
-        'descricao': payload['descricao'],
+        **presentation,
         'meta': {
             'Sede': payload['sede'],
             'Regiões': payload['regioes'],
@@ -15136,14 +15134,16 @@ def _sb_bloco(lista):
     """Cada habilidade (trait/action) vira um item ESTRUTURADO {nome, texto, tags}.
     `tags` = tags_json mecânicas DAQUELA habilidade, guardadas no próprio JSON da
     criatura (statblock entry) — NUNCA viram linha de habilidade no banco."""
+    from .bestiary_spell_text import decorate_spell_text
     out = []
     for x in (lista or []):
         if not isinstance(x, dict):
             continue
         tags = x.get('tags') or x.get('tags_json') or []
-        out.append({'nome': _clean_statblock_text(x.get('name', '')),
-                    'texto': _sb_entries(x.get('entries')),
-                    'tags': [t for t in tags if isinstance(t, str)]})
+        feature = {'nome': _clean_statblock_text(x.get('name', '')),
+                   'texto': _sb_entries(x.get('entries')),
+                   'tags': [t for t in tags if isinstance(t, str)]}
+        out.append(decorate_spell_text(feature, x))
     return out
 
 
@@ -15287,7 +15287,7 @@ def bestiario_view(request):
     from .bestiary_target_size import (TARGET_SIZE_OPTIONS, annotate_target_size,
                                        selected_target_size)
     from .bestiary_catalog import (TYPE_LABELS, SIZE_LABELS, USAGE_LABELS,
-                                   cr_classification, cr_display, is_statblock_placeholder,
+                                   cr_classification, cr_display, cr_components, creature_type_icons, is_statblock_placeholder,
                                    size_keys, type_key,
                                    type_keys, usage_keys)
     from . import permissions as perms
@@ -15362,9 +15362,12 @@ def bestiario_view(request):
             continue
         statblock = b.statblock_json if isinstance(b.statblock_json, dict) else {}
         incomplete = is_statblock_placeholder(statblock)
+        challenge = cr_components(b.nd, statblock)
         criaturas.append({
             'id': b.id_criatura, 'nome': b.nome, 'slug': b.slug,
-            'tipo': _sb_tipo_pt(b.tipo), 'nd': cr_display(b.nd), 'nd_key': nd_key,
+            'tipo': _sb_tipo_pt(b.tipo), 'nd': challenge['nd'], 'nd_key': nd_key,
+            'xp': challenge['xp'], 'pb': challenge['pb'], 'nd_notes': challenge['notes'],
+            'nd_source': challenge['source'], 'type_icons': creature_type_icons(b.tipo),
             'tamanho': _sb_size_text(b.statblock_json if isinstance(b.statblock_json, dict) else {}, b),
             'comunidade': b.comunidade, 'autor': b.autor.username if b.autor_id else None,
             'usages': [USAGE_LABELS[key] for key in usages],
@@ -15393,6 +15396,9 @@ def bestiario_view(request):
         criatura['sb'] = annotate_target_size(_statblock_display_full(
             record.statblock_json if isinstance(record.statblock_json, dict) else {}, record),
             target_size)
+        creature_cr = cr_components(record.nd if record.nd is not None else criatura['sb'].get('cr'),
+                                    record.statblock_json)
+        criatura['sb'].update(cr=creature_cr['nd'], xp=creature_cr['xp'], pb=creature_cr['pb'])
     raw_active = (request.GET.get('active') or '')[:20]
     active_id = int(raw_active) if raw_active.isdecimal() else None
     if not any(criatura['id'] == active_id for criatura in criaturas):

@@ -1,0 +1,1 @@
+{"version":1,"slug":"moldura-frost","type":"moldura","scope":"ambos","layers":[{"slot":"avatar","file":"frame-frost.svg","fallback":"frame-frost.svg","width":200,"height":200,"anchor":"center","motion":"none","aperture":{"cx":50,"cy":50,"diameter":75.76}}]}
