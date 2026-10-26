@@ -73,6 +73,7 @@ class PublicCharacterSheetTests(TestCase):
         klass = TbClasse.objects.create(nome='Classe pública', slug='classe-publica')
         cls.character = TbPersonagem.objects.create(
             dono=cls.owner, nome='Heroína pública', id_raca=race,
+            publico=False,
             anotacoes='NOTA PRIVADA Q8', notas_jogador='MESA PRIVADA Q8',
             historia='HISTÓRIA PRIVADA Q8', carteira_pc=987654, braseiros=12345,
         )

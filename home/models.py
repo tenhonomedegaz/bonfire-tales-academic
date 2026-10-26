@@ -1392,7 +1392,7 @@ class TbPersonagem(models.Model):
     id_personagem = models.AutoField(db_column='Id_Personagem', primary_key=True)
     dono = models.ForeignKey('auth.User', models.CASCADE, db_column='Dono', related_name='personagens')
     nome = models.CharField(db_column='Nome', max_length=150)
-    publico = models.BooleanField(db_column='Publico', default=False)
+    publico = models.BooleanField(db_column='Publico', default=True)
     descricao_publica = models.TextField(db_column='DescricaoPublica', blank=True, default='')
     mostrar_atributos_publicos = models.BooleanField(db_column='MostrarAtributosPublicos', default=False)
     mostrar_pericias_publicas = models.BooleanField(db_column='MostrarPericiasPublicas', default=False)

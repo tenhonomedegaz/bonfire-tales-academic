@@ -5924,6 +5924,7 @@ def pathbuilder_detalhe(request):
 
 
 def _personagem_card(p, com_dono=False):
+    from .ranks import character_rank
     cl = p.classes.all()
     principal = next((c for c in cl if c.principal), (cl[0] if cl else None))
     card = {
@@ -5931,6 +5932,7 @@ def _personagem_card(p, com_dono=False):
         'classe': principal.id_classe.nome if principal else '—',
         'nivel': p.nivel,
         'raca': p.id_raca.nome if p.id_raca_id else '—',
+        'rank': character_rank(p),
     }
     if com_dono:
         card['dono'] = p.dono.username
@@ -11059,6 +11061,7 @@ def ficha_publica_view(request, pk):
         'subclasse': principal.id_subclasse.nome if principal and principal.id_subclasse_id else '',
         'descricao': p.descricao_publica,
         'foto_url': p.foto_url,
+        'banner_url': p.banner_url,
     }
     mechanics = {}
     if (p.mostrar_atributos_publicos or p.mostrar_pericias_publicas or
@@ -11094,6 +11097,7 @@ def ficha_publica_view(request, pk):
         'mechanics': mechanics,
         'preview': preview, 'published': p.publico and not p.arquivado,
         'rank': character_rank(p), 'character_pk': p.pk,
+        'character_owner': p.dono,
         'appearance': _appearance_context(
             _appearance_validated(p.dono, 'theme', p.ficha_theme, 'ficha'),
             _appearance_validated(p.dono, 'frame', p.foto_frame, 'ficha'),
@@ -12240,7 +12244,7 @@ def _criador_persistir(user, data, R, *, strict_spell_choices=False):
              'INT': 'inteligencia', 'SAB': 'sabedoria', 'CAR': 'carisma'}
 
     p = TbPersonagem.objects.create(
-        dono=user, nome=nome[:150], nivel=1,
+        dono=user, nome=nome[:150], nivel=1, publico=True,
         id_raca=raca, id_linhagem=linhagem, id_essencia=essencia, id_antecedente=antec,
         **{campo[s]: base[s] for s in SIG})
     person_class = TbPersonagemClasse.objects.create(

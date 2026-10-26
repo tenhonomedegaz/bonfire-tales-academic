@@ -424,7 +424,11 @@ def rank_por_nivel(nivel):
 
 def rank_icone_url(rank):
     """URL do ícone oficial da patente, ou vazio quando a patente não tem arte."""
-    return _RANK_ICON_URL.get(str(rank or '').strip(), '')
+    from django.templatetags.static import static
+    from django.utils.text import slugify
+
+    name = str(rank or '').strip()
+    return static('icons/ranks/' + slugify(name) + '.png') if name in _RANK_ICON_URL else ''
 
 
 def nivel_label(nivel):

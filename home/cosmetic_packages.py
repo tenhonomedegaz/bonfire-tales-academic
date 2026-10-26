@@ -38,13 +38,13 @@ def _asset_url(filename):
   return static('cosmetics/' + filename)
 
 
-def parse_package(raw, slug, tipo):
+def parse_package(raw, slug, tipo, escopo='perfil'):
   """Validate a manifest and return template ready layers, or no package."""
   if not isinstance(raw, dict) or raw.get('version') != 1:
     return None
   if raw.get('slug') != slug or raw.get('type') != tipo:
     return None
-  if raw.get('scope') not in ('perfil', 'ambos'):
+  if escopo not in ('perfil', 'ficha') or raw.get('scope') not in (escopo, 'ambos'):
     return None
   layers = raw.get('layers')
   if not isinstance(layers, list) or not 1 <= len(layers) <= 8:
@@ -82,6 +82,13 @@ def get_package(user, tipo, value, escopo='perfil'):
     return None
   if not cosmetic_allowed(user, tipo, value, escopo):
     return None
+  return load_package(tipo, value, escopo)
+
+
+def load_package(tipo, value, escopo='perfil'):
+  """Read only static media; caller must already have checked catalog access."""
+  if tipo not in _TYPES or not isinstance(value, str) or not _SLUG.fullmatch(value):
+    return None
   slug = tipo + '-' + value
   path = PACKAGE_ROOT / (slug + '.json')
   try:
@@ -91,4 +98,4 @@ def get_package(user, tipo, value, escopo='perfil'):
       raw = json.load(source)
   except (OSError, ValueError):
     return None
-  return parse_package(raw, slug, tipo)
+  return parse_package(raw, slug, tipo, escopo)

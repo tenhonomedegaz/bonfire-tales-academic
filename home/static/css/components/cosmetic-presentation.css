@@ -1,0 +1,53 @@
+/* Shared media contract: identical assets on profiles and character sheets. */
+.cosmetic-layers{position:absolute;pointer-events:none;user-select:none;overflow:hidden}
+.cosmetic-layers--banner{inset:0;z-index:0}
+.cosmetic-layer{display:block;width:100%;height:100%;object-fit:cover;object-position:center}
+.cosmetic-layer--left{object-position:left center}.cosmetic-layer--right{object-position:right center}
+.cosmetic-layers--ornament{top:12px;right:16px;width:min(28%,200px);height:42px;z-index:2;opacity:.65}
+.cosmetic-layers--ornament .cosmetic-layer{object-fit:contain}
+.cosmetic-layers--avatar{inset:-16%;z-index:3;overflow:visible}
+:is(.profile-avatar-wrapper,.public-profile-avatar,.banner-character-avatar).is-packaged{position:relative;overflow:visible;isolation:isolate;background:transparent;border-color:transparent;box-shadow:none;animation:none}
+:is(.profile-avatar-wrapper,.public-profile-avatar,.banner-character-avatar).is-packaged::before{display:none}
+:is(.profile-avatar-wrapper,.public-profile-avatar,.banner-character-avatar).is-packaged>img{border-radius:50%;width:100%;height:100%;object-fit:cover}
+:is(.profile-avatar-wrapper,.public-profile-avatar,.banner-character-avatar) .cosmetic-layers--avatar .cosmetic-layer{width:100%;height:100%;object-fit:contain}
+.banner-scroll>.cosmetic-layers{position:absolute;z-index:0}
+.banner-scroll>.cosmetic-layers--ornament{z-index:2}
+.ficha-header .cosmetic-layers--banner{opacity:.65}
+.ficha-header .banner-scroll{isolation:isolate}
+.ficha-live-preview{position:relative;isolation:isolate;overflow:visible}
+.ficha-live-preview>.ficha-name,.ficha-live-preview>.banner-character-avatar{position:relative;z-index:3}
+.ficha-header.cw-public-hero{isolation:isolate;position:relative}
+.cw-public-hero>.cosmetic-layers{position:absolute;z-index:0}
+.cw-public-hero>.cosmetic-layers--ornament{z-index:2}
+.cw-public-avatar:is(.is-packaged,.rank-portrait){height:auto;aspect-ratio:1;align-self:center}
+:is(.profile-avatar-wrapper,.public-profile-avatar,.banner-character-avatar).is-packaged>img,.rank-portrait>img{position:absolute;inset:0;width:100%;height:100%;border-radius:50%;object-fit:cover}
+.cw-public-hero>.cw-public-identity,.cw-public-hero>.banner-character-avatar{position:relative;z-index:3}
+.cosmetic-has-banner .cosmetic-layers--banner{opacity:.12;mix-blend-mode:screen}
+.cosmetic-has-banner .cosmetic-layers--ornament{opacity:.35}
+.bft-profile .profile-header.cosmetic-has-banner .profile-banner-media{opacity:.82;filter:none}
+.cosmetic-has-banner .public-profile-banner-media::after{background:linear-gradient(180deg,transparent 55%,#0005)}
+.cosmetic-layer--float,.cosmetic-layer--pulse{animation-play-state:paused}
+.cosmetic-layers.is-visible .cosmetic-layer--float{animation:cosmetic-float 8s ease-in-out infinite}
+.cosmetic-layers.is-visible .cosmetic-layer--pulse{animation:cosmetic-pulse 5s ease-in-out infinite}
+.cosmetic-layers.is-paused .cosmetic-layer{animation-play-state:paused}
+@keyframes cosmetic-float{50%{transform:translateY(-3px)}}
+@keyframes cosmetic-pulse{50%{opacity:.82}}
+@media(max-width:600px){.cosmetic-layers--ornament{width:28%;height:30px;right:10px}}
+@media(prefers-reduced-motion:reduce){.cosmetic-layers .cosmetic-layer{animation:none!important;transform:none!important}}
+@media print{.cosmetic-layers{display:none}}
+.rank-portrait{position:relative!important;overflow:visible!important;border-color:transparent!important;border-radius:50%!important;isolation:isolate}
+.rank-portrait>img{border-radius:50%;object-fit:cover}
+.rank-portrait-frame{position:absolute;inset:-19%;pointer-events:none;z-index:4;display:block}
+.rank-portrait-frame>img{display:block;width:100%;height:100%;object-fit:contain;filter:var(--rank-art-filter,none)}
+.bf-rank.rank-visual--obsidiana>img,.bf-rank.rank-visual--ametista>img,.bf-rank.rank-visual--topazio>img,.bf-rank.rank-visual--esmeralda>img,.bf-rank.rank-visual--ambar>img,.bf-rank.rank-visual--rubi>img,.bf-rank.rank-visual--diamante>img{filter:var(--rank-art-filter,none)}
+.rank-visual--obsidiana{--rank-art-filter:saturate(.1) brightness(.7)}
+.rank-visual--ametista{--rank-art-filter:hue-rotate(85deg) saturate(.8)}
+.rank-visual--topazio{--rank-art-filter:hue-rotate(190deg) saturate(1.7)}
+.rank-visual--esmeralda{--rank-art-filter:hue-rotate(295deg) saturate(1.5)}
+.rank-visual--ambar{--rank-art-filter:hue-rotate(155deg) saturate(1.8)}
+.rank-visual--rubi{--rank-art-filter:hue-rotate(135deg) saturate(2)}
+.rank-visual--diamante{--rank-art-filter:brightness(1.2) saturate(.65)}
+.cw-card-identity{gap:22px!important}.cw-card-portrait.rank-portrait{margin:12px 8px;flex-shrink:0}
+.frame-lua-vermelha .cosmetic-layer{filter:hue-rotate(135deg) saturate(2)}
+.frame-lua-negra .cosmetic-layer{filter:saturate(.2) brightness(.72)}
+.frame-lua-cristal .cosmetic-layer{filter:brightness(1.15) saturate(.7)}

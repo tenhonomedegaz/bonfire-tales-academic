@@ -9,7 +9,6 @@
 <link rel="stylesheet" href="{% static 'css/pages/profile-redesign.css' %}?v=1">
 <link rel="stylesheet" href="{% static 'css/pages/master-hub.css' %}?v=3">
 <link rel="stylesheet" href="{% static 'css/pages/master-portfolio.css' %}?v=1">
-<script src="{% static 'cosmetics/renderer.js' %}?v=1" defer></script>
 {% if appearance.theme_css_href %}<link rel="stylesheet" href="{{ appearance.theme_css_href }}">{% endif %}
 {% if master_appearance.theme_css_href and master_appearance.theme_css_href != appearance.theme_css_href %}<link rel="stylesheet" href="{{ master_appearance.theme_css_href }}">{% endif %}
 <title>{{ viewed_user.username }} - Perfil - Bonfire Tales RPG</title>

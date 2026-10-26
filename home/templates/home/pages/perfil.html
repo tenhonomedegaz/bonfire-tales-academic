@@ -11,7 +11,6 @@
 <link rel="stylesheet" href="{% static 'css/pages/master-hub.css' %}?v=3">
 <script src="{% static 'js/tema_swatch.js' %}?v=2" defer></script>
 <script src="{% static 'js/profile-dirty.js' %}?v=1" defer></script>
-<script src="{% static 'cosmetics/renderer.js' %}?v=1" defer></script>
 {% if appearance.theme_css_href %}<link rel="stylesheet" id="perfil-preview-theme-css" href="{{ appearance.theme_css_href }}">{% endif %}
 <title>Meu Perfil — Bonfire Tales RPG</title>
 {% endblock %}
@@ -39,7 +38,7 @@
     {% cosmetic_package 'tema' appearance.theme_key user as theme_package %}
     {% cosmetic_package 'moldura' appearance.frame_key user as frame_package %}
     {% cosmetic_package 'efeito' appearance.effect_key user as effect_package %}
-    <div class="profile-header profile-hero">
+    <div class="profile-header profile-hero{% if profile.banner_url|safe_profile_image %} cosmetic-has-banner{% endif %}">
         {% if profile.banner_url|safe_profile_image %}
         <div class="profile-banner-media" style="background-image:url('{{ profile.banner_url|safe_profile_image }}');"></div>
         {% endif %}

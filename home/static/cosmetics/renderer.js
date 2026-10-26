@@ -24,6 +24,33 @@
     }
   }
 
+  function render(root, slot, packages) {
+    if (!root || !['banner', 'ornament', 'avatar'].includes(slot)) return;
+    root.querySelectorAll(':scope > [data-cosmetic-layers]').forEach(layer => {
+      if (layer.classList.contains('cosmetic-layers--' + slot)) layer.remove();
+    });
+    for (const pack of packages) {
+      if (!Array.isArray(pack?.[slot]) || !pack[slot].length) continue;
+      const layer = document.createElement('div');
+      layer.className = 'cosmetic-layers cosmetic-layers--' + slot;
+      layer.dataset.cosmeticLayers = '';
+      layer.setAttribute('aria-hidden', 'true');
+      for (const entry of pack[slot]) {
+        const image = document.createElement('img');
+        image.className = 'cosmetic-layer cosmetic-layer--' + entry.anchor + ' cosmetic-layer--' + entry.motion;
+        image.src = entry.url;
+        image.dataset.fallback = entry.fallback;
+        image.alt = '';
+        image.width = entry.width;
+        image.height = entry.height;
+        layer.appendChild(image);
+      }
+      root.appendChild(layer);
+    }
+    mount(root);
+  }
+  window.CosmeticRenderer = { render };
+
   document.addEventListener('error', event => {
     const image = event.target;
     if (!(image instanceof HTMLImageElement) || !image.closest('[data-cosmetic-layers]')) return;

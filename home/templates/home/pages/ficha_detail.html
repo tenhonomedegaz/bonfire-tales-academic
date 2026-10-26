@@ -1,5 +1,5 @@
 {% extends 'home/base.html' %}
-{% load static %}
+{% load static cosmetic_packages %}
 
 {% block title %}{{ p.nome }} · Ficha · Bonfire Tales RPG{% endblock %}
 {% block body_class %}bft-character-sheet{% endblock %}
@@ -717,6 +717,8 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
         {% comment %}Preview de moldura/efeito. O TEMA não vive mais aqui: ele é aplicado
         na folha inteira (section.ficha), e este bloco só HERDA as vars — se repetisse as
         vars inline, elas venceriam a herança e o mini-preview congelaria no tema salvo.{% endcomment %}
+        {% cosmetic_media_options appearance_themes appearance_frames appearance_effects as sheet_media %}
+        {{ sheet_media|json_script:'ficha-cosmetic-media' }}
         <div class="ficha-header ficha-live-preview {{ appearance.effect_class }}" id="ficha-preview" style="margin-top:.7rem">
           <div class="banner-character-avatar {{ appearance.frame_class }}" id="ficha-preview-frame" style="width:56px;height:56px">
             {% if p.foto_url %}<img src="{{ p.foto_url }}" alt="" loading="lazy">{% else %}<span>{{ p.nome|first|upper }}</span>{% endif %}
@@ -1330,6 +1332,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const customBox = document.getElementById('ficha-custom-controls');
   const FRAME = { {% for item in appearance_frames %}'{{ item.key }}':'{{ item.class }}',{% endfor %} };
   const EFFECT = { {% for item in appearance_effects %}'{{ item.key }}':'{{ item.class }}',{% endfor %} };
+  const media = JSON.parse(document.getElementById('ficha-cosmetic-media')?.textContent || '{}');
   const CORES = {
     accent: document.getElementById('ficha-custom-accent'),
     accent2: document.getElementById('ficha-custom-accent2'),
@@ -1345,6 +1348,15 @@ document.addEventListener('DOMContentLoaded', function () {
     window.TemaSwatch.aplica(folha, window.TemaSwatch.comCoresDoFormulario(marcado, CORES));
     if (preview && effectSel) preview.className = 'ficha-header ficha-live-preview ' + (EFFECT[effectSel.value] || '');
     if (frameEl && frameSel) frameEl.className = 'banner-character-avatar ' + (FRAME[frameSel.value] || '');
+    if (window.CosmeticRenderer && preview && frameEl) {
+      const theme = media.tema?.[marcado?.chave];
+      const frame = media.moldura?.[frameSel?.value];
+      const effect = media.efeito?.[effectSel?.value];
+      window.CosmeticRenderer.render(preview, 'banner', [theme, effect]);
+      window.CosmeticRenderer.render(preview, 'ornament', [theme, effect]);
+      window.CosmeticRenderer.render(frameEl, 'avatar', [frame, effect]);
+      frameEl.classList.toggle('is-packaged', Boolean(frame?.avatar?.length || effect?.avatar?.length));
+    }
   }
 
   grade.addEventListener('change', apply);

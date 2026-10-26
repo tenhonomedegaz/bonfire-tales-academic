@@ -1,0 +1,14 @@
+{
+  "status": "visual-review-only",
+  "activate_in_production": false,
+  "pending": ["Aprovar arte", "Definir moeda e preco das luas", "Definir elegibilidade e periodo do Halloween"],
+  "cosmetics": [
+    {"slug":"tema-lua-vermelha","tipo":"tema","nome":"Lua Vermelha","css_class":"theme-data","origem":"staff","ativo":false,"escopo":"ambos","raridade":"epico","definicao_json":{"accent":"#dd7772","accent2":"#9b2839","surface":"#211317","deep":"#100c10","particula":"nenhuma","vel":"lenta","gradiente":false,"glow":false}},
+    {"slug":"tema-lua-negra","tipo":"tema","nome":"Lua Negra","css_class":"theme-data","origem":"staff","ativo":false,"escopo":"ambos","raridade":"epico","definicao_json":{"accent":"#c9bfae","accent2":"#777b86","surface":"#19191d","deep":"#0b0c0e","particula":"nenhuma","vel":"lenta","gradiente":false,"glow":false}},
+    {"slug":"tema-lua-cristal","tipo":"tema","nome":"Lua de Cristal","css_class":"theme-data","origem":"staff","ativo":false,"escopo":"ambos","raridade":"epico","definicao_json":{"accent":"#acdce4","accent2":"#5497b5","surface":"#142025","deep":"#0a1014","particula":"nenhuma","vel":"lenta","gradiente":false,"glow":false}},
+    {"slug":"moldura-lua-vermelha","tipo":"moldura","nome":"Elmo da Lua Vermelha","css_class":"frame-lua-vermelha","origem":"staff","ativo":false,"escopo":"ambos","raridade":"epico","animado":true,"asset_url":"/static/cosmetics/knight-open-frame.png"},
+    {"slug":"moldura-lua-negra","tipo":"moldura","nome":"Elmo da Lua Negra","css_class":"frame-lua-negra","origem":"staff","ativo":false,"escopo":"ambos","raridade":"epico","animado":false,"asset_url":"/static/cosmetics/knight-open-frame.png"},
+    {"slug":"moldura-lua-cristal","tipo":"moldura","nome":"Elmo da Lua de Cristal","css_class":"frame-lua-cristal","origem":"staff","ativo":false,"escopo":"ambos","raridade":"epico","animado":true,"asset_url":"/static/cosmetics/knight-open-frame.png"},
+    {"slug":"tema-vigilia-das-lanternas","tipo":"tema","nome":"Vigilia das Lanternas","css_class":"theme-data","origem":"staff","ativo":false,"escopo":"ambos","raridade":"raro","definicao_json":{"accent":"#eba668","accent2":"#6b9c83","surface":"#211b1c","deep":"#0c1110","particula":"nenhuma","vel":"lenta","gradiente":false,"glow":false}}
+  ]
+}

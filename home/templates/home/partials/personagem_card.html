@@ -1,7 +1,7 @@
 {% load editorial_images %}
 <article class="cw-character-card flex flex-col rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3 {% if cofre %}is-vault{% endif %}" data-cw-card data-cw-search="{{ c.obj.nome }} {{ c.raca }} {{ c.classe }}" data-cw-kind="{% if cofre %}inativo{% else %}ativo{% endif %}">
   <a href="{% url 'ficha_detail' c.obj.id_personagem %}" class="cw-card-identity group flex-1">
-    <span class="cw-card-portrait">{% if c.obj.foto_url|safe_profile_image %}<img src="{{ c.obj.foto_url|safe_profile_image }}" alt="Retrato de {{ c.obj.nome }}" loading="lazy">{% else %}<span aria-hidden="true">{{ c.obj.nome|first|upper }}</span>{% endif %}</span>
+    <span class="cw-card-portrait rank-portrait">{% if c.obj.foto_url|safe_profile_image %}<img src="{{ c.obj.foto_url|safe_profile_image }}" alt="Retrato de {{ c.obj.nome }}" loading="lazy">{% else %}<span aria-hidden="true">{{ c.obj.nome|first|upper }}</span>{% endif %}{% include 'home/partials/_rank_frame.html' with rank=c.rank %}</span>
     <div class="cw-card-heading">
     <div class="flex items-start justify-between gap-2">
       <h3 class="font-serif text-base font-bold text-[var(--text)] group-hover:text-[var(--ember)]">{{ c.obj.nome }}</h3>
@@ -9,7 +9,7 @@
     </div>
     <p class="mt-1 text-sm text-[var(--muted)]">{{ c.raca }} · {{ c.classe }}</p>
     <p class="mt-0.5 text-xs text-[var(--muted)]">Nível {{ c.nivel }}</p>
-    {% include 'home/partials/rank_badge.html' %}
+    {% include 'home/partials/rank_badge.html' with rank=c.rank %}
     </div>
   </a>
   <div class="cw-card-links mt-2 flex items-center gap-2 border-t border-[var(--stroke)] pt-2 text-xs font-semibold">
@@ -17,7 +17,7 @@
     <a href="{% url 'ficha_publica' c.obj.id_personagem %}?preview=1" class="text-[var(--ember)] hover:underline">{% if cofre %}Prévia privada{% else %}Ver como visitante{% endif %}</a>
   </div>
   <a class="cw-edit-info" href="{% url 'ficha_detail' c.obj.id_personagem %}?aba=info">Editar informações e aparência <span aria-hidden="true">↗</span></a>
-  {% if rank.is_lenda %}<span class="bf-rank-preview-link" aria-disabled="true" title="Página de Lenda disponível após integração">Imortalização · Lenda em breve</span>{% endif %}
+  {% if c.rank.is_lenda %}<a class="bf-rank-preview-link" href="{% url 'personagem_lenda' c.obj.pk %}?preview=1">Imortalização · Lenda</a>{% endif %}
   <details class="cw-manage"><summary>Gerenciar ficha</summary><div class="cw-manage-actions">
     <a href="{% url 'character_slots' %}" class="text-[var(--ember)] hover:underline">Ver capacidade e direitos</a>
     {% if cofre %}

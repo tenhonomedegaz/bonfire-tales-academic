@@ -2,7 +2,7 @@
   "version": 1,
   "slug": "tema-bonfire",
   "type": "tema",
-  "scope": "perfil",
+  "scope": "ambos",
   "layers": [
     {"slot": "banner", "file": "bonfire-banner.svg", "fallback": "bonfire-banner.svg", "width": 1200, "height": 340, "anchor": "center", "motion": "none"},
     {"slot": "ornament", "file": "bonfire-ornament.svg", "fallback": "bonfire-ornament.svg", "width": 420, "height": 90, "anchor": "right", "motion": "float"}

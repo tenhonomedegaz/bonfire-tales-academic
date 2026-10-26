@@ -8,6 +8,7 @@ from django.template.loader import get_template
 from django.test import SimpleTestCase
 
 from home.cosmetic_packages import PACKAGE_ROOT, get_package, parse_package
+from home.templatetags.cosmetic_packages import cosmetic_media_options
 
 
 class CosmeticPackageTests(SimpleTestCase):
@@ -36,6 +37,33 @@ class CosmeticPackageTests(SimpleTestCase):
         self.assertIsNone(parse_package(candidate, candidate['slug'], candidate['type']))
     self.assertIsNone(parse_package(raw, raw['slug'], 'tema'))
 
+  def test_scope_is_enforced_by_manifest_as_well_as_catalog(self):
+    raw = json.loads((PACKAGE_ROOT / 'moldura-ember-ring.json').read_text(encoding='utf-8'))
+    raw['scope'] = 'perfil'
+    self.assertIsNone(parse_package(raw, raw['slug'], raw['type'], 'ficha'))
+    raw['scope'] = 'ficha'
+    self.assertIsNone(parse_package(raw, raw['slug'], raw['type'], 'perfil'))
+    self.assertIsNotNone(parse_package(raw, raw['slug'], raw['type'], 'ficha'))
+    raw['scope'] = 'ambos'
+    for scope in ('ficha', 'perfil'):
+      self.assertIsNotNone(parse_package(raw, raw['slug'], raw['type'], scope))
+
+  def test_live_preview_media_excludes_locked_options(self):
+    media = cosmetic_media_options([], [
+      {'key':'lua-cristal','locked':False},
+      {'key':'lua-vermelha','locked':True}], [])
+    self.assertIn('lua-cristal',media['moldura'])
+    self.assertNotIn('lua-vermelha',media['moldura'])
+    self.assertTrue(media['moldura']['lua-cristal']['avatar'])
+
+  @patch('home.cosmetic_packages.cosmetic_allowed', return_value=True)
+  def test_sheet_uses_same_assets_and_explicit_owner_scope(self, allowed):
+    owner = object()
+    profile = get_package(owner, 'moldura', 'arcane-pulse')
+    sheet = get_package(owner, 'moldura', 'arcane-pulse', 'ficha')
+    self.assertEqual(profile, sheet)
+    allowed.assert_called_with(owner, 'moldura', 'arcane-pulse', 'ficha')
+
   @patch('home.cosmetic_packages.cosmetic_allowed')
   def test_only_eligible_catalog_values_load(self, allowed):
     allowed.return_value = False
@@ -63,6 +91,8 @@ class CosmeticPackageTests(SimpleTestCase):
       'home/pages/perfil.html',
       'home/pages/perfil_publico.html',
       'home/partials/_perfil_publico_hero.html',
+      'home/partials/_ficha_banner.html',
+      'home/pages/ficha_publica.html',
     ):
       with self.subTest(name=name):
         self.assertIsNotNone(get_template(name))

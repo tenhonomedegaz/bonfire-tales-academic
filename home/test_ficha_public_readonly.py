@@ -12,6 +12,8 @@ from home.test_levelup import LevelUpLoteBase
 class PublicFichaReadOnlyTests(LevelUpLoteBase):
     def test_public_viewer_can_read_without_synchronizing_owner_state(self):
         character = self._guerreiro_no_nivel(1, apelido='ficha-leitura-publica')
+        character.publico = False
+        character.save(update_fields=['publico'])
         viewer = self._novo_usuario('ficha-leitura-visitante')
         self.client.force_login(viewer)
         url = reverse('ficha_detail', args=[character.pk])

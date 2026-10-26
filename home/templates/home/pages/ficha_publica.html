@@ -1,4 +1,4 @@
-{% extends 'home/base.html' %}{% load editorial_images static %}
+{% extends 'home/base.html' %}{% load editorial_images static cosmetic_packages %}
 {% block title %}{{ character.nome }} · Personagem · Bonfire Tales RPG{% endblock %}
 {% block body_class %}bft-public-sheet{% endblock %}
 {% block main_class %}cw-main flex-1 w-full min-w-0{% endblock %}
@@ -8,11 +8,19 @@
 {% if published %}{% with image=character.foto_url|safe_profile_image %}{% if image %}<meta property="og:image" content="{% if image|slice:':1' == '/' %}{{ site_origin }}{% endif %}{{ image }}">{% endif %}{% endwith %}{% endif %}
 {% endblock %}
 {% block content %}
+{% cosmetic_package 'tema' appearance.theme_key character_owner 'ficha' as theme_package %}
+{% cosmetic_package 'moldura' appearance.frame_key character_owner 'ficha' as frame_package %}
+{% cosmetic_package 'efeito' appearance.effect_key character_owner 'ficha' as effect_package %}
+{% if appearance.background_url|safe_profile_image %}<div class="ficha-bg-media" style="background-image:url('{{ appearance.background_url|safe_profile_image }}');" aria-hidden="true"></div>{% endif %}
 <article class="ficha cw-public-sheet {{ appearance.theme_class }} {{ appearance.effect_class }}"{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %} aria-labelledby="cw-public-name">
   {% if preview %}<p class="cw-context-note" role="status">Prévia como visitante. {% if not published %}Esta ficha ainda não está publicada.{% endif %}</p>{% endif %}
-  <header class="ficha-header cw-public-hero">
-    {% if appearance.background_url|safe_profile_image %}<div class="ficha-banner-media" style="background-image:url('{{ appearance.background_url|safe_profile_image }}');" aria-hidden="true"></div>{% endif %}
-    <div class="banner-character-avatar cw-public-avatar {{ appearance.frame_class }}">{% if character.foto_url|safe_profile_image %}<img src="{{ character.foto_url|safe_profile_image }}" alt="Retrato de {{ character.nome }}" loading="lazy">{% else %}<span aria-hidden="true">{{ character.nome|slice:':1' }}</span>{% endif %}</div>
+  <header class="ficha-header cw-public-hero{% if character.banner_url|safe_profile_image %} cosmetic-has-banner{% endif %}">
+    {% if character.banner_url|safe_profile_image %}<div class="ficha-banner-media" style="background-image:url('{{ character.banner_url|safe_profile_image }}');" aria-hidden="true"></div>{% endif %}
+    {% include 'home/partials/_cosmetic_preview.html' with layers=theme_package.banner slot='banner' %}
+    {% include 'home/partials/_cosmetic_preview.html' with layers=effect_package.banner slot='banner' %}
+    {% include 'home/partials/_cosmetic_preview.html' with layers=theme_package.ornament slot='ornament' %}
+    {% include 'home/partials/_cosmetic_preview.html' with layers=effect_package.ornament slot='ornament' %}
+    <div class="banner-character-avatar cw-public-avatar {{ appearance.frame_class }}{% if frame_package.avatar or effect_package.avatar %} is-packaged{% elif appearance.frame_key == 'none' or not appearance.frame_key %} rank-portrait{% endif %}">{% if character.foto_url|safe_profile_image %}<img src="{{ character.foto_url|safe_profile_image }}" alt="Retrato de {{ character.nome }}" loading="lazy">{% else %}<span aria-hidden="true">{{ character.nome|slice:':1' }}</span>{% endif %}{% include 'home/partials/_cosmetic_preview.html' with layers=frame_package.avatar slot='avatar' %}{% include 'home/partials/_cosmetic_preview.html' with layers=effect_package.avatar slot='avatar' %}{% if appearance.frame_key == 'none' or not appearance.frame_key %}{% include 'home/partials/_rank_frame.html' %}{% endif %}</div>
     <div class="cw-public-identity"><p class="cw-eyebrow">Bonfire Tales RPG · Ficha pública</p><h1 id="cw-public-name">{{ character.nome }}</h1><p class="cw-public-class">Nível {{ character.nivel }}{% if character.classe %} · {{ character.classe }}{% endif %}{% if character.subclasse %} ({{ character.subclasse }}){% endif %}</p><p class="cw-public-owner">Personagem de <a href="{% url 'public_profile' character.dono %}">@{{ character.dono }}</a></p></div>
   </header>
   <div class="cw-public-panel cw-public-rank">{% include 'home/partials/rank_badge.html' %}{% if rank.is_lenda %} <span class="cw-muted">Lenda é um título conquistado pela jornada deste personagem.</span> <a class="bf-legacy-link" href="{% url 'personagem_lenda' character_pk %}{% if preview %}?preview=1{% endif %}">Conhecer o memorial</a>{% endif %}</div>
