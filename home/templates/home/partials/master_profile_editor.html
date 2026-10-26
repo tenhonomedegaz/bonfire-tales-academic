@@ -4,7 +4,7 @@
     <p class="mh-intro">Sua participação foi autorizada no site. Ela não altera seu cargo nem suas missões no Discord.</p>
     <p class="mh-actions"><a class="mh-button" href="{% url 'participation_edit' %}">Editar apresentação de mestre</a><a class="mh-text-link" href="{% url 'master_gallery' %}">Minha galeria</a><a class="mh-text-link" href="{% url 'masters_directory' %}">Ver vitrine pública</a></p>
   {% elif community.status_mestre == 'pendente' %}
-    <div class="mh-application"><span class="mh-state" data-state="pendente">Solicitação enviada</span><h3>A administração vai avaliar seu pedido</h3><p>Esta aba acompanha sua solicitação. Quando a equipe autorizar, você poderá preparar seu portfólio por aqui.</p></div>
+    <div class="mh-application"><span class="mh-state" data-state="pendente">Solicitação enviada</span><h3>A administração vai avaliar seu pedido</h3><p>Seu pedido está na fila de permissões de mestre da administração deste site, não no Discord. Quando for avaliado, o resultado e o retorno da equipe aparecerão nesta aba.</p>{% if community.solicitado_em %}<p>Enviado em {{ community.solicitado_em|date:'d/m/Y H:i' }}.</p>{% endif %}</div>
   {% elif community.status_mestre == 'suspenso' %}
     <div class="mh-application"><span class="mh-state" data-state="ajustes">Permissão suspensa</span><h3>Converse com a administração</h3><p>Seu portfólio foi preservado, mas a divulgação e a edição estão desativadas até uma nova autorização.</p></div>
   {% else %}
@@ -13,5 +13,6 @@
   {% if community.is_master or my_tables %}{% include 'home/partials/master_own_tables.html' %}{% endif %}
   {% if community.is_master or my_works %}<div class="mh-panel"><h3>Minha galeria</h3><p>Os trabalhos ficam privados até a revisão da equipe.</p><a class="mh-text-link" href="{% url 'master_gallery' %}">Ver trabalhos e revisões →</a></div>{% endif %}
   <p class="mh-actions"><a class="mh-text-link" href="{% url 'guia_mestres' %}">Entender os requisitos →</a></p>
+  {% if can_authorize %}<p class="mh-actions"><a class="mh-text-link" href="{% url 'master_dashboard' %}#permissoes">Avaliar solicitações de mestre →</a></p>{% endif %}
   {% if community.nota_avaliacao %}<p class="mh-review-note">Retorno privado da administração: {{ community.nota_avaliacao }}</p>{% endif %}
 </section>

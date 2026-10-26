@@ -45,6 +45,16 @@
 .master-area label,.mh-field > label { display:block; font-size:11px; font-weight:600; color:#d7bfb4; margin:0 0 7px; }
 .master-area :is(input:not([type=radio]):not([type=checkbox]):not([type=hidden]),select,textarea) { min-width:0; width:100%; min-height:40px; border:1px solid #70413f; border-radius:2px; padding:9px 11px; font:400 13px/1.5 'Open Sans',sans-serif; background:#100d10; color:#f0e3d8; color-scheme:dark; }
 .master-area textarea { resize:vertical; }
+.master-area .mh-filter .mh-search { position:relative; flex:1 1 280px; min-width:0; margin:0; }
+.master-area .mh-filter .mh-search input[type=search] { padding-inline-start:42px; }
+.mh-search-icon { position:absolute; left:13px; top:50%; transform:translateY(-50%); display:flex; color:var(--mh-muted); pointer-events:none; }
+.mh-search-icon svg { width:16px; height:16px; }
+.master-area .mh-missions .mh-filter > select[name=status] { width:auto; flex:0 1 190px; }
+@media(max-width:639px) {
+  .master-area .mh-filter .mh-search { flex:0 0 auto; width:100%; align-self:stretch; }
+  .master-area .mh-missions .mh-filter > select[name=status] { width:100%; flex:0 0 auto; align-self:stretch; }
+  .master-area .mh-missions .mh-filter > button[type=submit] { align-self:stretch; min-height:40px; }
+}
 .mh-notice { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; margin:15px 0; padding:14px 17px; border:1px solid #956442; border-left:3px solid #ec9a50; background:#2b1b15; color:#ead2b7; font-size:12px; line-height:1.75; }
 .mh-notice p { margin:3px 0 0; }
 .master-area .mh-local,.master-area .mh-footnote { font-size:10px; line-height:1.7; color:#bcaeaa; margin:10px 0; }

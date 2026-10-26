@@ -65,6 +65,7 @@ def participation(profile=None):
     return dict(modo=mode, role_label=dict(ROLE_CHOICES)[mode], is_master=master,
                 status_mestre=status, solicitado=status != 'nenhum', versao=get('versao', 0),
                 nota_avaliacao=get('nota_avaliacao'),
+                solicitado_em=get('solicitado_em'),
                 apresentacao=get('apresentacao'), estilo=get('estilo'), disponibilidade=get('disponibilidade'),
                 experiencia=get('experiencia'), combinados=get('combinados'),
                 listado=bool(master and get('listado', False)))

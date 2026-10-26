@@ -4099,7 +4099,9 @@ _original_admin_get_urls = admin.site.get_urls
 
 
 def _bonfire_admin_get_urls():
+    from .catalog_export_admin import catalog_export_view
     custom_urls = [
+        path('catalog-export/', admin.site.admin_view(catalog_export_view), name='catalog_export'),
         path(
             "server-logs/hunter-publication-status/",
             admin.site.admin_view(hunter_publication_status_view),

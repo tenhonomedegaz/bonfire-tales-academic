@@ -3,6 +3,7 @@
 from django import forms
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponse
@@ -28,6 +29,7 @@ def participation(profile):
         'status_mestre': profile.status_mestre if profile else 'nenhum',
         'role_label': dict(TbPerfilMestre._meta.get_field('modo').choices)[mode],
         'nota_avaliacao': profile.nota_avaliacao if profile else '',
+        'solicitado_em': profile.solicitado_em if profile else None,
         'modo': mode,
         'listado': bool(approved and profile.listado),
         'estilo': profile.estilo if approved else '',
@@ -74,8 +76,24 @@ def master_dashboard(request):
     work_reviewer = can_review_work(request.user)
     if not authorizer and not reviewer and not work_reviewer:
         raise PermissionDenied
-    requests = (TbPerfilMestre.objects.exclude(status_mestre='nenhum').select_related(
-        'user').order_by('-solicitado_em')[:100] if authorizer else [])
+    status_choices = [(value, label) for value, label in
+                      TbPerfilMestre._meta.get_field('status_mestre').choices
+                      if value != 'nenhum'] + [('todos', 'Todos')]
+    request_status = request.GET.get('permissao', 'pendente')
+    if request_status not in dict(status_choices):
+        request_status = 'pendente'
+    request_search = request.GET.get('solicitante', '').strip()[:120]
+    requests_page, pending_count = None, 0
+    if authorizer:
+        requests = TbPerfilMestre.objects.exclude(status_mestre='nenhum').select_related('user')
+        pending_count = requests.filter(status_mestre='pendente').count()
+        if request_status != 'todos':
+            requests = requests.filter(status_mestre=request_status)
+        if request_search:
+            requests = requests.filter(user__username__icontains=request_search)
+        ordering = ('solicitado_em', 'pk') if request_status == 'pendente' else ('-solicitado_em', '-pk')
+        requests_page = Paginator(requests.order_by(*ordering), 25).get_page(request.GET.get('solicitacoes_pagina'))
+    requests = requests_page.object_list if requests_page else []
     review_queue = (TbMesaAnuncio.objects.filter(estado='pendente').select_related(
         'mestre').order_by('-atualizado_em')[:100] if reviewer else [])
     from datetime import timedelta
@@ -91,6 +109,9 @@ def master_dashboard(request):
         'can_authorize': authorizer, 'can_review': reviewer,
         'can_review_work': work_reviewer,
         'master_requests': requests, 'review_queue': review_queue,
+        'master_requests_page': requests_page, 'pending_master_count': pending_count,
+        'request_status': request_status, 'request_status_options': status_choices,
+        'request_search': request_search,
         'completed_tables': completed_tables, 'commercial_masters': commercial_masters,
         'page_title': 'Permissões de mestre', 'notice': request.GET.get('salvo')})
 

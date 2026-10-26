@@ -193,6 +193,7 @@
 
 {% block content %}
 <div id="content-main">
+    {% if request.user.is_superuser %}<p><a class="console-button secondary" href="{% url 'admin:catalog_export' %}">Exportar dados (Excel)</a></p>{% endif %}
     {% if not is_authenticated %}
     <div class="auth-container">
         <h2>Autenticacao Segura</h2>
