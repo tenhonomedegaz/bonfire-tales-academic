@@ -57,8 +57,7 @@ progressao de aventuras e atalhos para outras abas.{% endcomment %}
         <div class="banner-field wide"><span class="lbl">Raça</span><span class="val">{{ raca_linha|default:"—" }}{% if p.id_antecedente_id %} <span class="val-muted">· {{ p.id_antecedente.nome }}</span>{% endif %}</span></div>
         {% if not folha_readonly %}
         <div class="banner-field banner-rank-field">
-          {% if ficha.progressao.rank_icone_url %}<img class="banner-rank-icon" src="{{ ficha.progressao.rank_icone_url }}" alt="Patente {{ ficha.progressao.rank }}" loading="lazy">{% endif %}
-          <span><span class="lbl">Patente</span><span class="val">{{ ficha.progressao.rank|default:"—" }}</span></span>
+          {% include 'home/partials/rank_badge.html' with rank=banner_rank %}
         </div>
         <div class="banner-field banner-progress-field">
           <span><span class="lbl">Aventuras</span><span class="val">{{ ficha.progressao.aventuras|default:"0" }}</span></span>
