@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "purpose": "approved-public-art-proposals-only",
+  "collections": {"luas": "As Três Luas", "vigilia": "Vigília das Lanternas"},
+  "proposals": [
+    {"slug":"tema-lua-vermelha","collection":"luas","tipo":"tema","nome":"Lua Vermelha","escopo":"ambos","class":"theme-data","definition":{"accent":"#dd7772","accent2":"#9b2839","surface":"#211317","deep":"#100c10"}},
+    {"slug":"tema-lua-negra","collection":"luas","tipo":"tema","nome":"Lua Negra","escopo":"ambos","class":"theme-data","definition":{"accent":"#c9bfae","accent2":"#777b86","surface":"#19191d","deep":"#0b0c0e"}},
+    {"slug":"tema-lua-cristal","collection":"luas","tipo":"tema","nome":"Lua de Cristal","escopo":"ambos","class":"theme-data","definition":{"accent":"#acdce4","accent2":"#5497b5","surface":"#142025","deep":"#0a1014"}},
+    {"slug":"moldura-lua-vermelha","collection":"luas","tipo":"moldura","nome":"Elmo da Lua Vermelha","escopo":"ambos","class":"frame-lua-vermelha"},
+    {"slug":"moldura-lua-negra","collection":"luas","tipo":"moldura","nome":"Elmo da Lua Negra","escopo":"ambos","class":"frame-lua-negra"},
+    {"slug":"moldura-lua-cristal","collection":"luas","tipo":"moldura","nome":"Elmo da Lua de Cristal","escopo":"ambos","class":"frame-lua-cristal"},
+    {"slug":"moldura-vigilia-das-lanternas","collection":"vigilia","tipo":"moldura","nome":"Moldura Vigília das Lanternas","escopo":"ambos","class":"frame-vigilia-das-lanternas"},
+    {"slug":"tema-vigilia-das-lanternas","collection":"vigilia","tipo":"tema","nome":"Vigília das Lanternas","escopo":"ambos","class":"theme-data","definition":{"accent":"#eba668","accent2":"#6b9c83","surface":"#211b1c","deep":"#0c1110"}}
+  ]
+}

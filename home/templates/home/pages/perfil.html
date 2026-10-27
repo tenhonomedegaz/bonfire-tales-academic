@@ -3,6 +3,7 @@
 
 {% block body_class %}bft-profile{% endblock %}
 {% block main_class %}bft-profile-main{% endblock %}
+{% block content_libraries %}{% include 'home/includes/content_libraries.html' with defer_scripts=True %}{% endblock %}
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/perfil.css' %}?v=9">
 <link rel="stylesheet" href="{% static 'css/components/tema_swatch.css' %}?v=1">
@@ -124,6 +125,7 @@
 
         <section class="profile-editor-group" id="perfil-aparencia">
         <h2 class="profile-section-title">Aparência do perfil</h2>
+        <p><a class="cw-atelier-link" href="{% url 'cosmetic_discovery' %}" target="_blank" rel="noopener">Explorar cosméticos ↗</a></p>
         <p class="profile-group-intro">Escolha as imagens, cores e detalhes que contam a sua história. A prévia acompanha cada ajuste.</p>
         <div class="profile-field">
             <label class="profile-label" for="id_avatar_url">Foto de Perfil (URL da imagem)</label>

@@ -672,6 +672,7 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
 
       <div class="ficha-panel">
         <div class="ficha-section-title">Tema da Ficha</div>
+        <p><a class="cw-atelier-link" href="{% url 'cosmetic_discovery' %}" target="_blank" rel="noopener">Explorar cosméticos ↗</a></p>
         <div class="info-grid appearance-controls">
           <label class="info-field full"><span class="lbl">URL do banner <span class="hint">imagem ou GIF</span></span><input type="text" inputmode="url" name="banner_url" value="{{ p.banner_url|default:'' }}" placeholder="https://.../banner.gif"></label>
           <label class="info-field full"><span class="lbl">Enviar banner <span class="hint">até 12MB · substitui a URL</span></span><input type="file" name="banner_file" accept="image/png,image/jpeg,image/webp,image/gif"></label>

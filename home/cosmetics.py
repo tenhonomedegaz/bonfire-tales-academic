@@ -12,6 +12,9 @@ entra em fases posteriores (F4).
 Ver docs/agentes/arquitetura_personalizacao_perfil.md §4.
 """
 import re
+from contextlib import contextmanager
+from contextvars import ContextVar
+from functools import wraps
 
 from django.core.cache import cache
 
@@ -72,6 +75,78 @@ APPEARANCE_TIPO = {
 
 _CACHE_TTL = 60  # segundos — TTL curto; invalida no save/delete do admin (signal).
 _CACHE_PREFIX = 'cosmeticos:catalogo:'
+_READ_CONTEXT = ContextVar('cosmetic_read_context', default=None)
+
+
+@contextmanager
+def cosmetic_read_context():
+    """One rendered read, never a user/global cache. SQL writes discard snapshots."""
+    from django.db import connection
+    if _READ_CONTEXT.get() is not None:
+        yield
+        return
+    state = {}
+    token = _READ_CONTEXT.set(state)
+
+    def invalidate_on_write(execute, sql, params, many, context):
+        parts = sql.split(None, 1) if isinstance(sql, str) else ()
+        command = parts[0].upper() if parts else None
+        # Unknown/commented/non-text SQL is not assumed to be read-only.
+        if command not in {'SELECT', 'SHOW', 'EXPLAIN', 'SAVEPOINT', 'RELEASE', 'BEGIN'}:
+            state.clear()
+        return execute(sql, params, many, context)
+
+    try:
+        with connection.execute_wrapper(invalidate_on_write):
+            yield
+    finally:
+        _READ_CONTEXT.reset(token)
+
+
+def cosmetic_read_scope(view=None, *, preview=False):
+    """Do not retain read snapshots across profile-saving POST actions."""
+    def decorate(function):
+        @wraps(function)
+        def wrapped(request, *args, **kwargs):
+            if request.method != 'GET' and not preview:
+                return function(request, *args, **kwargs)
+            with cosmetic_read_context():
+                return function(request, *args, **kwargs)
+        return wrapped
+    return decorate(view) if view is not None else decorate
+
+
+def _cosmetic_read_memo(key, load):
+    from django.db import connection
+    state = _READ_CONTEXT.get()
+    if state is None:
+        return load()
+    transaction_key = (tuple(id(block) for block in connection.atomic_blocks),
+                       tuple(connection.savepoint_ids))
+    key = (transaction_key, key)
+    if key not in state:
+        state[key] = load()
+    return state[key]
+
+
+def _sync_rank_once(user):
+    from .rank_cosmetic_rewards import sync_rank_cosmetics
+    # Store the marker after the service's transaction has finished invalidating reads.
+    return _cosmetic_read_memo(('rank_sync', user.pk), lambda: sync_rank_cosmetics(user))
+
+
+def _read_inventory(user):
+    from .models import TbUsuarioCosmetico
+    return _cosmetic_read_memo(('inventory', user.pk), lambda: {
+        slug: (kind, origin) for slug, kind, origin in TbUsuarioCosmetico.objects.filter(
+            user=user, cosmetico__ativo=True, suspenso_em__isnull=True,
+        ).exclude(origem__startswith='colaborador').values_list(
+            'cosmetico__slug', 'cosmetico__tipo', 'origem')})
+
+
+def _read_colab_tier(user):
+    from .permissions import colab_tier
+    return _cosmetic_read_memo(('colab_tier', getattr(user, 'pk', None)), lambda: colab_tier(user))
 
 
 def _cache_key(tipo):
@@ -82,6 +157,9 @@ def invalidate_cosmetic_cache():
     """Chamada pelo signal post_save/post_delete de TbCosmetico (admin-save)."""
     for tipo in ('tema', 'moldura', 'efeito', 'titulo', 'badge', 'banner_preset'):
         cache.delete(_cache_key(tipo))
+    state = _READ_CONTEXT.get()
+    if state is not None:
+        state.clear()
 
 
 def _valor_de_slug(tipo, slug):
@@ -101,6 +179,10 @@ def get_catalog(tipo):
     slug, label, class, raridade, animado, asset_url, origem, preco, requer_plano,
     escopo, descricao.
     """
+    return _cosmetic_read_memo(('catalog', tipo), lambda: _load_catalog(tipo))
+
+
+def _load_catalog(tipo):
     key = _cache_key(tipo)
     cached = cache.get(key)
     if cached is not None:
@@ -159,6 +241,10 @@ def _user_inventory_values(user, tipo):
     prefixo '<tipo>-' removido, pra bater com as chaves de get_catalog."""
     if not user or not getattr(user, 'is_authenticated', False):
         return set()
+    if _READ_CONTEXT.get() is not None:
+        from .cosmetic_entitlements import permanent_cosmetic_slugs
+        return {_valor_de_slug(tipo, slug) for slug, (kind, _) in _read_inventory(user).items()
+                if kind == tipo} | {_valor_de_slug(tipo, slug) for slug in permanent_cosmetic_slugs(user, tipo)}
     from .models import TbUsuarioCosmetico
     slugs = (
         TbUsuarioCosmetico.objects
@@ -176,9 +262,15 @@ def _catalog_ownership(user, tipo):
     """Valores possuídos e origens comprovadas, sempre consultados para a conta atual."""
     if not user or not getattr(user, 'is_authenticated', False):
         return set(), {}
-    from .rank_cosmetic_rewards import sync_rank_cosmetics
     if any(item.get('desbloqueio') for item in get_catalog(tipo).values()):
-        sync_rank_cosmetics(user)
+        _sync_rank_once(user)
+    if _READ_CONTEXT.get() is not None:
+        from .cosmetic_entitlements import _permanent_sources
+        records = _permanent_sources(user)
+        inventory = {slug: origin for slug, (kind, origin) in _read_inventory(user).items() if kind == tipo}
+        paid, event, mm = ({slug for slug, kind in records[source].items() if kind == tipo}
+                           for source in ('paid', 'event', 'mm'))
+        return _ownership_labels(inventory, paid, event, mm, tipo)
     from .models import (CosmeticCheckoutPurchase, CosmeticMMRedemption,
                          EventCosmeticRedemption,
                          TbUsuarioCosmetico)
@@ -198,6 +290,10 @@ def _catalog_ownership(user, tipo):
         user=user, cosmetico__tipo=tipo, cosmetico__ativo=True,
         reversed_at__isnull=True,
     ).values_list('cosmetico__slug', flat=True))
+    return _ownership_labels(inventory, paid, event, mm, tipo)
+
+
+def _ownership_labels(inventory, paid, event, mm, tipo):
     sources = {}
     for slug in set(inventory) | paid | event | mm:
         labels = []
@@ -251,6 +347,14 @@ def cosmetic_allowed(user, tipo, value, escopo='ambos'):
         return False
     if item.get('origem') == 'livre':
         return True
+    if _READ_CONTEXT.get() is not None:
+        if value in _user_inventory_values(user, tipo):
+            return True
+        if item.get('desbloqueio') and getattr(user, 'is_authenticated', False):
+            _sync_rank_once(user)
+            if value in _user_inventory_values(user, tipo):
+                return True
+        return _colab_allows(item, _read_colab_tier(user)) if item.get('origem') == 'colaborador' else False
     if item.get('desbloqueio') and getattr(user, 'is_authenticated', False):
         from .models import TbUsuarioCosmetico
         # A persisted right needs no character scan, user lock or eligibility cache.
@@ -281,8 +385,7 @@ def catalog_options(user, tipo, escopo='ambos', selected=None):
     inventario, ownership_sources = _catalog_ownership(user, tipo)
     colab = None
     if any(item.get('origem') == 'colaborador' for item in catalogo.values()):
-        from .permissions import colab_tier
-        colab = colab_tier(user)
+        colab = _read_colab_tier(user)
     opcoes = []
     for valor, item in catalogo.items():
         if not _scope_ok(item, escopo):

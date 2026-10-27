@@ -18,10 +18,32 @@ def has_permanent_cosmetic(user, cosmetico):
         user=user, cosmetico=cosmetico, reversed_at__isnull=True).exists())
 
 
+def _permanent_sources(user):
+    """Read all active permanent sources once inside an explicit profile read."""
+    from .cosmetics import _cosmetic_read_memo
+    def load():
+        return {
+            'paid': dict(CosmeticCheckoutPurchase.objects.filter(
+                beneficiary=user, granted_at__isnull=False, cosmetico__ativo=True,
+            ).values_list('cosmetico__slug', 'cosmetico__tipo')),
+            'event': dict(EventCosmeticRedemption.objects.filter(
+                user=user, cosmetico__ativo=True,
+            ).values_list('cosmetico__slug', 'cosmetico__tipo')),
+            'mm': dict(CosmeticMMRedemption.objects.filter(
+                user=user, reversed_at__isnull=True, cosmetico__ativo=True,
+            ).values_list('cosmetico__slug', 'cosmetico__tipo')),
+        }
+    return _cosmetic_read_memo(('permanent_sources', user.pk), load)
+
+
 def permanent_cosmetic_slugs(user, tipo=None):
     """Paid, granted catalog slugs; independent of a suspendable inventory row."""
     if not getattr(user, 'pk', None):
         return set()
+    from .cosmetics import _READ_CONTEXT
+    if _READ_CONTEXT.get() is not None:
+        return {slug for records in _permanent_sources(user).values()
+                for slug, kind in records.items() if not tipo or kind == tipo}
     purchases = CosmeticCheckoutPurchase.objects.filter(
         beneficiary=user, granted_at__isnull=False, cosmetico__ativo=True,
     )

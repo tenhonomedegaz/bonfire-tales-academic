@@ -69,6 +69,7 @@ urlpatterns = [
     path('perfil/previa/', views.perfil_preview_view, name='perfil_preview'),
     path('webhooks/asaas/', views.asaas_webhook, name='asaas_webhook'),
     path('cosmeticos/', views.cosmetic_shop, name='cosmetic_shop'),
+    path('cosmeticos/descobrir/', views.cosmetic_discovery, name='cosmetic_discovery'),
     path('cosmeticos/checkout/', views.cosmetic_checkout, name='cosmetic_checkout'),
     path('cosmeticos/eventos/', views.event_cosmetic_shop, name='event_cosmetic_shop'),
     path('cosmeticos/checkout/<uuid:order_id>/', views.cosmetic_checkout_status, name='cosmetic_checkout_status'),

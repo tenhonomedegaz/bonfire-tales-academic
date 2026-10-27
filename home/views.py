@@ -15,6 +15,7 @@ from .moeda import (preco_em_pc as _preco_em_pc, moeda_display as _moeda_display
                     preco_display as _preco_display, preco_po_display as _preco_po_display,
                     po_para_pc as _po_para_pc)
 from . import badges as _badges
+from .cosmetics import cosmetic_read_scope
 from . import cosmetics as _cosmetics
 from . import conquistas as _conquistas
 from . import social as _social
@@ -1233,6 +1234,7 @@ def _save_character_upload(pers, uploaded, kind, old_value='', max_mb=10):
 
 
 @login_required(login_url='/login/')
+@cosmetic_read_scope
 def profile_view(request):
     from .models import SocialCreditRedemption, SocialCreditWallet, TbPersonagem, UserProfile
     from .social_credits import redemption_quotes, redeem_social_credit
@@ -1539,6 +1541,7 @@ def conquista_notificacao_ler_view(request, notificacao_id):
     return redirect('conquista_notificacoes')
 
 
+@cosmetic_read_scope
 def public_profile_view(request, username):
     from .models import UserProfile
     from . import permissions as perms
@@ -1620,6 +1623,7 @@ def _perfil_imagem_candidata(request, nome, atual):
 
 @login_required(login_url='/login/')
 @require_POST
+@cosmetic_read_scope(preview=True)
 def perfil_preview_view(request):
     """PRÉVIA VIVA do perfil inteiro (editor de aparência) — NADA é persistido.
 
@@ -3495,6 +3499,13 @@ def _create_asaas_checkout(order, product, display_name, callback_base):
     order.asaas_checkout_url = checkout_url
     order.save(update_fields=['asaas_checkout_id', 'asaas_checkout_url', 'updated_at'])
     return checkout_url
+
+
+@login_required(login_url='/login/')
+@require_http_methods(['GET'])
+def cosmetic_discovery(request):
+    from .cosmetic_discovery import discovery_response
+    return discovery_response(request)
 
 
 @login_required(login_url='/login/')

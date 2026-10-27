@@ -70,9 +70,7 @@
     }
   </script>
 
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script src="{% static 'js/markdown.js' %}?v=14"></script>
-  <script src="{% static 'js/options-widget.js' %}?v=5"></script>
+  {% block content_libraries %}{% include 'home/includes/content_libraries.html' %}{% endblock %}
 
   <link rel="stylesheet" href="{% static 'css/pages/base.css' %}?v=3">
   <link rel="stylesheet" href="{% static 'css/pages/magias.css' %}?v=7">

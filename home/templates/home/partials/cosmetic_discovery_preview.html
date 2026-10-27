@@ -1,0 +1,12 @@
+<div class="discovery-art" aria-hidden="true">
+  {% if card.tipo == 'moldura' %}
+  <span class="banner-character-avatar discovery-avatar {{ card.class }}{% if card.preview.package.avatar %} is-packaged{% endif %}"><span class="discovery-initial">B</span>{% include 'home/partials/_cosmetic_preview.html' with layers=card.preview.package.avatar slot='avatar' %}{% if not card.preview.package.avatar and card.preview.image %}<img class="discovery-frame-image" src="{{ card.preview.image }}" alt="" loading="lazy">{% endif %}</span>
+  {% elif card.tipo == 'tema' %}
+  <span class="discovery-theme {{ card.class }}" style="{{ card.preview.style }}"><span class="discovery-wordmark">Bonfire</span><span class="discovery-theme-lines"></span>{% include 'home/partials/_cosmetic_preview.html' with layers=card.preview.package.banner slot='banner' %}{% include 'home/partials/_cosmetic_preview.html' with layers=card.preview.package.ornament slot='ornament' %}</span>
+  {% elif card.tipo == 'efeito' %}
+  <span class="discovery-effect cosmetic-effect-sample {{ card.class }}"><span class="discovery-wordmark">Bonfire</span>{% include 'home/partials/_cosmetic_preview.html' with layers=card.preview.package.banner slot='banner' %}{% include 'home/partials/_cosmetic_preview.html' with layers=card.preview.package.ornament slot='ornament' %}</span>
+  {% elif card.preview.image %}<img class="discovery-image" src="{{ card.preview.image }}" alt="" loading="lazy">
+  {% elif card.preview.glyph %}<span class="discovery-glyph">{{ card.preview.glyph }}</span>
+  {% elif card.tipo == 'titulo' %}<span class="discovery-title-sample">{{ card.label }}</span>
+  {% else %}<span class="discovery-initial">B</span>{% endif %}
+</div>

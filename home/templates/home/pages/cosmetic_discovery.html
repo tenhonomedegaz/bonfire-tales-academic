@@ -1,0 +1,38 @@
+{% extends 'home/base.html' %}{% load static %}
+{% block body_class %}bft-discovery{% endblock %}
+{% block main_class %}discovery-main{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/cosmetic-discovery.css' %}?v=1">
+<script src="{% static 'js/cosmetic-discovery.js' %}?v=1" defer></script>
+{% endblock %}
+{% block content %}
+{% include 'home/partials/commerce_nav.html' with section='discovery' %}
+<header class="discovery-heading"><div><p class="discovery-kicker">Ateliê de Cinéria</p><h1>Descobrir cosméticos</h1></div><p>{{ published_count }} publicados · {{ proposal_count }} propostas de arte</p></header>
+<form method="get" class="discovery-filters" data-discovery-filters>
+  <label>Buscar<input type="search" name="q" value="{{ selected.q }}" maxlength="120" placeholder="Nome ou slug" autocomplete="off"></label>
+  <label>Tipo<select name="tipo"><option value="">Todos</option>{% for key, label in kinds.items %}<option value="{{ key }}"{% if selected.tipo == key %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+  <label>Coleção<select name="colecao"><option value="">Todas</option>{% for key, label in collections.items %}<option value="{{ key }}"{% if selected.colecao == key %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+  <label>Disponibilidade<select name="estado"><option value="">Todas</option>{% for key, label in states.items %}<option value="{{ key }}"{% if selected.estado == key %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+  <button type="submit" class="discovery-filter-submit">Filtrar</button><a href="{% url 'cosmetic_discovery' %}" data-discovery-reset>Limpar</a>
+</form>
+<p class="discovery-count" role="status" aria-live="polite"><span data-discovery-count>{{ visible_count }}</span> resultados</p>
+<div class="discovery-grid" data-discovery-grid>
+  {% for card in cards %}
+  <article class="discovery-card" id="discovery-{{ card.slug }}" data-discovery-card data-kind="{{ card.tipo }}" data-collection="{{ card.collection }}" data-state="{{ card.state }}" data-search="{{ card.search_text }}"{% if not card.visible %} hidden{% endif %}>
+    {% include 'home/partials/cosmetic_discovery_preview.html' %}
+    <div class="discovery-card-body"><p class="discovery-meta">{{ card.kind_label }} · {{ card.collection_label }}</p><h2>{{ card.label }}</h2><p class="discovery-scope">{{ card.scope_label }}</p>
+      <p class="discovery-state discovery-state--{{ card.state }}">{{ card.state_label }}</p>
+      <p class="discovery-reason">{{ card.reason }}</p>
+      {% if card.unlock_hint %}<p class="discovery-requirement">{{ card.unlock_hint }}</p>{% endif %}
+      <div class="discovery-actions"><button type="button" data-discovery-preview aria-label="Ampliar prévia de {{ card.label }}" title="Ampliar prévia" hidden>⤢</button>{% for link in card.links %}<a href="{{ link.url }}">{{ link.label }}</a>{% endfor %}</div>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+<p class="discovery-empty" data-discovery-empty{% if visible_count %} hidden{% endif %}>Nenhum cosmético corresponde aos filtros.</p>
+{% if user.is_staff %}<details class="discovery-diagnostics"><summary>Referências das molduras clássicas</summary><ul>{% for item in legacy_report %}<li><code>{{ item.slug }}</code>: {{ item.status }}</li>{% endfor %}</ul></details>{% endif %}
+<dialog class="discovery-dialog" data-discovery-dialog aria-labelledby="discovery-dialog-title" aria-describedby="discovery-dialog-reason">
+  <div class="discovery-dialog-top"><h2 id="discovery-dialog-title"></h2><button type="button" data-discovery-close title="Fechar prévia" aria-label="Fechar prévia">×</button></div>
+  <div data-discovery-dialog-art></div><p id="discovery-dialog-reason"></p>
+</dialog>
+{% endblock %}
