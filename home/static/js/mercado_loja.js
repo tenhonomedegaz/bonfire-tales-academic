@@ -408,6 +408,7 @@
           seletor.value = personagemAtivo;
           trocaPendente = false;
           travarNegocios(false);
+          root.dispatchEvent(new CustomEvent('shop:character-change-failed', { detail: { id: personagemAtivo } }));
           avisar('Não foi possível trocar o personagem. Tente novamente.', false);
         });
     }
@@ -509,7 +510,10 @@
         avisar(MSG[data && data.msg] || 'Não foi possível concluir o negócio.', false);
         return;
       }
-      if (carteira && data.carteira_display) carteira.textContent = data.carteira_display;
+      if (carteira && data.carteira_display) {
+        carteira.textContent = data.carteira_display;
+        root.dispatchEvent(new CustomEvent('shop:wallet-changed'));
+      }
       if (vendaBox && typeof data.venda_html === 'string') {
         // O painel VENDER volta re-renderizado (linhas + templates da prévia): a linha
         // vendida sumiu, então o destaque precisa reassumir o que sobrou.

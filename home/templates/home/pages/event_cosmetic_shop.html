@@ -1,7 +1,7 @@
 {% extends 'home/base.html' %}{% load static %}
 {% block title %}Cosméticos de evento · Bonfire Tales RPG{% endblock %}
 {% block body_class %}bft-commerce bft-cosmetic-shop{% endblock %}{% block main_class %}co-main flex-1 w-full min-w-0{% endblock %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/commerce.css' %}?v=2"><link rel="stylesheet" href="{% static 'css/pages/cosmetic-shop.css' %}?v=1"><script src="{% static 'js/commerce.js' %}?v=2" defer></script>{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/commerce.css' %}?v=2"><link rel="stylesheet" href="{% static 'css/pages/cosmetic-shop.css' %}?v=1"><link rel="stylesheet" href="{% static 'css/components/event-payer.css' %}?v=1"><script src="{% static 'js/commerce.js' %}?v=3" defer></script>{% endblock %}
 {% block content %}
 {% include 'home/partials/commerce_nav.html' with section='events' %}
 <header class="co-hero"><div><p class="co-eyebrow">Ateliê de Cinéria</p><h1>Cosméticos de evento</h1><p>Resgates gratuitos ou por braseiros de um personagem seu.</p></div></header>
@@ -18,7 +18,7 @@
     {% elif not card.offer.cost_braseiros or card.eligible_characters %}
     <form method="post" data-purchase-review data-product="{{ card.offer.cosmetico.nome }}" data-amount="{% if card.offer.cost_braseiros %}{{ card.offer.cost_braseiros }} braseiros{% else %}Grátis{% endif %}" data-mode="Resgate de evento" data-note="{% if card.offer.cost_braseiros %}O custo será descontado do personagem selecionado. {% endif %}O cosmético será desbloqueado para sua conta. Confira o custo antes de confirmar.">
       {% csrf_token %}<input type="hidden" name="offer" value="{{ card.offer.pk }}"><input type="hidden" name="request_id" value="{{ card.request_id }}"><input type="hidden" name="quoted_cost" value="{{ card.offer.cost_braseiros }}">
-      {% if card.offer.cost_braseiros %}<label for="character-{{ card.offer.pk }}">Pagar com personagem</label><select id="character-{{ card.offer.pk }}" name="character" required>{% for character in card.eligible_characters %}<option value="{{ character.pk }}">{{ character.nome }} · {{ character.braseiros }} braseiros</option>{% endfor %}</select>{% endif %}
+      {% if card.offer.cost_braseiros %}{% include 'home/includes/event_payer.html' with characters=card.eligible_characters offer_id=card.offer.pk %}{% endif %}
       <button type="submit" class="co-btn">{% if card.offer.cost_braseiros %}Resgatar cosmético{% else %}Resgatar gratuitamente{% endif %}<span aria-hidden="true">→</span></button>
     </form>{% elif characters %}<p class="co-insufficient">Nenhum personagem tem {{ card.offer.cost_braseiros }} braseiros para este resgate.</p>{% endif %}
     </div>

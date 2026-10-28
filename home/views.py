@@ -3568,7 +3568,9 @@ def event_cosmetic_shop(request):
 
     now = timezone.now()
     characters = list(TbPersonagem.objects.filter(
-        dono=request.user, arquivado=False).only('pk', 'nome', 'braseiros'))
+        dono=request.user, arquivado=False).only('pk', 'nome', 'braseiros', 'foto_url'))
+    for character in characters:
+        character.payer_avatar_url = safe_editorial_image(character.foto_url)
     offers = list(EventCosmeticOffer.objects.select_related('cosmetico').filter(
         Q(starts_at__isnull=True) | Q(starts_at__lte=now),
         Q(ends_at__isnull=True) | Q(ends_at__gt=now),
@@ -17659,10 +17661,14 @@ def _mercado_contexto(request):
     carteira composta (PO/PP/PC) e a lista de venda. A escolha vem de `?personagem=` e fica
     na sessão — o seletor persiste entre Mundano/Mágico e entre visitas."""
     from .models import TbPersonagem
+    from .editorial_links import safe_editorial_image
     personagens, ativo = [], None
     if request.user.is_authenticated:
         personagens = list(TbPersonagem.objects.filter(dono=request.user, arquivado=False)
                            .order_by('nome'))
+        for personagem in personagens:
+            personagem.market_picker_wallet = _moeda_display(personagem.carteira_pc)
+            personagem.market_picker_avatar = safe_editorial_image(personagem.foto_url)
         if personagens:
             escolhido = request.GET.get('personagem') or request.session.get(_MERCADO_SESSAO)
             ativo = (next((p for p in personagens if str(p.pk) == str(escolhido)), None)

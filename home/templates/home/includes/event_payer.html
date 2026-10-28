@@ -1,0 +1,14 @@
+<fieldset class="event-payer">
+  <legend>Pagar com personagem</legend>
+  <div class="event-payer-options">
+    {% for character in characters %}
+    <label class="event-payer-option" for="payer-{{ offer_id }}-{{ character.pk }}">
+      <input type="radio" name="character" id="payer-{{ offer_id }}-{{ character.pk }}" value="{{ character.pk }}" required{% if forloop.first %} checked{% endif %} data-payer-label="{{ character.nome }} · {{ character.braseiros }} braseiros" aria-describedby="payer-balance-{{ offer_id }}-{{ character.pk }}">
+      <span class="event-payer-body">
+        <span class="event-payer-avatar" aria-hidden="true"><span>{{ character.nome|first|upper }}</span>{% if character.payer_avatar_url %}<img src="{{ character.payer_avatar_url }}" alt="" width="32" height="32" loading="lazy" data-payer-avatar>{% endif %}</span>
+        <span class="event-payer-copy"><span class="event-payer-name">{{ character.nome }}</span><span class="event-payer-balance" id="payer-balance-{{ offer_id }}-{{ character.pk }}">{{ character.braseiros }} braseiros</span></span>
+      </span>
+    </label>
+    {% endfor %}
+  </div>
+</fieldset>

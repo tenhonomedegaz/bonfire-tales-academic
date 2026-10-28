@@ -13,9 +13,13 @@ from home.templatetags.cosmetic_packages import cosmetic_media_options
 
 class CosmeticPackageTests(SimpleTestCase):
   def test_shipped_manifests_and_assets_are_valid(self):
-    for path in sorted(PACKAGE_ROOT.glob('*.json')):
+    paths = [path for path in PACKAGE_ROOT.glob('*.json')
+             if path.stem.partition('-')[0] in {'tema', 'moldura', 'efeito', 'banner_preset'}]
+    self.assertTrue(paths)
+    for path in sorted(paths):
       with self.subTest(path=path.name):
         raw = json.loads(path.read_text(encoding='utf-8'))
+        self.assertEqual(path.stem, raw['slug'])
         package = parse_package(raw, raw['slug'], raw['type'])
         self.assertIsNotNone(package)
         self.assertTrue(any(package[slot] for slot in ('banner', 'ornament', 'avatar')))

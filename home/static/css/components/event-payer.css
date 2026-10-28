@@ -1,0 +1,13 @@
+.bft-cosmetic-shop .event-payer{min-width:0;margin:4px 0 0;padding:0;border:0}
+.bft-cosmetic-shop .event-payer legend{padding:0;margin-bottom:6px;font-size:12px;color:var(--muted,#bbb);letter-spacing:0}
+.bft-cosmetic-shop .event-payer-options{display:grid;gap:4px;max-height:240px;overflow:auto;overscroll-behavior:contain;padding:3px}
+.bft-cosmetic-shop .event-payer-option{display:grid;grid-template-columns:16px minmax(0,1fr);align-items:center;gap:8px;min-width:0;margin:0;cursor:pointer}
+.bft-cosmetic-shop .event-payer-option>input{width:16px;height:16px;min-height:0;margin:0;padding:0;accent-color:var(--ember,#e7804a);cursor:pointer}
+.bft-cosmetic-shop .event-payer-body{display:flex;align-items:center;gap:9px;min-width:0;min-height:54px;padding:7px 8px;border-bottom:1px solid var(--stroke,#555);border-radius:4px;color:var(--text,#eee)}
+.bft-cosmetic-shop .event-payer-option>input:checked+.event-payer-body{background:var(--bg2,#2d2d32);box-shadow:inset 3px 0 var(--ember,#e7804a)}
+.bft-cosmetic-shop .event-payer-option>input:focus-visible+.event-payer-body{outline:2px solid var(--spark,#e4c288);outline-offset:1px}
+.bft-cosmetic-shop .event-payer-avatar{position:relative;display:grid;place-items:center;flex:none;width:32px;height:32px;overflow:hidden;border-radius:50%;background:#343c44;color:#f1f1f1;font-size:14px;font-weight:600;letter-spacing:0}
+.bft-cosmetic-shop .event-payer-avatar img{position:absolute;inset:0;display:block;width:32px;height:32px;object-fit:cover}
+.bft-cosmetic-shop .event-payer-copy{display:grid;gap:3px;min-width:0;letter-spacing:0}
+.bft-cosmetic-shop .event-payer-name{font-size:12px;line-height:1.4;font-weight:600;overflow-wrap:anywhere;letter-spacing:0}
+.bft-cosmetic-shop .event-payer-balance{font-size:11px;line-height:1.4;color:var(--muted,#bbb);overflow-wrap:anywhere;letter-spacing:0}

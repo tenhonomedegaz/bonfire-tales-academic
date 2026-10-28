@@ -1,6 +1,11 @@
 /* Progressive storefront filters and review. All prices/permissions remain server-side. */
 (() => {
   'use strict';
+  for (const image of document.querySelectorAll('img[data-payer-avatar]')) {
+    const fallback = () => { image.hidden = true; };
+    image.addEventListener('error', fallback, { once: true });
+    if (image.complete && !image.naturalWidth) fallback();
+  }
   const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR').trim();
   const store = document.querySelector('[data-co-store]');
   if (store) {
@@ -42,13 +47,15 @@
     accountTarget.hidden = !account;
     accountTarget.querySelector('[data-co-account-label]').textContent = form.dataset.accountLabel || 'Conta Bonfire que receberá o benefício:';
     accountTarget.querySelector('[data-co-account]').textContent = account;
-    const character = form.querySelector('[name="character"]');
+    const character = form.querySelector('select[name="character"]');
     const selected = character ? character.options[character.selectedIndex] : null;
-    dialog.querySelector('[data-co-note]').textContent = (form.dataset.note || '') + (selected ? ' Personagem: ' + selected.textContent + '.' : '');
+    const payer = form.querySelector('input[type="radio"][name="character"]:checked:not(:disabled)');
+    const payerLabel = payer ? payer.dataset.payerLabel : selected?.textContent;
+    dialog.querySelector('[data-co-note]').textContent = (form.dataset.note || '') + (payerLabel ? ' Personagem: ' + payerLabel + '.' : '');
     const demo = form.hasAttribute('data-co-readonly');
     dialog.querySelector('[data-co-demo]').hidden = !demo;
     proceed.disabled = demo;
-    proceed.textContent = demo ? 'Desativado na prévia' : character || form.dataset.mode === 'Resgate de evento' ? 'Confirmar resgate' : 'Continuar para o Asaas';
+    proceed.textContent = demo ? 'Desativado na prévia' : character || payer || form.dataset.mode === 'Resgate de evento' ? 'Confirmar resgate' : 'Continuar para o Asaas';
     dialog.showModal();
   }
   for (const form of document.querySelectorAll('form[data-purchase-review]')) {
