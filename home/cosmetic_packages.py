@@ -19,7 +19,7 @@ _ASSET = re.compile(r'^[a-z0-9]+(?:-[a-z0-9]+)*\.(?:png|webp|gif|svg)$')
 _TYPES = {'tema', 'moldura', 'efeito', 'banner_preset'}
 _SLOTS = {'banner', 'ornament', 'avatar'}
 _ANCHORS = {'center', 'left', 'right'}
-_MOTIONS = {'none', 'float', 'pulse', 'helmet'}
+_MOTIONS = {'none', 'float', 'pulse', 'helmet', 'breeze'}
 _SPRITES = {'full', 'open', 'closed'}
 _MAX_ASSET_BYTES = 4 * 1024 * 1024
 
@@ -67,6 +67,7 @@ def parse_package(raw, slug, tipo, escopo='perfil'):
     if (
       slot not in _SLOTS or anchor not in _ANCHORS or motion not in _MOTIONS
       or sprite not in _SPRITES or (motion == 'helmet' and (sprite != 'closed' or slot != 'avatar'))
+      or (motion == 'breeze' and (slot != 'banner' or sprite != 'full'))
       or type(width) is not int or type(height) is not int
       or not 32 <= width <= 4096 or not 32 <= height <= 4096
       or not source or not fallback

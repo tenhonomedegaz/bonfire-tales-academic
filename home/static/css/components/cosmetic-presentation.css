@@ -35,6 +35,16 @@
 @media(max-width:600px){.cosmetic-layers--ornament{width:28%;height:30px;right:10px}}
 @media(prefers-reduced-motion:reduce){.cosmetic-layers .cosmetic-layer{animation:none!important;transform:none!important}}
 @media print{.cosmetic-layers{display:none}}
+/* Small masked offsets reuse one cached image; the base and moon stay still. */
+.cosmetic-breeze{position:absolute;inset:0;display:block;overflow:hidden}
+.cosmetic-breeze>.cosmetic-layer{position:absolute;inset:0}
+.cosmetic-breeze-clouds{mask-image:radial-gradient(ellipse at 64% 18%,#0000 0%,#0009 7%,#0000 24%),radial-gradient(ellipse at 74% 74%,#0009 0%,#0000 25%);animation:cosmetic-breeze-clouds 32s ease-in-out infinite alternate}
+.cosmetic-breeze-branches{mask-image:linear-gradient(90deg,transparent 93%,#000b 99%),linear-gradient(0deg,#0008,transparent 12%);transform-origin:100% 100%;animation:cosmetic-breeze-branches 26s ease-in-out infinite alternate}
+.cosmetic-breeze-clouds,.cosmetic-breeze-branches{animation-play-state:paused}
+.cosmetic-layers.is-visible:not(.is-paused) :is(.cosmetic-breeze-clouds,.cosmetic-breeze-branches){animation-play-state:running}
+@keyframes cosmetic-breeze-clouds{from{transform:translateX(-1px)}to{transform:translate(2px,-1px)}}
+@keyframes cosmetic-breeze-branches{from{transform:rotate(-.08deg)}to{transform:rotate(.08deg)}}
+@media(prefers-reduced-motion:reduce){.cosmetic-breeze-clouds,.cosmetic-breeze-branches{display:none}}
 .rank-portrait{position:relative!important;overflow:visible!important;border-color:transparent!important;border-radius:50%!important;isolation:isolate}
 .rank-portrait>img{border-radius:50%;object-fit:cover}
 .rank-portrait-frame{position:absolute;inset:-19%;pointer-events:none;z-index:4;display:block}

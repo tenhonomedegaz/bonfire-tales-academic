@@ -9,11 +9,11 @@ A numeracao da resposta ao PO nao era a numeracao P0-P7 da tabela abaixo:
 5 = concluir cards das lojas e publicar pequenos lotes conferidos.
 Nao confundir o item 5 com o P5 comercial: precos/eventos continuam sem definicao.
 
-Arcane recuperado e cards implementados localmente. Composicao estatica para
-aprovacao em `../cosmetics/20261027-art-direction.html`; nao equipavel nem
+Arcane recuperado e cards implementados localmente. Composicao estatica
+aprovada pelo PO, com brisa 2,5D discreta em `../cosmetics/20261027-art-direction.html`; nao equipavel nem
 publicada como oferta. Evidencias e arquivos em `../qa/20261027-entrega-4-5.md`.
-Aceite visual e verificacao apos deploy permanecem gates explicitos, nao concluidos
-por inferencia a partir de commit/push.
+Direcao visual aprovada expressamente; verificacao apos deploy permanece um
+gate explicito, nao concluido por inferencia a partir de commit/push.
 
 Etapas 1, 2 e 3 da ordem apresentada ao PO foram executadas no DEV: conciliacao,
 gargalos comprovados de leitura/carregamento e descoberta de nao possuidos.

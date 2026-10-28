@@ -46,6 +46,14 @@ class CosmeticPackageTests(SimpleTestCase):
         self.assertIsNone(parse_package(candidate, candidate['slug'], candidate['type']))
     self.assertIsNone(parse_package(raw, raw['slug'], 'tema'))
 
+  def test_breeze_is_generic_banner_motion_only(self):
+    raw = json.loads((PACKAGE_ROOT / 'tema-lua-vermelha.json').read_text(encoding='utf-8'))
+    for scope in ('perfil', 'ficha'):
+      parsed = parse_package(raw, raw['slug'], raw['type'], scope)
+      self.assertEqual(parsed['banner'][0]['motion'], 'breeze')
+    raw['layers'][0]['slot'] = 'avatar'
+    self.assertIsNone(parse_package(raw, raw['slug'], raw['type']))
+
   def test_scope_is_enforced_by_manifest_as_well_as_catalog(self):
     raw = json.loads((PACKAGE_ROOT / 'moldura-ember-ring.json').read_text(encoding='utf-8'))
     raw['scope'] = 'perfil'

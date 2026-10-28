@@ -19,6 +19,22 @@
       if (seen.has(layer)) continue;
       seen.add(layer);
       const owner = layer.parentElement;
+      for (const image of layer.querySelectorAll('img.cosmetic-layer--breeze')) {
+        const breeze = document.createElement('span');
+        breeze.className = 'cosmetic-breeze';
+        image.replaceWith(breeze);
+        image.classList.remove('cosmetic-layer--breeze');
+        image.classList.add('cosmetic-breeze-base');
+        breeze.appendChild(image);
+        for (const name of ['clouds', 'branches']) {
+          const copy = image.cloneNode(true);
+          copy.className = 'cosmetic-layer cosmetic-layer--' +
+            (image.classList.contains('cosmetic-layer--right') ? 'right' :
+             image.classList.contains('cosmetic-layer--left') ? 'left' : 'center') +
+            ' cosmetic-breeze-' + name;
+          breeze.appendChild(copy);
+        }
+      }
       if (layer.dataset.apertureX) {
         owner.classList.add('has-calibrated-portrait');
         for (const [property, value] of [['x', layer.dataset.apertureX], ['y', layer.dataset.apertureY], ['size', layer.dataset.apertureSize]]) {
