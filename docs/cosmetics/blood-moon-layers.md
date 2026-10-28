@@ -1,5 +1,9 @@
 # Lua Vermelha: manual das camadas v2
 
+> Referencia historica da primeira decomposicao. A composicao atual e
+> transparente, sem sky, e usa primeiro plano esquerdo/direito separados.
+> Consultar `three-moons-layers.md` e os manifestos atuais para implementacao.
+
 ## Objetivo
 
 Separar a arte aprovada da Lua Vermelha em elementos independentes para ajustar

@@ -1,1 +1,16 @@
-{"version":1,"slug":"tema-lua-negra","type":"tema","scope":"ambos","layers":[{"slot":"ornament","file":"lua-negra-ornament.svg","fallback":"lua-negra-ornament.svg","width":420,"height":90,"anchor":"right","motion":"none"}]}
+{
+  "version": 1,
+  "slug": "tema-lua-negra",
+  "type": "tema",
+  "scope": "ambos",
+  "overlay": true,
+  "layers": [
+    {"slot":"banner","file":"black-moon-disc-v1.webp","fallback":"black-moon-disc-v1.png","width":640,"height":631,"motion":"none","opacity":0.95,"placement":{"x":84,"y":48,"width":17},"mobile":{"x":78,"y":35,"width":34}},
+    {"slot":"banner","file":"black-moon-clouds-v1.webp","fallback":"black-moon-clouds-v1.png","width":1400,"height":392,"motion":"drift","opacity":0.3,"placement":{"x":60,"y":36,"width":88},"mobile":{"x":65,"y":37,"width":135},"motion_params":{"distance":65,"duration":80,"delay":-40}},
+    {"slot":"banner","file":"black-moon-clouds-v1.webp","fallback":"black-moon-clouds-v1.png","width":1400,"height":392,"motion":"drift","opacity":0.15,"placement":{"x":68,"y":68,"width":102},"mobile":{"x":70,"y":61,"width":155},"motion_params":{"distance":80,"duration":110,"delay":-65}},
+    {"slot":"banner","file":"black-moon-foreground-left-v1.webp","fallback":"black-moon-foreground-left-v1.png","width":700,"height":306,"motion":"none","opacity":0.8,"placement":{"x":0,"y":100,"width":22},"mobile":{"x":0,"y":100,"width":38},"pivot":{"x":0,"y":100}},
+    {"slot":"banner","file":"black-moon-foreground-right-v1.webp","fallback":"black-moon-foreground-right-v1.png","width":700,"height":361,"motion":"none","opacity":0.8,"placement":{"x":100,"y":100,"width":22},"mobile":{"x":100,"y":100,"width":38},"pivot":{"x":100,"y":100}},
+    {"slot":"banner","file":"black-moon-branches-v1.webp","fallback":"black-moon-branches-v1.png","width":700,"height":1302,"motion":"none","opacity":0.8,"placement":{"x":100,"y":100,"width":20},"mobile":{"x":100,"y":100,"width":34},"pivot":{"x":100,"y":100}},
+    {"slot":"banner","file":"black-moon-charms-v1.webp","fallback":"black-moon-charms-v1.png","width":306,"height":1565,"motion":"float","opacity":0.85,"placement":{"x":94,"y":2,"width":3.7},"mobile":{"x":91,"y":2,"width":9},"pivot":{"x":50,"y":0}}
+  ]
+}

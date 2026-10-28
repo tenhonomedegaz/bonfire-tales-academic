@@ -27,14 +27,28 @@ moon = dict(cloud, motion='none', opacity=0.7)
 moon.pop('motion_params')
 raw['layers'] = [base, moon, cloud]
 package = parse_layout(raw)
-print(json.dumps({'package': package, 'html': get_template('home/partials/_cosmetic_preview.html').render({'layers': package['banner'], 'slot': 'banner'})}))
+corners_raw = layout_manifest()
+corners_raw['overlay'] = True
+left = dict(corners_raw['layers'][0], motion='none', opacity=0.7, pivot={'x':0, 'y':100}, placement={'x':0, 'y':100, 'width':30}, mobile={'x':0, 'y':100, 'width':40})
+left.pop('motion_params')
+right = dict(left, pivot={'x':100, 'y':100}, placement={'x':100, 'y':100, 'width':30}, mobile={'x':100, 'y':100, 'width':40})
+corners_raw['layers'] = [left, right]
+corners = parse_layout(corners_raw)
+legacy_raw = dict(corners_raw, overlay=False, layers=[base])
+legacy = parse_layout(legacy_raw)
+template = get_template('home/partials/_cosmetic_preview.html')
+def html(pack):
+  return template.render({'layers': pack['banner'], 'slot':'banner'})
+print(json.dumps({'package': package, 'html': html(package), 'corners': corners, 'corners_html': html(corners), 'legacy': legacy, 'legacy_html': html(legacy)}))
 `], { cwd: root, encoding: 'utf8', timeout: 60000 });
 assert.equal(fixture.status, 0, fixture.stderr);
 const data = JSON.parse(fixture.stdout);
 const asset = fs.readFileSync(path.join(root, 'home/static/cosmetics/arcane-banner.svg'));
 const imageUrl = 'data:image/svg+xml;base64,' + asset.toString('base64');
-data.html = data.html.replaceAll('/static/cosmetics/arcane-banner.svg', imageUrl);
-for (const layer of data.package.banner) layer.url = layer.fallback = imageUrl;
+for (const key of ['html', 'corners_html', 'legacy_html']) data[key] = data[key].replaceAll('/static/cosmetics/arcane-banner.svg', imageUrl);
+for (const pack of [data.package, data.corners, data.legacy]) {
+  for (const layer of pack.banner) layer.url = layer.fallback = imageUrl;
+}
 const css = fs.readFileSync(path.join(root, 'home/static/css/components/cosmetic-presentation.css'), 'utf8');
 const renderer = fs.readFileSync(path.join(root, 'home/static/cosmetics/renderer.js'), 'utf8');
 
@@ -117,13 +131,63 @@ const renderer = fs.readFileSync(path.join(root, 'home/static/cosmetics/renderer
     assert.equal(reduced.opacity, '0.55');
     assert.notEqual(reduced.wrapperTransform, 'none', 'reduced motion lost centering');
     await page.emulateMedia({ reducedMotion: 'no-preference' });
+    const overlayPage = await browser.newPage({ viewport: { width: 1200, height: 900 } });
+    await overlayPage.setContent(`<style>${css}
+      body{margin:12px;background:#17222a;color:white}
+      .stage{position:relative;width:min(800px,100%);height:160px;overflow:hidden;margin-bottom:12px;background:repeating-linear-gradient(90deg,#174b48 0 30px,#a07b48 30px 60px)}
+      </style><div id="overlay-server" class="stage cosmetic-has-banner">${data.corners_html}</div>
+      <div id="overlay-dynamic" class="stage cosmetic-has-banner"></div>
+      <div class="ficha-header"><div id="overlay-sheet" class="stage cosmetic-has-banner">${data.corners_html}</div>
+      <div id="overlay-sheet-plain" class="stage">${data.corners_html}</div>
+      <div id="legacy-sheet" class="stage">${data.legacy_html}</div></div>
+      <div id="legacy-own-banner" class="stage cosmetic-has-banner">${data.legacy_html}</div>`);
+    await overlayPage.addScriptTag({ content: renderer });
+    await overlayPage.evaluate(pack => window.CosmeticRenderer.render(document.getElementById('overlay-dynamic'), 'banner', [pack]), data.corners);
+    await overlayPage.locator('img').evaluateAll(images => Promise.all(images.map(image => image.decode())));
+    for (const width of [1200, 390]) {
+      await overlayPage.setViewportSize({ width, height: 1100 });
+      const result = await overlayPage.evaluate(() => {
+        const stages = ['overlay-server', 'overlay-dynamic', 'overlay-sheet', 'overlay-sheet-plain'].map(id => {
+          const stage = document.getElementById(id), bounds = stage.getBoundingClientRect();
+          const layer = stage.querySelector('[data-cosmetic-layers]'), style = getComputedStyle(layer);
+          const positions = [...stage.querySelectorAll('.cosmetic-positioned')].map(node => {
+            const box = node.getBoundingClientRect(), img = node.querySelector('img').getBoundingClientRect();
+            return { left: box.left - bounds.left, right: bounds.right - box.right, bottom: bounds.bottom - box.bottom,
+              ratio: img.width / img.height, width: box.width / bounds.width };
+          });
+          return { opacity: style.opacity, blend: style.mixBlendMode, positions };
+        });
+        return { stages, oldOwn: getComputedStyle(document.querySelector('#legacy-own-banner [data-cosmetic-layers]')).opacity,
+          oldSheet: getComputedStyle(document.querySelector('#legacy-sheet [data-cosmetic-layers]')).opacity,
+          background: getComputedStyle(document.getElementById('overlay-server')).backgroundImage };
+      });
+      for (const stage of result.stages) {
+        assert.equal(stage.opacity, '1');
+        assert.equal(stage.blend, 'normal');
+        assert.ok(Math.abs(stage.positions[0].left) < 0.1, 'left pivot not anchored');
+        assert.ok(Math.abs(stage.positions[1].right) < 0.1, 'right pivot not anchored');
+        for (const box of stage.positions) {
+          assert.ok(Math.abs(box.bottom) < 0.1, 'bottom pivot not anchored');
+          assert.ok(Math.abs(box.ratio - 1200 / 340) < 0.01, 'corner deformed');
+          assert.ok(Math.abs(box.width - (width < 600 ? 0.4 : 0.3)) < 0.01);
+        }
+      }
+      assert.deepEqual(result.stages[0], result.stages[1], 'overlay template/JS mismatch');
+      assert.equal(result.oldOwn, '0.12');
+      assert.equal(result.oldSheet, '0.65');
+      assert.ok(result.background.includes('repeating-linear-gradient'), 'custom background changed');
+    }
+    await overlayPage.emulateMedia({ reducedMotion: 'reduce' });
+    assert.notEqual(await overlayPage.locator('#overlay-dynamic .cosmetic-positioned').first().evaluate(node => getComputedStyle(node).transform), 'none');
     const screenshots = fs.mkdtempSync(path.join(os.tmpdir(), 'bonfire-layer-layout-'));
     for (const width of [1200, 390]) {
       await page.setViewportSize({ width, height: 900 });
       await page.screenshot({ path: path.join(screenshots, `layers-${width}.png`) });
+      await overlayPage.setViewportSize({ width, height: 1100 });
+      await overlayPage.screenshot({ path: path.join(screenshots, `overlay-pivots-${width}.png`) });
     }
     assert.deepEqual(errors, []);
-    console.log(JSON.stringify({ passed: ['server/dynamic parity', 'desktop/mobile ratio and placement', 'legacy cover', 'horizontal travel and opacity fade', 'static moon', 'offscreen pause', 'hidden-tab pause/resume', 'reduced-motion centering'], motion, screenshots }));
+    console.log(JSON.stringify({ passed: ['server/dynamic parity', 'desktop/mobile ratio and placement', 'legacy cover', 'horizontal travel and opacity fade', 'static moon', 'offscreen pause', 'hidden-tab pause/resume', 'reduced-motion centering', 'overlay above own banner and sheet', 'bottom corner pivots desktop/mobile', 'legacy attenuation preserved'], motion, screenshots }));
   } finally {
     await browser.close();
   }

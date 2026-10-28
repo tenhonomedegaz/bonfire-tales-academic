@@ -1,5 +1,5 @@
 {% if layers %}
-<div class="cosmetic-layers cosmetic-layers--{{ slot }}" aria-hidden="true" data-cosmetic-layers {% for layer in layers %}{% if layer.aperture %}data-aperture-x="{{ layer.aperture.cx|stringformat:'.3f' }}" data-aperture-y="{{ layer.aperture.cy|stringformat:'.3f' }}" data-aperture-size="{{ layer.aperture.diameter|stringformat:'.3f' }}"{% endif %}{% endfor %}>
+<div class="cosmetic-layers cosmetic-layers--{{ slot }}{% if layers.0.overlay %} cosmetic-layers--overlay{% endif %}" aria-hidden="true" data-cosmetic-layers {% for layer in layers %}{% if layer.aperture %}data-aperture-x="{{ layer.aperture.cx|stringformat:'.3f' }}" data-aperture-y="{{ layer.aperture.cy|stringformat:'.3f' }}" data-aperture-size="{{ layer.aperture.diameter|stringformat:'.3f' }}"{% endif %}{% endfor %}>
   {% for layer in layers %}
   {% if layer.motion == 'helmet' %}
   <span class="cosmetic-layer cosmetic-helmet" data-cosmetic-helmet style="{{ layer.opacity_style }}">

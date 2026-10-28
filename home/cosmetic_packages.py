@@ -37,12 +37,17 @@ def _position_layer(layer, output):
   bounds = {'x': (0, 100), 'y': (0, 100), 'width': (1, 200)}
   placement = layer.get('placement')
   if 'placement' not in layer:
-    return not any(key in layer for key in ('mobile', 'motion_params')) and output['motion'] != 'drift'
+    return not any(key in layer for key in ('mobile', 'motion_params', 'pivot')) and output['motion'] != 'drift'
   if (layer['slot'] != 'banner' or output['sprite'] != 'full'
       or output['motion'] == 'breeze' or not _numeric_schema(placement, bounds)):
     return False
   output['placement'] = dict(placement)
   properties = [(f'--cosmetic-{key}', value, '%') for key, value in placement.items()]
+  if 'pivot' in layer:
+    if not _numeric_schema(layer['pivot'], {'x': (0, 100), 'y': (0, 100)}):
+      return False
+    output['pivot'] = dict(layer['pivot'])
+    properties.extend((f'--cosmetic-pivot-{key}', value, '%') for key, value in layer['pivot'].items())
   if 'mobile' in layer:
     if not _numeric_schema(layer['mobile'], bounds):
       return False
@@ -88,11 +93,14 @@ def parse_package(raw, slug, tipo, escopo='perfil'):
     return None
   if escopo not in ('perfil', 'ficha') or raw.get('scope') not in (escopo, 'ambos'):
     return None
+  overlay = raw.get('overlay', False)
+  if type(overlay) is not bool:
+    return None
   layers = raw.get('layers')
   if not isinstance(layers, list) or not 1 <= len(layers) <= 8:
     return None
   result = {
-    'slug': slug, 'type': tipo, 'version': 1,
+    'slug': slug, 'type': tipo, 'version': 1, 'overlay': overlay,
     'banner': [], 'ornament': [], 'avatar': [],
   }
   for layer in layers:
@@ -117,7 +125,7 @@ def parse_package(raw, slug, tipo, escopo='perfil'):
     result[slot].append({
       'url': source, 'fallback': fallback, 'anchor': anchor,
       'motion': motion, 'width': width, 'height': height,
-      'sprite': sprite,
+      'sprite': sprite, 'overlay': overlay,
     })
     if 'opacity' in layer:
       if not _numeric_schema({'opacity': layer['opacity']}, {'opacity': (0, 1)}):

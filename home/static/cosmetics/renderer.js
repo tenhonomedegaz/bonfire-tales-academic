@@ -63,6 +63,7 @@
       if (!Array.isArray(pack?.[slot]) || !pack[slot].length) continue;
       const layer = document.createElement('div');
       layer.className = 'cosmetic-layers cosmetic-layers--' + slot;
+      layer.classList.toggle('cosmetic-layers--overlay', pack.overlay === true);
       layer.dataset.cosmeticLayers = '';
       layer.setAttribute('aria-hidden', 'true');
       for (const entry of pack[slot]) {
@@ -99,6 +100,12 @@
         if (entry.placement && slot === 'banner') {
           const positioned = document.createElement('span');
           positioned.className = 'cosmetic-positioned';
+          for (const key of ['x', 'y']) {
+            const value = entry.pivot?.[key];
+            if (typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100) {
+              positioned.style.setProperty('--cosmetic-pivot-' + key, value + '%');
+            }
+          }
           for (const [layout, prefix] of [[entry.placement, ''], [entry.mobile, 'mobile-']]) {
             if (!layout) continue;
             for (const key of ['x', 'y', 'width']) {

@@ -26,6 +26,45 @@ def parse_layout(raw):
 
 
 class CosmeticLayerLayoutTests(SimpleTestCase):
+  def test_overlay_requires_exact_boolean_and_propagates_to_all_layers(self):
+    for value in (True, False):
+      raw = layout_manifest()
+      raw['overlay'] = value
+      package = parse_layout(raw)
+      self.assertIs(package['overlay'], value)
+      self.assertIs(package['banner'][0]['overlay'], value)
+      html = get_template('home/partials/_cosmetic_preview.html').render({'layers': package['banner'], 'slot': 'banner'})
+      self.assertEqual('cosmetic-layers--overlay' in html, value)
+    for value in (None, 0, 1, 'true', [], {}):
+      raw = layout_manifest()
+      raw['overlay'] = value
+      self.assertIsNone(parse_layout(raw))
+    self.assertIs(parse_layout(layout_manifest())['overlay'], False)
+
+  def test_pivot_requires_complete_finite_numeric_positioned_schema(self):
+    for pivot in ({'x': 0, 'y': 100}, {'x': 100, 'y': 100}, {'x': 50.5, 'y': 0}):
+      raw = layout_manifest()
+      raw['layers'][0]['pivot'] = pivot
+      layer = parse_layout(raw)['banner'][0]
+      self.assertEqual(layer['pivot'], pivot)
+      self.assertIn(f"--cosmetic-pivot-x:{pivot['x']}%", layer['placement_style'])
+    for pivot in (None, [], {}, {'x': 50}, {'x': 50, 'y': 50, 'z': 1},
+                  {'x': True, 'y': 50}, {'x': '0', 'y': 100}, {'x': -1, 'y': 100},
+                  {'x': 101, 'y': 100}, {'x': 0, 'y': float('nan')},
+                  {'x': float('inf'), 'y': 0}, {'x': 0, 'y': 10**400}):
+      with self.subTest(pivot=pivot):
+        raw = layout_manifest()
+        raw['layers'][0]['pivot'] = pivot
+        self.assertIsNone(parse_layout(raw))
+    raw = layout_manifest()
+    raw['layers'][0] = {key: value for key, value in raw['layers'][0].items()
+                        if key not in ('placement', 'mobile', 'motion_params')}
+    raw['layers'][0].update(motion='none', pivot={'x': 0, 'y': 100})
+    self.assertIsNone(parse_layout(raw))
+    layer = parse_layout(layout_manifest())['banner'][0]
+    self.assertNotIn('pivot', layer)
+    self.assertNotIn('--cosmetic-pivot-', layer['placement_style'])
+
   def test_same_layout_and_template_for_profile_and_sheet(self):
     raw = layout_manifest()
     profile = parse_layout(raw)

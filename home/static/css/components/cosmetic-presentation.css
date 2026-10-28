@@ -1,15 +1,16 @@
 /* Shared media contract: identical assets on profiles and character sheets. */
 .cosmetic-layers{position:absolute;pointer-events:none;user-select:none;overflow:hidden}
-.cosmetic-layers--banner{inset:0;z-index:0}
+.cosmetic-layers--banner{inset:0;z-index:0;container-type:inline-size}
 .cosmetic-layer{display:block;width:100%;height:100%;object-fit:cover;object-position:center;opacity:var(--cosmetic-opacity,1)}
 .cosmetic-layer--left{object-position:left center}.cosmetic-layer--right{object-position:right center}
 /* Optional positioned artwork retains its intrinsic ratio; legacy layers keep cover. */
-.cosmetic-positioned{position:absolute;display:block;left:var(--cosmetic-x,50%);top:var(--cosmetic-y,50%);width:var(--cosmetic-width,100%);transform:translate(-50%,-50%)}
+.cosmetic-positioned{position:absolute;display:block;left:var(--cosmetic-x,50%);top:var(--cosmetic-y,50%);width:var(--cosmetic-width,100%);transform:translate(calc(-1 * var(--cosmetic-pivot-x,50%)),calc(-1 * var(--cosmetic-pivot-y,50%)))}
 .cosmetic-positioned>.cosmetic-layer{width:100%;height:auto;max-width:none;object-fit:contain}
 .cosmetic-positioned>.cosmetic-layer--drift{animation:cosmetic-drift var(--cosmetic-drift-duration,60s) linear var(--cosmetic-drift-delay,-30s) infinite;animation-play-state:paused}
 .cosmetic-layers.is-visible:not(.is-paused) .cosmetic-positioned>.cosmetic-layer--drift{animation-play-state:running}
 @keyframes cosmetic-drift{0%{transform:translateX(calc(-1 * var(--cosmetic-drift-distance,40%)));opacity:0}15%,85%{opacity:var(--cosmetic-opacity,1)}100%{transform:translateX(var(--cosmetic-drift-distance,40%));opacity:0}}
 @media(max-width:600px){.cosmetic-positioned{left:var(--cosmetic-mobile-x,var(--cosmetic-x,50%));top:var(--cosmetic-mobile-y,var(--cosmetic-y,50%));width:var(--cosmetic-mobile-width,var(--cosmetic-width,100%))}}
+@container(max-width:600px){.cosmetic-positioned{left:var(--cosmetic-mobile-x,var(--cosmetic-x,50%));top:var(--cosmetic-mobile-y,var(--cosmetic-y,50%));width:var(--cosmetic-mobile-width,var(--cosmetic-width,100%))}}
 .cosmetic-layers--ornament{top:12px;right:16px;width:min(28%,200px);height:42px;z-index:2;opacity:.65}
 .cosmetic-layers--ornament .cosmetic-layer{object-fit:contain}
 .cosmetic-layers--avatar{inset:-16%;z-index:3;overflow:visible}
@@ -33,6 +34,9 @@
 .cosmetic-has-banner .cosmetic-layers--ornament{opacity:.35}
 .bft-profile .profile-header.cosmetic-has-banner .profile-banner-media{opacity:.82;filter:none}
 .cosmetic-has-banner .public-profile-banner-media::after{background:linear-gradient(180deg,transparent 55%,#0005)}
+/* Independent transparent layers stay visible above a user's own banner. */
+.cosmetic-layers--banner.cosmetic-layers--overlay{opacity:1}
+.cosmetic-has-banner .cosmetic-layers--banner.cosmetic-layers--overlay{opacity:1;mix-blend-mode:normal}
 .cosmetic-layer--float,.cosmetic-layer--pulse{animation-play-state:paused}
 .cosmetic-layers.is-visible .cosmetic-layer--float{animation:cosmetic-float 8s ease-in-out infinite}
 .cosmetic-layers.is-visible .cosmetic-layer--pulse{animation:cosmetic-pulse 5s ease-in-out infinite}
