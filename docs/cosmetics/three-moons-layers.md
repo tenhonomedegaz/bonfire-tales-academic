@@ -84,20 +84,23 @@ continuam com os mesmos slugs, escopo `ambos` e leitor compartilhado.
 
 | Moldura | Nome-base PNG/WebP | Centro seguro x/y (%) | Diametro seguro (%) |
 | --- | --- | --- | --- |
-| Lua Vermelha | `avatar-blood-moon-v2` | 50 / 50 | 70.3125 |
-| Lua Negra | `avatar-black-moon-v2` | 50 / 50 | 70.3125 |
-| Lua de Cristal | `avatar-crystal-moon-v2` | 50 / 50 | 70.3125 |
+| Lua Vermelha | `avatar-blood-moon-v3` | 50 / 50 | 70.3125 |
+| Lua Negra | `avatar-black-moon-v3` | 50 / 50 | 70.3125 |
+| Lua de Cristal | `avatar-crystal-moon-v3` | 50 / 50 | 70.3125 |
 
 As artes v1 tinham abertura irregular: encaixar uma foto circular no menor
 vao reduzia demais o retrato e deixava lacunas nas laterais. As v2 usam
 geometria vetorial circular, sem galhos nem pingentes invadindo a abertura.
 Anel, simbolos simples de fases e a lua original como medalhao principal.
+As v3 preservam esse encaixe e acrescentam tres pingentes de meia-lua,
+com elos curtos e fechos geometricos, sempre fora da foto. Sem galhos;
+ornamentos moderados inspirados nos pingentes do banner.
 O centro e exatamente (512,512) no SVG 1024x1024 e o raio livre e 360;
 `aperture.diameter = 2 * 360 / 1024 * 100 = 70.3125`.
 Portanto, o diametro comum corresponde a uma abertura realmente comum,
 nao a um numero copiado entre tres desenhos diferentes.
 
-Fontes editaveis: `avatar-*-moon-v2.svg`; exportacoes PNG/WebP preservam
+Fontes editaveis: `avatar-*-moon-v3.svg`; exportacoes PNG/WebP preservam
 proporcao quadrada. Gerador: `build-lunar-frames.cjs`, com cores por familia
 e as imagens lunares ja aprovadas incorporadas ao SVG. Para regenerar:
 `node docs/cosmetics/build-lunar-frames.cjs` (Sharp instalado ou fornecido

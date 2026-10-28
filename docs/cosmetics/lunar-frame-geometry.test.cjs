@@ -1,12 +1,12 @@
 const assert = require('node:assert/strict');
 const path = require('node:path');
 const sharp = require(process.env.BONFIRE_SHARP_MODULE || 'sharp');
-const {themes} = require('./build-lunar-frames.cjs');
+const {themes,frameVersion} = require('./build-lunar-frames.cjs');
 const media = path.resolve(__dirname, '../../home/static/cosmetics');
 
 (async () => {
   for (const theme of themes) {
-    const image = path.join(media, 'avatar-' + theme.key + '-moon-v2.webp');
+    const image = path.join(media, 'avatar-' + theme.key + '-moon-' + frameVersion + '.webp');
     const {data,info} = await sharp(image).ensureAlpha().raw().toBuffer({resolveWithObject:true});
     assert.equal(info.width, info.height);
     const center = info.width / 2;

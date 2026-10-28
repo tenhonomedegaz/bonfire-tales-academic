@@ -595,8 +595,8 @@ window.BonfireMoonFrames = {
     "avatar": [
       {
         "slot": "avatar",
-        "file": "avatar-blood-moon-v2.webp",
-        "fallback": "../../home/static/cosmetics/avatar-blood-moon-v2.png",
+        "file": "avatar-blood-moon-v3.webp",
+        "fallback": "../../home/static/cosmetics/avatar-blood-moon-v3.png",
         "width": 640,
         "height": 640,
         "motion": "none",
@@ -608,7 +608,7 @@ window.BonfireMoonFrames = {
         "anchor": "center",
         "sprite": "full",
         "overlay": false,
-        "url": "../../home/static/cosmetics/avatar-blood-moon-v2.webp"
+        "url": "../../home/static/cosmetics/avatar-blood-moon-v3.webp"
       }
     ]
   },
@@ -622,8 +622,8 @@ window.BonfireMoonFrames = {
     "avatar": [
       {
         "slot": "avatar",
-        "file": "avatar-black-moon-v2.webp",
-        "fallback": "../../home/static/cosmetics/avatar-black-moon-v2.png",
+        "file": "avatar-black-moon-v3.webp",
+        "fallback": "../../home/static/cosmetics/avatar-black-moon-v3.png",
         "width": 640,
         "height": 640,
         "motion": "none",
@@ -635,7 +635,7 @@ window.BonfireMoonFrames = {
         "anchor": "center",
         "sprite": "full",
         "overlay": false,
-        "url": "../../home/static/cosmetics/avatar-black-moon-v2.webp"
+        "url": "../../home/static/cosmetics/avatar-black-moon-v3.webp"
       }
     ]
   },
@@ -649,8 +649,8 @@ window.BonfireMoonFrames = {
     "avatar": [
       {
         "slot": "avatar",
-        "file": "avatar-crystal-moon-v2.webp",
-        "fallback": "../../home/static/cosmetics/avatar-crystal-moon-v2.png",
+        "file": "avatar-crystal-moon-v3.webp",
+        "fallback": "../../home/static/cosmetics/avatar-crystal-moon-v3.png",
         "width": 640,
         "height": 640,
         "motion": "none",
@@ -662,7 +662,7 @@ window.BonfireMoonFrames = {
         "anchor": "center",
         "sprite": "full",
         "overlay": false,
-        "url": "../../home/static/cosmetics/avatar-crystal-moon-v2.webp"
+        "url": "../../home/static/cosmetics/avatar-crystal-moon-v3.webp"
       }
     ]
   }
