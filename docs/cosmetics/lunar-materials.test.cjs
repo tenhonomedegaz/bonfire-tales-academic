@@ -7,8 +7,8 @@ const media = path.resolve(__dirname, '../../home/static/cosmetics');
 const slugs = ['vermelha','negra','cristal'];
 const originalHashes = {
   vermelha:'a028c576b1e9273c2144fca730c650b8ef2747610d6bb881c3f8cc8dbdb41e98',
-  negra:'054428ed480145c009d14084100c08622a5b40c2e4cf8e7d956ec36be4a4c37b',
-  cristal:'eb3f21844d965f8e9cb481a2ffaf4dbf74e657dc514529e425e66eacb6f4afd1',
+  negra:'8337e468211845f1e8ddef25c47122d0917f2203de9fbb8a1365f9a0262dee19',
+  cristal:'89671376c0ddc03463816bd0a3c682297f5933df20b3b5bebf03678e078b78b9',
 };
 
 async function main() {
@@ -27,7 +27,7 @@ async function main() {
 
     const frame = JSON.parse(await fs.readFile(path.join(media,'moldura-lua-'+slug+'.json'),'utf8'));
     const layer = frame.layers[0];
-    assert.match(layer.file,/-v5.webp$/);
+    assert.match(layer.file,slug === 'vermelha' ? /-v5.webp$/ : /-v6.webp$/);
     const master = await fs.readFile(path.join(media,layer.fallback));
     assert.equal(createHash('sha256').update(master).digest('hex'),originalHashes[slug],
       'Keep the original artwork; portrait calibration must not redraw the frame');

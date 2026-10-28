@@ -4,14 +4,14 @@ const path = require('node:path');
 const sharp = require(process.env.BONFIRE_SHARP_MODULE || 'sharp');
 const media = path.resolve(__dirname, '../../home/static/cosmetics');
 const families = [
-  {key:'blood', disc:'blood-moon-disc-v2', normalized:'blood-moon-disc-v3'},
-  {key:'black', disc:'black-moon-disc-v2', normalized:'black-moon-disc-v3'},
-  {key:'crystal', disc:'crystal-moon-disc-v1', normalized:'crystal-moon-disc-v2'},
+  {key:'blood', frameVersion:'v5', disc:'blood-moon-disc-v2', normalized:'blood-moon-disc-v3'},
+  {key:'black', frameVersion:'v6', disc:'black-moon-disc-v2', normalized:'black-moon-disc-v3'},
+  {key:'crystal', frameVersion:'v6', disc:'crystal-moon-disc-v1', normalized:'crystal-moon-disc-v2'},
 ];
 
 async function main() {
   for (const family of families) {
-    const frame = 'avatar-' + family.key + '-moon-v5';
+    const frame = 'avatar-' + family.key + '-moon-' + family.frameVersion;
     await sharp(path.join(media, frame+'.png')).resize(640,640,{fit:'contain'})
       .webp({quality:90,alphaQuality:100,effort:4}).toFile(path.join(media,frame+'.webp'));
     // Trim transparent padding, not painted content, before giving every disc the same box.

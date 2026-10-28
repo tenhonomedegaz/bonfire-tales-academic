@@ -1,5 +1,26 @@
 # Tres luas: identidade por material e fechamento do lote
 
+## Revisao atual: irmas da Lua de Sangue
+
+PO considerou a Sangue harmoniosa, mas Negra/Cristal pouco coesas. Duas
+edicoes pelo image_gen integrado usam DIRETAMENTE a Sangue v5 como alvo de
+referencia para conservar composicao e peso visual. Sem alterar a Sangue.
+
+Prompts: preservar aro fino, curvas elegantes, meias-luas laterais, elos
+delicados e joias pequenas superior/inferior, abertura e proporcao originais.
+Negra: obsidiana esguia com poucos lascados, verde profundo nas insercoes,
+elos finos escuros e pequenas pecas amarelas; evitar aro de entulho/correntes
+grossas. Cristal: prata fria, branco leitoso/azulado translucido e poucas
+facetas amplas; evitar coroa de gelo, perolas agrupadas e gemas excessivas.
+Ambas transparentes dentro/fora, sem glow sobre a foto, sem galhos/textos.
+
+Arquivos novos: `avatar-black-moon-v6.png/.webp` e
+`avatar-crystal-moon-v6.png/.webp`. Sangue continua v5. Masters copiados sem
+retoques, WebP proporcional640; todos os retratos agora usam centro50/50 e
+diametro70 no manifesto. Banners, nuvens, regras, banco e animacoes de rank
+nao mudam. Arte proposta para avaliacao visual, nao aceite presumido do PO.
+Capturas: `AmandaBot/data/catalog_releases/lunar-siblings-v6/`.
+
 ## Ajuste posterior: fonte original preservada na v5
 
 O PO aprovou a direcao artistica, mas apontou diferenca de proporcoes/detalhes

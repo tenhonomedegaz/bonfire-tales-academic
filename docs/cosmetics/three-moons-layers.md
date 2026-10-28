@@ -85,8 +85,8 @@ continuam com os mesmos slugs, escopo `ambos` e leitor compartilhado.
 | Moldura | Nome-base PNG/WebP | Centro seguro x/y (%) | Diametro seguro (%) |
 | --- | --- | --- | --- |
 | Lua Vermelha | `avatar-blood-moon-v5` | 50 / 50 | 70 |
-| Lua Negra | `avatar-black-moon-v5` | 50 / 50 | 70 |
-| Lua de Cristal | `avatar-crystal-moon-v5` | 50 / 50 | 64 |
+| Lua Negra | `avatar-black-moon-v6` | 50 / 50 | 70 |
+| Lua de Cristal | `avatar-crystal-moon-v6` | 50 / 50 | 70 |
 
 As v4 substituem a proposta de aneis vetoriais v2/v3 por artes raster com
 materiais diferentes: metal dourado/vermelho, pedra negra lascada com verde
@@ -105,7 +105,15 @@ geracao, sem retocar ou regenerar pixels. Os pingentes voltam a se sobrepor a
 foto como no desenho original; somente a calibracao da foto por baixo muda.
 Os valores/tolerancias de v4 acima sao historicos, nao o aceite da v5.
 
-Fontes atuais: `avatar-*-moon-v5.png`; conversor de entrega:
+Revisao v6: o PO considerou Negra/Cristal pouco harmoniosas em comparacao
+com Sangue. Apenas essas duas foram refeitas usando a Sangue v5 como
+referencia direta de composicao e peso visual: aro esguio, curvas elegantes,
+elos finos e meias-luas nas mesmas posicoes. Negra usa obsidiana fina/verde
+e detalhes amarelados, sem a massa de pedras e correntes grossas; Cristal usa
+prata fria/branco azulado, sem acumulacao de gemas ou perolas. Sangue v5
+permanece byte a byte inalterada. Nenhuma regeneracao de abertura adicional.
+
+Fontes atuais: Sangue `avatar-blood-moon-v5.png`, outras `avatar-*-moon-v6.png`; conversor de entrega:
 `prepare-lunar-materials.cjs` (Sharp instalado ou `BONFIRE_SHARP_MODULE`).
 `build-lunar-frames.cjs` e seu teste conservam a proposta vetorial v3,
 nao regeneram a arte atual. Verificacao atual: `lunar-materials.test.cjs`.
