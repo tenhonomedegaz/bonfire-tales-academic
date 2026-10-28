@@ -1,5 +1,14 @@
 # Tres luas: identidade por material e fechamento do lote
 
+## Obtencao definida pelo PO
+
+Temas das tres luas: concessao manual por administrador, nao venda.
+Configuracao de catalogo pronta (`staff`, ativo, sem preco/plano), sem
+publicacao automatica ou concessoes neste commit. Fluxo existente e links
+administrativos em `manual-theme-grants.md`. Referencias a preco indefinido
+dos TEMAS nas etapas historicas abaixo estao superadas. A politica das
+molduras e do Halloween nao muda sem decisao propria.
+
 ## Revisao atual: irmas da Lua de Sangue
 
 PO considerou a Sangue harmoniosa, mas Negra/Cristal pouco coesas. Duas

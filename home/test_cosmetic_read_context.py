@@ -43,6 +43,34 @@ class CosmeticReadContextTests(TestCase):
         with cosmetic_read_context():
             self.assertFalse(cosmetic_allowed(self.owner, 'theme', 'read-test', 'perfil'))
 
+    def test_staff_theme_is_not_free_even_for_admin_and_grant_targets_one_user(self):
+        self.other.is_staff = True
+        self.other.is_superuser = True
+        self.other.save(update_fields=['is_staff', 'is_superuser'])
+        self.assertFalse(cosmetic_allowed(self.other, 'theme', 'read-test', 'perfil'))
+        grant, created = TbUsuarioCosmetico.objects.get_or_create(
+            user=self.other, cosmetico=self.item, defaults={'origem': 'staff'})
+        self.assertTrue(created)
+        repeated, created = TbUsuarioCosmetico.objects.get_or_create(
+            user=self.other, cosmetico=self.item, defaults={'origem': 'staff'})
+        self.assertFalse(created)
+        self.assertEqual(repeated.pk, grant.pk)
+        self.assertTrue(cosmetic_allowed(self.other, 'theme', 'read-test', 'perfil'))
+        visitor = get_user_model().objects.create_user('manual-theme-visitor')
+        self.assertFalse(cosmetic_allowed(visitor, 'theme', 'read-test', 'perfil'))
+        grant.suspenso_em = timezone.now()
+        grant.save(update_fields=['suspenso_em'])
+        self.assertFalse(cosmetic_allowed(self.other, 'theme', 'read-test', 'perfil'))
+
+    def test_existing_inventory_admin_requires_explicit_add_permission(self):
+        from django.contrib import admin
+        model_admin = admin.site._registry[TbUsuarioCosmetico]
+        request = RequestFactory().get('/admin/home/tbusuariocosmetico/add/')
+        request.user = self.other
+        self.assertFalse(model_admin.has_add_permission(request))
+        self.other.is_staff = self.other.is_superuser = True
+        self.assertTrue(model_admin.has_add_permission(request))
+
     def test_write_inside_read_invalidates_snapshot(self):
         with cosmetic_read_context():
             self.assertTrue(cosmetic_allowed(self.owner, 'theme', 'read-test'))

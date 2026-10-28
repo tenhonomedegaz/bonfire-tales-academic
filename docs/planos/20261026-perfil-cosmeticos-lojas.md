@@ -1,5 +1,14 @@
 # Plano de execucao: perfil, cosmeticos e lojas
 
+## Decisao de obtencao: temas lunares
+
+PO definiu concessao manual por admin para os temas das tres luas.
+P5 nao exige mais definir preco/moeda desses TEMAS. Reutilizar origem staff
+e TbUsuarioCosmetico; sem oferta ou concessao automatica. Dados desejados
+prontos no catalog-draft, publicacao no banco ainda separada. Passos em
+`../cosmetics/manual-theme-grants.md`. Molduras/Halloween nao incluidos
+nessa decisao; registros/inventarios anteriores permanecem preservados.
+
 ## Lote de 28/10: materiais lunares e consistencia da loja
 
 Tres molduras v4 com estruturas proprias por material, sem galhos, substituem

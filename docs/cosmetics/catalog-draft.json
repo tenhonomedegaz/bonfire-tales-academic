@@ -1,12 +1,12 @@
 {
-  "status": "visual-review-only",
+  "status": "lunar-themes-manual-grant-ready",
   "art_direction": "cartoon-cel-shaded-v2",
   "activate_in_production": false,
-  "pending": ["Aprovar arte", "Definir moeda e preco das luas", "Definir elegibilidade e periodo do Halloween"],
+  "pending": ["Publicar os temas no catalogo pelo admin, sem conceder inventario automaticamente", "Definir obtencao das molduras lunares", "Definir elegibilidade e periodo do Halloween"],
   "cosmetics": [
-    {"slug":"tema-lua-vermelha","tipo":"tema","nome":"Lua Vermelha","css_class":"theme-data","origem":"staff","ativo":false,"escopo":"ambos","raridade":"epico","definicao_json":{"accent":"#dd7772","accent2":"#9b2839","surface":"#211317","deep":"#100c10","particula":"nenhuma","vel":"lenta","gradiente":false,"glow":false}},
-    {"slug":"tema-lua-negra","tipo":"tema","nome":"Lua Negra","css_class":"theme-data","origem":"staff","ativo":false,"escopo":"ambos","raridade":"epico","definicao_json":{"accent":"#a1aaa3","accent2":"#555e59","surface":"#101014","deep":"#050608","particula":"nenhuma","vel":"lenta","gradiente":false,"glow":false}},
-    {"slug":"tema-lua-cristal","tipo":"tema","nome":"Lua de Cristal","css_class":"theme-data","origem":"staff","ativo":false,"escopo":"ambos","raridade":"epico","definicao_json":{"accent":"#acdce4","accent2":"#5497b5","surface":"#142025","deep":"#0a1014","particula":"nenhuma","vel":"lenta","gradiente":false,"glow":false}},
+    {"slug":"tema-lua-vermelha","tipo":"tema","nome":"Lua Vermelha","css_class":"theme-data","origem":"staff","ativo":true,"preco":null,"requer_plano":"","descricao":"Tema liberado individualmente pela administracao.","escopo":"ambos","raridade":"epico","definicao_json":{"accent":"#dd7772","accent2":"#9b2839","surface":"#211317","deep":"#100c10","particula":"nenhuma","vel":"lenta","gradiente":false,"glow":false}},
+    {"slug":"tema-lua-negra","tipo":"tema","nome":"Lua Negra","css_class":"theme-data","origem":"staff","ativo":true,"preco":null,"requer_plano":"","descricao":"Tema liberado individualmente pela administracao.","escopo":"ambos","raridade":"epico","definicao_json":{"accent":"#a1aaa3","accent2":"#555e59","surface":"#101014","deep":"#050608","particula":"nenhuma","vel":"lenta","gradiente":false,"glow":false}},
+    {"slug":"tema-lua-cristal","tipo":"tema","nome":"Lua de Cristal","css_class":"theme-data","origem":"staff","ativo":true,"preco":null,"requer_plano":"","descricao":"Tema liberado individualmente pela administracao.","escopo":"ambos","raridade":"epico","definicao_json":{"accent":"#acdce4","accent2":"#5497b5","surface":"#142025","deep":"#0a1014","particula":"nenhuma","vel":"lenta","gradiente":false,"glow":false}},
     {"slug":"moldura-lua-vermelha","tipo":"moldura","nome":"Moldura da Lua Vermelha","css_class":"frame-lua-vermelha","origem":"staff","ativo":false,"escopo":"ambos","raridade":"epico","animado":false,"asset_url":"/static/cosmetics/avatar-blood-moon-v5.webp"},
     {"slug":"moldura-lua-negra","tipo":"moldura","nome":"Moldura da Lua Negra","css_class":"frame-lua-negra","origem":"staff","ativo":false,"escopo":"ambos","raridade":"epico","animado":false,"asset_url":"/static/cosmetics/avatar-black-moon-v6.webp"},
     {"slug":"moldura-lua-cristal","tipo":"moldura","nome":"Moldura da Lua de Cristal","css_class":"frame-lua-cristal","origem":"staff","ativo":false,"escopo":"ambos","raridade":"epico","animado":false,"asset_url":"/static/cosmetics/avatar-crystal-moon-v6.webp"},
