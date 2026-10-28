@@ -1,5 +1,25 @@
 # Tres luas: identidade por material e fechamento do lote
 
+## Ajuste posterior: fonte original preservada na v5
+
+O PO aprovou a direcao artistica, mas apontou diferenca de proporcoes/detalhes
+na moldura aplicada em relacao a imagem de referencia. Causa: a segunda
+passagem de ImageGen da v4 nao era uma calibracao neutra; redesenhou partes.
+Nao foi identificado esticamento de CSS no preview quadrado.
+
+`avatar-*-moon-v5.png` restaura os masters da primeira geracao, byte a byte.
+Entrega WebP mantem proporcao quadrada, sem recorte/retocagem. Foto circular
+centralizada com diametros 70/70/64% conforme o desenho. Pingentes originais
+podem se sobrepor ao contorno da foto; nao sao cortados para impor furo novo.
+Nenhuma nova geracao de imagem, alteracao de engine ou mudanca nos temas.
+
+A previa passa a mostrar tambem a arte original sem retrato, na mesma escala
+da moldura de 120px. Teste verifica hashes dos PNGs, proporcoes intrinseca e
+aplicada, object-fit contain, referencia sem retrato e calibracao em 4 larguras.
+Capturas: `AmandaBot/data/catalog_releases/lunar-original-v5/`.
+O restante deste documento registra a etapa v4, agora substituida nos manifestos.
+A suspensao solicitada na etapa v4 ja foi atendida; este ajuste nao a repete.
+
 ## Pedido e limites
 
 Substituir os aneis com pingentes da v3 por estruturas proprias de cada lua.

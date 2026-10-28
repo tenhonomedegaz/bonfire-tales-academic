@@ -2,8 +2,14 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const sharp = require(process.env.BONFIRE_SHARP_MODULE || 'sharp');
+const {createHash} = require('node:crypto');
 const media = path.resolve(__dirname, '../../home/static/cosmetics');
 const slugs = ['vermelha','negra','cristal'];
+const originalHashes = {
+  vermelha:'a028c576b1e9273c2144fca730c650b8ef2747610d6bb881c3f8cc8dbdb41e98',
+  negra:'054428ed480145c009d14084100c08622a5b40c2e4cf8e7d956ec36be4a4c37b',
+  cristal:'eb3f21844d965f8e9cb481a2ffaf4dbf74e657dc514529e425e66eacb6f4afd1',
+};
 
 async function main() {
   let reference;
@@ -21,7 +27,10 @@ async function main() {
 
     const frame = JSON.parse(await fs.readFile(path.join(media,'moldura-lua-'+slug+'.json'),'utf8'));
     const layer = frame.layers[0];
-    assert.match(layer.file,/-v4.webp$/);
+    assert.match(layer.file,/-v5.webp$/);
+    const master = await fs.readFile(path.join(media,layer.fallback));
+    assert.equal(createHash('sha256').update(master).digest('hex'),originalHashes[slug],
+      'Keep the original artwork; portrait calibration must not redraw the frame');
     assert.deepEqual([layer.aperture.cx,layer.aperture.cy],[50,50]);
     const {data,info} = await sharp(path.join(media,layer.file)).ensureAlpha().raw().toBuffer({resolveWithObject:true});
     assert.equal(info.width,info.height);
@@ -34,9 +43,8 @@ async function main() {
       if(distance<info.width*.2 && alpha>16) core++;
     }
     assert.equal(core,0,'Portrait center must stay transparent');
-    // Painted ornaments may overlap the contour, never a substantial part of the portrait.
-    assert.ok(overlap/portrait<.04,slug+': excessive portrait occlusion');
-    console.log(slug+': equal moon layout; clear portrait core; contour overlap '+(100*overlap/portrait).toFixed(2)+'%');
+    // Original inward pendants are intentional; do not cut them away to fit a synthetic hole.
+    console.log(slug+': unchanged original master; equal moon layout; clear portrait core; decorative overlap '+(100*overlap/portrait).toFixed(2)+'%');
   }
 }
 main().catch(error=>{console.error(error);process.exitCode=1;});

@@ -595,20 +595,20 @@ window.BonfireMoonFrames = {
     "avatar": [
       {
         "slot": "avatar",
-        "file": "avatar-blood-moon-v4.webp",
-        "fallback": "../../home/static/cosmetics/avatar-blood-moon-v4.png",
+        "file": "avatar-blood-moon-v5.webp",
+        "fallback": "../../home/static/cosmetics/avatar-blood-moon-v5.png",
         "width": 640,
         "height": 640,
         "motion": "none",
         "aperture": {
           "cx": 50,
           "cy": 50,
-          "diameter": 64
+          "diameter": 70
         },
         "anchor": "center",
         "sprite": "full",
         "overlay": false,
-        "url": "../../home/static/cosmetics/avatar-blood-moon-v4.webp"
+        "url": "../../home/static/cosmetics/avatar-blood-moon-v5.webp"
       }
     ]
   },
@@ -622,20 +622,20 @@ window.BonfireMoonFrames = {
     "avatar": [
       {
         "slot": "avatar",
-        "file": "avatar-black-moon-v4.webp",
-        "fallback": "../../home/static/cosmetics/avatar-black-moon-v4.png",
+        "file": "avatar-black-moon-v5.webp",
+        "fallback": "../../home/static/cosmetics/avatar-black-moon-v5.png",
         "width": 640,
         "height": 640,
         "motion": "none",
         "aperture": {
           "cx": 50,
           "cy": 50,
-          "diameter": 64
+          "diameter": 70
         },
         "anchor": "center",
         "sprite": "full",
         "overlay": false,
-        "url": "../../home/static/cosmetics/avatar-black-moon-v4.webp"
+        "url": "../../home/static/cosmetics/avatar-black-moon-v5.webp"
       }
     ]
   },
@@ -649,20 +649,20 @@ window.BonfireMoonFrames = {
     "avatar": [
       {
         "slot": "avatar",
-        "file": "avatar-crystal-moon-v4.webp",
-        "fallback": "../../home/static/cosmetics/avatar-crystal-moon-v4.png",
+        "file": "avatar-crystal-moon-v5.webp",
+        "fallback": "../../home/static/cosmetics/avatar-crystal-moon-v5.png",
         "width": 640,
         "height": 640,
         "motion": "none",
         "aperture": {
           "cx": 50,
           "cy": 50,
-          "diameter": 60
+          "diameter": 64
         },
         "anchor": "center",
         "sprite": "full",
         "overlay": false,
-        "url": "../../home/static/cosmetics/avatar-crystal-moon-v4.webp"
+        "url": "../../home/static/cosmetics/avatar-crystal-moon-v5.webp"
       }
     ]
   }

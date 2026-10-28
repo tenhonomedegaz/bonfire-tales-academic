@@ -84,9 +84,9 @@ continuam com os mesmos slugs, escopo `ambos` e leitor compartilhado.
 
 | Moldura | Nome-base PNG/WebP | Centro seguro x/y (%) | Diametro seguro (%) |
 | --- | --- | --- | --- |
-| Lua Vermelha | `avatar-blood-moon-v4` | 50 / 50 | 64 |
-| Lua Negra | `avatar-black-moon-v4` | 50 / 50 | 64 |
-| Lua de Cristal | `avatar-crystal-moon-v4` | 50 / 50 | 60 |
+| Lua Vermelha | `avatar-blood-moon-v5` | 50 / 50 | 70 |
+| Lua Negra | `avatar-black-moon-v5` | 50 / 50 | 70 |
+| Lua de Cristal | `avatar-crystal-moon-v5` | 50 / 50 | 64 |
 
 As v4 substituem a proposta de aneis vetoriais v2/v3 por artes raster com
 materiais diferentes: metal dourado/vermelho, pedra negra lascada com verde
@@ -98,12 +98,22 @@ Pequenos ornamentos sobrepoem o contorno (0,20%, 1,23% e 3,19% da area do
 retrato), sem cobrir seu centro. Nao confundir essa tolerancia artistica com
 o encaixe geometricamente exato das propostas vetoriais antigas.
 
-Fontes atuais: `avatar-*-moon-v4.png`; conversor de entrega:
+Correcao v5: o PO apontou diferenca gritante entre a arte original e a aplicada.
+A segunda passagem de geracao da v4 tinha redesenhado pontas, joias e proporcoes
+ao tentar regularizar o furo. As v5 restauram os tres masters da PRIMEIRA
+geracao, sem retocar ou regenerar pixels. Os pingentes voltam a se sobrepor a
+foto como no desenho original; somente a calibracao da foto por baixo muda.
+Os valores/tolerancias de v4 acima sao historicos, nao o aceite da v5.
+
+Fontes atuais: `avatar-*-moon-v5.png`; conversor de entrega:
 `prepare-lunar-materials.cjs` (Sharp instalado ou `BONFIRE_SHARP_MODULE`).
 `build-lunar-frames.cjs` e seu teste conservam a proposta vetorial v3,
 nao regeneram a arte atual. Verificacao atual: `lunar-materials.test.cjs`.
 Briefing, resultado e pendencias em `20261028-lunar-materials.md`.
-O leitor generico e as regras de posse nao foram alterados; o mesmo manifesto
+O teste atual trava os hashes dos masters originais. Na previa ha uma referencia
+sem foto na mesma escala da moldura maior; teste no navegador compara proporcao
+intrinseca, proporcao aplicada e escala, sem aceitar esticamento. O leitor
+generico e as regras de posse nao foram alterados; o mesmo manifesto
 atende perfil, ficha e previa.
 
 Os discos dos banners usam agora `blood-moon-disc-v3`, `black-moon-disc-v3`

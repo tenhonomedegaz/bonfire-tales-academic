@@ -56,6 +56,19 @@ document.addEventListener('DOMContentLoaded', () => {
       figure.appendChild(caption);
       samples.appendChild(figure);
     }
+    if (frameReady) {
+      const figure = document.createElement('figure');
+      const source = document.createElement('img');
+      source.src = frame.avatar[0].fallback;
+      source.alt = family.label + ': arte original sem retrato';
+      source.width = source.height = 158;
+      source.style.objectFit = 'contain';
+      source.dataset.frameOriginal = key;
+      const caption = document.createElement('figcaption');
+      caption.textContent = 'Arte original';
+      figure.append(source, caption);
+      samples.appendChild(figure);
+    }
     document.querySelector('[data-moon-card="' + key + '"]').appendChild(samples);
     function showFrame(visible) {
       for (const wrapper of portraits) {

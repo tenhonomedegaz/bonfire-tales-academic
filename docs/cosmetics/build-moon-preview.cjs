@@ -244,6 +244,19 @@ async function browserTest(snapshot) {
           await Promise.all(images.map(image => image.decode()));
           return images.every(image => image.naturalWidth > 0);
         }), true);
+        const projection = await card.evaluate(async node => {
+          const image = node.querySelector('.preview-avatar--medium .cosmetic-layer');
+          const original = node.querySelector('[data-frame-original]');
+          await original.decode();
+          const rendered = image.getBoundingClientRect(), reference = original.getBoundingClientRect();
+          return {ratio:rendered.width/rendered.height,intrinsic:image.naturalWidth/image.naturalHeight,
+            referenceRatio:reference.width/reference.height,fit:getComputedStyle(image).objectFit,
+            sizeDifference:Math.abs(rendered.width-reference.width)};
+        });
+        assert.equal(projection.ratio,projection.intrinsic,'Do not stretch the frame');
+        assert.equal(projection.ratio,projection.referenceRatio,'Original and equipped frame must share proportions');
+        assert.equal(projection.fit,'contain');
+        assert.ok(projection.sizeDifference<1,'Compare the original and equipped frame at the same scale');
         const calibrated = await portraits.evaluateAll(nodes => nodes.map(node => {
           const box = node.getBoundingClientRect(), photo = node.querySelector(':scope > img').getBoundingClientRect();
           return { width: photo.width / box.width, x: (photo.x + photo.width / 2 - box.x) / box.width,

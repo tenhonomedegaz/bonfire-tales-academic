@@ -11,7 +11,7 @@ const families = [
 
 async function main() {
   for (const family of families) {
-    const frame = 'avatar-' + family.key + '-moon-v4';
+    const frame = 'avatar-' + family.key + '-moon-v5';
     await sharp(path.join(media, frame+'.png')).resize(640,640,{fit:'contain'})
       .webp({quality:90,alphaQuality:100,effort:4}).toFile(path.join(media,frame+'.webp'));
     // Trim transparent padding, not painted content, before giving every disc the same box.

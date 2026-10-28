@@ -1,1 +1,1 @@
-{"version":1,"slug":"moldura-lua-vermelha","type":"moldura","scope":"ambos","layers":[{"slot":"avatar","file":"avatar-blood-moon-v4.webp","fallback":"avatar-blood-moon-v4.png","width":640,"height":640,"motion":"none","aperture":{"cx":50,"cy":50,"diameter":64}}]}
+{"version":1,"slug":"moldura-lua-vermelha","type":"moldura","scope":"ambos","layers":[{"slot":"avatar","file":"avatar-blood-moon-v5.webp","fallback":"avatar-blood-moon-v5.png","width":640,"height":640,"motion":"none","aperture":{"cx":50,"cy":50,"diameter":70}}]}
