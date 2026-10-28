@@ -197,12 +197,12 @@ window.BonfireMoonPreviews = {
     "banner": [
       {
         "slot": "banner",
-        "file": "black-moon-disc-v1.webp",
-        "fallback": "../../home/static/cosmetics/black-moon-disc-v1.png",
+        "file": "black-moon-disc-v2.webp",
+        "fallback": "../../home/static/cosmetics/black-moon-disc-v2.png",
         "width": 640,
-        "height": 631,
+        "height": 628,
         "motion": "none",
-        "opacity": 0.95,
+        "opacity": 1,
         "placement": {
           "x": 84,
           "y": 48,
@@ -216,16 +216,16 @@ window.BonfireMoonPreviews = {
         "sprite": "full",
         "anchor": "center",
         "overlay": true,
-        "url": "../../home/static/cosmetics/black-moon-disc-v1.webp"
+        "url": "../../home/static/cosmetics/black-moon-disc-v2.webp"
       },
       {
         "slot": "banner",
-        "file": "black-moon-clouds-v1.webp",
-        "fallback": "../../home/static/cosmetics/black-moon-clouds-v1.png",
+        "file": "black-moon-clouds-v2.webp",
+        "fallback": "../../home/static/cosmetics/black-moon-clouds-v2.png",
         "width": 1400,
         "height": 392,
         "motion": "drift",
-        "opacity": 0.3,
+        "opacity": 0.72,
         "placement": {
           "x": 60,
           "y": 36,
@@ -244,16 +244,16 @@ window.BonfireMoonPreviews = {
         "sprite": "full",
         "anchor": "center",
         "overlay": true,
-        "url": "../../home/static/cosmetics/black-moon-clouds-v1.webp"
+        "url": "../../home/static/cosmetics/black-moon-clouds-v2.webp"
       },
       {
         "slot": "banner",
-        "file": "black-moon-clouds-v1.webp",
-        "fallback": "../../home/static/cosmetics/black-moon-clouds-v1.png",
+        "file": "black-moon-clouds-v2.webp",
+        "fallback": "../../home/static/cosmetics/black-moon-clouds-v2.png",
         "width": 1400,
         "height": 392,
         "motion": "drift",
-        "opacity": 0.15,
+        "opacity": 0.38,
         "placement": {
           "x": 68,
           "y": 68,
@@ -272,7 +272,7 @@ window.BonfireMoonPreviews = {
         "sprite": "full",
         "anchor": "center",
         "overlay": true,
-        "url": "../../home/static/cosmetics/black-moon-clouds-v1.webp"
+        "url": "../../home/static/cosmetics/black-moon-clouds-v2.webp"
       },
       {
         "slot": "banner",
@@ -357,21 +357,21 @@ window.BonfireMoonPreviews = {
       },
       {
         "slot": "banner",
-        "file": "black-moon-charms-v1.webp",
-        "fallback": "../../home/static/cosmetics/black-moon-charms-v1.png",
-        "width": 306,
-        "height": 1565,
+        "file": "black-moon-charms-v2.webp",
+        "fallback": "../../home/static/cosmetics/black-moon-charms-v2.png",
+        "width": 600,
+        "height": 1294,
         "motion": "float",
-        "opacity": 0.85,
+        "opacity": 0.95,
         "placement": {
-          "x": 94,
-          "y": 2,
-          "width": 3.7
+          "x": 95.5,
+          "y": 0,
+          "width": 8
         },
         "mobile": {
-          "x": 91,
-          "y": 2,
-          "width": 9
+          "x": 91.5,
+          "y": 0,
+          "width": 16
         },
         "pivot": {
           "x": 50,
@@ -380,7 +380,7 @@ window.BonfireMoonPreviews = {
         "sprite": "full",
         "anchor": "center",
         "overlay": true,
-        "url": "../../home/static/cosmetics/black-moon-charms-v1.webp"
+        "url": "../../home/static/cosmetics/black-moon-charms-v2.webp"
       }
     ],
     "ornament": [],
@@ -554,21 +554,21 @@ window.BonfireMoonPreviews = {
       },
       {
         "slot": "banner",
-        "file": "crystal-moon-charms-v1.webp",
-        "fallback": "../../home/static/cosmetics/crystal-moon-charms-v1.png",
-        "width": 303,
-        "height": 1565,
+        "file": "crystal-moon-charms-v2.webp",
+        "fallback": "../../home/static/cosmetics/crystal-moon-charms-v2.png",
+        "width": 600,
+        "height": 995,
         "motion": "float",
         "opacity": 0.85,
         "placement": {
-          "x": 94,
-          "y": 2,
-          "width": 3.7
+          "x": 94.5,
+          "y": 0,
+          "width": 10
         },
         "mobile": {
-          "x": 91,
-          "y": 2,
-          "width": 9
+          "x": 89,
+          "y": 0,
+          "width": 21
         },
         "pivot": {
           "x": 50,
@@ -577,10 +577,93 @@ window.BonfireMoonPreviews = {
         "sprite": "full",
         "anchor": "center",
         "overlay": true,
-        "url": "../../home/static/cosmetics/crystal-moon-charms-v1.webp"
+        "url": "../../home/static/cosmetics/crystal-moon-charms-v2.webp"
       }
     ],
     "ornament": [],
     "avatar": []
+  }
+};
+window.BonfireMoonFrames = {
+  "vermelha": {
+    "slug": "moldura-lua-vermelha",
+    "type": "moldura",
+    "version": 1,
+    "overlay": false,
+    "banner": [],
+    "ornament": [],
+    "avatar": [
+      {
+        "slot": "avatar",
+        "file": "avatar-blood-moon-v1.webp",
+        "fallback": "../../home/static/cosmetics/avatar-blood-moon-v1.png",
+        "width": 640,
+        "height": 640,
+        "motion": "none",
+        "aperture": {
+          "cx": 50,
+          "cy": 50,
+          "diameter": 50.783
+        },
+        "anchor": "center",
+        "sprite": "full",
+        "overlay": false,
+        "url": "../../home/static/cosmetics/avatar-blood-moon-v1.webp"
+      }
+    ]
+  },
+  "negra": {
+    "slug": "moldura-lua-negra",
+    "type": "moldura",
+    "version": 1,
+    "overlay": false,
+    "banner": [],
+    "ornament": [],
+    "avatar": [
+      {
+        "slot": "avatar",
+        "file": "avatar-black-moon-v1.webp",
+        "fallback": "../../home/static/cosmetics/avatar-black-moon-v1.png",
+        "width": 640,
+        "height": 640,
+        "motion": "none",
+        "aperture": {
+          "cx": 48.828,
+          "cy": 48.828,
+          "diameter": 49.257
+        },
+        "anchor": "center",
+        "sprite": "full",
+        "overlay": false,
+        "url": "../../home/static/cosmetics/avatar-black-moon-v1.webp"
+      }
+    ]
+  },
+  "cristal": {
+    "slug": "moldura-lua-cristal",
+    "type": "moldura",
+    "version": 1,
+    "overlay": false,
+    "banner": [],
+    "ornament": [],
+    "avatar": [
+      {
+        "slot": "avatar",
+        "file": "avatar-crystal-moon-v1.webp",
+        "fallback": "../../home/static/cosmetics/avatar-crystal-moon-v1.png",
+        "width": 640,
+        "height": 640,
+        "motion": "none",
+        "aperture": {
+          "cx": 50.781,
+          "cy": 50,
+          "diameter": 51.576
+        },
+        "anchor": "center",
+        "sprite": "full",
+        "overlay": false,
+        "url": "../../home/static/cosmetics/avatar-crystal-moon-v1.webp"
+      }
+    ]
   }
 };

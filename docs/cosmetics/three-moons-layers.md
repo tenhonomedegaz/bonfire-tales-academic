@@ -58,12 +58,12 @@ seis elementos de cada familia nova; os quatro vermelhos restantes sao reuso.
 
 | Elemento | PNG master | WebP de entrega |
 | --- | --- | --- |
-| Disco lunar | `black-moon-disc-v1.png` | `black-moon-disc-v1.webp` |
-| Nuvens | `black-moon-clouds-v1.png` | `black-moon-clouds-v1.webp` |
+| Disco lunar | `black-moon-disc-v2.png` | `black-moon-disc-v2.webp` |
+| Nuvens | `black-moon-clouds-v2.png` | `black-moon-clouds-v2.webp` |
 | Galhos laterais | `black-moon-branches-v1.png` | `black-moon-branches-v1.webp` |
 | Primeiro plano esquerdo | `black-moon-foreground-left-v1.png` | `black-moon-foreground-left-v1.webp` |
 | Primeiro plano direito | `black-moon-foreground-right-v1.png` | `black-moon-foreground-right-v1.webp` |
-| Pingentes | `black-moon-charms-v1.png` | `black-moon-charms-v1.webp` |
+| Pingentes | `black-moon-charms-v2.png` | `black-moon-charms-v2.webp` |
 
 ### Lua de Cristal
 
@@ -74,7 +74,45 @@ seis elementos de cada familia nova; os quatro vermelhos restantes sao reuso.
 | Galhos laterais | `crystal-moon-branches-v1.png` | `crystal-moon-branches-v1.webp` |
 | Primeiro plano esquerdo | `crystal-moon-foreground-left-v1.png` | `crystal-moon-foreground-left-v1.webp` |
 | Primeiro plano direito | `crystal-moon-foreground-right-v1.png` | `crystal-moon-foreground-right-v1.webp` |
-| Pingentes | `crystal-moon-charms-v1.png` | `crystal-moon-charms-v1.webp` |
+| Pingentes | `crystal-moon-charms-v2.png` | `crystal-moon-charms-v2.webp` |
+
+### Molduras de avatar da mesma familia
+
+Cada par abaixo usa PNG editavel e WebP de entrega. Os manifestos
+`moldura-lua-vermelha.json`, `moldura-lua-negra.json` e `moldura-lua-cristal.json`
+continuam com os mesmos slugs, escopo `ambos` e leitor compartilhado.
+
+| Moldura | Nome-base PNG/WebP | Centro seguro x/y (%) | Diametro seguro (%) |
+| --- | --- | --- | --- |
+| Lua Vermelha | `avatar-blood-moon-v1` | 50 / 50 | 50.783 |
+| Lua Negra | `avatar-black-moon-v1` | 48.828 / 48.828 | 49.257 |
+| Lua de Cristal | `avatar-crystal-moon-v1` | 50.781 / 50 | 51.576 |
+
+`aperture` foi medido no alpha de cada arte, com margem conservadora: nao foi
+copiado um diametro ficticio de todas as molduras. As pontas e pingentes nao
+devem cortar a foto. O mesmo ajuste e usado nos avatares pequenos e ampliados,
+no perfil e na ficha. Molduras anteriores continuam arquivadas; nenhum rank
+foi modificado. As tres agora se chamam "Moldura", nao "Elmo", na proposta.
+
+### Ajuste escuro da Lua Negra e fixacao dos pingentes
+
+A Lua Negra usa disco e nuvens v2 realmente mais escuros, nao reducao de
+opacidade que revelaria o banner por baixo. Luminancia media ponderada pelo
+alpha dos WebPs: disco 79.55 -> 32.29; nuvens 74.90 -> 22.34. E uma medicao
+dos assets, nao uma promessa de contraste em qualquer imagem de usuario.
+Vermelha e Cristal mantiveram seus discos e nuvens anteriores.
+
+Os pingentes v1 eram estreitos/compridos (aprox. 0.19 de largura/altura),
+enquanto o vermelho tem proporcao proxima de 0.64. As novas pecas reorganizam
+tres correntes em larguras maiores. Negra usa elos de ferro preto e crescents
+de obsidiana; Cristal conserva prata, quartzo e branco purificado.
+Ambos usam `pivot: {x:50,y:0}` e `placement.y:0`, presos pelo topo, nao pelo
+centro. Larguras sao especificas da proporcao: Negra 8%/16% desktop/mobile;
+Cristal 10%/21%. Sao dados no manifesto, sem condicional no motor por tema.
+
+Prompts exatos das sete novas artes e ferramenta usada:
+`20261028-moon-polish-prompts.json`. ImageGen integrado; PNGs preservados,
+WebPs proporcionais. Nenhum fundo opaco foi adicionado.
 
 ### Regras para nao perder o trabalho aprovado
 
@@ -103,8 +141,9 @@ nenhuma imagem quebrada, controles independentes, pausa, banner local sem
 upload e texto sem overflow. As caixas dos primeiros planos terminaram
 exatamente nos cantos inferiores (desvio medido: 0 px).
 
-As versoes WebP somam 465.012 bytes na Vermelha, 626.330 na Negra e 682.470
-na Cristal. PNGs editaveis e referencias anteriores foram preservados.
+As versoes WebP dos temas atuais somam 465.012 bytes na Vermelha, 562.504 na
+Negra e 717.290 na Cristal. As molduras somam mais 111.746, 116.978 e 156.364
+bytes, respectivamente. PNGs editaveis e referencias anteriores foram preservados.
 O recorte de margens transparentes alinha o pivot com a arte, nao com um
 espaco vazio. A proporcao natural e mantida. A escolha do layout mobile
 considera tambem a largura do proprio banner via container query, inclusive

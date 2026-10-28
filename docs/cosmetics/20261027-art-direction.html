@@ -5,14 +5,14 @@
 <title>Bonfire | Três Luas sobre banner</title>
 <link rel="stylesheet" href="../../home/static/css/components/cosmetic-presentation.css?v=8">
 <script src="../../home/static/cosmetics/renderer.js?v=8" defer></script>
-<script src="blood-moon-preview-data.js?v=3" defer></script>
-<script src="20261027-art-direction.js?v=3" defer></script>
+<script src="blood-moon-preview-data.js?v=4" defer></script>
+<script src="20261027-art-direction.js?v=4" defer></script>
 <script type="application/json" id="moon-config">
 {
   "families": {
-    "vermelha": {"label":"Lua Vermelha","manifest":"tema-lua-vermelha.json","family":"blood-moon"},
-    "negra": {"label":"Lua Negra","manifest":"tema-lua-negra.json","family":"black-moon"},
-    "cristal": {"label":"Lua de Cristal","manifest":"tema-lua-cristal.json","family":"crystal-moon"}
+    "vermelha": {"label":"Lua Vermelha","manifest":"tema-lua-vermelha.json","frameManifest":"moldura-lua-vermelha.json","family":"blood-moon"},
+    "negra": {"label":"Lua Negra","manifest":"tema-lua-negra.json","frameManifest":"moldura-lua-negra.json","family":"black-moon"},
+    "cristal": {"label":"Lua de Cristal","manifest":"tema-lua-cristal.json","frameManifest":"moldura-lua-cristal.json","family":"crystal-moon"}
   },
   "roles": {"disc":"Lua","clouds":"Nuvens","branches":"Galhos","foreground-left":"Foreground esquerdo","foreground-right":"Foreground direito","charms":"Pingentes"}
 }
@@ -22,6 +22,7 @@
 @media(max-width:1000px){.moon-grid{grid-template-columns:1fr}.moon-card{display:grid;grid-template-columns:minmax(0,1fr) minmax(240px,.75fr)}.moon-card>h2{grid-column:1/-1}.moon-card>.hero{min-height:230px}.theme-status{grid-column:1/-1}.asset-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:600px){main{padding:16px}h1{font-size:24px}.moon-card{display:block}.layer-options{gap:12px}.hero-copy{padding:14px}.comparison-grid{grid-template-columns:1fr}.asset-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.banner-file{width:100%}}
 @media(prefers-reduced-motion:reduce){.moon-hero *{animation:none!important;transition:none!important}}
+.preview-avatar{position:relative;display:block;flex:none;width:46px;height:46px;border-radius:50%}.preview-avatar>img{display:block;width:100%;height:100%;border-radius:50%;object-fit:cover}.hero-copy>.preview-avatar{width:40px;height:40px;margin:7px}.hero-copy>div:last-child{min-width:0;overflow-wrap:anywhere}.avatar-samples{grid-column:1/-1;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:32px;padding:28px 22px 30px;border-top:1px solid #41464e}.avatar-samples figure{margin:0;display:grid;justify-items:center;gap:22px;flex:none}.avatar-samples figcaption{font-size:11px;color:#b7bec8}.preview-avatar--medium{width:120px;height:120px}.frame-option{grid-column:1/-1}.preview-paused :is(.cosmetic-layer,.cosmetic-breeze,.cosmetic-positioned){animation-play-state:paused!important}
 </style>
 <main>
   <header><h1>Três Luas</h1><p>Propostas transparentes sobre o banner real</p></header>

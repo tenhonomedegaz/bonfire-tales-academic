@@ -1,0 +1,37 @@
+[
+  {
+    "asset": "black-moon-disc-v2",
+    "tool": "image_gen",
+    "prompt": "Edit this BLACK MOON sprite, preserving its exact circular shape, crater geography, painterly cel-shaded texture and transparent outside. It is MUCH TOO LIGHT SILVER currently. Make the lunar surface predominantly near-black obsidian charcoal, with dark graphite crater ridges and only sparse muted ash highlights. Reduce overall perceived brightness by roughly 50-60%, but preserve readable texture. Necromantic identity: extremely subtle desaturated green hairline fissures, no neon and no white/bright silver surface or halo. Thin dark pewter outer rim only. This is the Black Moon, not a grey moon. Keep full disc centered, same shape, no new symbols/text, no skull face, no sky or clouds. TRUE TRANSPARENT alpha everywhere outside the moon. Do not add a dark rectangular background."
+  },
+  {
+    "asset": "black-moon-charms-v2",
+    "tool": "image_gen",
+    "prompt": "Redesign this Black Moon hanging accessory into a more elaborate BLACK IRON CHAIN ornament, matching Bonfire Tales painted cel-shaded fantasy style. Output standalone on TRUE TRANSPARENT alpha. IMPORTANT COMPOSITION: three separate thin blackened-iron chains start at TOP edge, spaced across a moderately WIDE portrait canvas (width about 60% of height), and hang to staggered lengths. NOT one extremely long thin vertical necklace. The three chains curve and drape gently, with distinctly sculpted black links, subtle graphite edge highlights for visibility. Include black obsidian crescent charms, tiny old bone/pewter clasps, sparse muted spectral green stones and understated necromantic engraving without text. Main crescent in upper-middle of longest chain; two smaller crescents offset left/right. Rich crafted detail, not simple straight silver necklace. Black/dark charcoal dominant, no golden or bright silver chains. Minimal padding around art, top links touch top edge. NO tree, backdrop, moon disc, frame, words or huge skull. This sprite attaches to branches across upper-right of a banner; center/left stay transparent."
+  },
+  {
+    "asset": "black-moon-clouds-v2",
+    "tool": "image_gen",
+    "prompt": "Edit this Black Moon cloud sprite into VERY DARK BLACK SHADOW CLOUDS. Keep its exact long wind-swept painted angular silhouette, transparent gaps and feathered ends. Remove ALL white, silver and pale green rim lighting. Cloud interiors near-black soot and deep charcoal, with only sparse muted graphite contour marks to reveal texture. Menacing shadow/necromancy, not a bright grey storm bank. Aim 65% darker than reference. No colored glow. Full cloud bank isolated on TRUE TRANSPARENT alpha, no rectangular black sky or solid backdrop, no moon/branches/charms/text. The cloud shapes must remain distinguishable on a midtone banner while looking genuinely BLACK. Same painterly cel-shaded Bonfire style."
+  },
+  {
+    "asset": "crystal-moon-charms-v2",
+    "tool": "image_gen",
+    "prompt": "Edit this Crystal Moon pendant sprite to FIX ITS COMPOSITION for a banner. Preserve its lovely white-silver crescent charms, clear quartz droplets and painterly cel-shaded style, but rearrange into THREE separate hanging chains beginning at TOP edge spaced across a moderately wide portrait canvas (width about 60% of height). Their lengths stagger, main crescent upper-middle, smaller crescents offset left/right. NOT one extremely long thin necklace. Top chain ends touch top canvas edge for correct attachment to tree branches. Minimal surrounding transparent padding. Fine detailed silver links and restrained pearl/cyan facets, clean and purified, not ice/icicles or neon. TRUE TRANSPARENT alpha through gaps and everywhere outside metal/quartz. NO tree, sky, moon disc, opaque white backdrop, frame or text. Match the spatial silhouette of a refined three-chain hanging banner ornament."
+  },
+  {
+    "asset": "avatar-blood-moon-v1",
+    "tool": "image_gen",
+    "prompt": "Create a NEW AVATAR FRAME for BLOOD MOON Bonfire Tales, not a banner. Reference1 defines the approved blood moon painted theme; reference2 is ONLY hollow circular avatar geometry, do NOT copy its heavy golden armor. Refined stylized hand-painted cel-shaded fantasy game UI. A circular wreath of dark charcoal thorn branches, dark bronze crescent metalwork, restrained deep crimson gemstone/vein accents, small blood-moon crescent crest at top, a few tiny bronze chain details at sides. Detailed crafted silhouette but not photorealistic or shiny gold armor, no helmet. CRITICAL: square canvas, frame perfectly centered at 50% x 50%, inner clear aperture is a PERFECT CIRCLE 64% of full canvas diameter. Nothing intrudes inside that aperture. Entire central aperture and exterior are TRUE TRANSPARENT alpha, absolutely no portrait/background. Outer frame roughly 90% of canvas. Small extra accents stay outside hole. Symmetrical optical balance, no text, no huge horns, no floating scenery, no rectangular border. Must read well at avatar 64px and 120px while matching the approved red cloud/moon/branches theme."
+  },
+  {
+    "asset": "avatar-black-moon-v1",
+    "tool": "image_gen",
+    "prompt": "Create BLACK MOON AVATAR FRAME, sibling of reference1 blood-moon frame; reference2 and reference3 define the newly DARK OBSIDIAN moon and elaborate black iron chains. Match refined painted/cel-shaded fantasy UI style, not photoreal metal. Circular wreath of petrified charcoal branches intertwined with BLACK IRON CHAIN links, dark obsidian crescent fittings, tiny old bone details and very restrained dull green fissures. Predominantly BLACK, subtle graphite edges retain legibility, no silver/gold ring. A small dark moon crest sits OUTSIDE the inner ring at top. CRITICAL: perfectly centered square composition; a LARGE PERFECTLY CIRCULAR clear aperture at center50%50%, diameter64% of fullcanvas. All pendants/branches/points stay OUTSIDE that circle; do NOT hang objects into portrait area. Center hole/exterior TRUE TRANSPARENT alpha. Outerart90%canvas. No helmet, horns, face, portrait, background, scenery, letters or fullmoon filling center. Symmetric opticalbalance, ornate blackchains more distinctive than a simple ring. Preserve round transparent portrait window at64/120px."
+  },
+  {
+    "asset": "avatar-crystal-moon-v1",
+    "tool": "image_gen",
+    "prompt": "Create CRYSTAL MOON AVATAR FRAME, sibling of reference1 circular blood-moon frame; reference2 defines the white purified moon. Same detailed hand-painted/cel-shaded fantasy UI style. Circular wreath of clean silver-lit slender branches, pale pewter crescent fittings, fine silver chains, clear quartz droplets and restrained pearl-white/cyan crystalline highlights. Purified Blood Moon, NOT ice/snow/icicles. Small luminous white moon crest OUTSIDE inner ring at top. Elegant and recognizable at64/120px, not photorealistic metal, no helmet. CRITICAL perfectly centered square; LARGE PERFECTLY CIRCULAR portrait aperture diameter64% at center50%50%. Keep ALL hanging ornaments/points OUTSIDE this circle; do not cover the portrait. Center hole and exterior TRUE TRANSPARENT alpha, no background/portrait/scene/lettering. Outer art90%canvas, symmetric opticalbalance. Match sibling geometry and scale while using white silver clear crystal instead of red/bronze."
+  }
+]

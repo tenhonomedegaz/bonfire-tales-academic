@@ -1,1 +1,1 @@
-{"version":1,"slug":"moldura-lua-negra","type":"moldura","scope":"ambos","layers":[{"slot":"avatar","file":"frame-lua-negra-v2.png","fallback":"frame-lua-negra-v2.png","width":1254,"height":1254,"motion":"none"}]}
+{"version":1,"slug":"moldura-lua-negra","type":"moldura","scope":"ambos","layers":[{"slot":"avatar","file":"avatar-black-moon-v1.webp","fallback":"avatar-black-moon-v1.png","width":640,"height":640,"motion":"none","aperture":{"cx":48.828,"cy":48.828,"diameter":49.257}}]}

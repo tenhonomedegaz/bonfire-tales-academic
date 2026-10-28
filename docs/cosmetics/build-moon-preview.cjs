@@ -65,9 +65,110 @@ function buildSnapshot() {
   return result;
 }
 
-function sourceFor(snapshot) {
+function validateFrame(raw, family, checkFiles = true) {
+  assert.equal(raw.version, 1);
+  assert.equal(raw.type, 'moldura');
+  assert.equal(raw.slug + '.json', family.frameManifest);
+  assert.ok(['perfil', 'ambos'].includes(raw.scope));
+  assert.ok(raw.overlay === undefined || typeof raw.overlay === 'boolean');
+  assert.ok(Array.isArray(raw.layers) && raw.layers.length === 1, 'One calibrated frame per family');
+  for (const layer of raw.layers) {
+    assert.equal(layer.slot, 'avatar');
+    for (const property of ['file', 'fallback']) {
+      assert.ok(['png', 'webp'].some(extension => layer[property] === 'avatar-' + family.family + '-v1.' + extension),
+        family.frameManifest + ': unexpected avatar filename: ' + layer[property]);
+      if (checkFiles) {
+        const asset = path.join(media, layer[property]);
+        assert.ok(fs.statSync(asset).isFile());
+        assert.ok(fs.statSync(asset).size <= 4 * 1024 * 1024);
+      }
+    }
+    for (const dimension of ['width', 'height']) {
+      assert.ok(Number.isInteger(layer[dimension]) && layer[dimension] >= 32 && layer[dimension] <= 4096);
+    }
+    assert.ok(['center', 'left', 'right'].includes(layer.anchor || 'center'));
+    assert.ok(['none', 'float', 'pulse'].includes(layer.motion || 'none'));
+    assert.equal(layer.sprite || 'full', 'full');
+    assert.ok(!['placement', 'mobile', 'motion_params', 'pivot'].some(key => key in layer));
+    if ('opacity' in layer) assert.ok(typeof layer.opacity === 'number' && Number.isFinite(layer.opacity) && layer.opacity >= 0 && layer.opacity <= 1);
+    assert.ok(layer.aperture && typeof layer.aperture === 'object');
+    for (const key of ['cx', 'cy', 'diameter']) {
+      const value = layer.aperture[key];
+      assert.ok(typeof value === 'number' && Number.isFinite(value) && value > 0 && value < 100,
+        family.frameManifest + ': invalid aperture ' + key);
+    }
+  }
+}
+
+function buildFrames() {
+  return Object.fromEntries(Object.entries(readConfig().families).map(([key, family]) => {
+    assert.equal(family.frameManifest, 'moldura-lua-' + key + '.json');
+    const raw = JSON.parse(fs.readFileSync(path.join(media, family.frameManifest), 'utf8'));
+    validateFrame(raw, family);
+    return [key, {
+      slug: raw.slug, type: raw.type, version: raw.version, overlay: raw.overlay ?? false,
+      banner: [], ornament: [],
+      avatar: raw.layers.map(layer => ({
+        ...layer, anchor: layer.anchor || 'center', motion: layer.motion || 'none',
+        sprite: layer.sprite || 'full', overlay: raw.overlay ?? false,
+        aperture: Object.fromEntries(['cx', 'cy', 'diameter'].map(key => [key, layer.aperture[key]])),
+        url: '../../home/static/cosmetics/' + layer.file,
+        fallback: '../../home/static/cosmetics/' + layer.fallback,
+      })),
+    }];
+  }));
+}
+
+function testFrameSchema() {
+  for (const family of Object.values(readConfig().families)) {
+    const layer = { slot: 'avatar', file: 'avatar-' + family.family + '-v1.webp',
+      fallback: 'avatar-' + family.family + '-v1.png', width: 1024, height: 1024,
+      aperture: { cx: 50, cy: 48, diameter: 60 } };
+    const raw = { version: 1, type: 'moldura', slug: family.frameManifest.slice(0, -5), scope: 'ambos', layers: [layer] };
+    validateFrame(raw, family, false);
+    for (const patch of [{slot: 'banner'}, {file: '../avatar.png'}, {file: family.family + '-disc-v1.png'},
+      {fallback: 'avatar-other-moon-v1.png'}, {aperture: null}, {width: 31}, {motion: 'drift'},
+      ...['cx', 'cy', 'diameter'].flatMap(key => [0, 100, -1, NaN, Infinity, true, '50', undefined].map(value =>
+        ({aperture: {...layer.aperture, [key]: value}})))]) {
+      assert.throws(() => validateFrame({...raw, layers: [{...layer, ...patch}]}, family, false));
+    }
+  }
+  console.log('Frame schema: three families, avatar filenames, scope, dimensions and aperture invalid-input tests OK.');
+}
+
+function testServerFrames(frames) {
+  const { spawnSync } = require('node:child_process');
+  const script = [
+    'import os,json',
+    'os.environ.setdefault("DJANGO_SETTINGS_MODULE", "bonfire.settings")',
+    'import django; django.setup()',
+    'from django.db import connection',
+    'from home.cosmetic_packages import load_package',
+    'def no_sql(*args, **kwargs): raise AssertionError("Preview must not access the database")',
+    'with connection.execute_wrapper(no_sql):',
+    ' print(json.dumps({k:load_package("moldura", "lua-"+k) for k in ["vermelha","negra","cristal"]}))',
+  ].join('\n');
+  const run = spawnSync(process.env.BONFIRE_PYTHON || 'python', ['-c', script], {cwd: root, encoding: 'utf8'});
+  assert.equal(run.status, 0, run.stderr || run.error?.message);
+  const server = JSON.parse(run.stdout);
+  for (const [key, frame] of Object.entries(frames)) {
+    assert.ok(server[key], key + ': load_package rejected frame');
+    const expected = server[key].avatar[0];
+    for (const property of ['anchor', 'motion', 'sprite', 'width', 'height', 'overlay', 'aperture', 'opacity']) {
+      assert.deepEqual(frame.avatar[0][property], expected[property], key + ': server parity ' + property);
+    }
+    for (const property of ['url', 'fallback']) {
+      assert.equal(path.posix.basename(frame.avatar[0][property]), path.posix.basename(expected[property]));
+      assert.ok(frame.avatar[0][property].startsWith('../../home/static/cosmetics/'));
+    }
+  }
+  console.log('Three frames match server load_package, including aperture; SQL forbidden.');
+}
+
+function sourceFor(snapshot, frames) {
   return '// Generated by build-moon-preview.cjs; edit the manifests, not this snapshot.\n' +
-    'window.BonfireMoonPreviews = ' + JSON.stringify(snapshot, null, 2) + ';\n';
+    'window.BonfireMoonPreviews = ' + JSON.stringify(snapshot, null, 2) + ';\n' +
+    'window.BonfireMoonFrames = ' + JSON.stringify(frames, null, 2) + ';\n';
 }
 
 function testValidation(snapshot) {
@@ -99,7 +200,7 @@ async function browserTest(snapshot) {
     args: ['--allow-file-access-from-files'] });
   const config = readConfig();
   try {
-    for (const width of [390, 1280]) {
+    for (const width of [320, 390, 768, 1280]) {
       const page = await browser.newPage({ viewport: { width, height: 940 } });
       const errors = [], network = [];
       page.on('pageerror', error => errors.push(error.message));
@@ -132,6 +233,40 @@ async function browserTest(snapshot) {
       for (const result of alpha) assert.ok(result.transparent >= .1, 'Opaque asset: ' + JSON.stringify(result));
       for (const [key, family] of Object.entries(config.families)) {
         const hero = page.locator('[data-moon-hero="' + key + '"]');
+        const card = page.locator('[data-moon-card="' + key + '"]');
+        const portraits = card.locator('.preview-avatar');
+        assert.equal(await portraits.count(), 3);
+        assert.equal(await card.locator('.has-calibrated-portrait').count(), 3);
+        assert.equal(await card.locator('.preview-avatar--medium').evaluate(node => node.getBoundingClientRect().width), 120);
+        assert.equal(await hero.locator('.preview-avatar').evaluate(node => node.getBoundingClientRect().width), 40);
+        assert.equal(await portraits.locator('.cosmetic-layer').evaluateAll(async images => {
+          await Promise.all(images.map(image => image.decode()));
+          return images.every(image => image.naturalWidth > 0);
+        }), true);
+        const calibrated = await portraits.evaluateAll(nodes => nodes.map(node => {
+          const box = node.getBoundingClientRect(), photo = node.querySelector(':scope > img').getBoundingClientRect();
+          return { width: photo.width / box.width, x: (photo.x + photo.width / 2 - box.x) / box.width,
+            y: (photo.y + photo.height / 2 - box.y) / box.height };
+        }));
+        const aperture = await page.evaluate(key => window.BonfireMoonFrames[key].avatar[0].aperture, key);
+        for (const photo of calibrated) {
+          assert.ok(Math.abs(photo.width - aperture.diameter * .0132) < .005);
+          assert.ok(Math.abs(photo.x - (-.16 + aperture.cx * .0132)) < .005);
+          assert.ok(Math.abs(photo.y - (-.16 + aperture.cy * .0132)) < .005);
+        }
+        const frameToggle = page.locator('[data-frame-toggle="' + key + '"]');
+        await frameToggle.uncheck();
+        assert.equal(await card.locator('.cosmetic-layers--avatar,.has-calibrated-portrait,.is-packaged').count(), 0);
+        assert.equal(await page.locator('.moon-card .cosmetic-layers--avatar').count(), 6, 'Only this family loses its frame');
+        await frameToggle.check();
+        assert.equal(await card.locator('.has-calibrated-portrait').count(), 3);
+        assert.equal(await portraits.evaluateAll(nodes => nodes.every(node => {
+          const frame = node.querySelector('.cosmetic-layers--avatar').getBoundingClientRect();
+          const sample = node.closest('figure');
+          if (!sample) return true;
+          const caption = sample.querySelector('figcaption').getBoundingClientRect();
+          return frame.bottom <= caption.top + 1;
+        })), true, 'Frame must not overlap its caption');
         assert.equal(await hero.locator('.hero-banner').evaluate(async image => { await image.decode(); return image.naturalWidth > 0; }), true);
         assert.equal(await hero.locator('img[src*="-sky-"]').count(), 0);
         for (const role of Object.keys(config.roles)) {
@@ -187,8 +322,11 @@ async function browserTest(snapshot) {
 }
 
 async function main() {
+    if (process.argv.includes('--schema-test')) { testFrameSchema(); return; }
     const snapshot = buildSnapshot();
-    const source = sourceFor(snapshot);
+    const frames = buildFrames();
+    const source = sourceFor(snapshot, frames);
+    if (process.argv.includes('--server-test')) { testServerFrames(frames); return; }
     if (process.argv.includes('--check') || process.argv.includes('--browser-test')) {
       assert.equal(fs.readFileSync(snapshotPath, 'utf8'), source, 'Snapshot is stale; run build-moon-preview.cjs');
       console.log('Three-theme snapshot matches the real manifests.');
@@ -196,7 +334,7 @@ async function main() {
       fs.writeFileSync(snapshotPath, source);
       console.log('Generated BonfireMoonPreviews: ' + Object.keys(snapshot).join(', '));
     }
-    if (process.argv.includes('--test')) testValidation(snapshot);
+    if (process.argv.includes('--test')) { testValidation(snapshot); testFrameSchema(); testServerFrames(frames); }
     if (process.argv.includes('--browser-test')) await browserTest(snapshot);
 }
 if (require.main === module) {
@@ -205,4 +343,4 @@ if (require.main === module) {
     process.exitCode = 1;
   });
 }
-module.exports = { buildSnapshot, sourceFor, readConfig, validateManifest };
+module.exports = { buildSnapshot, buildFrames, sourceFor, readConfig, validateManifest, validateFrame, testFrameSchema };

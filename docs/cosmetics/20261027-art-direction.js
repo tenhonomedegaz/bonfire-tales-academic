@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
   'use strict';
   const config = JSON.parse(document.getElementById('moon-config').textContent);
   const snapshots = window.BonfireMoonPreviews || {};
+  const frames = window.BonfireMoonFrames || {};
   const status = document.getElementById('preview-status');
   const localBanner = document.getElementById('local-banner');
   const bannerImages = [...document.querySelectorAll('.moon-hero > .hero-banner')];
@@ -27,6 +28,58 @@ document.addEventListener('DOMContentLoaded', () => {
     const controls = document.querySelector('[data-layer-controls="' + key + '"]');
     const state = document.querySelector('[data-theme-status="' + key + '"]');
     const pack = snapshots[key];
+    const frame = frames[key];
+    const frameReady = frame?.type === 'moldura' && frame.avatar?.length > 0 &&
+      frame.avatar.every(layer => layer.aperture) && typeof window.CosmeticRenderer?.render === 'function';
+    const portraits = [];
+    function portrait(image, medium = false) {
+      const wrapper = document.createElement('span');
+      wrapper.className = 'banner-character-avatar preview-avatar' + (medium ? ' preview-avatar--medium' : '');
+      image.classList.remove('portrait');
+      image.replaceWith(wrapper);
+      wrapper.appendChild(image);
+      portraits.push(wrapper);
+      return wrapper;
+    }
+    const heroPortrait = hero.querySelector('.portrait');
+    portrait(heroPortrait);
+    const samples = document.createElement('section');
+    samples.className = 'avatar-samples';
+    samples.setAttribute('aria-label', 'Moldura ' + family.label);
+    for (const size of [46, 120]) {
+      const figure = document.createElement('figure');
+      const image = heroPortrait.cloneNode(true);
+      figure.appendChild(image);
+      portrait(image, size === 120);
+      const caption = document.createElement('figcaption');
+      caption.textContent = size + ' px';
+      figure.appendChild(caption);
+      samples.appendChild(figure);
+    }
+    document.querySelector('[data-moon-card="' + key + '"]').appendChild(samples);
+    function showFrame(visible) {
+      for (const wrapper of portraits) {
+        wrapper.classList.toggle('is-packaged', visible && frameReady);
+        if (typeof window.CosmeticRenderer?.render === 'function') {
+          window.CosmeticRenderer.render(wrapper, 'avatar', visible && frameReady ? [frame] : []);
+        }
+      }
+    }
+    showFrame(true);
+    const frameOption = document.createElement('label');
+    frameOption.className = 'frame-option';
+    const frameToggle = document.createElement('input');
+    frameToggle.type = 'checkbox';
+    frameToggle.checked = frameReady;
+    frameToggle.disabled = !frameReady;
+    frameToggle.dataset.frameToggle = key;
+    frameToggle.addEventListener('change', () => showFrame(frameToggle.checked));
+    frameOption.append(frameToggle, document.createTextNode('Moldura do avatar'));
+    controls.appendChild(frameOption);
+    if (!frameReady) {
+      state.hidden = false;
+      state.textContent = 'Aguardando snapshot das molduras calibradas.';
+    }
     const ready = pack?.overlay === true && Array.isArray(pack.banner) && pack.banner.length > 0 &&
       typeof window.CosmeticRenderer?.render === 'function';
     if (ready) {
@@ -37,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } else {
       state.hidden = false;
-      state.textContent = 'Aguardando snapshot dos manifests transparentes.';
+      state.textContent += ' Aguardando snapshot dos manifests transparentes.';
     }
     for (const [role, label] of Object.entries(config.roles)) {
       const option = document.createElement('label');
