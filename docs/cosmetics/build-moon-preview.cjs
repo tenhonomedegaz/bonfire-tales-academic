@@ -75,7 +75,7 @@ function validateFrame(raw, family, checkFiles = true) {
   for (const layer of raw.layers) {
     assert.equal(layer.slot, 'avatar');
     for (const property of ['file', 'fallback']) {
-      assert.ok(['png', 'webp'].some(extension => layer[property] === 'avatar-' + family.family + '-v1.' + extension),
+      assert.ok(new RegExp('^avatar-' + family.family + '-v[1-9][0-9]*\\.(png|webp)$').test(layer[property]),
         family.frameManifest + ': unexpected avatar filename: ' + layer[property]);
       if (checkFiles) {
         const asset = path.join(media, layer[property]);
@@ -83,6 +83,7 @@ function validateFrame(raw, family, checkFiles = true) {
         assert.ok(fs.statSync(asset).size <= 4 * 1024 * 1024);
       }
     }
+    assert.equal(layer.file.replace(/\.[^.]+$/, ''), layer.fallback.replace(/\.[^.]+$/, ''), 'Fallback must use the same frame version');
     for (const dimension of ['width', 'height']) {
       assert.ok(Number.isInteger(layer[dimension]) && layer[dimension] >= 32 && layer[dimension] <= 4096);
     }

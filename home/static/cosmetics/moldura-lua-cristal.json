@@ -1,1 +1,1 @@
-{"version":1,"slug":"moldura-lua-cristal","type":"moldura","scope":"ambos","layers":[{"slot":"avatar","file":"avatar-crystal-moon-v1.webp","fallback":"avatar-crystal-moon-v1.png","width":640,"height":640,"motion":"none","aperture":{"cx":50.781,"cy":50,"diameter":51.576}}]}
+{"version":1,"slug":"moldura-lua-cristal","type":"moldura","scope":"ambos","layers":[{"slot":"avatar","file":"avatar-crystal-moon-v2.webp","fallback":"avatar-crystal-moon-v2.png","width":640,"height":640,"motion":"none","aperture":{"cx":50,"cy":50,"diameter":70.3125}}]}

@@ -84,15 +84,32 @@ continuam com os mesmos slugs, escopo `ambos` e leitor compartilhado.
 
 | Moldura | Nome-base PNG/WebP | Centro seguro x/y (%) | Diametro seguro (%) |
 | --- | --- | --- | --- |
-| Lua Vermelha | `avatar-blood-moon-v1` | 50 / 50 | 50.783 |
-| Lua Negra | `avatar-black-moon-v1` | 48.828 / 48.828 | 49.257 |
-| Lua de Cristal | `avatar-crystal-moon-v1` | 50.781 / 50 | 51.576 |
+| Lua Vermelha | `avatar-blood-moon-v2` | 50 / 50 | 70.3125 |
+| Lua Negra | `avatar-black-moon-v2` | 50 / 50 | 70.3125 |
+| Lua de Cristal | `avatar-crystal-moon-v2` | 50 / 50 | 70.3125 |
 
-`aperture` foi medido no alpha de cada arte, com margem conservadora: nao foi
-copiado um diametro ficticio de todas as molduras. As pontas e pingentes nao
-devem cortar a foto. O mesmo ajuste e usado nos avatares pequenos e ampliados,
-no perfil e na ficha. Molduras anteriores continuam arquivadas; nenhum rank
-foi modificado. As tres agora se chamam "Moldura", nao "Elmo", na proposta.
+As artes v1 tinham abertura irregular: encaixar uma foto circular no menor
+vao reduzia demais o retrato e deixava lacunas nas laterais. As v2 usam
+geometria vetorial circular, sem galhos nem pingentes invadindo a abertura.
+Anel, simbolos simples de fases e a lua original como medalhao principal.
+O centro e exatamente (512,512) no SVG 1024x1024 e o raio livre e 360;
+`aperture.diameter = 2 * 360 / 1024 * 100 = 70.3125`.
+Portanto, o diametro comum corresponde a uma abertura realmente comum,
+nao a um numero copiado entre tres desenhos diferentes.
+
+Fontes editaveis: `avatar-*-moon-v2.svg`; exportacoes PNG/WebP preservam
+proporcao quadrada. Gerador: `build-lunar-frames.cjs`, com cores por familia
+e as imagens lunares ja aprovadas incorporadas ao SVG. Para regenerar:
+`node docs/cosmetics/build-lunar-frames.cjs` (Sharp instalado ou fornecido
+por `BONFIRE_SHARP_MODULE`). Nao e necessaria nova geracao por IA para
+ajustar raio, espessura ou paleta. O leitor generico e as regras de posse
+nao foram alterados; o mesmo ajuste atende perfil, ficha e previa.
+
+Teste `lunar-frame-geometry.test.cjs`: alpha livre no circulo central e
+variacao radial de no maximo 2 pixels na abertura a 640px, incluindo
+antialiasing. Conferencia de navegador em 320/390/768/1280px: foto redonda,
+centrada, sem deformacao ou sobreposicao nos tamanhos 40/46/120px.
+As v1 e os ranks foram preservados sem modificacoes.
 
 ### Ajuste escuro da Lua Negra e fixacao dos pingentes
 
@@ -142,7 +159,7 @@ upload e texto sem overflow. As caixas dos primeiros planos terminaram
 exatamente nos cantos inferiores (desvio medido: 0 px).
 
 As versoes WebP dos temas atuais somam 465.012 bytes na Vermelha, 562.504 na
-Negra e 717.290 na Cristal. As molduras somam mais 111.746, 116.978 e 156.364
+Negra e 717.290 na Cristal. As molduras somam mais 28.768, 22.250 e 28.256
 bytes, respectivamente. PNGs editaveis e referencias anteriores foram preservados.
 O recorte de margens transparentes alinha o pivot com a arte, nao com um
 espaco vazio. A proporcao natural e mantida. A escolha do layout mobile
