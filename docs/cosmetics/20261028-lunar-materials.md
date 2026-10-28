@@ -1,5 +1,14 @@
 # Tres luas: identidade por material e fechamento do lote
 
+## Publicacao de teste concluida
+
+PO autorizou ativar todos os oito itens em producao somente para admins.
+Registros criados e 56 inventarios concedidos exclusivamente aos sete
+superusuarios atuais. Sem alterar aparencia equipada ou registros anteriores.
+Evidencia e limites: `../qa/20261028-cosmeticos-producao-admin.md`.
+As observacoes abaixo de ausencia de escrita em producao descrevem as etapas
+anteriores de arte; foram superadas por esta autorizacao operacional.
+
 ## Obtencao definida pelo PO
 
 Temas das tres luas: concessao manual por administrador, nao venda.

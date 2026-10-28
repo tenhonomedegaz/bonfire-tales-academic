@@ -1,5 +1,12 @@
 # Temas das tres luas: concessao manual por administrador
 
+Estado atual: os oito itens das luas/Vigilia foram publicados em producao
+para QA e concedidos SOMENTE aos sete superusuarios existentes. Nao e
+necessario cadastrar esses slugs novamente. PKs e verificacoes estao em
+`../qa/20261028-cosmeticos-producao-admin.md`. Durante os testes, nao executar
+a concessao a jogadores comuns descrita abaixo; ela fica para liberacao
+posterior. Origem staff usa inventario, nao uma restricao dinamica de cargo.
+
 Decisao do PO: temas Lua Vermelha, Lua Negra e Lua de Cristal sao liberados
 individualmente por admin, sem compra, resgate publico ou desbloqueio automatico.
 Usar o inventario existente, nao criar condicionais por lua nem migration de
