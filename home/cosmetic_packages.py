@@ -5,6 +5,7 @@ the profile view; this module never grants a cosmetic to a user.
 """
 
 import json
+import math
 import re
 from pathlib import Path
 
@@ -19,9 +20,49 @@ _ASSET = re.compile(r'^[a-z0-9]+(?:-[a-z0-9]+)*\.(?:png|webp|gif|svg)$')
 _TYPES = {'tema', 'moldura', 'efeito', 'banner_preset'}
 _SLOTS = {'banner', 'ornament', 'avatar'}
 _ANCHORS = {'center', 'left', 'right'}
-_MOTIONS = {'none', 'float', 'pulse', 'helmet', 'breeze'}
+_MOTIONS = {'none', 'float', 'pulse', 'helmet', 'breeze', 'drift'}
 _SPRITES = {'full', 'open', 'closed'}
 _MAX_ASSET_BYTES = 4 * 1024 * 1024
+
+
+def _numeric_schema(value, bounds):
+  return (isinstance(value, dict) and value.keys() == bounds.keys()
+          and all(type(value[key]) in (int, float)
+                  and low <= value[key] <= high and math.isfinite(value[key])
+                  for key, (low, high) in bounds.items()))
+
+
+def _position_layer(layer, output):
+  """Keep layout separate from image motion, including reduced-motion centering."""
+  bounds = {'x': (0, 100), 'y': (0, 100), 'width': (1, 200)}
+  placement = layer.get('placement')
+  if 'placement' not in layer:
+    return not any(key in layer for key in ('mobile', 'motion_params')) and output['motion'] != 'drift'
+  if (layer['slot'] != 'banner' or output['sprite'] != 'full'
+      or output['motion'] == 'breeze' or not _numeric_schema(placement, bounds)):
+    return False
+  output['placement'] = dict(placement)
+  properties = [(f'--cosmetic-{key}', value, '%') for key, value in placement.items()]
+  if 'mobile' in layer:
+    if not _numeric_schema(layer['mobile'], bounds):
+      return False
+    output['mobile'] = dict(layer['mobile'])
+    properties.extend((f'--cosmetic-mobile-{key}', value, '%') for key, value in layer['mobile'].items())
+  if output['motion'] == 'drift':
+    params = {'distance': 40, 'duration': 60, 'delay': -30}
+    supplied = layer.get('motion_params', {})
+    if not isinstance(supplied, dict) or supplied.keys() - params.keys():
+      return False
+    params.update(supplied)
+    if not _numeric_schema(params, {'distance': (1, 150), 'duration': (20, 180), 'delay': (-180, 0)}):
+      return False
+    output['motion_params'] = params
+    properties.extend((f'--cosmetic-drift-{key}', value, '%' if key == 'distance' else 's')
+                      for key, value in params.items())
+  elif 'motion_params' in layer:
+    return False
+  output['placement_style'] = ';'.join(f'{key}:{value}{unit}' for key, value, unit in properties)
+  return True
 
 
 def _asset_url(filename):
@@ -78,6 +119,13 @@ def parse_package(raw, slug, tipo, escopo='perfil'):
       'motion': motion, 'width': width, 'height': height,
       'sprite': sprite,
     })
+    if 'opacity' in layer:
+      if not _numeric_schema({'opacity': layer['opacity']}, {'opacity': (0, 1)}):
+        return None
+      result[slot][-1]['opacity'] = layer['opacity']
+      result[slot][-1]['opacity_style'] = f"--cosmetic-opacity:{layer['opacity']}"
+    if not _position_layer(layer, result[slot][-1]):
+      return None
     aperture = layer.get('aperture')
     if aperture is not None:
       if (slot != 'avatar' or not isinstance(aperture, dict)

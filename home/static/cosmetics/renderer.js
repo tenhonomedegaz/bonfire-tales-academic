@@ -74,6 +74,7 @@
         if (entry.motion === 'helmet') {
           const helmet = document.createElement('span');
           helmet.className = 'cosmetic-layer cosmetic-helmet';
+          applyOpacity(helmet, entry);
           helmet.dataset.cosmeticHelmet = '';
           for (const [sprite,part] of [['open','open'],['closed','brow'],['closed','left'],['closed','right'],['closed','chin']]) {
             helmet.appendChild(spriteNode(entry,sprite,'cosmetic-helmet-' + part));
@@ -83,6 +84,7 @@
         }
         if (['open','closed'].includes(entry.sprite)) {
           const sprite = spriteNode(entry,entry.sprite,'cosmetic-layer');
+          applyOpacity(sprite, entry);
           layer.appendChild(sprite);
           continue;
         }
@@ -93,7 +95,28 @@
         image.alt = '';
         image.width = entry.width;
         image.height = entry.height;
-        layer.appendChild(image);
+        applyOpacity(image, entry);
+        if (entry.placement && slot === 'banner') {
+          const positioned = document.createElement('span');
+          positioned.className = 'cosmetic-positioned';
+          for (const [layout, prefix] of [[entry.placement, ''], [entry.mobile, 'mobile-']]) {
+            if (!layout) continue;
+            for (const key of ['x', 'y', 'width']) {
+              if (typeof layout[key] === 'number' && Number.isFinite(layout[key])) {
+                positioned.style.setProperty('--cosmetic-' + prefix + key, layout[key] + '%');
+              }
+            }
+          }
+          for (const [key, value] of Object.entries(entry.motion_params || {})) {
+            if (['distance', 'duration', 'delay'].includes(key) && typeof value === 'number' && Number.isFinite(value)) {
+              positioned.style.setProperty('--cosmetic-drift-' + key, value + (key === 'distance' ? '%' : 's'));
+            }
+          }
+          positioned.appendChild(image);
+          layer.appendChild(positioned);
+        } else {
+          layer.appendChild(image);
+        }
       }
       root.appendChild(layer);
     }
@@ -110,6 +133,11 @@
     image.decoding = 'async';
     node.appendChild(image);
     return node;
+  }
+  function applyOpacity(node, entry) {
+    if (typeof entry.opacity === 'number' && Number.isFinite(entry.opacity) && entry.opacity >= 0 && entry.opacity <= 1) {
+      node.style.setProperty('--cosmetic-opacity', entry.opacity);
+    }
   }
   window.CosmeticRenderer = { render, mount };
 

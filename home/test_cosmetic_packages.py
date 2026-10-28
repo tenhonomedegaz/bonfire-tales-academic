@@ -47,7 +47,12 @@ class CosmeticPackageTests(SimpleTestCase):
     self.assertIsNone(parse_package(raw, raw['slug'], 'tema'))
 
   def test_breeze_is_generic_banner_motion_only(self):
-    raw = json.loads((PACKAGE_ROOT / 'tema-lua-vermelha.json').read_text(encoding='utf-8'))
+    raw = {
+      'version': 1, 'slug': 'tema-motion-test', 'type': 'tema', 'scope': 'ambos',
+      'layers': [{'slot': 'banner', 'file': 'arcane-banner.svg',
+                  'fallback': 'arcane-banner.svg', 'width': 1200, 'height': 340,
+                  'motion': 'breeze'}],
+    }
     for scope in ('perfil', 'ficha'):
       parsed = parse_package(raw, raw['slug'], raw['type'], scope)
       self.assertEqual(parsed['banner'][0]['motion'], 'breeze')

@@ -1,19 +1,31 @@
 <!doctype html>
 <html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Bonfire | Lua Vermelha aprovada</title>
-<link rel="stylesheet" href="../../home/static/css/components/cosmetic-presentation.css">
-<script src="../../home/static/cosmetics/renderer.js" defer></script>
-<script defer src="20261027-art-direction.js"></script>
+<title>Bonfire | Lua Vermelha em camadas</title>
+<link rel="stylesheet" href="../../home/static/css/components/cosmetic-presentation.css?v=7">
+<script src="../../home/static/cosmetics/renderer.js?v=7" defer></script>
+<script src="blood-moon-preview-data.js?v=2" defer></script>
+<script defer src="20261027-art-direction.js?v=2"></script>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#0b0b0d;color:#eee6dd;font:15px/1.5 system-ui,sans-serif}main{max-width:1200px;margin:auto;padding:24px}h1{font:28px Georgia,serif}h2{font:22px Georgia,serif;margin:30px 0 12px}p{max-width:900px;color:#c9bdba}.hero{position:relative;isolation:isolate;min-height:230px;border:1px solid #77525c;background:#15121c;overflow:hidden;padding:115px 28px 24px}.hero::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--art) center/cover no-repeat}.hero strong{font:28px Georgia,serif}.hero small{display:block;color:#d3c7c5}.arcane{--art:url('../../home/static/cosmetics/arcane-banner.svg')}.moon{--art:url('../../home/static/cosmetics/proposal-blood-moon-v1.png')}.portrait{width:72px;height:72px;border:2px solid #d8ac79;border-radius:50%;object-fit:cover;float:left;margin-right:18px}.samples{display:grid;grid-template-columns:1fr 1fr;gap:18px}.mini{min-height:175px;padding:85px 18px 18px}.mini .portrait{width:56px;height:56px}.mini strong{font-size:22px}.decision{border-left:3px solid #d8ac79;padding:8px 14px;margin-top:24px}@media(max-width:650px){main{padding:16px}.samples{grid-template-columns:1fr}.hero{padding:120px 16px 24px;min-height:245px}.hero strong{font-size:23px}.portrait{width:56px;height:56px;margin-right:12px}}@media(prefers-reduced-motion:reduce){*{animation:none!important}}
-</style><style>.hero>.portrait,.hero>strong,.hero>small{position:relative;z-index:1}.moon.has-breeze::before{display:none}</style><main>
-<h1>Lua Vermelha: direção estática aprovada</h1>
-<p>Arte aprovada pelo PO, com brisa discreta em camadas 2,5D. A lua e a composição principal ficam fixas. A animação respeita redução de movimento; não é um vídeo quadro a quadro dos galhos. Nenhum item ou oferta foi ativado.</p>
+</style><style>.hero>.portrait,.hero>strong,.hero>small{position:relative;z-index:1}.moon.has-breeze::before{display:none}.preview-controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;border:1px solid #705058;padding:14px}.preview-controls label{display:flex;gap:6px;align-items:center}.preview-controls button{font:inherit;color:#eee6dd;background:#322126;border:1px solid #b58b74;border-radius:4px;padding:8px 12px;cursor:pointer}.preview-paused .cosmetic-layer{animation-play-state:paused!important}.asset-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.asset-grid figure{margin:0;border:1px solid #55434a;background:#19161b}.asset-grid img{display:block;width:100%;height:140px;object-fit:contain;background-color:#29262a;background-image:linear-gradient(45deg,#3a363c 25%,transparent 25%,transparent 75%,#3a363c 75%),linear-gradient(45deg,#3a363c 25%,transparent 25%,transparent 75%,#3a363c 75%);background-size:20px 20px;background-position:0 0,10px 10px}.asset-grid figcaption{padding:10px}a{color:#e4b693}details{margin-top:24px}details>img{max-width:100%;height:auto;margin-top:12px}</style><main>
+<h1>Lua Vermelha: elementos separados</h1>
+<p>Fundo, lua, nuvens, galhos, primeiro plano e pingentes independentes. As nuvens passam horizontalmente diante da lua, em duas profundidades. A proporção das imagens é preservada; posição e tamanho são ajustados por tela. A arte original continua guardada.</p>
 <h2>Arcano recuperado · perfil</h2>
 <section class="hero arcane"><img class="portrait" src="../../home/static/brand/human.webp" alt="Retrato de demonstração"><strong>Aventureiro de Cinéria</strong><small>Atmosfera, lua e gravura preservadas</small></section>
-<h2>Lua Vermelha · brisa discreta</h2>
+<h2>Lua Vermelha · nuvens ao vento</h2>
+<div class="preview-controls"><button id="toggle-wind" type="button" aria-pressed="false">Pausar nuvens</button><label><input type="checkbox" data-layer-toggle="sky" checked>Fundo</label><label><input type="checkbox" data-layer-toggle="disc" checked>Lua</label><label><input type="checkbox" data-layer-toggle="clouds" checked>Nuvens</label><label><input type="checkbox" data-layer-toggle="branches" checked>Galhos</label><label><input type="checkbox" data-layer-toggle="foreground" checked>Primeiro plano</label><label><input type="checkbox" data-layer-toggle="charms" checked>Pingentes</label></div>
 <section class="hero moon"><img class="portrait" src="../../home/static/brand/human.webp" alt="Retrato de demonstração"><strong>Aventureiro de Cinéria</strong><small>Centro livre para nome, retrato e conteúdo</small></section>
 <h2>Miniaturas · ficha e catálogo</h2>
 <div class="samples"><section class="hero mini arcane"><img class="portrait" src="../../home/static/brand/human.webp" alt=""><strong>Arcano</strong><small>Recuperação do padrão anterior</small></section><section class="hero mini moon"><img class="portrait" src="../../home/static/brand/human.webp" alt=""><strong>Lua Vermelha</strong><small>Proposta, não equipável</small></section></div>
+<h2>Assets individuais</h2>
+<div class="asset-grid">
+<figure><a href="../../home/static/cosmetics/blood-moon-sky-v2.png"><img src="../../home/static/cosmetics/blood-moon-sky-v2.webp" alt="Fundo limpo" loading="lazy"></a><figcaption>Fundo limpo</figcaption></figure>
+<figure><a href="../../home/static/cosmetics/blood-moon-disc-v2.png"><img src="../../home/static/cosmetics/blood-moon-disc-v2.webp" alt="Lua separada" loading="lazy"></a><figcaption>Lua transparente</figcaption></figure>
+<figure><a href="../../home/static/cosmetics/blood-moon-clouds-v2.png"><img src="../../home/static/cosmetics/blood-moon-clouds-v2.webp" alt="Nuvens transparentes" loading="lazy"></a><figcaption>Nuvens transparentes</figcaption></figure>
+<figure><a href="../../home/static/cosmetics/blood-moon-branches-v2.png"><img src="../../home/static/cosmetics/blood-moon-branches-v2.webp" alt="Galhos laterais" loading="lazy"></a><figcaption>Galhos laterais</figcaption></figure>
+<figure><a href="../../home/static/cosmetics/blood-moon-foreground-v2.png"><img src="../../home/static/cosmetics/blood-moon-foreground-v2.webp" alt="Primeiro plano" loading="lazy"></a><figcaption>Primeiro plano</figcaption></figure>
+<figure><a href="../../home/static/cosmetics/blood-moon-charms-v2.png"><img src="../../home/static/cosmetics/blood-moon-charms-v2.webp" alt="Pingentes separados" loading="lazy"></a><figcaption>Pingentes</figcaption></figure>
+</div>
+<details><summary>Comparar com a arte original aprovada</summary><img src="../../home/static/cosmetics/proposal-blood-moon-v1.png" alt="Arte original preservada" loading="lazy"></details>
 <p class="decision">Direção estática aprovada para as próximas composições Lua Negra, Lua de Cristal e Vigília. Esta prévia não salva preferências, não concede inventário e não define preço ou regras de resgate.</p>
 </main></html>
