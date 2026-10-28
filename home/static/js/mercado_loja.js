@@ -43,6 +43,7 @@
 
   var aba = 'comprar';
   var buscaEmEdicao = false;
+  var negocioPendente = false;
   var filtrosUrl = [
     ['busca', busca, ''], ['grupo', selGrupo, 'todas'],
     ['estoque', selEstoque, 'disponivel'],
@@ -491,12 +492,24 @@
   }
 
   function executarNegocio(form) {
-    if (trocaPendente) return;
+    if (trocaPendente || negocioPendente) return;
+    var personagemNegocio = personagemAtivo;
+    var contextoNegocio = trocaSequencia;
+    var nomePersonagem = seletor.selectedOptions[0].textContent.trim();
+    function mesmoContexto() {
+      return !trocaPendente && personagemAtivo === personagemNegocio && trocaSequencia === contextoNegocio;
+    }
+    function informar(texto, ok) {
+      avisar((mesmoContexto() ? '' : 'Personagem: ' + nomePersonagem + '. ') + texto, ok);
+    }
     var vendendo = form.hasAttribute('data-shop-sell');
     var btn = form.querySelector('button[type="submit"]');
     var nome = btn ? (btn.getAttribute('data-nome') || 'mercadoria') : 'mercadoria';
-    if (btn) btn.disabled = true;
     var fd = new FormData(form);
+    var sucessoConfirmado = false;
+    var mensagemSucesso = '';
+    negocioPendente = true;
+    if (btn) btn.disabled = true;
     fetch(form.action, {
       method: 'POST',
       headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': fd.get('csrfmiddlewaretoken') || '' },
@@ -505,9 +518,17 @@
     }).then(function (r) {
       return r.json().catch(function () { return { ok: false, msg: 'erro' }; });
     }).then(function (data) {
-      if (btn && document.body.contains(btn)) btn.disabled = false;
       if (!data || !data.ok) {
-        avisar(MSG[data && data.msg] || 'Não foi possível concluir o negócio.', false);
+        informar(MSG[data && data.msg] || 'Não foi possível concluir o negócio.', false);
+        return;
+      }
+      sucessoConfirmado = true;
+      mensagemSucesso = vendendo
+        ? 'Vendido: ' + nome + ' por ' + (data.credito_display || '') + '. Carteira: ' + (data.carteira_display || '')
+        : 'Comprado: ' + nome + '. Carteira: ' + (data.carteira_display || '');
+      // A -> B -> A is a new snapshot, even when the character ID matches again.
+      if (!mesmoContexto()) {
+        informar(mensagemSucesso, true);
         return;
       }
       if (carteira && data.carteira_display) {
@@ -520,12 +541,14 @@
         vendaBox.innerHTML = data.venda_html;
         if (vendendo) garantirSelecao();
       }
-      avisar(vendendo
-        ? 'Vendido: ' + nome + ' por ' + (data.credito_display || '') + '. Carteira: ' + (data.carteira_display || '')
-        : 'Comprado: ' + nome + '. Carteira: ' + (data.carteira_display || ''), true);
+      informar(mensagemSucesso, true);
     }).catch(function () {
-      if (btn) btn.disabled = false;
-      avisar('Falha de rede — o negócio não foi concluído.', false);
+      // A rendering error cannot undo a transaction confirmed by the server.
+      informar(sucessoConfirmado ? mensagemSucesso + '. Recarregue para atualizar o balcão.'
+        : 'Falha de rede: resultado não confirmado. Consulte a carteira e o histórico antes de repetir o negócio.', sucessoConfirmado);
+    }).finally(function () {
+      negocioPendente = false;
+      if (btn && document.body.contains(btn)) btn.disabled = !!trocaPendente;
     });
   }
 
@@ -608,7 +631,7 @@
     var form = ev.target.closest('form[data-shop-buy], form[data-shop-sell]');
     if (!form) return;
     ev.preventDefault();
-    if (trocaPendente || !form.reportValidity()) return;
+    if (trocaPendente || negocioPendente || !form.reportValidity()) return;
     if (review && typeof review.showModal === 'function') mostrarRevisao(form);
     else executarNegocio(form);
   });

@@ -5,7 +5,7 @@
   "scope": "ambos",
   "overlay": true,
   "layers": [
-    {"slot":"banner","file":"crystal-moon-disc-v1.webp","fallback":"crystal-moon-disc-v1.png","width":640,"height":635,"motion":"none","opacity":0.9,"placement":{"x":84,"y":48,"width":17},"mobile":{"x":78,"y":35,"width":34}},
+    {"slot":"banner","file":"crystal-moon-disc-v2.webp","fallback":"crystal-moon-disc-v2.png","width":640,"height":640,"motion":"none","opacity":0.85,"placement":{"x":84,"y":48,"width":17},"mobile":{"x":78,"y":35,"width":34}},
     {"slot":"banner","file":"crystal-moon-clouds-v1.webp","fallback":"crystal-moon-clouds-v1.png","width":1400,"height":387,"motion":"drift","opacity":0.25,"placement":{"x":60,"y":36,"width":88},"mobile":{"x":65,"y":37,"width":135},"motion_params":{"distance":65,"duration":80,"delay":-40}},
     {"slot":"banner","file":"crystal-moon-clouds-v1.webp","fallback":"crystal-moon-clouds-v1.png","width":1400,"height":387,"motion":"drift","opacity":0.12,"placement":{"x":68,"y":68,"width":102},"mobile":{"x":70,"y":61,"width":155},"motion_params":{"distance":80,"duration":110,"delay":-65}},
     {"slot":"banner","file":"crystal-moon-foreground-left-v1.webp","fallback":"crystal-moon-foreground-left-v1.png","width":700,"height":264,"motion":"none","opacity":0.8,"placement":{"x":0,"y":100,"width":22},"mobile":{"x":0,"y":100,"width":38},"pivot":{"x":0,"y":100}},

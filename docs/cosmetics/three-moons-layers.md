@@ -84,29 +84,34 @@ continuam com os mesmos slugs, escopo `ambos` e leitor compartilhado.
 
 | Moldura | Nome-base PNG/WebP | Centro seguro x/y (%) | Diametro seguro (%) |
 | --- | --- | --- | --- |
-| Lua Vermelha | `avatar-blood-moon-v3` | 50 / 50 | 70.3125 |
-| Lua Negra | `avatar-black-moon-v3` | 50 / 50 | 70.3125 |
-| Lua de Cristal | `avatar-crystal-moon-v3` | 50 / 50 | 70.3125 |
+| Lua Vermelha | `avatar-blood-moon-v4` | 50 / 50 | 64 |
+| Lua Negra | `avatar-black-moon-v4` | 50 / 50 | 64 |
+| Lua de Cristal | `avatar-crystal-moon-v4` | 50 / 50 | 60 |
 
-As artes v1 tinham abertura irregular: encaixar uma foto circular no menor
-vao reduzia demais o retrato e deixava lacunas nas laterais. As v2 usam
-geometria vetorial circular, sem galhos nem pingentes invadindo a abertura.
-Anel, simbolos simples de fases e a lua original como medalhao principal.
-As v3 preservam esse encaixe e acrescentam tres pingentes de meia-lua,
-com elos curtos e fechos geometricos, sempre fora da foto. Sem galhos;
-ornamentos moderados inspirados nos pingentes do banner.
-O centro e exatamente (512,512) no SVG 1024x1024 e o raio livre e 360;
-`aperture.diameter = 2 * 360 / 1024 * 100 = 70.3125`.
-Portanto, o diametro comum corresponde a uma abertura realmente comum,
-nao a um numero copiado entre tres desenhos diferentes.
+As v4 substituem a proposta de aneis vetoriais v2/v3 por artes raster com
+materiais diferentes: metal dourado/vermelho, pedra negra lascada com verde
+e detalhes amarelados, cristal branco/azulado. Correntes e meias-luas fazem
+parte da estrutura, sem galhos. PNGs master preservam a transparencia gerada;
+WebP 640px e a entrega. O retrato permanece circular e centralizado; o diametro
+e calibrado por arte, pois os contornos e cristais nao sao identicos.
+Pequenos ornamentos sobrepoem o contorno (0,20%, 1,23% e 3,19% da area do
+retrato), sem cobrir seu centro. Nao confundir essa tolerancia artistica com
+o encaixe geometricamente exato das propostas vetoriais antigas.
 
-Fontes editaveis: `avatar-*-moon-v3.svg`; exportacoes PNG/WebP preservam
-proporcao quadrada. Gerador: `build-lunar-frames.cjs`, com cores por familia
-e as imagens lunares ja aprovadas incorporadas ao SVG. Para regenerar:
-`node docs/cosmetics/build-lunar-frames.cjs` (Sharp instalado ou fornecido
-por `BONFIRE_SHARP_MODULE`). Nao e necessaria nova geracao por IA para
-ajustar raio, espessura ou paleta. O leitor generico e as regras de posse
-nao foram alterados; o mesmo ajuste atende perfil, ficha e previa.
+Fontes atuais: `avatar-*-moon-v4.png`; conversor de entrega:
+`prepare-lunar-materials.cjs` (Sharp instalado ou `BONFIRE_SHARP_MODULE`).
+`build-lunar-frames.cjs` e seu teste conservam a proposta vetorial v3,
+nao regeneram a arte atual. Verificacao atual: `lunar-materials.test.cjs`.
+Briefing, resultado e pendencias em `20261028-lunar-materials.md`.
+O leitor generico e as regras de posse nao foram alterados; o mesmo manifesto
+atende perfil, ficha e previa.
+
+Os discos dos banners usam agora `blood-moon-disc-v3`, `black-moon-disc-v3`
+e `crystal-moon-disc-v2`: margens transparentes normalizadas para 640x640,
+mesmos posicionamentos desktop/mobile, largura 17%/34% e opacidade 0,85.
+As tabelas anteriores registram as fontes originais preservadas; os manifestos
+atuais indicam os arquivos realmente servidos. A Lua Negra mantem a pintura
+escura e as nuvens pretas; padronizar opacidade nao clareia sua textura.
 
 Teste `lunar-frame-geometry.test.cjs`: alpha livre no circulo central e
 variacao radial de no maximo 2 pixels na abertura a 640px, incluindo

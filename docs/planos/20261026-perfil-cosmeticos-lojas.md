@@ -1,5 +1,23 @@
 # Plano de execucao: perfil, cosmeticos e lojas
 
+## Lote de 28/10: materiais lunares e consistencia da loja
+
+Tres molduras v4 com estruturas proprias por material, sem galhos, substituem
+a proposta de anel vetorial v3: ouro/vermelho, pedra negra/verde/amarelo e
+cristal branco/azulado. Os discos dos temas agora possuem a mesma caixa,
+posicao responsiva e opacidade 0,85. Nova direcao implementada e conferida
+localmente, ainda sujeita a avaliacao visual do PO; nao registrar aceite por
+inferir aprovacao da antiga Lua Vermelha. Detalhes em
+`../cosmetics/20261028-lunar-materials.md`.
+
+P6 recebeu correcao pontual de resposta atrasada de compra/venda, que podia
+trocar a carteira/inventario visiveis apos mudar de personagem. Sem mudar
+transacoes, precos ou regras do servidor. Teste focado cobre concorrencia,
+troca A -> B -> A, erros e sucesso confirmado.
+
+Continuam pendentes o gate remoto P7 apos deploy e as definicoes editoriais
+de P5. Nao ha nova oferta/concessao/gravacao em producao neste lote.
+
 ## Estado apos a autorizacao de 27/10
 
 ### Continuacao: itens 4 e 5 apresentados ao PO
