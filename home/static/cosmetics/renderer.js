@@ -111,6 +111,7 @@
         image.width = entry.width;
         image.height = entry.height;
         if (entry.sequence) image.dataset.cosmeticSequence = JSON.stringify(entry.sequence);
+        if (entry.parts) image.dataset.cosmeticParts = JSON.stringify(entry.parts);
         applyOpacity(image, entry);
         if (entry.placement && slot === 'banner') {
           const positioned = document.createElement('span');
@@ -162,20 +163,29 @@
     }
   }
 
-  function mountSequence(layer, image) {
+  function mountSequence(layer, image, parentGroup = null) {
     let seq;
     try { seq = JSON.parse(image.dataset.cosmeticSequence); } catch { image.remove(); return; }
     const finite = n => typeof n === 'number' && Number.isFinite(n);
-    if (!Number.isInteger(seq?.columns) || seq.columns < 2 || seq.columns > 8 ||
+    const rows = seq?.rows === undefined ? 1 : seq.rows;
+    const width = Number(image.getAttribute('width'));
+    const height = Number(image.getAttribute('height'));
+    const poseBounds = {shift:[-25,25], x:[-100,100], y:[-100,100], rotate:[-15,15], scaleX:[.8,1.2], scaleY:[.8,1.2]};
+    if (!Number.isInteger(seq?.columns) || seq.columns < 1 || seq.columns > 8 ||
+        !Number.isInteger(rows) || rows < 1 || rows > 8 ||
         !finite(seq.duration) || seq.duration < 1 || seq.duration > 120 ||
         !finite(seq.delay) || seq.delay < -120 || seq.delay > 0 ||
         !finite(seq.backdrop) || seq.backdrop < 0 || seq.backdrop > .85 ||
-        !Array.isArray(seq.frames) || seq.frames.length < 4 || seq.frames.length > 24 ||
-        !seq.frames.every((f, i) => finite(f.at) && f.at >= 0 && f.at <= 1 &&
+        (parentGroup && seq.backdrop !== 0) ||
+        !Array.isArray(seq.frames) || seq.frames.length < 4 || seq.frames.length > 64 ||
+        !seq.frames.every((f, i) => f && finite(f.at) && f.at >= 0 && f.at <= 1 &&
           (!i || f.at > seq.frames[i - 1].at) && Number.isInteger(f.frame) &&
-          f.frame >= 0 && f.frame < seq.columns && finite(f.opacity) && f.opacity >= 0 && f.opacity <= 1 &&
-          (f.shift === undefined || (finite(f.shift) && f.shift >= -25 && f.shift <= 25))) ||
-        seq.frames[0].at !== 0 || seq.frames.at(-1).at !== 1 || !image.width || !image.height) {
+          f.frame >= 0 && f.frame < seq.columns * rows && finite(f.opacity) && f.opacity >= 0 && f.opacity <= 1 &&
+          Object.entries(poseBounds).every(([key, [low, high]]) => f[key] === undefined ||
+            (finite(f[key]) && f[key] >= low && f[key] <= high))) ||
+        seq.frames[0].at !== 0 || seq.frames.at(-1).at !== 1 ||
+        !Number.isInteger(width) || width < 32 || width > 4096 ||
+        !Number.isInteger(height) || height < 32 || height > 4096) {
       image.remove(); return;
     }
     const viewport = document.createElement('span');
@@ -186,25 +196,32 @@
       viewport.style.setProperty('--cosmetic-float-duration', (seq.duration * 4) + 's');
       viewport.style.setProperty('--cosmetic-float-delay', seq.delay + 's');
     }
-    viewport.style.aspectRatio = (image.width / seq.columns) + ' / ' + image.height;
+    viewport.style.aspectRatio = (width / seq.columns) + ' / ' + (height / rows);
+    viewport.style.transformOrigin = 'var(--cosmetic-pivot-x,50%) var(--cosmetic-pivot-y,50%)';
     const opacityValue = image.style.getPropertyValue('--cosmetic-opacity');
     const opacity = opacityValue === '' ? 1 : Number(opacityValue);
     image.replaceWith(viewport);
     delete image.dataset.cosmeticSequence;
     image.className = 'cosmetic-atlas-image';
     image.style.width = (seq.columns * 100) + '%';
+    image.style.height = (rows * 100) + '%';
     viewport.appendChild(image);
     const timing = {duration:seq.duration * 1000, delay:seq.delay * 1000, iterations:Infinity, fill:'both'};
     const animations = layer._cosmeticSequences || (layer._cosmeticSequences = []);
-    const group = image._cosmeticSequenceGroup = {layer, viewport, animations:[], shade:null};
+    const group = image._cosmeticSequenceGroup = {layer, viewport, animations:[], shade:null, children:[]};
+    if (parentGroup) parentGroup.children.push(group);
     const schedule = (node, frames) => {
       const animation = node.animate(frames, timing);
       animations.push(animation);
       group.animations.push(animation);
     };
-    schedule(viewport, seq.frames.map(f => ({offset:f.at, opacity:f.opacity * opacity})));
+    // Individual pose properties compose with the existing CSS float transform.
+    schedule(viewport, seq.frames.map(f => ({offset:f.at, opacity:f.opacity * opacity,
+      translate:(f.x || 0) + '% ' + (f.y || 0) + '%', rotate:(f.rotate || 0) + 'deg',
+      scale:(f.scaleX ?? 1) + ' ' + (f.scaleY ?? 1)})));
     schedule(image, seq.frames.map(f => ({offset:f.at,
-      transform:'translateX(' + ((-100 * f.frame + (f.shift || 0)) / seq.columns) + '%)', easing:'steps(1, end)'})));
+      transform:'translate(' + ((-100 * (f.frame % seq.columns) + (f.shift || 0)) / seq.columns) + '%,' +
+        (-100 * Math.floor(f.frame / seq.columns) / rows) + '%)', easing:'steps(1, end)'})));
     if (seq.backdrop) {
       const shade = document.createElement('span');
       shade.className = 'cosmetic-sequence-shade';
@@ -212,6 +229,45 @@
       layer.prepend(shade);
       schedule(shade, seq.frames.map(f => ({offset:f.at, opacity:f.opacity * seq.backdrop})));
     }
+    if (!parentGroup && seq.columns === 1 && rows === 1 && image.dataset.cosmeticParts) {
+      let parts;
+      try { parts = JSON.parse(image.dataset.cosmeticParts); } catch { parts = null; }
+      delete image.dataset.cosmeticParts;
+      if (Array.isArray(parts) && parts.length >= 1 && parts.length <= 6) {
+        viewport.classList.add('cosmetic-atlas--rig');
+        for (const part of parts) {
+          if (!part || part.parts || !part.placement || !part.sequence || part.sequence.backdrop !== 0) continue;
+          const positioned = document.createElement('span');
+          positioned.className = 'cosmetic-positioned cosmetic-part';
+          positioned.classList.toggle('cosmetic-part--mobile', Boolean(part.mobile));
+          for (const [layout, prefix] of [[part.placement, ''], [part.mobile, 'mobile-'], [part.pivot, 'pivot-']]) {
+            if (!layout) continue;
+            for (const key of ['x', 'y', 'width']) {
+              if (finite(layout[key])) positioned.style.setProperty('--cosmetic-' + prefix + key, layout[key] + '%');
+            }
+          }
+          const child = document.createElement('img');
+          child.className = 'cosmetic-layer cosmetic-layer--' + part.motion;
+          child.src = part.url;
+          child.dataset.fallback = part.fallback;
+          child.dataset.cosmeticSequence = JSON.stringify(part.sequence);
+          child.width = part.width;
+          child.height = part.height;
+          child.alt = '';
+          applyOpacity(child, part);
+          positioned.appendChild(child);
+          viewport.appendChild(positioned);
+          mountSequence(layer, child, group);
+        }
+      }
+    }
+  }
+  function removeSequence(group) {
+    for (const child of group.children) removeSequence(child);
+    for (const animation of group.animations) animation.cancel();
+    group.layer._cosmeticSequences = group.layer._cosmeticSequences.filter(a => !group.animations.includes(a));
+    group.shade?.remove();
+    group.viewport.remove();
   }
   window.CosmeticRenderer = { render, mount };
 
@@ -223,12 +279,7 @@
       image.src = fallback;
     } else {
       const group = image._cosmeticSequenceGroup;
-      if (group) {
-        for (const animation of group.animations) animation.cancel();
-        group.layer._cosmeticSequences = group.layer._cosmeticSequences.filter(a => !group.animations.includes(a));
-        group.shade?.remove();
-        group.viewport.remove();
-      }
+      if (group) removeSequence(group);
       image.remove();
     }
   }, true);

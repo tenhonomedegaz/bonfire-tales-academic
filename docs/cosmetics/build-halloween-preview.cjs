@@ -3,13 +3,17 @@ const fs = require('node:fs');
 const path = require('node:path');
 const root = path.resolve(__dirname, '../../home/static/cosmetics');
 const result = {};
+function media(entry) {
+  return {...entry, anchor:entry.anchor || 'center', sprite:entry.sprite || 'full',
+    url:'../../home/static/cosmetics/' + entry.file,
+    fallback:'../../home/static/cosmetics/' + entry.fallback,
+    ...(entry.parts ? {parts:entry.parts.map(media)} : {})};
+}
 for (const type of ['moldura', 'efeito']) {
   const manifest = JSON.parse(fs.readFileSync(path.join(root, type + '-vigilia-das-lanternas.json'), 'utf8'));
   const pack = {type, overlay:manifest.overlay === true, banner:[], ornament:[], avatar:[]};
   for (const entry of manifest.layers) {
-    pack[entry.slot].push({...entry, anchor:entry.anchor || 'center', sprite:entry.sprite || 'full',
-      url:'../../home/static/cosmetics/' + entry.file,
-      fallback:'../../home/static/cosmetics/' + entry.fallback});
+    pack[entry.slot].push(media(entry));
   }
   result[type] = pack;
 }

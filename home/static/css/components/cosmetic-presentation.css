@@ -9,13 +9,15 @@
 /* A validated manifest can choreograph an atlas and a synchronized backdrop. */
 img[data-cosmetic-sequence]{visibility:hidden}
 .cosmetic-positioned>.cosmetic-atlas{position:relative;display:block;overflow:hidden;opacity:0}
+.cosmetic-positioned>.cosmetic-atlas--rig{overflow:visible}
+.cosmetic-part{--cosmetic-pivot-x:50%;--cosmetic-pivot-y:50%;--cosmetic-mobile-x:initial;--cosmetic-mobile-y:initial;--cosmetic-mobile-width:initial}
 .cosmetic-atlas>.cosmetic-atlas-image{position:absolute;left:0;top:0;display:block;height:100%;max-width:none;object-fit:fill}
 .cosmetic-sequence-shade{position:absolute;inset:0;pointer-events:none;background:#030504;opacity:0}
 .cosmetic-positioned>.cosmetic-layer--drift{animation:cosmetic-drift var(--cosmetic-drift-duration,60s) linear var(--cosmetic-drift-delay,-30s) infinite;animation-play-state:paused}
 .cosmetic-layers.is-visible:not(.is-paused) .cosmetic-positioned>.cosmetic-layer--drift{animation-play-state:running}
 @keyframes cosmetic-drift{0%{transform:translateX(calc(-1 * var(--cosmetic-drift-distance,40%)));opacity:0}15%,85%{opacity:var(--cosmetic-opacity,1)}100%{transform:translateX(var(--cosmetic-drift-distance,40%));opacity:0}}
-@media(max-width:600px){.cosmetic-positioned{left:var(--cosmetic-mobile-x,var(--cosmetic-x,50%));top:var(--cosmetic-mobile-y,var(--cosmetic-y,50%));width:var(--cosmetic-mobile-width,var(--cosmetic-width,100%))}}
-@container(max-width:600px){.cosmetic-positioned{left:var(--cosmetic-mobile-x,var(--cosmetic-x,50%));top:var(--cosmetic-mobile-y,var(--cosmetic-y,50%));width:var(--cosmetic-mobile-width,var(--cosmetic-width,100%))}}
+@media(max-width:600px){.cosmetic-positioned:not(.cosmetic-part),.cosmetic-part--mobile{left:var(--cosmetic-mobile-x,var(--cosmetic-x,50%));top:var(--cosmetic-mobile-y,var(--cosmetic-y,50%));width:var(--cosmetic-mobile-width,var(--cosmetic-width,100%))}}
+@container(max-width:600px){.cosmetic-positioned:not(.cosmetic-part),.cosmetic-part--mobile{left:var(--cosmetic-mobile-x,var(--cosmetic-x,50%));top:var(--cosmetic-mobile-y,var(--cosmetic-y,50%));width:var(--cosmetic-mobile-width,var(--cosmetic-width,100%))}}
 .cosmetic-layers--ornament{top:12px;right:16px;width:min(28%,200px);height:42px;z-index:2;opacity:.65}
 .cosmetic-layers--ornament .cosmetic-layer{object-fit:contain}
 .cosmetic-layers--avatar{inset:-16%;z-index:3;overflow:visible}
@@ -52,7 +54,7 @@ img[data-cosmetic-sequence]{visibility:hidden}
 @keyframes cosmetic-float{50%{transform:translateY(-3px)}}
 @keyframes cosmetic-pulse{50%{opacity:calc(var(--cosmetic-opacity,1) * .82)}}
 @media(max-width:600px){.cosmetic-layers--ornament{width:28%;height:30px;right:10px}}
-@media(prefers-reduced-motion:reduce){.cosmetic-layers .cosmetic-layer{animation:none!important;transform:none!important}}
+@media(prefers-reduced-motion:reduce){.cosmetic-layers .cosmetic-layer{animation:none!important;transform:none!important;translate:none!important;rotate:none!important;scale:none!important}}
 @media(prefers-reduced-motion:reduce){.cosmetic-atlas:not(.cosmetic-atlas--ambient),.cosmetic-sequence-shade{display:none!important}}
 @media print{.cosmetic-layers{display:none}}
 /* Small masked offsets reuse one cached image; the base and moon stay still. */

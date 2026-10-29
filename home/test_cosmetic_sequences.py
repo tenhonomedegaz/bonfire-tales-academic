@@ -19,16 +19,20 @@ class CosmeticSequenceTests(SimpleTestCase):
         package = self.parse(self.raw)
         self.assertIsNotNone(package)
         layer = package['banner'][-1]
-        self.assertEqual(layer['sequence']['columns'], 7)
+        self.assertEqual(layer['sequence']['columns'], 1)
         self.assertEqual(layer['sequence']['duration'], 18)
-        self.assertEqual({frame['frame'] for frame in layer['sequence']['frames']}, set(range(7)))
+        self.assertEqual(len(layer['sequence']['frames']), 24)
+        self.assertEqual(len(layer['parts']), 2)
+        self.assertEqual(len(layer['parts'][0]['sequence']['frames']), 24)
+        self.assertGreaterEqual(len({f['x'] for f in layer['parts'][0]['sequence']['frames']}), 16)
         html = get_template('home/partials/_cosmetic_preview.html').render({'layers': package['banner'], 'slot': 'banner'})
-        self.assertIn('data-cosmetic-sequence="{&quot;columns&quot;:7', html)
+        self.assertIn('data-cosmetic-parts=', html)
+        self.assertIn('data-cosmetic-sequence="{&quot;columns&quot;:1', html)
         self.assertNotIn('data-cosmetic-sequence="{"columns"', html)
 
     def test_numeric_timeline_rejects_malformed_or_unsafe_input(self):
         seq = self.raw['layers'][-1]['sequence']
-        invalid = [None, [], {}, dict(seq, columns=True), dict(seq, columns=1),
+        invalid = [None, [], {}, dict(seq, columns=True), dict(seq, columns=0),
                    dict(seq, columns=9), dict(seq, duration=float('nan')),
                    dict(seq, duration=.5), dict(seq, delay=5), dict(seq, backdrop=1),
                    dict(seq, backdrop='url(x)'), dict(seq, extra='code'),
@@ -58,13 +62,18 @@ class CosmeticSequenceTests(SimpleTestCase):
         self.assertTrue(all('sequence' not in layer for layer in package['banner'][:3]))
         self.assertEqual(package['banner'][2]['motion'], 'none')
         candles = package['banner'][3:6]
-        self.assertEqual([layer['motion'] for layer in candles], ['float', 'float', 'float'])
+        self.assertEqual([layer['motion'] for layer in candles], ['none', 'none', 'none'])
         self.assertEqual(len({layer['url'] for layer in candles}), 3)
         self.assertEqual(len({layer['sequence']['duration'] for layer in candles}), 3)
+        self.assertEqual([len(layer['parts']) for layer in candles], [1, 2, 3])
         for layer in candles:
-            self.assertEqual(layer['sequence']['columns'], 4)
+            self.assertEqual(layer['sequence']['columns'], 1)
             self.assertEqual(layer['sequence']['backdrop'], 0)
-            self.assertTrue(all(frame['opacity'] == 1 and 'shift' in frame for frame in layer['sequence']['frames']))
+            self.assertTrue(all(frame['opacity'] == 1 and 'x' in frame and 'y' in frame for frame in layer['sequence']['frames']))
+            for flame in layer['parts']:
+                self.assertEqual(flame['sequence']['columns'], 4)
+                self.assertEqual(flame['sequence']['rows'], 3)
+                self.assertEqual({frame['frame'] for frame in flame['sequence']['frames']}, set(range(12)))
         raw = copy.deepcopy(self.raw)
         raw['slug'] = 'efeito-arbitrary-sequence'
         self.assertIsNotNone(self.parse(raw))

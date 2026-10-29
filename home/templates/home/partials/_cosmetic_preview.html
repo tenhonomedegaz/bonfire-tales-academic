@@ -13,7 +13,7 @@
   <span class="cosmetic-layer cosmetic-sprite cosmetic-sprite--{{ layer.sprite }}" style="{{ layer.opacity_style }}"><img src="{{ layer.url }}" data-fallback="{{ layer.fallback }}" alt="" decoding="async" loading="lazy"></span>
   {% else %}
   {% if layer.placement %}<span class="cosmetic-positioned" style="{{ layer.placement_style }}">{% endif %}
-  <img class="cosmetic-layer cosmetic-layer--{{ layer.anchor }} cosmetic-layer--{{ layer.motion }}" style="{{ layer.opacity_style }}" src="{{ layer.url }}" data-fallback="{{ layer.fallback }}"{% if layer.sequence_json %} data-cosmetic-sequence="{{ layer.sequence_json }}"{% endif %} width="{{ layer.width }}" height="{{ layer.height }}" alt="" decoding="async" loading="lazy">
+  <img class="cosmetic-layer cosmetic-layer--{{ layer.anchor }} cosmetic-layer--{{ layer.motion }}" style="{{ layer.opacity_style }}" src="{{ layer.url }}" data-fallback="{{ layer.fallback }}"{% if layer.sequence_json %} data-cosmetic-sequence="{{ layer.sequence_json }}"{% endif %}{% if layer.parts_json %} data-cosmetic-parts="{{ layer.parts_json }}"{% endif %} width="{{ layer.width }}" height="{{ layer.height }}" alt="" decoding="async" loading="lazy">
   {% if layer.placement %}</span>{% endif %}
   {% endif %}
   {% endfor %}

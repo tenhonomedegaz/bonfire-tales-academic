@@ -6,96 +6,1860 @@
   "overlay": true,
   "layers": [
     {
-      "slot": "banner", "file": "black-moon-clouds-v2.webp", "fallback": "black-moon-clouds-v2.png",
-      "width": 1400, "height": 467, "motion": "drift", "opacity": 0.14,
-      "placement": {"x": 60, "y": 65, "width": 88},
-      "mobile": {"x": 65, "y": 65, "width": 135},
-      "motion_params": {"distance": 45, "duration": 100, "delay": -50}
-    },
-    {
-      "slot": "banner", "file": "vigilia-foreground-left-v1.webp", "fallback": "vigilia-foreground-left-v1.webp",
-      "width": 800, "height": 400, "motion": "none", "opacity": 0.85,
-      "placement": {"x": 0, "y": 100, "width": 24},
-      "mobile": {"x": 0, "y": 100, "width": 42},
-      "pivot": {"x": 0, "y": 100}
-    },
-    {
-      "slot": "banner", "file": "vigilia-lanterns-right-v1.webp", "fallback": "vigilia-lanterns-right-v1.webp",
-      "width": 360, "height": 540, "motion": "none", "opacity": 0.85,
-      "placement": {"x": 100, "y": 0, "width": 10},
-      "mobile": {"x": 100, "y": 0, "width": 26},
-      "pivot": {"x": 100, "y": 0}
-    },
-    {
-      "slot": "banner", "file": "vigilia-candle-ivory-v2.webp", "fallback": "vigilia-candle-ivory-v2.webp",
-      "width": 960, "height": 320, "motion": "float", "opacity": 0.9,
-      "placement": {"x": 26, "y": 28, "width": 5.3},
-      "mobile": {"x": 21, "y": 24, "width": 12},
-      "sequence": {"columns":4,"duration":1.6,"delay":-0.4,"backdrop":0,"frames":[
-        {"at":0,"frame":0,"opacity":1,"shift":-12.58},
-        {"at":0.25,"frame":1,"opacity":1,"shift":-4.71},
-        {"at":0.5,"frame":2,"opacity":1,"shift":3.23},
-        {"at":0.75,"frame":3,"opacity":1,"shift":11.14},
-        {"at":1,"frame":0,"opacity":1,"shift":-12.58}
-      ]}
-    },
-    {
-      "slot": "banner", "file": "vigilia-candle-sage-v2.webp", "fallback": "vigilia-candle-sage-v2.webp",
-      "width": 960, "height": 320, "motion": "float", "opacity": 0.85,
-      "placement": {"x": 73, "y": 65, "width": 4.5},
-      "mobile": {"x": 76, "y": 72, "width": 13},
-      "sequence": {"columns":4,"duration":2,"delay":-1.2,"backdrop":0,"frames":[
-        {"at":0,"frame":0,"opacity":1,"shift":-7.18},
-        {"at":0.25,"frame":1,"opacity":1,"shift":-4.15},
-        {"at":0.5,"frame":2,"opacity":1,"shift":2.21},
-        {"at":0.75,"frame":3,"opacity":1,"shift":6.29},
-        {"at":1,"frame":0,"opacity":1,"shift":-7.18}
-      ]}
-    },
-    {
-      "slot": "banner", "file": "vigilia-candle-plum-v2.webp", "fallback": "vigilia-candle-plum-v2.webp",
-      "width": 960, "height": 320, "motion": "float", "opacity": 0.85,
-      "placement": {"x": 82, "y": 22, "width": 4},
-      "mobile": {"x": 80, "y": 20, "width": 10},
-      "sequence": {"columns":4,"duration":2.4,"delay":-0.8,"backdrop":0,"frames":[
-        {"at":0,"frame":0,"opacity":1,"shift":-13.66},
-        {"at":0.25,"frame":1,"opacity":1,"shift":-7.93},
-        {"at":0.5,"frame":2,"opacity":1,"shift":-0.31},
-        {"at":0.75,"frame":3,"opacity":1,"shift":6.4},
-        {"at":1,"frame":0,"opacity":1,"shift":-13.66}
-      ]}
-    },
-    {
-      "slot": "banner", "file": "vigilia-jack-gaze-v2.webp", "fallback": "vigilia-jack-gaze-v2.webp",
-      "width": 2240, "height": 747, "motion": "none",
-      "placement": {"x": 50, "y": 55, "width": 23},
-      "mobile": {"x": 50, "y": 55, "width": 42},
-      "sequence": {
-        "columns": 7, "duration": 18, "delay": 0, "backdrop": 0.82,
-        "frames": [
-          {"at":0,"frame":3,"opacity":0},
-          {"at":0.08,"frame":3,"opacity":0},
-          {"at":0.14,"frame":3,"opacity":0.95},
-          {"at":0.22,"frame":3,"opacity":0.95},
-          {"at":0.228,"frame":2,"opacity":0.95},
-          {"at":0.236,"frame":1,"opacity":0.95},
-          {"at":0.244,"frame":0,"opacity":0.95},
-          {"at":0.31,"frame":0,"opacity":0.95},
-          {"at":0.318,"frame":1,"opacity":0.95},
-          {"at":0.326,"frame":2,"opacity":0.95},
-          {"at":0.334,"frame":3,"opacity":0.95},
-          {"at":0.342,"frame":4,"opacity":0.95},
-          {"at":0.35,"frame":5,"opacity":0.95},
-          {"at":0.358,"frame":6,"opacity":0.95},
-          {"at":0.424,"frame":6,"opacity":0.95},
-          {"at":0.432,"frame":5,"opacity":0.95},
-          {"at":0.44,"frame":4,"opacity":0.95},
-          {"at":0.448,"frame":3,"opacity":0.95},
-          {"at":0.54,"frame":3,"opacity":0.95},
-          {"at":0.62,"frame":3,"opacity":0},
-          {"at":1,"frame":3,"opacity":0}
-        ]
+      "slot": "banner",
+      "file": "black-moon-clouds-v2.webp",
+      "fallback": "black-moon-clouds-v2.png",
+      "width": 1400,
+      "height": 467,
+      "motion": "drift",
+      "opacity": 0.14,
+      "placement": {
+        "x": 60,
+        "y": 65,
+        "width": 88
+      },
+      "mobile": {
+        "x": 65,
+        "y": 65,
+        "width": 135
+      },
+      "motion_params": {
+        "distance": 45,
+        "duration": 100,
+        "delay": -50
       }
+    },
+    {
+      "slot": "banner",
+      "file": "vigilia-foreground-left-v1.webp",
+      "fallback": "vigilia-foreground-left-v1.webp",
+      "width": 800,
+      "height": 400,
+      "motion": "none",
+      "opacity": 0.85,
+      "placement": {
+        "x": 0,
+        "y": 100,
+        "width": 24
+      },
+      "mobile": {
+        "x": 0,
+        "y": 100,
+        "width": 42
+      },
+      "pivot": {
+        "x": 0,
+        "y": 100
+      }
+    },
+    {
+      "slot": "banner",
+      "file": "vigilia-lanterns-right-v1.webp",
+      "fallback": "vigilia-lanterns-right-v1.webp",
+      "width": 360,
+      "height": 540,
+      "motion": "none",
+      "opacity": 0.85,
+      "placement": {
+        "x": 100,
+        "y": 0,
+        "width": 10
+      },
+      "mobile": {
+        "x": 100,
+        "y": 0,
+        "width": 26
+      },
+      "pivot": {
+        "x": 100,
+        "y": 0
+      }
+    },
+    {
+      "slot": "banner",
+      "file": "vigilia-candlestick-one-v3.webp",
+      "fallback": "vigilia-candlestick-one-v3.webp",
+      "width": 400,
+      "height": 600,
+      "motion": "none",
+      "placement": {
+        "x": 25,
+        "y": 38,
+        "width": 7
+      },
+      "mobile": {
+        "x": 22,
+        "y": 42,
+        "width": 14
+      },
+      "sequence": {
+        "columns": 1,
+        "rows": 1,
+        "duration": 8.2,
+        "delay": -2.4,
+        "backdrop": 0,
+        "frames": [
+          {
+            "at": 0,
+            "frame": 0,
+            "opacity": 1,
+            "x": 1.6356,
+            "y": 3.5,
+            "rotate": 0.5452
+          },
+          {
+            "at": 0.043478260869565216,
+            "frame": 0,
+            "opacity": 1,
+            "x": 2.6186,
+            "y": 3.3702,
+            "rotate": 0.8729
+          },
+          {
+            "at": 0.08695652173913043,
+            "frame": 0,
+            "opacity": 1,
+            "x": 3.4074,
+            "y": 2.9905,
+            "rotate": 1.1358
+          },
+          {
+            "at": 0.13043478260869565,
+            "frame": 0,
+            "opacity": 1,
+            "x": 3.9436,
+            "y": 2.3889,
+            "rotate": 1.3145
+          },
+          {
+            "at": 0.17391304347826086,
+            "frame": 0,
+            "opacity": 1,
+            "x": 4.1872,
+            "y": 1.6102,
+            "rotate": 1.3957
+          },
+          {
+            "at": 0.21739130434782608,
+            "frame": 0,
+            "opacity": 1,
+            "x": 4.1203,
+            "y": 0.7121,
+            "rotate": 1.3734
+          },
+          {
+            "at": 0.2608695652173913,
+            "frame": 0,
+            "opacity": 1,
+            "x": 3.7478,
+            "y": -0.2388,
+            "rotate": 1.2493
+          },
+          {
+            "at": 0.30434782608695654,
+            "frame": 0,
+            "opacity": 1,
+            "x": 3.0974,
+            "y": -1.1721,
+            "rotate": 1.0325
+          },
+          {
+            "at": 0.34782608695652173,
+            "frame": 0,
+            "opacity": 1,
+            "x": 2.2172,
+            "y": -2.0184,
+            "rotate": 0.7391
+          },
+          {
+            "at": 0.391304347826087,
+            "frame": 0,
+            "opacity": 1,
+            "x": 1.1726,
+            "y": -2.715,
+            "rotate": 0.3909
+          },
+          {
+            "at": 0.43478260869565216,
+            "frame": 0,
+            "opacity": 1,
+            "x": 0.041,
+            "y": -3.2102,
+            "rotate": 0.0137
+          },
+          {
+            "at": 0.4782608695652174,
+            "frame": 0,
+            "opacity": 1,
+            "x": -1.0936,
+            "y": -3.4674,
+            "rotate": -0.3645
+          },
+          {
+            "at": 0.5217391304347826,
+            "frame": 0,
+            "opacity": 1,
+            "x": -2.1471,
+            "y": -3.4674,
+            "rotate": -0.7157
+          },
+          {
+            "at": 0.5652173913043478,
+            "frame": 0,
+            "opacity": 1,
+            "x": -3.0413,
+            "y": -3.2102,
+            "rotate": -1.0138
+          },
+          {
+            "at": 0.6086956521739131,
+            "frame": 0,
+            "opacity": 1,
+            "x": -3.7101,
+            "y": -2.715,
+            "rotate": -1.2367
+          },
+          {
+            "at": 0.6521739130434783,
+            "frame": 0,
+            "opacity": 1,
+            "x": -4.1036,
+            "y": -2.0184,
+            "rotate": -1.3679
+          },
+          {
+            "at": 0.6956521739130435,
+            "frame": 0,
+            "opacity": 1,
+            "x": -4.1928,
+            "y": -1.1721,
+            "rotate": -1.3976
+          },
+          {
+            "at": 0.7391304347826086,
+            "frame": 0,
+            "opacity": 1,
+            "x": -3.9711,
+            "y": -0.2388,
+            "rotate": -1.3237
+          },
+          {
+            "at": 0.782608695652174,
+            "frame": 0,
+            "opacity": 1,
+            "x": -3.4548,
+            "y": 0.7121,
+            "rotate": -1.1516
+          },
+          {
+            "at": 0.8260869565217391,
+            "frame": 0,
+            "opacity": 1,
+            "x": -2.6823,
+            "y": 1.6102,
+            "rotate": -0.8941
+          },
+          {
+            "at": 0.8695652173913043,
+            "frame": 0,
+            "opacity": 1,
+            "x": -1.7109,
+            "y": 2.3889,
+            "rotate": -0.5703
+          },
+          {
+            "at": 0.9130434782608695,
+            "frame": 0,
+            "opacity": 1,
+            "x": -0.6125,
+            "y": 2.9905,
+            "rotate": -0.2042
+          },
+          {
+            "at": 0.9565217391304348,
+            "frame": 0,
+            "opacity": 1,
+            "x": 0.5312,
+            "y": 3.3702,
+            "rotate": 0.1771
+          },
+          {
+            "at": 1,
+            "frame": 0,
+            "opacity": 1,
+            "x": 1.6356,
+            "y": 3.5,
+            "rotate": 0.5452
+          }
+        ]
+      },
+      "parts": [
+        {
+          "slot": "banner",
+          "file": "vigilia-flame-twelve-v3.webp",
+          "fallback": "vigilia-flame-twelve-v3.webp",
+          "width": 1024,
+          "height": 768,
+          "motion": "none",
+          "placement": {
+            "x": 50.3,
+            "y": 1.6,
+            "width": 26
+          },
+          "pivot": {
+            "x": 50,
+            "y": 85
+          },
+          "sequence": {
+            "columns": 4,
+            "rows": 3,
+            "duration": 1.15,
+            "delay": -0.17,
+            "backdrop": 0,
+            "frames": [
+              {
+                "at": 0,
+                "frame": 0,
+                "opacity": 1
+              },
+              {
+                "at": 0.08333333333333333,
+                "frame": 1,
+                "opacity": 1
+              },
+              {
+                "at": 0.16666666666666666,
+                "frame": 2,
+                "opacity": 1
+              },
+              {
+                "at": 0.25,
+                "frame": 3,
+                "opacity": 1
+              },
+              {
+                "at": 0.3333333333333333,
+                "frame": 4,
+                "opacity": 1
+              },
+              {
+                "at": 0.4166666666666667,
+                "frame": 5,
+                "opacity": 1
+              },
+              {
+                "at": 0.5,
+                "frame": 6,
+                "opacity": 1
+              },
+              {
+                "at": 0.5833333333333334,
+                "frame": 7,
+                "opacity": 1
+              },
+              {
+                "at": 0.6666666666666666,
+                "frame": 8,
+                "opacity": 1
+              },
+              {
+                "at": 0.75,
+                "frame": 9,
+                "opacity": 1
+              },
+              {
+                "at": 0.8333333333333334,
+                "frame": 10,
+                "opacity": 1
+              },
+              {
+                "at": 0.9166666666666666,
+                "frame": 11,
+                "opacity": 1
+              },
+              {
+                "at": 1,
+                "frame": 0,
+                "opacity": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "slot": "banner",
+      "file": "vigilia-candlestick-two-v3.webp",
+      "fallback": "vigilia-candlestick-two-v3.webp",
+      "width": 500,
+      "height": 750,
+      "motion": "none",
+      "placement": {
+        "x": 72,
+        "y": 62,
+        "width": 10
+      },
+      "mobile": {
+        "x": 72,
+        "y": 72,
+        "width": 20
+      },
+      "sequence": {
+        "columns": 1,
+        "rows": 1,
+        "duration": 10.6,
+        "delay": -6.1,
+        "backdrop": 0,
+        "frames": [
+          {
+            "at": 0,
+            "frame": 0,
+            "opacity": 1,
+            "x": 4.165,
+            "y": 3.5,
+            "rotate": 1.3883
+          },
+          {
+            "at": 0.043478260869565216,
+            "frame": 0,
+            "opacity": 1,
+            "x": 3.8645,
+            "y": 3.3702,
+            "rotate": 1.2882
+          },
+          {
+            "at": 0.08695652173913043,
+            "frame": 0,
+            "opacity": 1,
+            "x": 3.2775,
+            "y": 2.9905,
+            "rotate": 1.0925
+          },
+          {
+            "at": 0.13043478260869565,
+            "frame": 0,
+            "opacity": 1,
+            "x": 2.4473,
+            "y": 2.3889,
+            "rotate": 0.8158
+          },
+          {
+            "at": 0.17391304347826086,
+            "frame": 0,
+            "opacity": 1,
+            "x": 1.4357,
+            "y": 1.6102,
+            "rotate": 0.4786
+          },
+          {
+            "at": 0.21739130434782608,
+            "frame": 0,
+            "opacity": 1,
+            "x": 0.3176,
+            "y": 0.7121,
+            "rotate": 0.1059
+          },
+          {
+            "at": 0.2608695652173913,
+            "frame": 0,
+            "opacity": 1,
+            "x": -0.8241,
+            "y": -0.2388,
+            "rotate": -0.2747
+          },
+          {
+            "at": 0.30434782608695654,
+            "frame": 0,
+            "opacity": 1,
+            "x": -1.9047,
+            "y": -1.1721,
+            "rotate": -0.6349
+          },
+          {
+            "at": 0.34782608695652173,
+            "frame": 0,
+            "opacity": 1,
+            "x": -2.844,
+            "y": -2.0184,
+            "rotate": -0.948
+          },
+          {
+            "at": 0.391304347826087,
+            "frame": 0,
+            "opacity": 1,
+            "x": -3.5723,
+            "y": -2.715,
+            "rotate": -1.1908
+          },
+          {
+            "at": 0.43478260869565216,
+            "frame": 0,
+            "opacity": 1,
+            "x": -4.0358,
+            "y": -3.2102,
+            "rotate": -1.3453
+          },
+          {
+            "at": 0.4782608695652174,
+            "frame": 0,
+            "opacity": 1,
+            "x": -4.1999,
+            "y": -3.4674,
+            "rotate": -1.4
+          },
+          {
+            "at": 0.5217391304347826,
+            "frame": 0,
+            "opacity": 1,
+            "x": -4.0525,
+            "y": -3.4674,
+            "rotate": -1.3508
+          },
+          {
+            "at": 0.5652173913043478,
+            "frame": 0,
+            "opacity": 1,
+            "x": -3.6046,
+            "y": -3.2102,
+            "rotate": -1.2015
+          },
+          {
+            "at": 0.6086956521739131,
+            "frame": 0,
+            "opacity": 1,
+            "x": -2.8893,
+            "y": -2.715,
+            "rotate": -0.9631
+          },
+          {
+            "at": 0.6521739130434783,
+            "frame": 0,
+            "opacity": 1,
+            "x": -1.9598,
+            "y": -2.0184,
+            "rotate": -0.6533
+          },
+          {
+            "at": 0.6956521739130435,
+            "frame": 0,
+            "opacity": 1,
+            "x": -0.8849,
+            "y": -1.1721,
+            "rotate": -0.295
+          },
+          {
+            "at": 0.7391304347826086,
+            "frame": 0,
+            "opacity": 1,
+            "x": 0.2557,
+            "y": -0.2388,
+            "rotate": 0.0852
+          },
+          {
+            "at": 0.782608695652174,
+            "frame": 0,
+            "opacity": 1,
+            "x": 1.3772,
+            "y": 0.7121,
+            "rotate": 0.4591
+          },
+          {
+            "at": 0.8260869565217391,
+            "frame": 0,
+            "opacity": 1,
+            "x": 2.3966,
+            "y": 1.6102,
+            "rotate": 0.7989
+          },
+          {
+            "at": 0.8695652173913043,
+            "frame": 0,
+            "opacity": 1,
+            "x": 3.2383,
+            "y": 2.3889,
+            "rotate": 1.0794
+          },
+          {
+            "at": 0.9130434782608695,
+            "frame": 0,
+            "opacity": 1,
+            "x": 3.8398,
+            "y": 2.9905,
+            "rotate": 1.2799
+          },
+          {
+            "at": 0.9565217391304348,
+            "frame": 0,
+            "opacity": 1,
+            "x": 4.1565,
+            "y": 3.3702,
+            "rotate": 1.3855
+          },
+          {
+            "at": 1,
+            "frame": 0,
+            "opacity": 1,
+            "x": 4.165,
+            "y": 3.5,
+            "rotate": 1.3883
+          }
+        ]
+      },
+      "parts": [
+        {
+          "slot": "banner",
+          "file": "vigilia-flame-twelve-v3.webp",
+          "fallback": "vigilia-flame-twelve-v3.webp",
+          "width": 1024,
+          "height": 768,
+          "motion": "none",
+          "placement": {
+            "x": 29.3,
+            "y": 1.2,
+            "width": 22
+          },
+          "pivot": {
+            "x": 50,
+            "y": 85
+          },
+          "sequence": {
+            "columns": 4,
+            "rows": 3,
+            "duration": 1.26,
+            "delay": -0.34,
+            "backdrop": 0,
+            "frames": [
+              {
+                "at": 0,
+                "frame": 0,
+                "opacity": 1
+              },
+              {
+                "at": 0.08333333333333333,
+                "frame": 1,
+                "opacity": 1
+              },
+              {
+                "at": 0.16666666666666666,
+                "frame": 2,
+                "opacity": 1
+              },
+              {
+                "at": 0.25,
+                "frame": 3,
+                "opacity": 1
+              },
+              {
+                "at": 0.3333333333333333,
+                "frame": 4,
+                "opacity": 1
+              },
+              {
+                "at": 0.4166666666666667,
+                "frame": 5,
+                "opacity": 1
+              },
+              {
+                "at": 0.5,
+                "frame": 6,
+                "opacity": 1
+              },
+              {
+                "at": 0.5833333333333334,
+                "frame": 7,
+                "opacity": 1
+              },
+              {
+                "at": 0.6666666666666666,
+                "frame": 8,
+                "opacity": 1
+              },
+              {
+                "at": 0.75,
+                "frame": 9,
+                "opacity": 1
+              },
+              {
+                "at": 0.8333333333333334,
+                "frame": 10,
+                "opacity": 1
+              },
+              {
+                "at": 0.9166666666666666,
+                "frame": 11,
+                "opacity": 1
+              },
+              {
+                "at": 1,
+                "frame": 0,
+                "opacity": 1
+              }
+            ]
+          }
+        },
+        {
+          "slot": "banner",
+          "file": "vigilia-flame-twelve-v3.webp",
+          "fallback": "vigilia-flame-twelve-v3.webp",
+          "width": 1024,
+          "height": 768,
+          "motion": "none",
+          "placement": {
+            "x": 70.1,
+            "y": 12,
+            "width": 22
+          },
+          "pivot": {
+            "x": 50,
+            "y": 85
+          },
+          "sequence": {
+            "columns": 4,
+            "rows": 3,
+            "duration": 1.3699999999999999,
+            "delay": -0.51,
+            "backdrop": 0,
+            "frames": [
+              {
+                "at": 0,
+                "frame": 0,
+                "opacity": 1
+              },
+              {
+                "at": 0.08333333333333333,
+                "frame": 1,
+                "opacity": 1
+              },
+              {
+                "at": 0.16666666666666666,
+                "frame": 2,
+                "opacity": 1
+              },
+              {
+                "at": 0.25,
+                "frame": 3,
+                "opacity": 1
+              },
+              {
+                "at": 0.3333333333333333,
+                "frame": 4,
+                "opacity": 1
+              },
+              {
+                "at": 0.4166666666666667,
+                "frame": 5,
+                "opacity": 1
+              },
+              {
+                "at": 0.5,
+                "frame": 6,
+                "opacity": 1
+              },
+              {
+                "at": 0.5833333333333334,
+                "frame": 7,
+                "opacity": 1
+              },
+              {
+                "at": 0.6666666666666666,
+                "frame": 8,
+                "opacity": 1
+              },
+              {
+                "at": 0.75,
+                "frame": 9,
+                "opacity": 1
+              },
+              {
+                "at": 0.8333333333333334,
+                "frame": 10,
+                "opacity": 1
+              },
+              {
+                "at": 0.9166666666666666,
+                "frame": 11,
+                "opacity": 1
+              },
+              {
+                "at": 1,
+                "frame": 0,
+                "opacity": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "slot": "banner",
+      "file": "vigilia-candlestick-three-v3.webp",
+      "fallback": "vigilia-candlestick-three-v3.webp",
+      "width": 560,
+      "height": 840,
+      "motion": "none",
+      "placement": {
+        "x": 85,
+        "y": 48,
+        "width": 11
+      },
+      "mobile": {
+        "x": 83,
+        "y": 38,
+        "width": 24
+      },
+      "sequence": {
+        "columns": 1,
+        "rows": 1,
+        "duration": 12.8,
+        "delay": -8.7,
+        "backdrop": 0,
+        "frames": [
+          {
+            "at": 0,
+            "frame": 0,
+            "opacity": 1,
+            "x": -0.2452,
+            "y": 3.5,
+            "rotate": -0.0817
+          },
+          {
+            "at": 0.043478260869565216,
+            "frame": 0,
+            "opacity": 1,
+            "x": -1.3673,
+            "y": 3.3702,
+            "rotate": -0.4558
+          },
+          {
+            "at": 0.08695652173913043,
+            "frame": 0,
+            "opacity": 1,
+            "x": -2.388,
+            "y": 2.9905,
+            "rotate": -0.796
+          },
+          {
+            "at": 0.13043478260869565,
+            "frame": 0,
+            "opacity": 1,
+            "x": -3.2316,
+            "y": 2.3889,
+            "rotate": -1.0772
+          },
+          {
+            "at": 0.17391304347826086,
+            "frame": 0,
+            "opacity": 1,
+            "x": -3.8356,
+            "y": 1.6102,
+            "rotate": -1.2785
+          },
+          {
+            "at": 0.21739130434782608,
+            "frame": 0,
+            "opacity": 1,
+            "x": -4.155,
+            "y": 0.7121,
+            "rotate": -1.385
+          },
+          {
+            "at": 0.2608695652173913,
+            "frame": 0,
+            "opacity": 1,
+            "x": -4.1663,
+            "y": -0.2388,
+            "rotate": -1.3888
+          },
+          {
+            "at": 0.30434782608695654,
+            "frame": 0,
+            "opacity": 1,
+            "x": -3.8686,
+            "y": -1.1721,
+            "rotate": -1.2895
+          },
+          {
+            "at": 0.34782608695652173,
+            "frame": 0,
+            "opacity": 1,
+            "x": -3.284,
+            "y": -2.0184,
+            "rotate": -1.0947
+          },
+          {
+            "at": 0.391304347826087,
+            "frame": 0,
+            "opacity": 1,
+            "x": -2.4559,
+            "y": -2.715,
+            "rotate": -0.8186
+          },
+          {
+            "at": 0.43478260869565216,
+            "frame": 0,
+            "opacity": 1,
+            "x": -1.4456,
+            "y": -3.2102,
+            "rotate": -0.4819
+          },
+          {
+            "at": 0.4782608695652174,
+            "frame": 0,
+            "opacity": 1,
+            "x": -0.328,
+            "y": -3.4674,
+            "rotate": -0.1093
+          },
+          {
+            "at": 0.5217391304347826,
+            "frame": 0,
+            "opacity": 1,
+            "x": 0.8138,
+            "y": -3.4674,
+            "rotate": 0.2713
+          },
+          {
+            "at": 0.5652173913043478,
+            "frame": 0,
+            "opacity": 1,
+            "x": 1.8953,
+            "y": -3.2102,
+            "rotate": 0.6318
+          },
+          {
+            "at": 0.6086956521739131,
+            "frame": 0,
+            "opacity": 1,
+            "x": 2.8362,
+            "y": -2.715,
+            "rotate": 0.9454
+          },
+          {
+            "at": 0.6521739130434783,
+            "frame": 0,
+            "opacity": 1,
+            "x": 3.5668,
+            "y": -2.0184,
+            "rotate": 1.1889
+          },
+          {
+            "at": 0.6956521739130435,
+            "frame": 0,
+            "opacity": 1,
+            "x": 4.0329,
+            "y": -1.1721,
+            "rotate": 1.3443
+          },
+          {
+            "at": 0.7391304347826086,
+            "frame": 0,
+            "opacity": 1,
+            "x": 4.1998,
+            "y": -0.2388,
+            "rotate": 1.3999
+          },
+          {
+            "at": 0.782608695652174,
+            "frame": 0,
+            "opacity": 1,
+            "x": 4.0553,
+            "y": 0.7121,
+            "rotate": 1.3518
+          },
+          {
+            "at": 0.8260869565217391,
+            "frame": 0,
+            "opacity": 1,
+            "x": 3.61,
+            "y": 1.6102,
+            "rotate": 1.2033
+          },
+          {
+            "at": 0.8695652173913043,
+            "frame": 0,
+            "opacity": 1,
+            "x": 2.8969,
+            "y": 2.3889,
+            "rotate": 0.9656
+          },
+          {
+            "at": 0.9130434782608695,
+            "frame": 0,
+            "opacity": 1,
+            "x": 1.9691,
+            "y": 2.9905,
+            "rotate": 0.6564
+          },
+          {
+            "at": 0.9565217391304348,
+            "frame": 0,
+            "opacity": 1,
+            "x": 0.8951,
+            "y": 3.3702,
+            "rotate": 0.2984
+          },
+          {
+            "at": 1,
+            "frame": 0,
+            "opacity": 1,
+            "x": -0.2452,
+            "y": 3.5,
+            "rotate": -0.0817
+          }
+        ]
+      },
+      "parts": [
+        {
+          "slot": "banner",
+          "file": "vigilia-flame-twelve-v3.webp",
+          "fallback": "vigilia-flame-twelve-v3.webp",
+          "width": 1024,
+          "height": 768,
+          "motion": "none",
+          "placement": {
+            "x": 21.6,
+            "y": 25.3,
+            "width": 21
+          },
+          "pivot": {
+            "x": 50,
+            "y": 85
+          },
+          "sequence": {
+            "columns": 4,
+            "rows": 3,
+            "duration": 1.3699999999999999,
+            "delay": -0.51,
+            "backdrop": 0,
+            "frames": [
+              {
+                "at": 0,
+                "frame": 0,
+                "opacity": 1
+              },
+              {
+                "at": 0.08333333333333333,
+                "frame": 1,
+                "opacity": 1
+              },
+              {
+                "at": 0.16666666666666666,
+                "frame": 2,
+                "opacity": 1
+              },
+              {
+                "at": 0.25,
+                "frame": 3,
+                "opacity": 1
+              },
+              {
+                "at": 0.3333333333333333,
+                "frame": 4,
+                "opacity": 1
+              },
+              {
+                "at": 0.4166666666666667,
+                "frame": 5,
+                "opacity": 1
+              },
+              {
+                "at": 0.5,
+                "frame": 6,
+                "opacity": 1
+              },
+              {
+                "at": 0.5833333333333334,
+                "frame": 7,
+                "opacity": 1
+              },
+              {
+                "at": 0.6666666666666666,
+                "frame": 8,
+                "opacity": 1
+              },
+              {
+                "at": 0.75,
+                "frame": 9,
+                "opacity": 1
+              },
+              {
+                "at": 0.8333333333333334,
+                "frame": 10,
+                "opacity": 1
+              },
+              {
+                "at": 0.9166666666666666,
+                "frame": 11,
+                "opacity": 1
+              },
+              {
+                "at": 1,
+                "frame": 0,
+                "opacity": 1
+              }
+            ]
+          }
+        },
+        {
+          "slot": "banner",
+          "file": "vigilia-flame-twelve-v3.webp",
+          "fallback": "vigilia-flame-twelve-v3.webp",
+          "width": 1024,
+          "height": 768,
+          "motion": "none",
+          "placement": {
+            "x": 50.8,
+            "y": 2.3,
+            "width": 21
+          },
+          "pivot": {
+            "x": 50,
+            "y": 85
+          },
+          "sequence": {
+            "columns": 4,
+            "rows": 3,
+            "duration": 1.48,
+            "delay": -0.68,
+            "backdrop": 0,
+            "frames": [
+              {
+                "at": 0,
+                "frame": 0,
+                "opacity": 1
+              },
+              {
+                "at": 0.08333333333333333,
+                "frame": 1,
+                "opacity": 1
+              },
+              {
+                "at": 0.16666666666666666,
+                "frame": 2,
+                "opacity": 1
+              },
+              {
+                "at": 0.25,
+                "frame": 3,
+                "opacity": 1
+              },
+              {
+                "at": 0.3333333333333333,
+                "frame": 4,
+                "opacity": 1
+              },
+              {
+                "at": 0.4166666666666667,
+                "frame": 5,
+                "opacity": 1
+              },
+              {
+                "at": 0.5,
+                "frame": 6,
+                "opacity": 1
+              },
+              {
+                "at": 0.5833333333333334,
+                "frame": 7,
+                "opacity": 1
+              },
+              {
+                "at": 0.6666666666666666,
+                "frame": 8,
+                "opacity": 1
+              },
+              {
+                "at": 0.75,
+                "frame": 9,
+                "opacity": 1
+              },
+              {
+                "at": 0.8333333333333334,
+                "frame": 10,
+                "opacity": 1
+              },
+              {
+                "at": 0.9166666666666666,
+                "frame": 11,
+                "opacity": 1
+              },
+              {
+                "at": 1,
+                "frame": 0,
+                "opacity": 1
+              }
+            ]
+          }
+        },
+        {
+          "slot": "banner",
+          "file": "vigilia-flame-twelve-v3.webp",
+          "fallback": "vigilia-flame-twelve-v3.webp",
+          "width": 1024,
+          "height": 768,
+          "motion": "none",
+          "placement": {
+            "x": 78.2,
+            "y": 14.9,
+            "width": 21
+          },
+          "pivot": {
+            "x": 50,
+            "y": 85
+          },
+          "sequence": {
+            "columns": 4,
+            "rows": 3,
+            "duration": 1.5899999999999999,
+            "delay": -0.8500000000000001,
+            "backdrop": 0,
+            "frames": [
+              {
+                "at": 0,
+                "frame": 0,
+                "opacity": 1
+              },
+              {
+                "at": 0.08333333333333333,
+                "frame": 1,
+                "opacity": 1
+              },
+              {
+                "at": 0.16666666666666666,
+                "frame": 2,
+                "opacity": 1
+              },
+              {
+                "at": 0.25,
+                "frame": 3,
+                "opacity": 1
+              },
+              {
+                "at": 0.3333333333333333,
+                "frame": 4,
+                "opacity": 1
+              },
+              {
+                "at": 0.4166666666666667,
+                "frame": 5,
+                "opacity": 1
+              },
+              {
+                "at": 0.5,
+                "frame": 6,
+                "opacity": 1
+              },
+              {
+                "at": 0.5833333333333334,
+                "frame": 7,
+                "opacity": 1
+              },
+              {
+                "at": 0.6666666666666666,
+                "frame": 8,
+                "opacity": 1
+              },
+              {
+                "at": 0.75,
+                "frame": 9,
+                "opacity": 1
+              },
+              {
+                "at": 0.8333333333333334,
+                "frame": 10,
+                "opacity": 1
+              },
+              {
+                "at": 0.9166666666666666,
+                "frame": 11,
+                "opacity": 1
+              },
+              {
+                "at": 1,
+                "frame": 0,
+                "opacity": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "slot": "banner",
+      "file": "vigilia-jack-base-v3.webp",
+      "fallback": "vigilia-jack-base-v3.webp",
+      "width": 640,
+      "height": 640,
+      "motion": "none",
+      "placement": {
+        "x": 50,
+        "y": 47,
+        "width": 23
+      },
+      "mobile": {
+        "x": 50,
+        "y": 47,
+        "width": 42
+      },
+      "sequence": {
+        "columns": 1,
+        "rows": 1,
+        "duration": 18,
+        "delay": 0,
+        "backdrop": 0.82,
+        "frames": [
+          {
+            "at": 0,
+            "frame": 0,
+            "opacity": 0
+          },
+          {
+            "at": 0.08,
+            "frame": 0,
+            "opacity": 0
+          },
+          {
+            "at": 0.14,
+            "frame": 0,
+            "opacity": 0.95
+          },
+          {
+            "at": 0.16,
+            "frame": 0,
+            "opacity": 0.95
+          },
+          {
+            "at": 0.18,
+            "frame": 0,
+            "opacity": 0.95
+          },
+          {
+            "at": 0.2,
+            "frame": 0,
+            "opacity": 0.95
+          },
+          {
+            "at": 0.22,
+            "frame": 0,
+            "opacity": 0.95
+          },
+          {
+            "at": 0.24,
+            "frame": 0,
+            "opacity": 0.95
+          },
+          {
+            "at": 0.26,
+            "frame": 0,
+            "opacity": 0.95
+          },
+          {
+            "at": 0.28,
+            "frame": 0,
+            "opacity": 0.95
+          },
+          {
+            "at": 0.3,
+            "frame": 0,
+            "opacity": 0.95
+          },
+          {
+            "at": 0.32,
+            "frame": 0,
+            "opacity": 0.95
+          },
+          {
+            "at": 0.34,
+            "frame": 0,
+            "opacity": 0.95
+          },
+          {
+            "at": 0.36,
+            "frame": 0,
+            "opacity": 0.95
+          },
+          {
+            "at": 0.38,
+            "frame": 0,
+            "opacity": 0.95
+          },
+          {
+            "at": 0.4,
+            "frame": 0,
+            "opacity": 0.95
+          },
+          {
+            "at": 0.42,
+            "frame": 0,
+            "opacity": 0.95
+          },
+          {
+            "at": 0.44,
+            "frame": 0,
+            "opacity": 0.95
+          },
+          {
+            "at": 0.46,
+            "frame": 0,
+            "opacity": 0.95
+          },
+          {
+            "at": 0.48,
+            "frame": 0,
+            "opacity": 0.95
+          },
+          {
+            "at": 0.5,
+            "frame": 0,
+            "opacity": 0.95
+          },
+          {
+            "at": 0.54,
+            "frame": 0,
+            "opacity": 0.95
+          },
+          {
+            "at": 0.62,
+            "frame": 0,
+            "opacity": 0
+          },
+          {
+            "at": 1,
+            "frame": 0,
+            "opacity": 0
+          }
+        ]
+      },
+      "parts": [
+        {
+          "slot": "banner",
+          "file": "vigilia-jack-pupil-v3.webp",
+          "fallback": "vigilia-jack-pupil-v3.webp",
+          "width": 128,
+          "height": 128,
+          "motion": "none",
+          "placement": {
+            "x": 26.5,
+            "y": 37,
+            "width": 12
+          },
+          "sequence": {
+            "columns": 1,
+            "rows": 1,
+            "duration": 18,
+            "delay": 0,
+            "backdrop": 0,
+            "frames": [
+              {
+                "at": 0,
+                "frame": 0,
+                "opacity": 1,
+                "x": 0,
+                "y": 0,
+                "rotate": 0
+              },
+              {
+                "at": 0.08,
+                "frame": 0,
+                "opacity": 1,
+                "x": 0,
+                "y": 0,
+                "rotate": 0
+              },
+              {
+                "at": 0.14,
+                "frame": 0,
+                "opacity": 1,
+                "x": 0,
+                "y": 0,
+                "rotate": 0
+              },
+              {
+                "at": 0.16,
+                "frame": 0,
+                "opacity": 1,
+                "x": -3,
+                "y": -0.1,
+                "rotate": -0.12
+              },
+              {
+                "at": 0.18,
+                "frame": 0,
+                "opacity": 1,
+                "x": -10,
+                "y": -0.3333333333333333,
+                "rotate": -0.4
+              },
+              {
+                "at": 0.2,
+                "frame": 0,
+                "opacity": 1,
+                "x": -22,
+                "y": -0.7333333333333333,
+                "rotate": -0.88
+              },
+              {
+                "at": 0.22,
+                "frame": 0,
+                "opacity": 1,
+                "x": -36,
+                "y": -1.2,
+                "rotate": -1.44
+              },
+              {
+                "at": 0.24,
+                "frame": 0,
+                "opacity": 1,
+                "x": -50,
+                "y": -1.6666666666666667,
+                "rotate": -2
+              },
+              {
+                "at": 0.26,
+                "frame": 0,
+                "opacity": 1,
+                "x": -60,
+                "y": -2,
+                "rotate": -2.4
+              },
+              {
+                "at": 0.28,
+                "frame": 0,
+                "opacity": 1,
+                "x": -56,
+                "y": -1.8666666666666667,
+                "rotate": -2.24
+              },
+              {
+                "at": 0.3,
+                "frame": 0,
+                "opacity": 1,
+                "x": -45,
+                "y": -1.5,
+                "rotate": -1.8
+              },
+              {
+                "at": 0.32,
+                "frame": 0,
+                "opacity": 1,
+                "x": -25,
+                "y": -0.8333333333333334,
+                "rotate": -1
+              },
+              {
+                "at": 0.34,
+                "frame": 0,
+                "opacity": 1,
+                "x": 0,
+                "y": 0,
+                "rotate": 0
+              },
+              {
+                "at": 0.36,
+                "frame": 0,
+                "opacity": 1,
+                "x": 25,
+                "y": 0.8333333333333334,
+                "rotate": 1
+              },
+              {
+                "at": 0.38,
+                "frame": 0,
+                "opacity": 1,
+                "x": 45,
+                "y": 1.5,
+                "rotate": 1.8
+              },
+              {
+                "at": 0.4,
+                "frame": 0,
+                "opacity": 1,
+                "x": 58,
+                "y": 1.9333333333333333,
+                "rotate": 2.32
+              },
+              {
+                "at": 0.42,
+                "frame": 0,
+                "opacity": 1,
+                "x": 60,
+                "y": 2,
+                "rotate": 2.4
+              },
+              {
+                "at": 0.44,
+                "frame": 0,
+                "opacity": 1,
+                "x": 48,
+                "y": 1.6,
+                "rotate": 1.92
+              },
+              {
+                "at": 0.46,
+                "frame": 0,
+                "opacity": 1,
+                "x": 32,
+                "y": 1.0666666666666667,
+                "rotate": 1.28
+              },
+              {
+                "at": 0.48,
+                "frame": 0,
+                "opacity": 1,
+                "x": 16,
+                "y": 0.5333333333333333,
+                "rotate": 0.64
+              },
+              {
+                "at": 0.5,
+                "frame": 0,
+                "opacity": 1,
+                "x": 6,
+                "y": 0.2,
+                "rotate": 0.24
+              },
+              {
+                "at": 0.54,
+                "frame": 0,
+                "opacity": 1,
+                "x": 0,
+                "y": 0,
+                "rotate": 0
+              },
+              {
+                "at": 0.62,
+                "frame": 0,
+                "opacity": 1,
+                "x": 0,
+                "y": 0,
+                "rotate": 0
+              },
+              {
+                "at": 1,
+                "frame": 0,
+                "opacity": 1,
+                "x": 0,
+                "y": 0,
+                "rotate": 0
+              }
+            ]
+          }
+        },
+        {
+          "slot": "banner",
+          "file": "vigilia-jack-pupil-v3.webp",
+          "fallback": "vigilia-jack-pupil-v3.webp",
+          "width": 128,
+          "height": 128,
+          "motion": "none",
+          "placement": {
+            "x": 73.5,
+            "y": 37,
+            "width": 12
+          },
+          "sequence": {
+            "columns": 1,
+            "rows": 1,
+            "duration": 18,
+            "delay": 0,
+            "backdrop": 0,
+            "frames": [
+              {
+                "at": 0,
+                "frame": 0,
+                "opacity": 1,
+                "x": 0,
+                "y": 0,
+                "rotate": 0
+              },
+              {
+                "at": 0.08,
+                "frame": 0,
+                "opacity": 1,
+                "x": 0,
+                "y": 0,
+                "rotate": 0
+              },
+              {
+                "at": 0.14,
+                "frame": 0,
+                "opacity": 1,
+                "x": 0,
+                "y": 0,
+                "rotate": 0
+              },
+              {
+                "at": 0.16,
+                "frame": 0,
+                "opacity": 1,
+                "x": -3,
+                "y": -0.1,
+                "rotate": -0.12
+              },
+              {
+                "at": 0.18,
+                "frame": 0,
+                "opacity": 1,
+                "x": -10,
+                "y": -0.3333333333333333,
+                "rotate": -0.4
+              },
+              {
+                "at": 0.2,
+                "frame": 0,
+                "opacity": 1,
+                "x": -22,
+                "y": -0.7333333333333333,
+                "rotate": -0.88
+              },
+              {
+                "at": 0.22,
+                "frame": 0,
+                "opacity": 1,
+                "x": -36,
+                "y": -1.2,
+                "rotate": -1.44
+              },
+              {
+                "at": 0.24,
+                "frame": 0,
+                "opacity": 1,
+                "x": -50,
+                "y": -1.6666666666666667,
+                "rotate": -2
+              },
+              {
+                "at": 0.26,
+                "frame": 0,
+                "opacity": 1,
+                "x": -60,
+                "y": -2,
+                "rotate": -2.4
+              },
+              {
+                "at": 0.28,
+                "frame": 0,
+                "opacity": 1,
+                "x": -56,
+                "y": -1.8666666666666667,
+                "rotate": -2.24
+              },
+              {
+                "at": 0.3,
+                "frame": 0,
+                "opacity": 1,
+                "x": -45,
+                "y": -1.5,
+                "rotate": -1.8
+              },
+              {
+                "at": 0.32,
+                "frame": 0,
+                "opacity": 1,
+                "x": -25,
+                "y": -0.8333333333333334,
+                "rotate": -1
+              },
+              {
+                "at": 0.34,
+                "frame": 0,
+                "opacity": 1,
+                "x": 0,
+                "y": 0,
+                "rotate": 0
+              },
+              {
+                "at": 0.36,
+                "frame": 0,
+                "opacity": 1,
+                "x": 25,
+                "y": 0.8333333333333334,
+                "rotate": 1
+              },
+              {
+                "at": 0.38,
+                "frame": 0,
+                "opacity": 1,
+                "x": 45,
+                "y": 1.5,
+                "rotate": 1.8
+              },
+              {
+                "at": 0.4,
+                "frame": 0,
+                "opacity": 1,
+                "x": 58,
+                "y": 1.9333333333333333,
+                "rotate": 2.32
+              },
+              {
+                "at": 0.42,
+                "frame": 0,
+                "opacity": 1,
+                "x": 60,
+                "y": 2,
+                "rotate": 2.4
+              },
+              {
+                "at": 0.44,
+                "frame": 0,
+                "opacity": 1,
+                "x": 48,
+                "y": 1.6,
+                "rotate": 1.92
+              },
+              {
+                "at": 0.46,
+                "frame": 0,
+                "opacity": 1,
+                "x": 32,
+                "y": 1.0666666666666667,
+                "rotate": 1.28
+              },
+              {
+                "at": 0.48,
+                "frame": 0,
+                "opacity": 1,
+                "x": 16,
+                "y": 0.5333333333333333,
+                "rotate": 0.64
+              },
+              {
+                "at": 0.5,
+                "frame": 0,
+                "opacity": 1,
+                "x": 6,
+                "y": 0.2,
+                "rotate": 0.24
+              },
+              {
+                "at": 0.54,
+                "frame": 0,
+                "opacity": 1,
+                "x": 0,
+                "y": 0,
+                "rotate": 0
+              },
+              {
+                "at": 0.62,
+                "frame": 0,
+                "opacity": 1,
+                "x": 0,
+                "y": 0,
+                "rotate": 0
+              },
+              {
+                "at": 1,
+                "frame": 0,
+                "opacity": 1,
+                "x": 0,
+                "y": 0,
+                "rotate": 0
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

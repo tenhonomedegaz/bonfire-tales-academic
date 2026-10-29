@@ -86,26 +86,31 @@ def _asset_url(filename):
 
 
 def _sequence_layer(layer, output):
-  """Optional horizontal atlas timeline; numeric presentation data, never code."""
+  """Optional bounded atlas timeline; numeric presentation data, never code."""
   if 'sequence' not in layer:
     return True
   seq = layer['sequence']
   if (output['motion'] not in ('none', 'float') or output['sprite'] != 'full'
       or layer['slot'] != 'banner' or 'placement' not in output
       or not isinstance(seq, dict)
-      or seq.keys() != {'columns', 'duration', 'delay', 'backdrop', 'frames'}):
+      or seq.keys() - {'columns', 'rows', 'duration', 'delay', 'backdrop', 'frames'}
+      or not {'columns', 'duration', 'delay', 'backdrop', 'frames'} <= seq.keys()):
     return False
   columns = seq['columns']
-  if (type(columns) is not int or not 2 <= columns <= 8
+  rows = seq.get('rows', 1)
+  if (type(columns) is not int or not 1 <= columns <= 8
+      or type(rows) is not int or not 1 <= rows <= 8
       or not _numeric_schema({key: seq[key] for key in ('duration', 'delay', 'backdrop')},
                             {'duration': (1, 120), 'delay': (-120, 0), 'backdrop': (0, .85)})
-      or not isinstance(seq['frames'], list) or not 4 <= len(seq['frames']) <= 24):
+      or not isinstance(seq['frames'], list) or not 4 <= len(seq['frames']) <= 64):
     return False
   previous = -1
   for frame in seq['frames']:
-    bounds = {'at': (0, 1), 'frame': (0, columns - 1), 'opacity': (0, 1)}
-    if isinstance(frame, dict) and 'shift' in frame:
-      bounds['shift'] = (-25, 25)
+    bounds = {'at': (0, 1), 'frame': (0, columns * rows - 1), 'opacity': (0, 1)}
+    for key, limits in {'shift': (-25, 25), 'x': (-100, 100), 'y': (-100, 100),
+                        'rotate': (-15, 15), 'scaleX': (.8, 1.2), 'scaleY': (.8, 1.2)}.items():
+      if isinstance(frame, dict) and key in frame:
+        bounds[key] = limits
     if (not _numeric_schema(frame, bounds)
         or type(frame['frame']) is not int or frame['at'] <= previous):
       return False
@@ -117,7 +122,7 @@ def _sequence_layer(layer, output):
   return True
 
 
-def parse_package(raw, slug, tipo, escopo='perfil'):
+def parse_package(raw, slug, tipo, escopo='perfil', *, _depth=0):
   """Validate a manifest and return template ready layers, or no package."""
   if not isinstance(raw, dict) or raw.get('version') != 1:
     return None
@@ -168,6 +173,22 @@ def parse_package(raw, slug, tipo, escopo='perfil'):
       return None
     if not _sequence_layer(layer, result[slot][-1]):
       return None
+    if 'parts' in layer:
+      parts = layer['parts']
+      sequence = result[slot][-1].get('sequence', {})
+      if (_depth or not isinstance(parts, list) or not 1 <= len(parts) <= 6
+          or sequence.get('columns') != 1 or sequence.get('rows', 1) != 1):
+        return None
+      for part in parts:
+        if (not isinstance(part, dict) or part.get('slot') != 'banner'
+            or 'placement' not in part or not isinstance(part.get('sequence'), dict)
+            or part['sequence'].get('backdrop') != 0):
+          return None
+      children = parse_package(dict(raw, layers=parts), slug, tipo, escopo, _depth=1)
+      if children is None:
+        return None
+      result[slot][-1]['parts'] = children['banner']
+      result[slot][-1]['parts_json'] = json.dumps(children['banner'], separators=(',', ':'), allow_nan=False)
     aperture = layer.get('aperture')
     if aperture is not None:
       if (slot != 'avatar' or not isinstance(aperture, dict)
@@ -194,7 +215,7 @@ def load_package(tipo, value, escopo='perfil'):
   slug = tipo + '-' + value
   path = PACKAGE_ROOT / (slug + '.json')
   try:
-    if path.stat().st_size > 16 * 1024:
+    if path.stat().st_size > 64 * 1024:
       return None
     with path.open(encoding='utf-8') as source:
       raw = json.load(source)
