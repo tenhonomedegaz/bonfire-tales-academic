@@ -1,0 +1,159 @@
+{
+  "phases": [
+    {
+      "width": 130.1875,
+      "name": "absent",
+      "opacity": 0,
+      "shade": 0,
+      "x": -390.562,
+      "count": 3
+    },
+    {
+      "width": 130.1875,
+      "name": "front",
+      "opacity": 0.95,
+      "shade": 0.779,
+      "x": -390.562,
+      "count": 3
+    },
+    {
+      "width": 130.1875,
+      "name": "slight-left",
+      "opacity": 0.95,
+      "shade": 0.779,
+      "x": -260.375,
+      "count": 3
+    },
+    {
+      "width": 130.1875,
+      "name": "mid-left",
+      "opacity": 0.95,
+      "shade": 0.779,
+      "x": -130.188,
+      "count": 3
+    },
+    {
+      "width": 130.1875,
+      "name": "left",
+      "opacity": 0.95,
+      "shade": 0.779,
+      "x": 0,
+      "count": 3
+    },
+    {
+      "width": 130.1875,
+      "name": "slight-right",
+      "opacity": 0.95,
+      "shade": 0.779,
+      "x": -520.75,
+      "count": 3
+    },
+    {
+      "width": 130.1875,
+      "name": "mid-right",
+      "opacity": 0.95,
+      "shade": 0.779,
+      "x": -650.938,
+      "count": 3
+    },
+    {
+      "width": 130.1875,
+      "name": "right",
+      "opacity": 0.95,
+      "shade": 0.779,
+      "x": -781.125,
+      "count": 3
+    },
+    {
+      "width": 130.1875,
+      "name": "gone",
+      "opacity": 0,
+      "shade": 0,
+      "x": -390.562,
+      "count": 3
+    },
+    {
+      "width": 248.390625,
+      "name": "absent",
+      "opacity": 0,
+      "shade": 0,
+      "x": -745.172,
+      "count": 3
+    },
+    {
+      "width": 248.390625,
+      "name": "front",
+      "opacity": 0.95,
+      "shade": 0.779,
+      "x": -745.172,
+      "count": 3
+    },
+    {
+      "width": 248.390625,
+      "name": "slight-left",
+      "opacity": 0.95,
+      "shade": 0.779,
+      "x": -496.781,
+      "count": 3
+    },
+    {
+      "width": 248.390625,
+      "name": "mid-left",
+      "opacity": 0.95,
+      "shade": 0.779,
+      "x": -248.391,
+      "count": 3
+    },
+    {
+      "width": 248.390625,
+      "name": "left",
+      "opacity": 0.95,
+      "shade": 0.779,
+      "x": 0,
+      "count": 3
+    },
+    {
+      "width": 248.390625,
+      "name": "slight-right",
+      "opacity": 0.95,
+      "shade": 0.779,
+      "x": -993.562,
+      "count": 3
+    },
+    {
+      "width": 248.390625,
+      "name": "mid-right",
+      "opacity": 0.95,
+      "shade": 0.779,
+      "x": -1241.95,
+      "count": 3
+    },
+    {
+      "width": 248.390625,
+      "name": "right",
+      "opacity": 0.95,
+      "shade": 0.779,
+      "x": -1490.34,
+      "count": 3
+    },
+    {
+      "width": 248.390625,
+      "name": "gone",
+      "opacity": 0,
+      "shade": 0,
+      "x": -745.172,
+      "count": 3
+    }
+  ],
+  "jackPoses": 7,
+  "candleVariants": 3,
+  "flameFramesPerCandle": 4,
+  "distinctCadences": true,
+  "staticCandlesInReducedMotion": true,
+  "serverParity": true,
+  "offscreenPause": true,
+  "hiddenPause": true,
+  "reducedMotion": true,
+  "failedAssetCleanup": true,
+  "errors": []
+}

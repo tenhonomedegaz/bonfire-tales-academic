@@ -6,7 +6,7 @@ const {pathToFileURL} = require('node:url');
 const {spawnSync} = require('node:child_process');
 const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const root = path.resolve(__dirname, '../..');
-const evidence = path.join(root, 'docs/qa/20261029-halloween-apparition');
+const evidence = path.join(root, 'docs/qa/20261029-halloween-refined');
 const fixture = spawnSync('py', ['-3.14', '-c', `
 import json
 from django.conf import settings
@@ -30,17 +30,17 @@ fs.mkdirSync(evidence,{recursive:true});
     const page=await browser.newPage();
     page.on('pageerror',e=>errors.push(e.message));
     async function seek(seconds){
-      await page.locator('#preview-banner [data-cosmetic-layers]').evaluate((layer,time)=>{
-        for(const animation of layer._cosmeticSequences){animation.pause();animation.currentTime=time*1000;}
+      await page.locator('#preview-banner .cosmetic-atlas:not(.cosmetic-atlas--ambient) img').evaluate((image,time)=>{
+        for(const animation of image._cosmeticSequenceGroup.animations){animation.pause();animation.currentTime=time*1000;}
       },seconds);
       await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
       return page.locator('#preview-banner').evaluate(banner=>{
-        const atlas=banner.querySelector('.cosmetic-atlas');
+        const atlas=banner.querySelector('.cosmetic-atlas:not(.cosmetic-atlas--ambient)');
         return {opacity:Number(getComputedStyle(atlas).opacity),
           shade:Number(getComputedStyle(banner.querySelector('.cosmetic-sequence-shade')).opacity),
           x:new DOMMatrixReadOnly(getComputedStyle(atlas.querySelector('img')).transform).m41,
           width:atlas.getBoundingClientRect().width,
-          count:banner.querySelector('[data-cosmetic-layers]')._cosmeticSequences.length};
+          count:atlas.querySelector('img')._cosmeticSequenceGroup.animations.length};
       });
     }
     const phaseResults=[];
@@ -49,11 +49,24 @@ fs.mkdirSync(evidence,{recursive:true});
       await page.goto(pathToFileURL(path.join(root,'docs/cosmetics/20261029-halloween.html')).href);
       await page.evaluate(()=>document.fonts.ready);
       await page.waitForTimeout(250);
-      assert.equal(await page.locator('.cosmetic-atlas').count(),1);
-      assert.equal(await page.locator('#preview-banner img[src*="floating-candle"]').count(),3);
+      assert.equal(await page.locator('.cosmetic-atlas').count(),4);
+      const candles=await page.locator('.cosmetic-atlas--ambient img').evaluateAll(nodes=>nodes.map(n=>({url:n.src,duration:n._cosmeticSequenceGroup.animations[0].effect.getTiming().duration})));
+      assert.equal(new Set(candles.map(c=>c.url)).size,3);
+      assert.equal(new Set(candles.map(c=>c.duration)).size,3);
+      const flameChanges=await page.locator('.cosmetic-atlas--ambient img').evaluateAll(async nodes=>{
+        const transforms=[];
+        for(const time of [100,650]){
+          nodes.forEach(n=>n._cosmeticSequenceGroup.animations.forEach(a=>{a.pause();a.currentTime=time;}));
+          await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+          transforms.push(nodes.map(n=>getComputedStyle(n).transform));
+        }
+        nodes.forEach(n=>n._cosmeticSequenceGroup.animations.forEach(a=>a.play()));
+        return transforms[0].map((t,i)=>t!==transforms[1][i]);
+      });
+      assert(flameChanges.every(Boolean),'All three flames must change frame');
       assert(await page.locator('img').evaluateAll(nodes=>nodes.every(n=>n.complete&&n.naturalWidth>0)));
       assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
-      for(const [name,time,frame,visible] of [['absent',0,0,false],['front',3.5,0,true],['left',5.2,1,true],['right',7.5,2,true],['gone',13,0,false]]){
+      for(const [name,time,frame,visible] of [['absent',0,3,false],['front',3.5,3,true],['slight-left',4.15,2,true],['mid-left',4.3,1,true],['left',5.2,0,true],['slight-right',6.2,4,true],['mid-right',6.35,5,true],['right',7.5,6,true],['gone',13,3,false]]){
         const state=await seek(time);
         assert.equal(state.count,3);
         assert(visible?state.opacity>.9:state.opacity<.01,name+' opacity');
@@ -74,7 +87,7 @@ fs.mkdirSync(evidence,{recursive:true});
     await page.waitForTimeout(250);
     assert.equal(await page.locator('img[data-cosmetic-sequence]').count(),0);
     const ssr=await seek(5.2);
-    assert(Math.abs(ssr.x+ssr.width)<.1);
+    assert(Math.abs(ssr.x)<.1);
     assert(ssr.shade>.7);
     // Offscreen and hidden tabs pause animation instead of consuming cycles.
     await page.locator('#preview-banner').evaluate(n=>{n.style.transform='translateY(-3000px)';});
@@ -87,16 +100,17 @@ fs.mkdirSync(evidence,{recursive:true});
     assert(await page.locator('#preview-banner [data-cosmetic-layers]').evaluate(n=>n._cosmeticSequences.every(a=>a.playState==='paused')));
     await page.evaluate(()=>{delete document.hidden;document.dispatchEvent(new Event('visibilitychange'));});
     await page.emulateMedia({reducedMotion:'reduce'});
-    assert.equal(await page.locator('.cosmetic-atlas').evaluate(n=>getComputedStyle(n).display),'none');
+    assert.equal(await page.locator('.cosmetic-atlas:not(.cosmetic-atlas--ambient)').evaluate(n=>getComputedStyle(n).display),'none');
+    assert(await page.locator('.cosmetic-atlas--ambient').evaluateAll(nodes=>nodes.every(n=>getComputedStyle(n).display!=='none')));
     assert.equal(await page.locator('.cosmetic-sequence-shade').evaluate(n=>getComputedStyle(n).display),'none');
     assert(await page.locator('#preview-banner [data-cosmetic-layers]').evaluate(n=>n._cosmeticSequences.every(a=>a.playState==='paused')));
     await page.emulateMedia({reducedMotion:'no-preference'});
     // Failed face media must not leave a darkening backdrop running by itself.
-    await page.locator('.cosmetic-atlas-image').evaluate(n=>n.dispatchEvent(new Event('error')));
-    assert.equal(await page.locator('.cosmetic-atlas,.cosmetic-sequence-shade').count(),0);
-    assert.equal(await page.locator('#preview-banner [data-cosmetic-layers]').evaluate(n=>n._cosmeticSequences.length),0);
+    await page.locator('.cosmetic-atlas:not(.cosmetic-atlas--ambient) img').evaluate(n=>n.dispatchEvent(new Event('error')));
+    assert.equal(await page.locator('.cosmetic-atlas:not(.cosmetic-atlas--ambient),.cosmetic-sequence-shade').count(),0);
+    assert.equal(await page.locator('#preview-banner [data-cosmetic-layers]').evaluate(n=>n._cosmeticSequences.length),6);
     assert.deepEqual(errors,[]);
-    fs.writeFileSync(path.join(evidence,'checks.json'),JSON.stringify({phases:phaseResults,serverParity:true,offscreenPause:true,hiddenPause:true,reducedMotion:true,failedAssetCleanup:true,errors},null,2));
+    fs.writeFileSync(path.join(evidence,'checks.json'),JSON.stringify({phases:phaseResults,jackPoses:7,candleVariants:3,flameFramesPerCandle:4,distinctCadences:true,staticCandlesInReducedMotion:true,serverParity:true,offscreenPause:true,hiddenPause:true,reducedMotion:true,failedAssetCleanup:true,errors},null,2));
     console.log('PASS: gaze phases, synchronized darkening, desktop/mobile, server parity, pauses and asset failure cleanup');
   }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

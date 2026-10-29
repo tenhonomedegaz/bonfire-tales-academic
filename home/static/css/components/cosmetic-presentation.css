@@ -46,14 +46,14 @@ img[data-cosmetic-sequence]{visibility:hidden}
 .profile-header.profile-hero>.profile-hero-copy,.profile-header.profile-hero>.profile-avatar-wrapper{z-index:3}
 .ficha-header .banner-scroll>:is(.ficha-title-line,.banner-character-avatar){z-index:3}
 .cosmetic-layer--float,.cosmetic-layer--pulse{animation-play-state:paused}
-.cosmetic-layers.is-visible .cosmetic-layer--float{animation:cosmetic-float 8s ease-in-out infinite}
+.cosmetic-layers.is-visible .cosmetic-layer--float{animation:cosmetic-float var(--cosmetic-float-duration,8s) ease-in-out var(--cosmetic-float-delay,0s) infinite}
 .cosmetic-layers.is-visible .cosmetic-layer--pulse{animation:cosmetic-pulse 5s ease-in-out infinite}
 .cosmetic-layers.is-paused .cosmetic-layer{animation-play-state:paused}
 @keyframes cosmetic-float{50%{transform:translateY(-3px)}}
 @keyframes cosmetic-pulse{50%{opacity:calc(var(--cosmetic-opacity,1) * .82)}}
 @media(max-width:600px){.cosmetic-layers--ornament{width:28%;height:30px;right:10px}}
 @media(prefers-reduced-motion:reduce){.cosmetic-layers .cosmetic-layer{animation:none!important;transform:none!important}}
-@media(prefers-reduced-motion:reduce){.cosmetic-atlas,.cosmetic-sequence-shade{display:none!important}}
+@media(prefers-reduced-motion:reduce){.cosmetic-atlas:not(.cosmetic-atlas--ambient),.cosmetic-sequence-shade{display:none!important}}
 @media print{.cosmetic-layers{display:none}}
 /* Small masked offsets reuse one cached image; the base and moon stay still. */
 .cosmetic-breeze{position:absolute;inset:0;display:block;overflow:hidden}

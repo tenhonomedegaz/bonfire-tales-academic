@@ -167,18 +167,25 @@
     try { seq = JSON.parse(image.dataset.cosmeticSequence); } catch { image.remove(); return; }
     const finite = n => typeof n === 'number' && Number.isFinite(n);
     if (!Number.isInteger(seq?.columns) || seq.columns < 2 || seq.columns > 8 ||
-        !finite(seq.duration) || seq.duration < 12 || seq.duration > 120 ||
+        !finite(seq.duration) || seq.duration < 1 || seq.duration > 120 ||
         !finite(seq.delay) || seq.delay < -120 || seq.delay > 0 ||
         !finite(seq.backdrop) || seq.backdrop < 0 || seq.backdrop > .85 ||
         !Array.isArray(seq.frames) || seq.frames.length < 4 || seq.frames.length > 24 ||
         !seq.frames.every((f, i) => finite(f.at) && f.at >= 0 && f.at <= 1 &&
           (!i || f.at > seq.frames[i - 1].at) && Number.isInteger(f.frame) &&
-          f.frame >= 0 && f.frame < seq.columns && finite(f.opacity) && f.opacity >= 0 && f.opacity <= 1) ||
+          f.frame >= 0 && f.frame < seq.columns && finite(f.opacity) && f.opacity >= 0 && f.opacity <= 1 &&
+          (f.shift === undefined || (finite(f.shift) && f.shift >= -25 && f.shift <= 25))) ||
         seq.frames[0].at !== 0 || seq.frames.at(-1).at !== 1 || !image.width || !image.height) {
       image.remove(); return;
     }
     const viewport = document.createElement('span');
     viewport.className = 'cosmetic-layer cosmetic-atlas';
+    viewport.classList.toggle('cosmetic-atlas--ambient', seq.backdrop === 0 && seq.frames.every(f => f.opacity > 0));
+    if (image.classList.contains('cosmetic-layer--float')) {
+      viewport.classList.add('cosmetic-layer--float');
+      viewport.style.setProperty('--cosmetic-float-duration', (seq.duration * 4) + 's');
+      viewport.style.setProperty('--cosmetic-float-delay', seq.delay + 's');
+    }
     viewport.style.aspectRatio = (image.width / seq.columns) + ' / ' + image.height;
     const opacityValue = image.style.getPropertyValue('--cosmetic-opacity');
     const opacity = opacityValue === '' ? 1 : Number(opacityValue);
@@ -197,7 +204,7 @@
     };
     schedule(viewport, seq.frames.map(f => ({offset:f.at, opacity:f.opacity * opacity})));
     schedule(image, seq.frames.map(f => ({offset:f.at,
-      transform:'translateX(' + (-100 * f.frame / seq.columns) + '%)', easing:'steps(1, end)'})));
+      transform:'translateX(' + ((-100 * f.frame + (f.shift || 0)) / seq.columns) + '%)', easing:'steps(1, end)'})));
     if (seq.backdrop) {
       const shade = document.createElement('span');
       shade.className = 'cosmetic-sequence-shade';

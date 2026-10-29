@@ -90,7 +90,7 @@ def _sequence_layer(layer, output):
   if 'sequence' not in layer:
     return True
   seq = layer['sequence']
-  if (output['motion'] != 'none' or output['sprite'] != 'full'
+  if (output['motion'] not in ('none', 'float') or output['sprite'] != 'full'
       or layer['slot'] != 'banner' or 'placement' not in output
       or not isinstance(seq, dict)
       or seq.keys() != {'columns', 'duration', 'delay', 'backdrop', 'frames'}):
@@ -98,12 +98,15 @@ def _sequence_layer(layer, output):
   columns = seq['columns']
   if (type(columns) is not int or not 2 <= columns <= 8
       or not _numeric_schema({key: seq[key] for key in ('duration', 'delay', 'backdrop')},
-                            {'duration': (12, 120), 'delay': (-120, 0), 'backdrop': (0, .85)})
+                            {'duration': (1, 120), 'delay': (-120, 0), 'backdrop': (0, .85)})
       or not isinstance(seq['frames'], list) or not 4 <= len(seq['frames']) <= 24):
     return False
   previous = -1
   for frame in seq['frames']:
-    if (not _numeric_schema(frame, {'at': (0, 1), 'frame': (0, columns - 1), 'opacity': (0, 1)})
+    bounds = {'at': (0, 1), 'frame': (0, columns - 1), 'opacity': (0, 1)}
+    if isinstance(frame, dict) and 'shift' in frame:
+      bounds['shift'] = (-25, 25)
+    if (not _numeric_schema(frame, bounds)
         or type(frame['frame']) is not int or frame['at'] <= previous):
       return False
     previous = frame['at']

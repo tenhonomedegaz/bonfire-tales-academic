@@ -117,14 +117,15 @@ ImageGen integrado, dois assets RGBA adicionais, salvos/otimizados em:
 
 `sequence` e um campo opcional do manifesto, validado em
 `home/cosmetic_packages.py` e consumido por `renderer.js`. So aceita atlas
-horizontal em camadas posicionadas de banner, com `motion: none` e sprite
+horizontal em camadas posicionadas de banner, com `motion: none` ou `float` e sprite
 completo. Nao conflita com os sprites de elmo e nao aceita codigo ou CSS.
 
 - `columns`: inteiro de 2 a 8.
-- `duration`: segundos de 12 a 120; `delay`: segundos de -120 a 0.
+- `duration`: segundos de 1 a 120; `delay`: segundos de -120 a 0.
 - `backdrop`: intensidade de 0 a 0.85.
 - `frames`: 4 a 24 estados, cada um com `at` (0 a 1), `frame` (indice inteiro)
   e `opacity` (0 a 1). Tempos estritamente crescentes, com extremos 0 e 1.
+  `shift` opcional (-25 a 25%) calibra o alinhamento horizontal de cada celula.
 
 O renderer usa Web Animations para sincronizar opacidade, celula do atlas e
 sombra, com os tempos definidos somente nos dados. A interpolacao das celulas
@@ -148,6 +149,46 @@ CSS compartilhado v10 e renderer v9 evitam o cache da versao anterior.
   acima do banner proprio, pivos, pausa, reducao de movimento e seis superficies
   de perfil/ficha, com renderizacao pelo servidor e cliente.
 - Capturas das poses e resultado em `../qa/20261029-halloween-apparition/`.
+
+## Refinamento: velas simples e sete poses
+
+A vela detalhada original foi substituida por tres desenhos em poucos tons:
+alta de marfim, baixa/larga verde-salvia e media/torta rosa-ameixa. Cada uma
+tem quatro quadros de chama, com corpo visualmente estavel e uma chama simples
+que se inclina para os lados. Ritmos de 1.6, 2 e 2.4 segundos, com fases e
+periodos de flutuacao diferentes. O brilho nao e uma fotografia estatica de
+fogo. A calibracao `shift` no manifesto corrige o espaco transparente desigual
+das celulas, sem alterar ou redesenhar a arte por codigo.
+
+O jack-o-lantern passa de tres para sete poses: extremo esquerdo, medio
+esquerdo, leve esquerdo, centro, leve direito, medio direito e extremo direito.
+O ciclo de 18s tem quadros intermediarios em cada deslocamento e conserva
+o fade, a sombra sincronizada e o periodo sem rosto. O atlas preserva sua
+proporcao intrinseca, incluindo margens transparentes; nao foi esticado para
+simular celulas quadradas.
+
+Assets ImageGen integrado novos (antigos mantidos para rollback):
+
+- `vigilia-jack-gaze-v2.webp`: 2240x747, sete celulas, 202954 bytes.
+- `vigilia-candle-ivory-v2.webp`: 960x320, quatro celulas, 43452 bytes.
+- `vigilia-candle-sage-v2.webp`: 960x320, quatro celulas, 34052 bytes.
+- `vigilia-candle-plum-v2.webp`: 960x320, quatro celulas, 43970 bytes.
+
+Todos ficam em `home/static/cosmetics/`. Prompts: atlas de sete poses usando
+o rosto v1 como referencia, preservando boca/olhos e movendo so as pupilas;
+atlas de quatro quadros por vela com pintura cartoon de 2-3 tons, sem metais,
+filigranas ou fogo realista, variando apenas a chama. A vela marfim serviu
+como referencia de estilo para as duas silhuetas seguintes.
+
+O contrato generico aceita agora sequencias curtas e flutuacao independente
+do atlas. Sem movimento, as velas continuam visiveis e estaticas; somente a
+aparicao e sua sombra sao desativadas. CSS v11, renderer v10, dados da previa
+v3. Mesmo slug, PKs, acesso, tema e moldura; nenhuma escrita em banco.
+
+Conferencia: 17 testes focados; as sete poses e as tres animacoes de chama
+conferidas no navegador, em 390/1440px, com HTML do servidor e previa dinamica,
+pausa fora da tela/aba oculta, fallback e reducao de movimento. Capturas e
+resultado estruturado em `../qa/20261029-halloween-refined/`.
 
 ## Resultado da conferencia de 29/10
 

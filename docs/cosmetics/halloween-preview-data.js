@@ -109,158 +109,317 @@ window.BonfireHalloweenPreview = {
       },
       {
         "slot": "banner",
-        "file": "vigilia-floating-candle-v1.webp",
-        "fallback": "../../home/static/cosmetics/vigilia-floating-candle-v1.webp",
-        "width": 180,
-        "height": 270,
+        "file": "vigilia-candle-ivory-v2.webp",
+        "fallback": "../../home/static/cosmetics/vigilia-candle-ivory-v2.webp",
+        "width": 960,
+        "height": 320,
         "motion": "float",
         "opacity": 0.9,
         "placement": {
           "x": 26,
           "y": 28,
-          "width": 4
+          "width": 5.3
         },
         "mobile": {
           "x": 21,
           "y": 24,
-          "width": 11
+          "width": 12
+        },
+        "sequence": {
+          "columns": 4,
+          "duration": 1.6,
+          "delay": -0.4,
+          "backdrop": 0,
+          "frames": [
+            {
+              "at": 0,
+              "frame": 0,
+              "opacity": 1,
+              "shift": -12.58
+            },
+            {
+              "at": 0.25,
+              "frame": 1,
+              "opacity": 1,
+              "shift": -4.71
+            },
+            {
+              "at": 0.5,
+              "frame": 2,
+              "opacity": 1,
+              "shift": 3.23
+            },
+            {
+              "at": 0.75,
+              "frame": 3,
+              "opacity": 1,
+              "shift": 11.14
+            },
+            {
+              "at": 1,
+              "frame": 0,
+              "opacity": 1,
+              "shift": -12.58
+            }
+          ]
         },
         "anchor": "center",
         "sprite": "full",
-        "url": "../../home/static/cosmetics/vigilia-floating-candle-v1.webp"
+        "url": "../../home/static/cosmetics/vigilia-candle-ivory-v2.webp"
       },
       {
         "slot": "banner",
-        "file": "vigilia-floating-candle-v1.webp",
-        "fallback": "../../home/static/cosmetics/vigilia-floating-candle-v1.webp",
-        "width": 180,
-        "height": 270,
+        "file": "vigilia-candle-sage-v2.webp",
+        "fallback": "../../home/static/cosmetics/vigilia-candle-sage-v2.webp",
+        "width": 960,
+        "height": 320,
         "motion": "float",
-        "opacity": 0.8,
+        "opacity": 0.85,
         "placement": {
           "x": 73,
           "y": 65,
-          "width": 3.5
+          "width": 4.5
         },
         "mobile": {
           "x": 76,
           "y": 72,
-          "width": 9
+          "width": 13
+        },
+        "sequence": {
+          "columns": 4,
+          "duration": 2,
+          "delay": -1.2,
+          "backdrop": 0,
+          "frames": [
+            {
+              "at": 0,
+              "frame": 0,
+              "opacity": 1,
+              "shift": -7.18
+            },
+            {
+              "at": 0.25,
+              "frame": 1,
+              "opacity": 1,
+              "shift": -4.15
+            },
+            {
+              "at": 0.5,
+              "frame": 2,
+              "opacity": 1,
+              "shift": 2.21
+            },
+            {
+              "at": 0.75,
+              "frame": 3,
+              "opacity": 1,
+              "shift": 6.29
+            },
+            {
+              "at": 1,
+              "frame": 0,
+              "opacity": 1,
+              "shift": -7.18
+            }
+          ]
         },
         "anchor": "center",
         "sprite": "full",
-        "url": "../../home/static/cosmetics/vigilia-floating-candle-v1.webp"
+        "url": "../../home/static/cosmetics/vigilia-candle-sage-v2.webp"
       },
       {
         "slot": "banner",
-        "file": "vigilia-floating-candle-v1.webp",
-        "fallback": "../../home/static/cosmetics/vigilia-floating-candle-v1.webp",
-        "width": 180,
-        "height": 270,
-        "motion": "pulse",
+        "file": "vigilia-candle-plum-v2.webp",
+        "fallback": "../../home/static/cosmetics/vigilia-candle-plum-v2.webp",
+        "width": 960,
+        "height": 320,
+        "motion": "float",
         "opacity": 0.85,
         "placement": {
           "x": 82,
           "y": 22,
-          "width": 2.8
+          "width": 4
         },
         "mobile": {
           "x": 80,
           "y": 20,
-          "width": 8
+          "width": 10
+        },
+        "sequence": {
+          "columns": 4,
+          "duration": 2.4,
+          "delay": -0.8,
+          "backdrop": 0,
+          "frames": [
+            {
+              "at": 0,
+              "frame": 0,
+              "opacity": 1,
+              "shift": -13.66
+            },
+            {
+              "at": 0.25,
+              "frame": 1,
+              "opacity": 1,
+              "shift": -7.93
+            },
+            {
+              "at": 0.5,
+              "frame": 2,
+              "opacity": 1,
+              "shift": -0.31
+            },
+            {
+              "at": 0.75,
+              "frame": 3,
+              "opacity": 1,
+              "shift": 6.4
+            },
+            {
+              "at": 1,
+              "frame": 0,
+              "opacity": 1,
+              "shift": -13.66
+            }
+          ]
         },
         "anchor": "center",
         "sprite": "full",
-        "url": "../../home/static/cosmetics/vigilia-floating-candle-v1.webp"
+        "url": "../../home/static/cosmetics/vigilia-candle-plum-v2.webp"
       },
       {
         "slot": "banner",
-        "file": "vigilia-jack-gaze-v1.webp",
-        "fallback": "../../home/static/cosmetics/vigilia-jack-gaze-v1.webp",
-        "width": 1536,
-        "height": 512,
+        "file": "vigilia-jack-gaze-v2.webp",
+        "fallback": "../../home/static/cosmetics/vigilia-jack-gaze-v2.webp",
+        "width": 2240,
+        "height": 747,
         "motion": "none",
         "placement": {
           "x": 50,
-          "y": 45,
+          "y": 55,
           "width": 23
         },
         "mobile": {
           "x": 50,
-          "y": 45,
+          "y": 55,
           "width": 42
         },
         "sequence": {
-          "columns": 3,
+          "columns": 7,
           "duration": 18,
           "delay": 0,
           "backdrop": 0.82,
           "frames": [
             {
               "at": 0,
-              "frame": 0,
+              "frame": 3,
               "opacity": 0
             },
             {
               "at": 0.08,
-              "frame": 0,
+              "frame": 3,
               "opacity": 0
             },
             {
               "at": 0.14,
-              "frame": 0,
+              "frame": 3,
               "opacity": 0.95
             },
             {
-              "at": 0.24,
-              "frame": 0,
+              "at": 0.22,
+              "frame": 3,
               "opacity": 0.95
             },
             {
-              "at": 0.25,
+              "at": 0.228,
+              "frame": 2,
+              "opacity": 0.95
+            },
+            {
+              "at": 0.236,
               "frame": 1,
+              "opacity": 0.95
+            },
+            {
+              "at": 0.244,
+              "frame": 0,
+              "opacity": 0.95
+            },
+            {
+              "at": 0.31,
+              "frame": 0,
+              "opacity": 0.95
+            },
+            {
+              "at": 0.318,
+              "frame": 1,
+              "opacity": 0.95
+            },
+            {
+              "at": 0.326,
+              "frame": 2,
+              "opacity": 0.95
+            },
+            {
+              "at": 0.334,
+              "frame": 3,
+              "opacity": 0.95
+            },
+            {
+              "at": 0.342,
+              "frame": 4,
               "opacity": 0.95
             },
             {
               "at": 0.35,
-              "frame": 1,
+              "frame": 5,
               "opacity": 0.95
             },
             {
-              "at": 0.36,
-              "frame": 2,
+              "at": 0.358,
+              "frame": 6,
               "opacity": 0.95
             },
             {
-              "at": 0.46,
-              "frame": 2,
+              "at": 0.424,
+              "frame": 6,
               "opacity": 0.95
             },
             {
-              "at": 0.47,
-              "frame": 0,
+              "at": 0.432,
+              "frame": 5,
+              "opacity": 0.95
+            },
+            {
+              "at": 0.44,
+              "frame": 4,
+              "opacity": 0.95
+            },
+            {
+              "at": 0.448,
+              "frame": 3,
               "opacity": 0.95
             },
             {
               "at": 0.54,
-              "frame": 0,
+              "frame": 3,
               "opacity": 0.95
             },
             {
               "at": 0.62,
-              "frame": 0,
+              "frame": 3,
               "opacity": 0
             },
             {
               "at": 1,
-              "frame": 0,
+              "frame": 3,
               "opacity": 0
             }
           ]
         },
         "anchor": "center",
         "sprite": "full",
-        "url": "../../home/static/cosmetics/vigilia-jack-gaze-v1.webp"
+        "url": "../../home/static/cosmetics/vigilia-jack-gaze-v2.webp"
       }
     ],
     "ornament": [],
