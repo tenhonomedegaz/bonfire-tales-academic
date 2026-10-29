@@ -12,8 +12,10 @@ O tema muda as superficies, cores e acabamento dos paineis, com arte raster
 transparente aplicada em nove fatias. A moldura tem abertura circular calibrada,
 sem deslocamento ou flutuacao do aro. O efeito usa tres camadas independentes:
 nevoa discreta em deslocamento lento, lanternas/abobora no canto inferior
-esquerdo e lanternas suspensas no direito. Centro livre e banner do jogador
-preservado. Movimento desligado por `prefers-reduced-motion`.
+esquerdo e lanternas suspensas no direito. A versao revisada adiciona tres
+velas flutuantes e uma aparicao periodica descrita abaixo. O banner do jogador
+permanece preservado; a sombra temporaria e apenas uma camada de apresentacao.
+Movimento desligado por `prefers-reduced-motion`.
 
 ## Dados e arquivos
 
@@ -82,6 +84,70 @@ de Halloween para manter os mesmos materiais. Prompts finais resumidos:
    luz ambar e jade espectral, suporte de ferro pequeno e fundo transparente.
 
 Conversao posterior somente de dimensoes/formato para WebP com alpha.
+
+## Aparicao e velas: revisao do efeito
+
+O PO considerou a versao inicial pouco perceptivel. O manifesto agora tem
+sete camadas: as tres originais (lanternas direitas estaticas), tres copias
+de uma vela leve com flutuacao/pulso e o rosto de jack-o-lantern.
+
+O ciclo dura 18s, com quase metade do tempo sem o rosto. Escurece gradualmente,
+mostra o rosto de frente, olha para a esquerda, para a direita, volta ao
+centro e desaparece sem flash. A sombra chega a aproximadamente 78% e fica
+restrita ao banner; nao cobre nomes, controles ou toda a pagina.
+
+### Assets novos e prompts
+
+ImageGen integrado, dois assets RGBA adicionais, salvos/otimizados em:
+
+- `home/static/cosmetics/vigilia-jack-gaze-v1.webp`: atlas horizontal 1536x512,
+  tres poses de 512x512, 134574 bytes. Prompt: uma faixa 3:1 com tres celulas
+  quadradas iguais, somente olhos angulares de fogo ambar com pupilas finas
+  e sorriso entalhado; sem corpo de abobora, nariz, cenario ou fundo; centro,
+  escala e boca alinhados entre celulas; pupilas de frente/esquerda/direita;
+  pintura cartoon limpa e brilho restrito as formas, sem texto.
+- `home/static/cosmetics/vigilia-floating-candle-v1.webp`: vela RGBA 180x270,
+  8708 bytes, reutilizada tres vezes com escalas e posicoes distintas. Prompt:
+  uma vela esguia de cera marfim com gotas, pequeno pe de latao, chama ambar
+  com borda espectral jade e poucos pontos de brasa; levitante, silhueta
+  legivel, pintura cartoon igual as lanternas; sem mao, pedestal ou cenario,
+  exterior transparente.
+
+### Contrato generico, sem if por cosmetico
+
+`sequence` e um campo opcional do manifesto, validado em
+`home/cosmetic_packages.py` e consumido por `renderer.js`. So aceita atlas
+horizontal em camadas posicionadas de banner, com `motion: none` e sprite
+completo. Nao conflita com os sprites de elmo e nao aceita codigo ou CSS.
+
+- `columns`: inteiro de 2 a 8.
+- `duration`: segundos de 12 a 120; `delay`: segundos de -120 a 0.
+- `backdrop`: intensidade de 0 a 0.85.
+- `frames`: 4 a 24 estados, cada um com `at` (0 a 1), `frame` (indice inteiro)
+  e `opacity` (0 a 1). Tempos estritamente crescentes, com extremos 0 e 1.
+
+O renderer usa Web Animations para sincronizar opacidade, celula do atlas e
+sombra, com os tempos definidos somente nos dados. A interpolacao das celulas
+e discreta, enquanto a aparicao/sombra faz fade. Pausa quando a aba esta oculta
+ou o banner sai da tela, cancela animacoes de camadas removidas e remove a
+sombra se o asset do rosto falhar. Com reducao de movimento, rosto e sombra
+ficam desativados, sem desabilitar as lanternas/velas estaticas.
+
+O partial compartilhado `_cosmetic_preview.html` emite os dados JSON escapados;
+o caminho renderizado no servidor e o caminho da previa usam a mesma rotina.
+CSS compartilhado v10 e renderer v9 evitam o cache da versao anterior.
+
+### Evidencias desta revisao
+
+- 17 testes focados passaram (schema, rejeicoes, partial, manifestos e catalogo).
+- `home/js_tests/cosmetic_sequences.e2e.cjs` compara cinco fases em 390/1440px,
+  valida a celula de cada olhar, fade e sombra sincronizados, paridade com HTML
+  real do servidor, pausa fora da tela/aba oculta e reducao de movimento.
+- Tambem valida que falha no asset nao deixa o banner escurecido sem rosto.
+- A regressao existente de layout passou: proporcoes desktop/mobile, camadas
+  acima do banner proprio, pivos, pausa, reducao de movimento e seis superficies
+  de perfil/ficha, com renderizacao pelo servidor e cliente.
+- Capturas das poses e resultado em `../qa/20261029-halloween-apparition/`.
 
 ## Resultado da conferencia de 29/10
 

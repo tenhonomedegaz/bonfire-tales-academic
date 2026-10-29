@@ -85,6 +85,35 @@ def _asset_url(filename):
   return static('cosmetics/' + filename)
 
 
+def _sequence_layer(layer, output):
+  """Optional horizontal atlas timeline; numeric presentation data, never code."""
+  if 'sequence' not in layer:
+    return True
+  seq = layer['sequence']
+  if (output['motion'] != 'none' or output['sprite'] != 'full'
+      or layer['slot'] != 'banner' or 'placement' not in output
+      or not isinstance(seq, dict)
+      or seq.keys() != {'columns', 'duration', 'delay', 'backdrop', 'frames'}):
+    return False
+  columns = seq['columns']
+  if (type(columns) is not int or not 2 <= columns <= 8
+      or not _numeric_schema({key: seq[key] for key in ('duration', 'delay', 'backdrop')},
+                            {'duration': (12, 120), 'delay': (-120, 0), 'backdrop': (0, .85)})
+      or not isinstance(seq['frames'], list) or not 4 <= len(seq['frames']) <= 24):
+    return False
+  previous = -1
+  for frame in seq['frames']:
+    if (not _numeric_schema(frame, {'at': (0, 1), 'frame': (0, columns - 1), 'opacity': (0, 1)})
+        or type(frame['frame']) is not int or frame['at'] <= previous):
+      return False
+    previous = frame['at']
+  if seq['frames'][0]['at'] != 0 or seq['frames'][-1]['at'] != 1:
+    return False
+  output['sequence'] = seq
+  output['sequence_json'] = json.dumps(seq, separators=(',', ':'), allow_nan=False)
+  return True
+
+
 def parse_package(raw, slug, tipo, escopo='perfil'):
   """Validate a manifest and return template ready layers, or no package."""
   if not isinstance(raw, dict) or raw.get('version') != 1:
@@ -133,6 +162,8 @@ def parse_package(raw, slug, tipo, escopo='perfil'):
       result[slot][-1]['opacity'] = layer['opacity']
       result[slot][-1]['opacity_style'] = f"--cosmetic-opacity:{layer['opacity']}"
     if not _position_layer(layer, result[slot][-1]):
+      return None
+    if not _sequence_layer(layer, result[slot][-1]):
       return None
     aperture = layer.get('aperture')
     if aperture is not None:

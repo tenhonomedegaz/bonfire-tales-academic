@@ -37,7 +37,7 @@ class ThemeSkinTokenTests(SimpleTestCase):
             self.assertEqual(frame['avatar'][0]['aperture'], {'cx': 50, 'cy': 50, 'diameter': 70})
             self.assertEqual(frame['avatar'][0]['motion'], 'none')
             self.assertTrue(effect['overlay'])
-            self.assertEqual(len(effect['banner']), 3)
+            self.assertEqual(len(effect['banner']), 7)
             self.assertEqual(effect['ornament'], [])
             for layer in effect['banner']:
                 self.assertIn('placement', layer)
