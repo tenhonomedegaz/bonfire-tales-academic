@@ -179,7 +179,86 @@ const renderer = fs.readFileSync(path.join(root, 'home/static/cosmetics/renderer
     }
     await overlayPage.emulateMedia({ reducedMotion: 'reduce' });
     assert.notEqual(await overlayPage.locator('#overlay-dynamic .cosmetic-positioned').first().evaluate(node => getComputedStyle(node).transform), 'none');
+    // Load the actual page cascade, not just the shared cosmetic stylesheet.
+    const readCss = file => fs.readFileSync(path.join(root, 'home/static/css', file), 'utf8');
+    const profileCss = ['pages/perfil.css', 'pages/perfil-fx.css', 'pages/profile-redesign.css'];
+    const sheetCss = ['pages/ficha.css', 'pages/perfil-fx.css', 'pages/character-workflows.css'];
+    const surfaces = [
+      ['public-profile', 'bft-public-profile', 'public-profile-banner', 'public-profile-banner-media', profileCss, ''],
+      ['profile-preview', 'bft-profile', 'public-profile-banner', 'public-profile-banner-media', profileCss, ''],
+      ['profile-editor', 'bft-profile', 'profile-header profile-hero', 'profile-banner-media', profileCss, 'profile-hero-copy'],
+      ['sheet', 'bft-character-sheet', 'banner-scroll', 'ficha-banner-media', sheetCss, 'ficha-title-line'],
+      ['public-sheet', 'bft-public-sheet', 'ficha-header cw-public-hero', 'ficha-banner-media', sheetCss, 'cw-public-identity'],
+      ['sheet-preview', 'bft-character-sheet', 'ficha-header ficha-live-preview', 'ficha-banner-media', sheetCss, 'ficha-name'],
+    ];
+    const stackingPage = await browser.newPage();
     const screenshots = fs.mkdtempSync(path.join(os.tmpdir(), 'bonfire-layer-layout-'));
+    for (const [name, bodyClass, stageClass, mediaClass, styles, contentClass] of surfaces) {
+      await stackingPage.setContent(`<style>${readCss('components/ranks.css')}${css}${styles.map(readCss).join('\n')}
+        .stack-stage{width:100%;height:180px;min-height:180px;box-sizing:border-box;margin:0 0 12px}
+        .stack-content{position:absolute!important;inset:0!important;margin:0!important}
+        .stack-stage .cosmetic-layers{pointer-events:auto}
+        </style><body class="${bodyClass}"><div class="ficha-header" id="stacking"></div></body>`);
+      await stackingPage.addScriptTag({ content: renderer });
+      await stackingPage.evaluate(({ stageClass, mediaClass, contentClass, data }) => {
+        const root = document.getElementById('stacking');
+        for (const ownBanner of [false, true]) for (const dynamic of [false, true]) for (const overlay of [false, true]) {
+          const stage = document.createElement('div');
+          stage.className = `stack-stage ${stageClass}${ownBanner ? ' cosmetic-has-banner' : ''}`;
+          stage.dataset.ownBanner = ownBanner;
+          stage.dataset.overlay = overlay;
+          stage.dataset.dynamic = dynamic;
+          const media = document.createElement('div');
+          media.className = mediaClass;
+          media.style.backgroundImage = 'url("' + data.package.banner[0].url + '")';
+          if (ownBanner && !dynamic) stage.appendChild(media);
+          if (!dynamic) stage.insertAdjacentHTML('beforeend', overlay ? data.corners_html : data.legacy_html);
+          if (contentClass) stage.insertAdjacentHTML('beforeend', `<div class="stack-content ${contentClass}">Identity</div>`);
+          stage.insertAdjacentHTML('beforeend', `<div class="cosmetic-layers cosmetic-layers--ornament"></div>
+            <div class="banner-character-avatar profile-avatar-wrapper rank-portrait" style="width:40px;height:40px">
+              <img src="${data.package.banner[0].url}" alt=""><span class="rank-portrait-frame"><img src="${data.package.banner[0].url}" alt=""></span>
+            </div>`);
+          root.appendChild(stage);
+          if (dynamic) window.CosmeticRenderer.render(stage, 'banner', [overlay ? data.corners : data.legacy]);
+          // Uploaded preview banners can be appended after cosmetic rendering.
+          if (ownBanner && dynamic) stage.appendChild(media);
+        }
+      }, { stageClass, mediaClass, contentClass, data });
+      for (const width of [1200, 390]) {
+        await stackingPage.setViewportSize({ width, height: 1800 });
+        const results = await stackingPage.locator('.stack-stage').evaluateAll(stages => stages.map(stage => {
+          const layer = stage.querySelector('.cosmetic-layers--banner');
+          const media = stage.querySelector('[class$="banner-media"]');
+          const image = layer.querySelector('img').getBoundingClientRect();
+          const paint = document.elementsFromPoint(image.x + image.width / 2, image.y + image.height / 2);
+          const content = stage.querySelector('.stack-content');
+          const portrait = stage.querySelector('.rank-portrait');
+          return { own: stage.dataset.ownBanner === 'true', overlay: stage.dataset.overlay === 'true',
+            dynamic: stage.dataset.dynamic, layerZ: Number(getComputedStyle(layer).zIndex),
+            mediaZ: media && Number(getComputedStyle(media).zIndex),
+            aboveMedia: !media || paint.indexOf(layer) < paint.indexOf(media),
+            aboveContent: content && paint.indexOf(layer) < paint.indexOf(content),
+            ornamentZ: Number(getComputedStyle(stage.querySelector('.cosmetic-layers--ornament')).zIndex),
+            rankZ: Number(getComputedStyle(portrait.querySelector('.rank-portrait-frame')).zIndex),
+            rankIsolation: getComputedStyle(portrait).isolation,
+            position: getComputedStyle(layer).position };
+        }));
+        for (const result of results) {
+          const label = `${name}/${width}/${JSON.stringify(result)}`;
+          assert.equal(result.position, 'absolute', label);
+          if (result.overlay && result.own) {
+            assert.ok(result.layerZ > result.mediaZ, 'overlay must be above banner: ' + label);
+            assert.equal(result.aboveMedia, true, 'banner covers overlay: ' + label);
+          }
+          if (result.overlay && contentClass) assert.equal(result.aboveContent, false, 'overlay covers identity: ' + label);
+          if (!result.overlay) assert.equal(result.layerZ, 0, 'legacy stack changed: ' + label);
+          assert.equal(result.ornamentZ, 2, 'ornament stack changed: ' + label);
+          assert.equal(result.rankZ, 4, 'rank frame stack changed: ' + label);
+          assert.equal(result.rankIsolation, 'isolate', 'rank isolation changed: ' + label);
+        }
+        await stackingPage.screenshot({ path: path.join(screenshots, `stacking-${name}-${width}.png`) });
+      }
+    }
     for (const width of [1200, 390]) {
       await page.setViewportSize({ width, height: 900 });
       await page.screenshot({ path: path.join(screenshots, `layers-${width}.png`) });
@@ -187,7 +266,7 @@ const renderer = fs.readFileSync(path.join(root, 'home/static/cosmetics/renderer
       await overlayPage.screenshot({ path: path.join(screenshots, `overlay-pivots-${width}.png`) });
     }
     assert.deepEqual(errors, []);
-    console.log(JSON.stringify({ passed: ['server/dynamic parity', 'desktop/mobile ratio and placement', 'legacy cover', 'horizontal travel and opacity fade', 'static moon', 'offscreen pause', 'hidden-tab pause/resume', 'reduced-motion centering', 'overlay above own banner and sheet', 'bottom corner pivots desktop/mobile', 'legacy attenuation preserved'], motion, screenshots }));
+    console.log(JSON.stringify({ passed: ['server/dynamic parity', 'desktop/mobile ratio and placement', 'legacy cover', 'horizontal travel and opacity fade', 'static moon', 'offscreen pause', 'hidden-tab pause/resume', 'reduced-motion centering', 'overlay above own banner and sheet', 'bottom corner pivots desktop/mobile', 'legacy attenuation preserved', 'real CSS stacking: 6 surfaces, desktop/mobile, own/no banner, server/dynamic, overlay/legacy'], motion, screenshots }));
   } finally {
     await browser.close();
   }

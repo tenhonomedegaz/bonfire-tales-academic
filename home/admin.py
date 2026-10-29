@@ -4227,6 +4227,55 @@ class _TbCosmeticoForm(forms.ModelForm):
 @admin.register(TbCosmetico)
 class TbCosmeticoAdmin(admin.ModelAdmin):
     form = _TbCosmeticoForm
+    actions = ('reclassificar',)
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if not request.user.is_superuser:
+            actions.pop('reclassificar', None)
+        return actions
+
+    @admin.action(description='Reclassificar tema / efeito / moldura', permissions=['change'])
+    def reclassificar(self, request, queryset):
+        from django.core.exceptions import PermissionDenied, ValidationError
+        from django.template.response import TemplateResponse
+        from .cosmetic_reclassification import TARGET_CHOICES, reclassify_cosmetics
+
+        if not request.user.is_active or not request.user.is_superuser:
+            raise PermissionDenied
+
+        class ReclassificationForm(forms.Form):
+            target = forms.ChoiceField(choices=TARGET_CHOICES, label='Tipo de destino')
+            clear_css_class = forms.BooleanField(
+                required=False, label='Limpar css_class da categoria anterior')
+            confirm = forms.BooleanField(label='Confirmo a reclassificacao do lote selecionado')
+
+        submitted = request.method == 'POST' and 'apply' in request.POST
+        form = ReclassificationForm(request.POST if submitted else None)
+        if submitted and form.is_valid():
+            try:
+                summary = reclassify_cosmetics(
+                    queryset, form.cleaned_data['target'], actor=request.user,
+                    clear_css_class=form.cleaned_data['clear_css_class'])
+            except ValidationError as exc:
+                form.add_error(None, exc)
+            except IntegrityError:
+                form.add_error(None, 'Colisao concorrente. Nenhuma alteracao aplicada; revise o lote.')
+            else:
+                self.message_user(
+                    request,
+                    f"Reclassificados: {summary['changed']}; sem alteracao: {summary['noop']}; "
+                    f"selecoes movidas: {summary['moved']}; conflitos preservados: {summary['conflicts']}.",
+                    level=messages.WARNING if summary['conflicts'] else messages.SUCCESS,
+                )
+                return None
+        return TemplateResponse(request, 'admin/home/tbcosmetico/reclassificar.html', {
+            **self.admin_site.each_context(request), 'opts': self.model._meta,
+            'title': 'Reclassificar cosmeticos', 'form': form, 'queryset': queryset,
+            'action_checkbox_name': admin.helpers.ACTION_CHECKBOX_NAME,
+            'select_across': request.POST.get('select_across', '0'),
+        })
+
     list_display = ('tipo', 'nome', 'slug', 'raridade', 'origem', 'escopo', 'ativo', 'ordem')
     list_filter = ('tipo', 'origem', 'raridade', 'ativo', 'escopo', 'animado')
     search_fields = ('nome', 'slug')

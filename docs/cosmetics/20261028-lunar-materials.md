@@ -1,5 +1,12 @@
 # Tres luas: identidade por material e fechamento do lote
 
+## Reclassificacao das composicoes
+
+PO pediu mover luas/Vigilia de Tema para Efeito e corrigir banner proprio
+cobrindo as camadas. Implementacao e roteiro atomico sem trocar PKs em
+`banner-effects.md`. Manter concessoes existentes; execucao em producao
+somente depois do `/site update`. Demais temas de paleta nao sao removidos.
+
 ## Publicacao de teste concluida
 
 PO autorizou ativar todos os oito itens em producao somente para admins.

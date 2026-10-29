@@ -1,5 +1,10 @@
 # Temas das tres luas: concessao manual por administrador
 
+Revisao posterior: as quatro composicoes de banner passam para Efeito.
+Publicar o codigo e reclassificar as MESMAS linhas antes de usar os novos
+slugs; nao duplicar registros nem inventarios. Procedimento e estado em
+`banner-effects.md`. O texto abaixo registra a operacao de publicacao anterior.
+
 Estado atual: os oito itens das luas/Vigilia foram publicados em producao
 para QA e concedidos SOMENTE aos sete superusuarios existentes. Nao e
 necessario cadastrar esses slugs novamente. PKs e verificacoes estao em

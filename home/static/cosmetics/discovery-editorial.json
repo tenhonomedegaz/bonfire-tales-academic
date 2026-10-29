@@ -1,15 +1,15 @@
 {
   "version": 1,
   "purpose": "approved-public-art-proposals-only",
-  "collections": {"luas": "As Três Luas", "vigilia": "Vigília das Lanternas"},
+  "collections": {"luas":"As Três Luas","vigilia":"Vigília das Lanternas"},
   "proposals": [
-    {"slug":"tema-lua-vermelha","collection":"luas","tipo":"tema","nome":"Lua Vermelha","escopo":"ambos","class":"theme-data","definition":{"accent":"#dd7772","accent2":"#9b2839","surface":"#211317","deep":"#100c10"}},
-    {"slug":"tema-lua-negra","collection":"luas","tipo":"tema","nome":"Lua Negra","escopo":"ambos","class":"theme-data","definition":{"accent":"#a1aaa3","accent2":"#555e59","surface":"#101014","deep":"#050608"}},
-    {"slug":"tema-lua-cristal","collection":"luas","tipo":"tema","nome":"Lua de Cristal","escopo":"ambos","class":"theme-data","definition":{"accent":"#acdce4","accent2":"#5497b5","surface":"#142025","deep":"#0a1014"}},
+    {"slug":"efeito-lua-vermelha","collection":"luas","tipo":"efeito","nome":"Lua Vermelha","escopo":"ambos","class":""},
+    {"slug":"efeito-lua-negra","collection":"luas","tipo":"efeito","nome":"Lua Negra","escopo":"ambos","class":""},
+    {"slug":"efeito-lua-cristal","collection":"luas","tipo":"efeito","nome":"Lua de Cristal","escopo":"ambos","class":""},
     {"slug":"moldura-lua-vermelha","collection":"luas","tipo":"moldura","nome":"Moldura da Lua Vermelha","escopo":"ambos","class":"frame-lua-vermelha"},
     {"slug":"moldura-lua-negra","collection":"luas","tipo":"moldura","nome":"Moldura da Lua Negra","escopo":"ambos","class":"frame-lua-negra"},
     {"slug":"moldura-lua-cristal","collection":"luas","tipo":"moldura","nome":"Moldura da Lua de Cristal","escopo":"ambos","class":"frame-lua-cristal"},
     {"slug":"moldura-vigilia-das-lanternas","collection":"vigilia","tipo":"moldura","nome":"Moldura Vigília das Lanternas","escopo":"ambos","class":"frame-vigilia-das-lanternas"},
-    {"slug":"tema-vigilia-das-lanternas","collection":"vigilia","tipo":"tema","nome":"Vigília das Lanternas","escopo":"ambos","class":"theme-data","definition":{"accent":"#eba668","accent2":"#6b9c83","surface":"#211b1c","deep":"#0c1110"}}
+    {"slug":"efeito-vigilia-das-lanternas","collection":"vigilia","tipo":"efeito","nome":"Vigília das Lanternas","escopo":"ambos","class":""}
   ]
 }

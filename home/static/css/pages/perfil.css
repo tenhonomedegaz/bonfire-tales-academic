@@ -2134,6 +2134,7 @@
 .public-profile-banner {
   position: relative;
   overflow: hidden;
+  isolation: isolate;
 }
 
 .cosmetic-layers {
@@ -2155,7 +2156,7 @@
 
 .public-profile-banner-media,
 .profile-banner-media {
-  z-index: 1;
+  z-index: 0;
 }
 
 .cosmetic-layers--ornament {

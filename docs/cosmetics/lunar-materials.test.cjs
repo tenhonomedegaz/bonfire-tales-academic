@@ -14,7 +14,8 @@ const originalHashes = {
 async function main() {
   let reference;
   for (const slug of slugs) {
-    const theme = JSON.parse(await fs.readFile(path.join(media,'tema-lua-'+slug+'.json'),'utf8'));
+    const theme = JSON.parse(await fs.readFile(path.join(media,'efeito-lua-'+slug+'.json'),'utf8'));
+    assert.equal(theme.type,'efeito');
     const disc = theme.layers.find(layer=>layer.file.includes('-disc-'));
     const layout = {width:disc.width,height:disc.height,opacity:disc.opacity,placement:disc.placement,mobile:disc.mobile};
     if (reference) assert.deepEqual(layout,reference,'Moon size, opacity and responsive placement must agree');

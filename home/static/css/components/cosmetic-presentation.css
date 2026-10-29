@@ -18,15 +18,15 @@
 :is(.profile-avatar-wrapper,.public-profile-avatar,.banner-character-avatar).is-packaged::before{display:none}
 :is(.profile-avatar-wrapper,.public-profile-avatar,.banner-character-avatar).is-packaged>img{border-radius:50%;width:100%;height:100%;object-fit:cover}
 :is(.profile-avatar-wrapper,.public-profile-avatar,.banner-character-avatar) .cosmetic-layers--avatar .cosmetic-layer{width:100%;height:100%;object-fit:contain}
-.banner-scroll>.cosmetic-layers{position:absolute;z-index:0}
-.banner-scroll>.cosmetic-layers--ornament{z-index:2}
+.ficha-header .banner-scroll>.cosmetic-layers{position:absolute;z-index:0}
+.ficha-header .banner-scroll>.cosmetic-layers--ornament{z-index:2}
 .ficha-header .cosmetic-layers--banner{opacity:.65}
 .ficha-header .banner-scroll{isolation:isolate}
 .ficha-live-preview{position:relative;isolation:isolate;overflow:visible}
 .ficha-live-preview>.ficha-name,.ficha-live-preview>.banner-character-avatar{position:relative;z-index:3}
 .ficha-header.cw-public-hero{isolation:isolate;position:relative}
-.cw-public-hero>.cosmetic-layers{position:absolute;z-index:0}
-.cw-public-hero>.cosmetic-layers--ornament{z-index:2}
+.ficha-header.cw-public-hero>.cosmetic-layers{position:absolute;z-index:0}
+.ficha-header.cw-public-hero>.cosmetic-layers--ornament{z-index:2}
 .cw-public-avatar:is(.is-packaged,.rank-portrait){height:auto;aspect-ratio:1;align-self:center}
 :is(.profile-avatar-wrapper,.public-profile-avatar,.banner-character-avatar).is-packaged>img,.rank-portrait>img{position:absolute;inset:0;width:100%;height:100%;border-radius:50%;object-fit:cover}
 .cw-public-hero>.cw-public-identity,.cw-public-hero>.banner-character-avatar{position:relative;z-index:3}
@@ -35,8 +35,11 @@
 .bft-profile .profile-header.cosmetic-has-banner .profile-banner-media{opacity:.82;filter:none}
 .cosmetic-has-banner .public-profile-banner-media::after{background:linear-gradient(180deg,transparent 55%,#0005)}
 /* Independent transparent layers stay visible above a user's own banner. */
-.cosmetic-layers--banner.cosmetic-layers--overlay{opacity:1}
+.cosmetic-layers--banner.cosmetic-layers--overlay,:is(.banner-scroll,.cw-public-hero)>.cosmetic-layers--banner.cosmetic-layers--overlay{opacity:1;z-index:1}
 .cosmetic-has-banner .cosmetic-layers--banner.cosmetic-layers--overlay{opacity:1;mix-blend-mode:normal}
+/* Identity stays above overlays even when the live renderer appends them last. */
+.profile-header.profile-hero>.profile-hero-copy,.profile-header.profile-hero>.profile-avatar-wrapper{z-index:3}
+.ficha-header .banner-scroll>:is(.ficha-title-line,.banner-character-avatar){z-index:3}
 .cosmetic-layer--float,.cosmetic-layer--pulse{animation-play-state:paused}
 .cosmetic-layers.is-visible .cosmetic-layer--float{animation:cosmetic-float 8s ease-in-out infinite}
 .cosmetic-layers.is-visible .cosmetic-layer--pulse{animation:cosmetic-pulse 5s ease-in-out infinite}

@@ -104,7 +104,7 @@ class DiscoveryRightsTests(SimpleTestCase):
 
     def test_only_eight_explicit_public_proposals_without_any_operation(self):
         entries, _ = discovery.editorial_proposals()
-        expected = {kind + '-' + slug for kind in ('tema', 'moldura') for slug in
+        expected = {kind + '-' + slug for kind in ('efeito', 'moldura') for slug in
                     ('lua-vermelha', 'lua-negra', 'lua-cristal', 'vigilia-das-lanternas')}
         self.assertEqual({entry['slug'] for entry in entries}, expected)
         for slug in expected:
@@ -117,9 +117,9 @@ class DiscoveryRightsTests(SimpleTestCase):
         self.assertNotIn('moldura-secret-draft', self.cards())
 
     def test_published_slug_replaces_proposal_without_duplicate_or_new_right(self):
-        self.snapshot['catalog']['tema-lua-vermelha'] = item('tema-lua-vermelha')
+        self.snapshot['catalog']['efeito-lua-vermelha'] = item('efeito-lua-vermelha')
         context = discovery.build_discovery(self.snapshot)
-        cards = [card for card in context['cards'] if card['slug'] == 'tema-lua-vermelha']
+        cards = [card for card in context['cards'] if card['slug'] == 'efeito-lua-vermelha']
         self.assertEqual(len(cards), 1)
         self.assertFalse(cards[0]['proposal'])
         self.assertEqual(cards[0]['state'], 'exclusivo')

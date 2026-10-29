@@ -18,7 +18,7 @@ function readConfig() {
 
 function validateManifest(raw, family, roles, checkFiles = true) {
   assert.equal(raw.version, 1);
-  assert.equal(raw.type, 'tema');
+  assert.equal(raw.type, 'efeito');
   assert.equal(raw.slug + '.json', family.manifest);
   assert.equal(raw.overlay, true, family.manifest + ': overlay must be true');
   assert.ok(Array.isArray(raw.layers) && raw.layers.length > 0, family.manifest + ': no layers');
@@ -49,7 +49,7 @@ function buildSnapshot() {
   assert.equal(roles.length, 6);
   const result = {};
   for (const [key, family] of Object.entries(config.families)) {
-    assert.match(family.manifest, /^tema-lua-[a-z]+\.json$/);
+    assert.match(family.manifest, /^efeito-lua-[a-z]+\.json$/);
     const raw = JSON.parse(fs.readFileSync(path.join(media, family.manifest), 'utf8'));
     validateManifest(raw, family, roles);
     result[key] = {
