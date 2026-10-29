@@ -1,5 +1,11 @@
 # Efeitos de banner separados do tema
 
+Estado final: reclassificacao aplicada em producao apos o `/site update`
+confirmado pelo PO. Mesmas PKs54/55/56/61, 28 inventarios preservados, uma
+selecao movida e nenhum conflito. Banner proprio e overlay conferidos juntos
+no perfil real. Evidencia: `../qa/20261028-banner-effects-production.md`.
+O roteiro abaixo fica como referencia; NAO repetir cadastro/concessoes.
+
 ## Decisao
 
 Composicoes Lua Vermelha, Lua Negra, Lua de Cristal e Vigilia das Lanternas
