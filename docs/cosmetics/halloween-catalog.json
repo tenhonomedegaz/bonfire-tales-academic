@@ -1,0 +1,18 @@
+{
+  "status": "visual-review",
+  "activate_in_production": false,
+  "policy": "Tema, moldura e efeito independentes. Preservar as PKs, inventarios e permissoes atuais da Vigilia; nao inventar elegibilidade publica ou preco do evento.",
+  "cosmetics": [
+    {
+      "slug": "tema-vigilia-das-lanternas", "tipo": "tema", "nome": "Tema da Vigilia das Lanternas",
+      "css_class": "skin-illustrated skin-vigilia-das-lanternas", "origem": "staff", "ativo": false,
+      "escopo": "ambos", "raridade": "raro", "preco": null, "requer_plano": "",
+      "descricao": "Ferro antigo, luz de lanternas e pequenos detalhes espectrais. Liberacao manual pela administracao durante os testes.",
+      "definicao_json": {"accent":"#e4ba7b","accent2":"#aac9b6","surface":"#1e2423","deep":"#101615","gradiente":false,"glow":false,"particula":"nenhuma","vel":"lenta","motif":"none"}
+    }
+  ],
+  "existing_items": [
+    {"slug":"moldura-vigilia-das-lanternas","asset_url":"/static/cosmetics/frame-vigilia-v3.webp","manifest":"moldura-vigilia-das-lanternas.json"},
+    {"slug":"efeito-vigilia-das-lanternas","manifest":"efeito-vigilia-das-lanternas.json"}
+  ]
+}

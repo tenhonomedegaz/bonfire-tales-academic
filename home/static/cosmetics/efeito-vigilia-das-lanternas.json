@@ -3,15 +3,28 @@
   "slug": "efeito-vigilia-das-lanternas",
   "type": "efeito",
   "scope": "ambos",
+  "overlay": true,
   "layers": [
     {
-      "slot": "ornament",
-      "file": "halloween-lantern.svg",
-      "fallback": "halloween-lantern.svg",
-      "width": 64,
-      "height": 64,
-      "anchor": "right",
-      "motion": "float"
+      "slot": "banner", "file": "black-moon-clouds-v2.webp", "fallback": "black-moon-clouds-v2.png",
+      "width": 1400, "height": 467, "motion": "drift", "opacity": 0.14,
+      "placement": {"x": 60, "y": 65, "width": 88},
+      "mobile": {"x": 65, "y": 65, "width": 135},
+      "motion_params": {"distance": 45, "duration": 100, "delay": -50}
+    },
+    {
+      "slot": "banner", "file": "vigilia-foreground-left-v1.webp", "fallback": "vigilia-foreground-left-v1.webp",
+      "width": 800, "height": 400, "motion": "none", "opacity": 0.85,
+      "placement": {"x": 0, "y": 100, "width": 24},
+      "mobile": {"x": 0, "y": 100, "width": 42},
+      "pivot": {"x": 0, "y": 100}
+    },
+    {
+      "slot": "banner", "file": "vigilia-lanterns-right-v1.webp", "fallback": "vigilia-lanterns-right-v1.webp",
+      "width": 360, "height": 540, "motion": "float", "opacity": 0.85,
+      "placement": {"x": 100, "y": 0, "width": 10},
+      "mobile": {"x": 100, "y": 0, "width": 26},
+      "pivot": {"x": 100, "y": 0}
     }
   ]
 }

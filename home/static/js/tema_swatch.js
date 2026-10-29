@@ -31,6 +31,26 @@
         'aurora-glacial': 'collection-aurora-glacial',
         'circulo-arcano': 'collection-circulo-arcano'
     };
+    // Catalog tokens identify skins on initial server roots and subsequent swaps.
+    var knownThemeClasses = new Set();
+    function classTokens(value) {
+        var tokens = typeof value === 'string' ? value.trim().split(/\s+/).filter(Boolean) : [];
+        return tokens.every(function (name) { return /^[A-Za-z_][A-Za-z0-9_-]*$/.test(name); })
+            ? Array.from(new Set(tokens)) : [];
+    }
+    function rememberThemeClasses(value) {
+        classTokens(value).forEach(function (name) { knownThemeClasses.add(name); });
+    }
+    function isThemeClass(name) {
+        return name.indexOf(PREFIXO_TEMA) === 0 || name.indexOf('collection-') === 0 ||
+            knownThemeClasses.has(name);
+    }
+    function readCatalogClasses() {
+        if (typeof document === 'undefined') return;
+        document.querySelectorAll('[data-tema-card][data-tema-classe]').forEach(function (card) {
+            rememberThemeClasses(card.dataset.temaClasse);
+        });
+    }
 
     /* Lê o cartão-prévia dono de um elemento (o próprio radio serve).
        Devolve null quando não há cartão (defensivo: seletor antigo/ausente). */
@@ -76,9 +96,11 @@
     /* Troca a classe de tema do alvo preservando todas as outras
        (effect-*, ficha-has-bg, profile-has-bg, utilitárias do Tailwind...). */
     function trocaClasseTema(alvo, classe) {
+        readCatalogClasses();
         var mantidas = String(alvo.className).split(/\s+/).filter(function (c) {
-            return c && c.indexOf(PREFIXO_TEMA) !== 0 && c.indexOf('collection-') !== 0;
+            return c && !isThemeClass(c);
         });
+        rememberThemeClasses(classe);
         if (classe) mantidas.push(classe);
         alvo.className = mantidas.join(' ');
     }
@@ -93,6 +115,11 @@
         if (t.accent && classe === 'theme-data' &&
                 Object.prototype.hasOwnProperty.call(PILOT_COMPOSITIONS, t.chave)) {
             classe += ' ' + PILOT_COMPOSITIONS[t.chave];
+        }
+        if (t.accent && t.chave !== 'custom') {
+            classe = Array.from(new Set(classTokens(classe).concat(classTokens(t.classe)))).join(' ');
+        } else {
+            classe = classTokens(classe).join(' ');
         }
         trocaClasseTema(alvo, classe);
         alvo.setAttribute('data-theme-motif', t.accent && t.chave !== 'custom'
@@ -159,7 +186,8 @@
                 to.appendChild(clone);
             });
         }
-        classes(source, target, function (name) { return /^(theme-|effect-|collection-)/.test(name); });
+        readCatalogClasses();
+        classes(source, target, function (name) { return isThemeClass(name) || /^effect-/.test(name); });
         ['data-theme-motif', 'data-fx-particula', 'data-fx-vel'].forEach(function (name) {
             if (source.hasAttribute(name)) target.setAttribute(name, source.getAttribute(name));
             else target.removeAttribute(name);

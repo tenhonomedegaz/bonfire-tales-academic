@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Bonfire | Temas das Tres Luas</title>
+  <link rel="stylesheet" href="../../home/static/css/brand.css">
+  <link rel="stylesheet" href="../../home/static/css/pages/perfil.css">
+  <link rel="stylesheet" href="../../home/static/css/components/illustrated-theme-skins.css">
+  <style>
+    *{box-sizing:border-box;letter-spacing:0}
+    body{margin:0;background:#0c0d0e}
+    main{max-width:1480px;margin:auto;padding:28px}
+    .preview-heading{display:flex;flex-wrap:wrap;gap:20px;align-items:center;justify-content:space-between;padding-bottom:20px;border-bottom:1px solid #383335}
+    h1{font:700 28px/1.2 var(--bft-display);margin:0}
+    .preview-modes{display:flex;gap:0;flex-wrap:wrap;border:1px solid #53494b;border-radius:4px;overflow:hidden}
+    .preview-modes label{position:relative;cursor:pointer;padding:9px 14px;font-size:12px;border-right:1px solid #53494b}
+    .preview-modes label:last-child{border-right:0}
+    .preview-modes label:has(:checked){background:#393137;color:#fff}
+    .preview-modes label:has(:focus-visible){outline:2px solid #e8b86e;outline-offset:-3px}
+    .preview-modes input{position:absolute;opacity:0;width:1px;height:1px}
+    .preview-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px}
+    .preview-column{min-width:0}
+    .preview-column>h2{font:600 22px/1.3 var(--bft-display);color:var(--lunar-accent);margin:24px 0 18px}
+    .public-profile-page{padding:0;margin:0;max-width:none}
+    .public-profile-banner{min-height:150px;background:var(--profile-deep)}
+    .public-profile-banner-media{background-image:url('../../home/static/brand/world.webp');opacity:.38}
+    .public-profile-body{grid-template-columns:64px minmax(0,1fr);align-items:start;margin-top:-26px;gap:14px;padding:0 22px 24px}
+    .public-profile-avatar{width:64px;height:64px;border-width:2px}
+    .public-profile-main{padding-top:30px;min-width:0}
+    .public-profile-name-row h2{font:700 24px/1.2 var(--bft-display);margin:0;color:#ede9e5}
+    .public-profile-handle{margin:5px 0 0;font-size:12px}
+    .public-profile-bio{font-size:13px;margin:14px 0 0;line-height:1.7}
+    .public-profile-section,.profile-editor-group,.ficha-card{margin:20px 0 0;padding:24px}
+    .public-profile-section-head{margin:0 0 16px}
+    .public-profile-section-head h2,.profile-section-title,.ficha-card-title{font:600 22px/1.3 var(--bft-display);margin:0}
+    .public-profile-section-head>span{color:var(--lunar-secondary);font-size:12px}
+    .achievement-list{margin:0;padding:0;list-style:none;display:grid;gap:13px}
+    .achievement-list li{display:flex;justify-content:space-between;gap:12px;font-size:12px;border-bottom:1px solid #ffffff12;padding-bottom:12px}
+    .achievement-list li:last-child{border:0;padding-bottom:0}
+    .achievement-list small{color:var(--lunar-secondary);white-space:nowrap}
+    .character-line{display:flex;align-items:center;gap:14px}
+    .character-line img{width:56px;height:64px;object-fit:cover;border-radius:4px}
+    .character-line strong{font:600 20px/1.3 var(--bft-display)}
+    .character-line p{margin:5px 0 0;color:#bbb9b6;font-size:12px}
+    .profile-field:first-of-type{margin-top:22px}
+    .profile-label{font-size:12px;color:#ddd9d4}
+    .profile-input{font:inherit;background:var(--lunar-deep);color:#eee9e5;border-color:color-mix(in srgb,var(--lunar-accent) 35%,transparent)}
+    .profile-section-title{padding-bottom:14px;text-transform:none}
+    .ficha-card-title{padding-bottom:14px;border-bottom:1px solid}
+    .sheet-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center;margin-top:24px}
+    .sheet-stats dt{font-size:11px;color:#bbb9b6}
+    .sheet-stats dd{margin:6px 0 0;font:600 25px/1.2 var(--bft-display);color:var(--lunar-accent)}
+    .ficha-card p{font-size:13px;color:#d1cdc8;line-height:1.8}
+    [hidden]{display:none!important}
+    @media(max-width:1050px){.preview-grid{grid-template-columns:1fr;gap:8px;max-width:680px;margin:auto}}
+    @media(max-width:480px){main{padding:18px}.preview-heading{gap:16px}h1{font-size:25px}.preview-modes label{padding:9px 12px}.public-profile-body{padding-inline:22px;gap:12px}.public-profile-section,.profile-editor-group,.ficha-card{padding:24px}.public-profile-bio{line-height:1.65}.public-profile-name-row h2{font-size:23px}}
+  </style>
+</head>
+<body>
+  <main>
+    <header class="preview-heading">
+      <h1>Temas das Três Luas</h1>
+      <div class="preview-modes" role="radiogroup" aria-label="Visualização">
+        <label><input type="radio" name="view" value="public" checked>Perfil público</label>
+        <label><input type="radio" name="view" value="editor">Meu perfil</label>
+        <label><input type="radio" name="view" value="sheet">Ficha</label>
+      </div>
+    </header>
+    <div class="preview-grid" id="theme-grid"></div>
+  </main>
+  <script src="20261028-lunar-themes.js"></script>
+</body>
+</html>

@@ -1,1 +1,11 @@
-{"version":1,"slug":"moldura-vigilia-das-lanternas","type":"moldura","scope":"ambos","layers":[{"slot":"avatar","file":"frame-vigilia-das-lanternas-v2.png","fallback":"frame-vigilia-das-lanternas-v2.png","width":1254,"height":1254,"motion":"float"}]}
+{
+  "version": 1,
+  "slug": "moldura-vigilia-das-lanternas",
+  "type": "moldura",
+  "scope": "ambos",
+  "layers": [{
+    "slot": "avatar", "file": "frame-vigilia-v3.webp", "fallback": "frame-vigilia-v3.webp",
+    "width": 640, "height": 640, "motion": "none",
+    "aperture": {"cx": 50, "cy": 50, "diameter": 70}
+  }]
+}

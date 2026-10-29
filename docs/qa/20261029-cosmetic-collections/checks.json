@@ -1,0 +1,39 @@
+{
+  "viewports": [
+    320,
+    390,
+    768,
+    1440,
+    1920
+  ],
+  "panelCases": 60,
+  "assets": [
+    {
+      "file": "themes/vigilia-panel-v1.webp",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 117940
+    },
+    {
+      "file": "frame-vigilia-v3.webp",
+      "width": 640,
+      "height": 640,
+      "bytes": 82608
+    },
+    {
+      "file": "vigilia-foreground-left-v1.webp",
+      "width": 800,
+      "height": 400,
+      "bytes": 67078
+    },
+    {
+      "file": "vigilia-lanterns-right-v1.webp",
+      "width": 360,
+      "height": 540,
+      "bytes": 29930
+    }
+  ],
+  "errors": [],
+  "independentSlots": true,
+  "reducedMotion": true
+}

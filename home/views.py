@@ -978,6 +978,10 @@ def _appearance_options(user, tipo_interno, escopo='perfil'):
     if options:
         options = [dict(item, locked=item['estado'] == 'bloqueado')
                    for item in options]
+        if tipo_interno == 'theme':
+            options = [dict(item, **{'class': _data_theme_class(item)})
+                       if item.get('definicao') and item['key'] != 'custom' else item
+                       for item in options]
         default = _APPEARANCE_DEFAULT[tipo_interno]
         if not any(item['key'] == default for item in options):
             options.insert(0, dict(_APPEARANCE_FALLBACK[tipo_interno][default],
@@ -1090,6 +1094,23 @@ def _custom_theme_style(colors):
     return _theme_vars_style(_sanitize_custom_theme(colors))
 
 
+def _data_theme_class(item):
+    """Catalog classes are tokens, never selectors or inline declarations."""
+    raw = item.get('class', '')
+    tokens = raw.split() if isinstance(raw, str) else []
+    if not all(re.fullmatch(r'[A-Za-z_][A-Za-z0-9_-]*', token, flags=re.ASCII)
+               for token in tokens):
+        tokens = []
+    pilot_compositions = {
+        'tema-forja-de-brasas': 'collection-forja-de-brasas',
+        'tema-aurora-glacial': 'collection-aurora-glacial',
+        'tema-circulo-arcano': 'collection-circulo-arcano',
+    }
+    composition = pilot_compositions.get(item.get('slug') or 'tema-' + item.get('key', ''), '')
+    return ' '.join(dict.fromkeys(['theme-data'] + tokens +
+                                 ([composition] if composition else [])))
+
+
 def _appearance_context(theme='bonfire', frame='none', effect='none',
                         theme_custom=None, background='', user=None,
                         escopo='perfil'):
@@ -1136,15 +1157,9 @@ def _appearance_context(theme='bonfire', frame='none', effect='none',
         fx_particula, fx_vel = 'subir', 'media'
         theme_css_href = ''
     elif definicao:
-        # Tema-dado: classe neutra (não colide com as legadas) + vars via builder
-        # único (mesmo do custom, com gradiente quando pedido) + fx por atributo.
-        pilot_compositions = {
-            'tema-forja-de-brasas': 'collection-forja-de-brasas',
-            'tema-aurora-glacial': 'collection-aurora-glacial',
-            'tema-circulo-arcano': 'collection-circulo-arcano',
-        }
-        composition = pilot_compositions.get(theme_item.get('slug'), '')
-        theme_class = 'theme-data' + (' ' + composition if composition else '')
+        # Data themes retain the neutral base plus validated catalog skin tokens.
+        # Colors still use the shared builder, independently of the effect slot.
+        theme_class = _data_theme_class(theme_item)
         custom_style = _theme_vars_style(definicao)
         fx_particula = definicao['particula']
         fx_vel = definicao['vel']

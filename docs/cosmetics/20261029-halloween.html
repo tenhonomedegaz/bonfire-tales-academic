@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Bonfire | Vigilia das Lanternas</title>
+  <link rel="stylesheet" href="../../home/static/css/brand.css">
+  <link rel="stylesheet" href="../../home/static/css/pages/perfil.css">
+  <link rel="stylesheet" href="../../home/static/css/components/cosmetic-presentation.css">
+  <link rel="stylesheet" href="../../home/static/css/components/illustrated-theme-skins.css">
+  <style>
+    *{box-sizing:border-box;letter-spacing:0}
+    body{margin:0;background:#0c0e0e}
+    main{width:100%;max-width:1180px;margin:auto;padding:28px}
+    .preview-heading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px;margin-bottom:24px}
+    h1{font:700 30px/1.25 var(--bft-display);margin:0}
+    .controls{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:10px 0}
+    .controls label{display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer}
+    .controls input{accent-color:#e4ba7b;width:16px;height:16px;margin:0}
+    .public-profile-page{max-width:none;padding:0}
+    .public-profile-banner{height:240px;background:var(--profile-deep);container-type:inline-size}
+    .public-profile-banner-media{background-image:url('../../home/static/brand/world.webp')}
+    .public-profile-body{padding:0 24px 26px;gap:24px;align-items:center;grid-template-columns:96px minmax(0,1fr)}
+    .public-profile-avatar{width:96px;height:96px;position:relative;flex:none}
+    .public-profile-main{padding-top:50px;min-width:0}
+    .public-profile-name-row h2{font:700 30px/1.2 var(--bft-display);margin:0}
+    .public-profile-handle{font-size:12px;margin:8px 0 0}
+    .public-profile-bio{font-size:13px;line-height:1.8;margin:16px 0 0;max-width:580px}
+    .preview-panels{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:24px}
+    .public-profile-section,.profile-editor-group,.ficha-card{margin:0;padding:28px;min-width:0}
+    .public-profile-section-head{margin-bottom:20px}
+    .public-profile-section-head h2,.profile-section-title,.ficha-card-title{font:600 24px/1.3 var(--bft-display);margin:0}
+    .profile-section-title,.ficha-card-title{padding-bottom:16px;border-bottom:1px solid}
+    .public-profile-section-head>span{font-size:12px;color:#c8c5bc}
+    .achievement-list{padding:0;margin:0;list-style:none;display:grid;gap:16px;font-size:13px}
+    .achievement-list li{display:flex;justify-content:space-between;gap:12px;padding-bottom:12px;border-bottom:1px solid #ffffff12}
+    .achievement-list small{color:var(--profile-accent-2)}
+    .character-line{display:flex;align-items:center;gap:16px;margin-top:18px}
+    .character-line>img{width:64px;height:72px;object-fit:cover;border-radius:4px}
+    .character-line strong{font:600 22px/1.3 var(--bft-display)}
+    .character-line p{font-size:12px;color:#c1c5bf;margin:6px 0}
+    .profile-input{background:var(--profile-deep);font:inherit}
+    .profile-field{margin-top:20px}
+    .profile-label{font-size:12px;color:#d9d8d0}
+    .ficha-card p{font-size:13px;line-height:1.8}
+    .frame-samples{display:flex;align-items:center;justify-content:center;gap:70px;flex-wrap:wrap;margin:40px 0 20px;padding:20px}
+    .frame-samples figure{margin:0;display:grid;justify-items:center;gap:26px}
+    .frame-samples figcaption{font-size:11px;color:#b9b8af}
+    .sample-avatar{width:46px;height:46px}
+    .sample-avatar--large{width:120px;height:120px}
+    .preview-paused .cosmetic-layers .cosmetic-layer{animation-play-state:paused!important}
+    .preview-paused .profile-section-title,.preview-paused .ficha-card-title,.preview-paused .public-profile-section-head h2{animation-play-state:paused!important}
+    @media(max-width:680px){main{padding:18px}.preview-panels{grid-template-columns:1fr;gap:20px}.public-profile-body{grid-template-columns:70px minmax(0,1fr);padding-inline:14px;gap:14px}.public-profile-avatar:not(.sample-avatar){width:70px;height:70px}.public-profile-name-row h2{font-size:24px}.public-profile-banner{height:200px}.public-profile-bio{line-height:1.7}.public-profile-section,.profile-editor-group,.ficha-card{padding:26px}.frame-samples{gap:60px}h1{font-size:26px}}
+  </style>
+</head>
+<body>
+<main>
+  <header class="preview-heading">
+    <h1>Vigília das Lanternas</h1>
+    <div class="controls" aria-label="Cosméticos">
+      <label><input type="checkbox" id="toggle-theme" checked>Tema</label>
+      <label><input type="checkbox" id="toggle-frame" checked>Moldura</label>
+      <label><input type="checkbox" id="toggle-effect" checked>Efeito</label>
+      <label><input type="checkbox" id="toggle-motion" checked>Movimento</label>
+    </div>
+  </header>
+  <section class="public-profile-page theme-data skin-illustrated skin-vigilia-das-lanternas" id="preview-root">
+    <div class="public-profile-card">
+      <div class="public-profile-banner cosmetic-has-banner" id="preview-banner"><div class="public-profile-banner-media"></div></div>
+      <div class="public-profile-body">
+        <div class="public-profile-avatar" data-frame><img src="../../home/static/brand/human.webp" alt="Retrato do aventureiro"></div>
+        <div class="public-profile-main"><div class="public-profile-name-row"><h2>Aventureiro de Cinéria</h2></div><p class="public-profile-handle">@aventureiro</p><p class="public-profile-bio">Quando as lanternas se acendem, até as histórias esquecidas encontram o caminho de volta à fogueira.</p></div>
+      </div>
+    </div>
+    <div class="preview-panels">
+      <section class="public-profile-section"><div class="public-profile-section-head"><h2>Conquistas</h2><span>3 / 7</span></div><ul class="achievement-list"><li>Rank Obsidiana<small>Conquistado</small></li><li>Rank Ametista<small>Conquistado</small></li><li>Rank Topázio<small>Conquistado</small></li></ul></section>
+      <section class="public-profile-section"><div class="public-profile-section-head"><h2>Personagens</h2><span>1</span></div><div class="character-line"><img src="../../home/static/brand/dwarf.webp" alt=""><div><strong>Guardião de Cinéria</strong><p>Anão · Guerreiro · Nível 12</p></div></div></section>
+      <section class="profile-editor-group"><h2 class="profile-section-title">Dados do Perfil</h2><div class="profile-field"><label class="profile-label" for="preview-name">Nome de usuário</label><input class="profile-input" id="preview-name" value="Aventureiro"></div><div class="profile-field"><label class="profile-label" for="preview-bio">Bio pública</label><textarea class="profile-input" id="preview-bio" rows="3">As histórias começam ao redor da fogueira.</textarea></div></section>
+      <section class="ficha-card"><h2 class="ficha-card-title">Habilidades</h2><p><strong>Segundo Fôlego</strong></p><p>O guardião recupera suas forças antes de retornar ao combate.</p></section>
+    </div>
+    <div class="frame-samples">
+      <figure><div class="public-profile-avatar sample-avatar" data-frame><img src="../../home/static/brand/human.webp" alt="Avatar pequeno"></div><figcaption>46 px</figcaption></figure>
+      <figure><div class="public-profile-avatar sample-avatar sample-avatar--large" data-frame><img src="../../home/static/brand/human.webp" alt="Avatar grande"></div><figcaption>120 px</figcaption></figure>
+    </div>
+  </section>
+</main>
+<script src="../../home/static/cosmetics/renderer.js"></script>
+<script src="halloween-preview-data.js"></script>
+<script src="20261029-halloween.js"></script>
+</body>
+</html>
