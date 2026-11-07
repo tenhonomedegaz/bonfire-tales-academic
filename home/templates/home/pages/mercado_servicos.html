@@ -1,0 +1,277 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block title %}Serviços do Mercado - Bonfire Tales RPG{% endblock %}
+{% block body_class %}bft-training{% endblock %}
+{% block main_class %}flex-1 w-full training-main{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/mercado_loja.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'css/pages/mercado_servicos.css' %}?v=4">
+<link rel="stylesheet" href="{% static 'css/pages/treinamentos.css' %}?v=4">
+<script defer src="{% static 'js/market-services-review.js' %}?v=1"></script>
+<script defer src="{% static 'js/treinamentos.js' %}?v=1"></script>
+{% endblock %}
+
+{% block content %}
+<div class="services-shell">
+  {% include 'home/partials/training_symbols.html' %}
+  <header class="training-masthead">
+    <div><nav class="training-breadcrumb" aria-label="Localização"><a href="{% url 'home' %}">Bonfire Tales</a><span aria-hidden="true">/</span><span>Mercado</span></nav><p class="training-eyebrow">Entre uma aventura e outra</p><h1>Treinamentos</h1><p>Novos saberes. Mais caminhos para a sua história.</p></div>
+    <div class="training-crest" aria-hidden="true"></div>
+  </header>
+  {% include 'home/partials/_mercado_balcao.html' with balcao_titulo='Serviços do Mercado' %}
+
+  {% if servicos_status %}
+  <p class="service-feedback {% if servicos_status == 'treinamento_iniciado' or servicos_status == 'emprestimo_solicitado' or servicos_status == 'emprestimo_aceito' or servicos_status == 'emprestimo_pago' or servicos_status == 'emprestimo_quitado' or servicos_status == 'emprestimo_recusado' or servicos_status == 'emprestimo_cancelado' or servicos_status == 'emprestimo_staff_cancelado' or servicos_status == 'emprestimo_staff_prorrogado' or servicos_status == 'emprestimo_staff_quitado' %}is-ok{% else %}is-error{% endif %}" role="status">
+    {% if servicos_status == 'treinamento_iniciado' %}Treinamento iniciado. O pagamento foi registrado e a proficiência será creditada ao fim do prazo.
+    {% elif servicos_status == 'treinamento_ativo' %}Este personagem já está realizando um treinamento.
+    {% elif servicos_status == 'treinamento_conhecido' %}O personagem já possui essa proficiência.
+    {% elif servicos_status == 'emprestimo_solicitado' %}Proposta enviada à outra pessoa.
+    {% elif servicos_status == 'emprestimo_pendente' %}Já existe uma proposta pendente entre esses personagens.
+    {% elif servicos_status == 'emprestimo_aceito' %}Empréstimo aceito e valores transferidos.
+    {% elif servicos_status == 'emprestimo_recusado' %}Proposta recusada.
+    {% elif servicos_status == 'emprestimo_cancelado' %}Proposta cancelada.
+    {% elif servicos_status == 'emprestimo_pago' %}Pagamento registrado.
+    {% elif servicos_status == 'emprestimo_quitado' %}Empréstimo quitado.
+    {% elif servicos_status == 'emprestimo_staff_cancelado' %}Proposta cancelada pela staff e operação registrada.
+    {% elif servicos_status == 'emprestimo_staff_prorrogado' %}Prazo prorrogado em 30 dias pela staff e operação registrada.
+    {% elif servicos_status == 'emprestimo_staff_quitado' %}Contrato marcado como quitado pela staff e operação registrada.
+    {% elif servicos_status == 'emprestimo_mesas' %}Os dois personagens precisam ter participado de pelo menos 2 mesas.
+    {% elif servicos_status == 'emprestimo_limite' %}O valor excede o limite da patente do devedor.
+    {% elif servicos_status == 'emprestimo_ativo' %}Um dos personagens já participa de um empréstimo ativo.
+    {% elif servicos_status == 'emprestimo_saldo_credor' %}O credor não possui saldo suficiente para conceder o empréstimo.
+    {% elif servicos_status == 'saldo' %}O personagem não possui ouro suficiente.
+    {% else %}Não foi possível concluir a operação. Confira os dados e tente novamente.{% endif %}
+  </p>
+  {% endif %}
+
+  <nav class="services-nav" role="tablist" aria-label="Serviços disponíveis">
+    <a id="tab-treinamentos" href="#treinamentos" role="tab" aria-controls="treinamentos" aria-selected="true">Treinamentos</a>
+    <a id="tab-emprestimos" href="#emprestimos" role="tab" aria-controls="emprestimos" aria-selected="false">Empréstimos</a>
+    {% if is_staff %}<a id="tab-controle-emprestimos" href="#controle-emprestimos" role="tab" aria-controls="controle-emprestimos" aria-selected="false">Controle da staff</a>{% endif %}
+  </nav>
+
+  <section id="treinamentos" class="service-section" role="tabpanel" aria-labelledby="tab-treinamentos" tabindex="0">
+    <header class="service-heading">
+      <div><span>Capacitação</span><h2>Treinamentos disponíveis</h2></div>
+      <strong>{{ treinamento_custo }}</strong>
+    </header>
+    <p class="service-lead">Aprenda um idioma, ferramenta, instrumento ou jogo em 30 dias. O pagamento é feito no início e cada personagem pode manter apenas um treinamento em andamento.</p>
+
+    {% if not mercado_ativo %}
+      <p class="service-empty">Escolha um personagem no balcão.</p>
+    {% elif treinamento_ativo %}
+      <div class="training-active" data-training-start="{{ treinamento_ativo.iniciado_em|date:'c' }}" data-training-end="{{ treinamento_ativo.conclui_em|date:'c' }}">
+        <div><small>{{ treinamento_ativo.get_tipo_display }}</small><strong>{{ treinamento_ativo.nome }}</strong></div>
+        <div class="service-deadline"><span>Conclusão</span><time datetime="{{ treinamento_ativo.conclui_em|date:'c' }}" data-service-countdown>{{ treinamento_ativo.conclui_em|date:'d/m/Y H:i' }}</time></div>
+        <div class="training-progress-block"><p><span>Prazo decorrido</span><strong data-training-progress-text>Em andamento</strong></p><div class="training-progress" role="progressbar" aria-label="Prazo decorrido do treinamento" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-training-progress><span></span></div><p class="training-finish-date">Conclusão prevista em <time datetime="{{ treinamento_ativo.conclui_em|date:'c' }}">{{ treinamento_ativo.conclui_em|date:'d/m/Y H:i' }}</time>. A proficiência será creditada ao concluir o prazo no servidor.</p></div>
+      </div>
+    {% elif treinamentos_disponiveis %}
+      <form method="post" action="{% url 'mercado_iniciar_treinamento' mercado_ativo.id_personagem %}" class="service-form training-start" data-service-review data-character="{{ mercado_ativo.nome }}" data-cost="{{ treinamento_custo }}">
+        {% csrf_token %}
+        {% regroup treinamentos_disponiveis by grupo as grupos %}
+        <div class="training-category-shortcuts" aria-label="Categorias de treinamento">{% for grupo in grupos %}<button type="button" data-training-category="{{ grupo.grouper }}" aria-pressed="false"><svg aria-hidden="true"><use href="{% if grupo.grouper == 'Idiomas' %}#training-language{% elif grupo.grouper == 'Instrumentos' %}#training-music{% elif grupo.grouper == 'Jogos' %}#training-game{% else %}#training-tools{% endif %}"/></svg><span><strong>{{ grupo.grouper }}</strong><small>{{ grupo.list|length }} opções</small></span></button>{% endfor %}</div>
+        <div class="training-workbench">
+        <div class="training-browse">
+        <div class="training-filters">
+          <div><label for="training-search">Buscar treinamento</label><input id="training-search" type="search" autocomplete="off" placeholder="Digite o nome" aria-controls="training-choice"></div>
+          <div class="training-category-native"><label for="training-group">Categoria</label><select id="training-group" aria-controls="training-choice"><option value="">Todas as categorias</option>{% for grupo in grupos %}<option value="{{ grupo.grouper }}">{{ grupo.grouper }}</option>{% endfor %}</select></div>
+          <button type="button" class="training-clear" data-training-clear>Limpar filtros</button>
+        </div>
+        <p id="training-search-status" class="training-search-status" role="status" aria-live="polite">Opções de treinamento disponíveis: {{ treinamentos_disponiveis|length }}.</p>
+        <div class="training-native-choice"><label for="training-choice">Nova proficiência</label>
+        <select id="training-choice" name="treinamento" required>
+          <option value="">Selecione um treinamento</option>
+          {% for grupo in grupos %}<optgroup label="{{ grupo.grouper }}">{% for row in grupo.list %}<option value="{{ row.token }}">{{ row.nome }}</option>{% endfor %}</optgroup>{% endfor %}
+        </select>
+        </div>
+        <button type="submit" class="training-native-submit">Iniciar por {{ treinamento_custo }}</button>
+        <div class="training-options" data-training-options role="listbox" aria-label="Treinamentos disponíveis" hidden></div>
+        <p class="training-noresults" data-training-noresults hidden>Nenhum treinamento encontrado. Tente outro nome ou limpe os filtros.</p>
+        </div>
+        <aside class="training-checkout" aria-labelledby="training-selected-name" hidden>
+          <p class="training-eyebrow">Sua próxima proficiência</p><div class="training-choice-head"><svg class="training-selected-symbol" aria-hidden="true"><use href="#training-learn" data-training-selected-icon/></svg><div>
+          <span class="training-selected-group" data-training-selected-group>Um novo caminho</span>
+          <h3 id="training-selected-name" tabindex="-1">Escolha o que deseja aprender</h3></div></div>
+          <p class="training-selected-description" data-training-selected-description>Selecione uma opção na lista para conferir sua matrícula.</p>
+          <dl class="training-enrollment"><div><dt>Investimento</dt><dd>{{ treinamento_custo }}</dd></div><div><dt>Duração</dt><dd>30 dias</dd></div></dl>
+          <button type="submit">Iniciar por {{ treinamento_custo }}</button>
+          <p class="training-payment-note">Pago ao iniciar. A proficiência é concedida ao fim do prazo; o treinamento não entrega equipamentos.</p>
+          <button type="button" class="training-change-choice" data-training-change-choice>Alterar escolha ↑</button>
+        </aside>
+        </div>
+      </form>
+    {% else %}
+      <p class="service-empty">Este personagem já conhece todos os treinamentos disponíveis no catálogo.</p>
+    {% endif %}
+
+    {% if treinamentos_recentes %}
+    <details class="service-history"><summary>Treinamentos anteriores</summary><ul>{% for row in treinamentos_recentes %}<li><span>{{ row.nome }}</span><small>{{ row.get_status_display }}{% if row.concluido_em %} em {{ row.concluido_em|date:'d/m/Y' }}{% endif %}</small></li>{% endfor %}</ul></details>
+    {% endif %}
+  </section>
+
+  <section id="emprestimos" class="service-section" role="tabpanel" aria-labelledby="tab-emprestimos" tabindex="0">
+    <header class="service-heading">
+      <div><span>Jogador para jogador</span><h2>Empréstimos</h2></div>
+      {% if mercado_ativo %}<strong>{{ emprestimo_rank }} · até {{ emprestimo_limite }}</strong>{% endif %}
+    </header>
+    <p class="service-lead">O credor transfere o valor ao aceitar. O devedor tem 30 dias para pagar; após o vencimento, a dívida recebe uma única multa de 20% sobre o valor original e novas entradas de ouro são repassadas automaticamente.</p>
+
+    {% if mercado_ativo %}
+      {% if emprestimo_mesas < 2 %}<p class="service-warning">Este personagem participou de {{ emprestimo_mesas }} mesa{{ emprestimo_mesas|pluralize }}. São necessárias pelo menos 2.</p>{% endif %}
+      {% if not emprestimo_ativo and emprestimo_candidatos %}
+      <form method="post" action="{% url 'mercado_propor_emprestimo' mercado_ativo.id_personagem %}" class="service-form loan-proposal" data-service-review data-character="{{ mercado_ativo.nome }}">
+        {% csrf_token %}
+        <label for="loan-role">Operação</label>
+        <select id="loan-role" name="papel"><option value="solicitar">Solicitar empréstimo</option><option value="oferecer">Oferecer empréstimo</option></select>
+        <label for="loan-player">Outro personagem</label>
+        <select id="loan-player" name="contraparte" required>{% for row in emprestimo_candidatos %}<option value="{{ row.id_personagem }}">{{ row.nome }} · {{ row.dono.username }}</option>{% endfor %}</select>
+        <label for="loan-value">Valor em PO</label>
+        <input id="loan-value" name="valor_po" type="number" min="1" step="1" required>
+        <button type="submit">Enviar proposta</button>
+      </form>
+      {% elif not emprestimo_ativo and emprestimo_mesas >= 2 %}<p class="service-empty">Nenhum outro personagem elegível está disponível agora.</p>{% endif %}
+
+      <div class="loan-list">
+      {% for loan in emprestimos %}
+        <article class="loan-row {% if loan.inadimplente %}is-overdue{% endif %}">
+          <header><div><small>{{ loan.get_status_display }}</small><strong>{% if loan.sou_devedor %}De {{ loan.credor.nome }}{% else %}Para {{ loan.devedor.nome }}{% endif %}</strong></div><b>{{ loan.saldo_display }}</b></header>
+          <p>{{ loan.valor_display }} contratados{% if loan.multa_aplicada %} · total com multa {{ loan.total_display }}{% endif %} · {{ loan.pago_display }} pagos</p>
+          {% if loan.status == 'ativo' %}<div class="service-deadline"><span>{% if loan.inadimplente %}Vencido{% else %}Vence em{% endif %}</span><time datetime="{{ loan.vence_em|date:'c' }}"{% if not loan.inadimplente %} data-service-countdown{% endif %}>{{ loan.vence_em|date:'d/m/Y H:i' }}</time></div>{% endif %}
+          {% if loan.aguarda_minha_resposta %}<form method="post" action="{% url 'mercado_responder_emprestimo' loan.id_emprestimo %}" class="loan-actions" data-service-review data-character="{{ mercado_ativo.nome }}" data-counterpart="{% if loan.sou_devedor %}{{ loan.credor.nome }}{% else %}{{ loan.devedor.nome }}{% endif %}" data-balance="{{ loan.saldo_display }}">{% csrf_token %}<input type="hidden" name="personagem" value="{{ mercado_ativo.id_personagem }}"><button name="acao" value="recusar" class="is-muted">Recusar</button><button name="acao" value="aceitar">Aceitar</button></form>
+          {% elif loan.status == 'pendente' and loan.sou_proponente %}<form method="post" action="{% url 'mercado_cancelar_emprestimo' loan.id_emprestimo %}" class="loan-actions" data-service-review data-character="{{ mercado_ativo.nome }}" data-counterpart="{% if loan.sou_devedor %}{{ loan.credor.nome }}{% else %}{{ loan.devedor.nome }}{% endif %}" data-balance="{{ loan.saldo_display }}">{% csrf_token %}<input type="hidden" name="personagem" value="{{ mercado_ativo.id_personagem }}"><button class="is-muted">Cancelar proposta</button></form>
+          {% elif loan.status == 'ativo' and loan.sou_devedor %}<form method="post" action="{% url 'mercado_pagar_emprestimo' loan.id_emprestimo %}" class="loan-actions loan-payment" data-service-review data-character="{{ mercado_ativo.nome }}" data-counterpart="{{ loan.credor.nome }}" data-balance="{{ loan.saldo_display }}" data-balance-pc="{{ loan.saldo_devedor_pc }}">{% csrf_token %}<input type="hidden" name="personagem" value="{{ mercado_ativo.id_personagem }}"><input name="valor_po" type="number" min="1" step="1" required placeholder="Valor em PO" aria-label="Valor do pagamento em PO"><button type="submit">Pagar valor</button><button type="submit" name="valor_po" value="" formnovalidate class="is-muted">Quitar tudo</button></form>{% endif %}
+        </article>
+      {% empty %}<p class="service-empty">Nenhuma proposta ou empréstimo registrado para este personagem.</p>{% endfor %}
+      </div>
+    {% else %}<p class="service-empty">Escolha um personagem no balcão.</p>{% endif %}
+  </section>
+
+  {% if is_staff %}
+  <section id="controle-emprestimos" class="service-section staff-loans" role="tabpanel" aria-labelledby="tab-controle-emprestimos" tabindex="0">
+    <header class="service-heading">
+      <div><span>Moderação financeira</span><h2>Controle de empréstimos</h2></div>
+      <strong>{{ staff_emprestimos|length }} aberto{{ staff_emprestimos|length|pluralize }}</strong>
+    </header>
+    <p class="service-lead">Acompanhe contratos pendentes e ativos. O cargo de inadimplência não é controlado pelo site: use o usuário do devedor abaixo para aplicá-lo ou removê-lo manualmente no Discord.</p>
+
+    <div class="loan-list">
+      {% for loan in staff_emprestimos %}
+      <article class="loan-row staff-loan-row {% if loan.inadimplente %}is-overdue{% endif %}">
+        <header>
+          <div>
+            <small>Contrato #{{ loan.id_emprestimo }} · {{ loan.get_status_display }}</small>
+            <strong>{{ loan.credor.nome }} → {{ loan.devedor.nome }}</strong>
+          </div>
+          <b>{{ loan.saldo_display }}</b>
+        </header>
+        <dl class="staff-loan-people">
+          <div><dt>Credor</dt><dd>{{ loan.credor.nome }} <code>@{{ loan.credor.dono.username }}</code></dd></div>
+          <div><dt>Devedor</dt><dd>{{ loan.devedor.nome }} <code>@{{ loan.devedor.dono.username }}</code></dd></div>
+        </dl>
+        <p>{{ loan.valor_display }} originalmente · {{ loan.pago_display }} pagos{% if loan.multa_aplicada %} · {{ loan.total_display }} após multa de 20%{% endif %}</p>
+        {% if loan.status == 'ativo' %}
+        <div class="service-deadline">
+          <span>{% if loan.inadimplente %}Vencido · aplicar cargo manualmente em @{{ loan.devedor.dono.username }}{% else %}Vence em{% endif %}</span>
+          <time datetime="{{ loan.vence_em|date:'c' }}"{% if not loan.inadimplente %} data-service-countdown{% endif %}>{{ loan.vence_em|date:'d/m/Y H:i' }}</time>
+        </div>
+        {% endif %}
+        <form method="post" action="{% url 'mercado_staff_emprestimo' loan.id_emprestimo %}" class="loan-actions staff-loan-actions" data-service-review data-counterpart="{{ loan.credor.nome }} → {{ loan.devedor.nome }}" data-balance="{{ loan.saldo_display }}">
+          {% csrf_token %}
+          {% if loan.status == 'pendente' %}<button name="acao" value="cancelar" class="is-muted">Cancelar proposta</button>{% endif %}
+          {% if loan.status == 'ativo' and not loan.multa_aplicada %}<button name="acao" value="prorrogar" class="is-muted">Prorrogar 30 dias</button>{% endif %}
+          {% if loan.status == 'ativo' %}<button name="acao" value="quitar">Marcar como quitado</button>{% endif %}
+        </form>
+      </article>
+      {% empty %}<p class="service-empty">Não há propostas ou empréstimos ativos para acompanhar.</p>{% endfor %}
+    </div>
+  </section>
+  {% endif %}
+</div>
+
+<dialog id="service-review" class="loan-review" aria-labelledby="service-review-title" aria-describedby="service-review-note">
+  <h2 id="service-review-title">Revisar serviço</h2>
+  <dl><div><dt data-service-subject-label>Personagens</dt><dd data-service-subject></dd></div><div><dt>Valor</dt><dd data-service-amount></dd></div></dl>
+  <p id="service-review-note" data-service-note></p>
+  <div class="loan-review-actions"><button type="button" data-service-back class="is-muted">Voltar</button><button type="button" data-service-confirm>Confirmar</button></div>
+</dialog>
+
+<script>
+(() => {
+  const sections = [...document.querySelectorAll('.service-section[id]')];
+  const serviceLinks = [...document.querySelectorAll('.services-nav [role="tab"]')];
+  const showService = () => {
+    const requested = location.hash.slice(1);
+    const active = sections.some(section => section.id === requested) ? requested : 'treinamentos';
+    sections.forEach(section => { section.hidden = section.id !== active; });
+    serviceLinks.forEach(link => {
+      const selected = link.hash === `#${active}`;
+      link.setAttribute('aria-selected', String(selected));
+      link.tabIndex = selected ? 0 : -1;
+    });
+  };
+  window.addEventListener('hashchange', showService);
+  window.addEventListener('popstate', showService);
+  showService();
+  const activateService = link => {
+    if (location.hash !== link.hash) history.pushState(null, '', link.hash);
+    showService();
+    link.focus({ preventScroll: true });
+  };
+  serviceLinks.forEach(link => link.addEventListener('click', event => {
+    event.preventDefault();
+    activateService(link);
+  }));
+  document.querySelector('.services-nav')?.addEventListener('keydown', event => {
+    const index = serviceLinks.indexOf(document.activeElement);
+    if (index < 0) return;
+    let next;
+    if (event.key === 'ArrowRight') next = (index + 1) % serviceLinks.length;
+    else if (event.key === 'ArrowLeft') next = (index - 1 + serviceLinks.length) % serviceLinks.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = serviceLinks.length - 1;
+    else return;
+    event.preventDefault();
+    activateService(serviceLinks[next]);
+  });
+
+  document.querySelector('[data-shop-picker]')?.addEventListener('submit', event => {
+    event.currentTarget.action = `${location.pathname}${location.hash || '#treinamentos'}`;
+  });
+
+  const render = (node) => {
+    const end = Date.parse(node.dateTime || '');
+    if (!Number.isFinite(end)) return;
+    const left = Math.max(0, end - Date.now());
+    if (!left) { node.textContent = 'Concluindo...'; window.setTimeout(() => location.reload(), 1200); return; }
+    const days = Math.floor(left / 86400000);
+    const hours = Math.floor((left % 86400000) / 3600000);
+    const minutes = Math.floor((left % 3600000) / 60000);
+    node.textContent = `${days}d ${hours}h ${minutes}min`;
+  };
+  const nodes = [...document.querySelectorAll('[data-service-countdown]')];
+  nodes.forEach(render);
+  if (nodes.length) window.setInterval(() => nodes.forEach(render), 60000);
+
+  const activeTraining = document.querySelector('[data-training-start][data-training-end]');
+  if (activeTraining) {
+    const start = Date.parse(activeTraining.dataset.trainingStart);
+    const end = Date.parse(activeTraining.dataset.trainingEnd);
+    const bar = activeTraining.querySelector('[data-training-progress]');
+    const label = activeTraining.querySelector('[data-training-progress-text]');
+    if (Number.isFinite(start) && Number.isFinite(end) && end > start && bar && label) {
+      const updateProgress = () => {
+        const percent = Math.max(0, Math.min(100, (Date.now() - start) / (end - start) * 100));
+        const rounded = Math.round(percent);
+        bar.setAttribute('aria-valuenow', String(rounded));
+        bar.firstElementChild.style.width = `${percent}%`;
+        label.textContent = `${rounded}% do prazo`;
+      };
+      updateProgress();
+      window.setInterval(updateProgress, 60000);
+    }
+  }
+})();
+</script>
+{% endblock %}

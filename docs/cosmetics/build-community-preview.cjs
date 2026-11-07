@@ -1,0 +1,10 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const {spawnSync}=require('node:child_process');
+const root=path.resolve(__dirname,'../..');
+const run=spawnSync('py',['-3.14','home/js_tests/community_picker_fixture.py'],{cwd:root,encoding:'utf8',windowsHide:true,timeout:60000,env:{...process.env,PYTHONIOENCODING:'utf-8'}});
+assert.equal(run.status,0,run.stderr);
+const data=JSON.parse(run.stdout);
+fs.writeFileSync(path.join(__dirname,'20261102-community-catalog.html'),data.html);
+fs.writeFileSync(path.join(__dirname,'community-preview-data.json'),JSON.stringify(data.previews,null,2)+'\n');
+console.log(JSON.stringify({preview:'20261102-community-catalog.html',items:Object.keys(data.previews).length,databaseUsed:false}));

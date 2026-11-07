@@ -1,0 +1,8 @@
+{% extends 'admin/base_site.html' %}
+{% block content %}
+<h1>{{ title }}</h1>
+<p>Legado: {{ identity.saldo_mm }} MM, {{ identity.moedas_evento }} Moedas de Evento, {{ identity.mesas_declaradas }} mesas.</p>
+<p>{{ identity.conciliacao }}</p>
+<p>O nome do mestre e independente do login. Uma carteira ja preenchida exige conferir se o historico e sobreposto antes de somar ou substituir.</p>
+<form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit">Vincular e conciliar</button></form>
+{% endblock %}

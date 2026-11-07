@@ -1,0 +1,43 @@
+<article class="cronica-comment" id="comentario-{{ comment.pk }}">
+  {% if comment.estado == 'publico' %}
+    <header><strong>{{ comment.autor.username }}</strong> · {{ comment.criado_em|date:'d/m/Y H:i' }}{% if comment.editado_em %} · editado{% endif %}</header>
+    <p class="cronica-comment-text">{{ comment.texto|linebreaksbr }}</p>
+    {% if request.user.is_authenticated %}
+      {% if request.user.pk == comment.autor_id %}
+      <details>
+        <summary>Editar</summary>
+        <form method="post" action="{% url 'cronica_editar_comentario' comment.pk %}">
+          {% csrf_token %}
+          <input type="hidden" name="revisao" value="{{ comment.revisao }}">
+          <label>Texto <textarea name="texto" minlength="1" maxlength="2000" required>{{ comment.texto }}</textarea></label>
+          <button type="submit">Salvar edição</button>
+        </form>
+      </details>
+      {% else %}
+      <details class="cronica-report">
+        <summary>Denunciar comentário</summary>
+        <form method="post" action="{% url 'cronica_denunciar' cronica.id_cronica %}">
+          {% csrf_token %}
+          <input type="hidden" name="comentario_id" value="{{ comment.pk }}">
+          <label>Motivo <input name="motivo" minlength="3" maxlength="500" required></label>
+          <button type="submit">Enviar denúncia</button>
+        </form>
+      </details>
+      {% endif %}
+      {% if not comment.resposta_a_id %}
+      <details>
+        <summary>Responder</summary>
+        <form method="post" action="{% url 'cronica_comentar' cronica.id_cronica %}">
+          {% csrf_token %}
+          <input type="hidden" name="resposta_a" value="{{ comment.pk }}">
+          <input type="hidden" name="chave_operacao" value="{{ comment.reply_key }}">
+          <label>Resposta <textarea name="texto" minlength="1" maxlength="2000" required></textarea></label>
+          <button type="submit">Publicar resposta</button>
+        </form>
+      </details>
+      {% endif %}
+    {% endif %}
+  {% else %}
+    <p>Comentário ocultado pela moderação.</p>
+  {% endif %}
+</article>

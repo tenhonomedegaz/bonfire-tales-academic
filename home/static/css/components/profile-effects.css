@@ -1,0 +1,357 @@
+/* Load after perfil.css, ficha.css and perfil-fx.css. No renderer ownership. */
+
+/* Retire legacy particle planes, including the ones previously spread across panels. */
+:is(.profile-page, .public-profile-page, .ficha)
+  :is(.profile-header.profile-hero, .public-profile-card, .ficha-header,
+      .public-profile-section, .ficha-panel)::before,
+:is(.profile-page, .public-profile-page, .ficha)
+  :is(.profile-header.profile-hero, .public-profile-card, .ficha-header)::after,
+.cosmetic-effect-sample::before,
+.cosmetic-effect-sample::after {
+  content: none !important;
+  animation: none !important;
+  background-image: none !important;
+}
+
+:is(.profile-header.profile-hero, .public-profile-card, .ficha-header,
+    .cosmetic-effect-sample)[data-profile-effect] {
+  position: relative;
+  isolation: isolate;
+}
+
+.profile-effect-layer,
+.profile-effect-layer * {
+  pointer-events: none !important;
+  user-select: none;
+}
+
+.profile-effect-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: block;
+  overflow: hidden;
+  border-radius: inherit;
+  contain: layout paint;
+  container-type: size;
+  /* Solid peripheral lanes, rather than fading every particle almost to zero. */
+  -webkit-mask-image:
+    linear-gradient(#000 0 24px, transparent 42px calc(100% - 42px), #000 calc(100% - 24px)),
+    linear-gradient(90deg, #000 0 14px, transparent 40px calc(100% - 40px), #000 calc(100% - 14px));
+  mask-image:
+    linear-gradient(#000 0 24px, transparent 42px calc(100% - 42px), #000 calc(100% - 24px)),
+    linear-gradient(90deg, #000 0 14px, transparent 40px calc(100% - 40px), #000 calc(100% - 14px));
+}
+
+.profile-effect-mark { position: absolute; display: block; }
+
+[data-profile-effect="soft-glow"] > .profile-effect-layer {
+  box-shadow: inset 0 2px 0 #e7c6ff, inset 0 -2px 0 #f1acd6aa,
+    inset 0 10px 22px -10px #c77bff, inset 0 -10px 20px -12px #ff91c9;
+}
+[data-profile-effect="soft-glow"] > .profile-effect-layer > .profile-effect-mark {
+  top: 1px;
+  left: 0;
+  width: 24px;
+  height: 26px;
+  filter: drop-shadow(0 0 5px #d99aff);
+  animation: pe-glint-travel 7s linear infinite;
+  animation-delay: var(--pe-delay);
+}
+[data-profile-effect="soft-glow"] > .profile-effect-layer > .profile-effect-mark::before,
+[data-profile-effect="embers"] > .profile-effect-layer > :nth-child(3n)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #fff5ff;
+  clip-path: polygon(50% 0, 59% 39%, 100% 50%, 59% 60%, 50% 100%, 40% 60%, 0 50%, 40% 39%);
+}
+[data-profile-effect="soft-glow"] > .profile-effect-layer > .profile-effect-mark::after {
+  content: "";
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 96px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #f1baff);
+}
+[data-profile-effect="soft-glow"] > .profile-effect-layer > :nth-child(even) {
+  top: auto;
+  bottom: 0;
+  animation-direction: reverse;
+  filter: drop-shadow(0 0 5px #ff9acb);
+}
+
+[data-profile-effect="glass"] > .profile-effect-layer {
+  border: 1px solid #e0f7ff66;
+  box-sizing: border-box;
+  box-shadow: inset 0 2px 0 #ffffff44, inset 0 -5px 18px #81d4e81a;
+}
+[data-profile-effect="glass"] > .profile-effect-layer > .profile-effect-mark {
+  top: -60%;
+  left: -50%;
+  width: 32%;
+  height: 220%;
+  background: linear-gradient(100deg, transparent, #d8f6ff30, #ffffff66, transparent);
+  transform: skewX(-24deg);
+  animation: pe-glass-pass 13s ease-in-out infinite;
+}
+[data-profile-effect="glass"] > .profile-effect-layer > :last-child {
+  width: 3%;
+  animation-delay: -0.6s;
+}
+
+[data-profile-effect="embers"] > .profile-effect-layer {
+  box-shadow: inset 0 -24px 28px -24px #ff732c;
+}
+[data-profile-effect="embers"] > .profile-effect-layer > .profile-effect-mark {
+  left: var(--pe-x);
+  bottom: -12px;
+  width: 7px;
+  height: 9px;
+  border-radius: 2px;
+  background: #ffe0a2;
+  box-shadow: 0 0 4px #fff0bd, 0 0 12px #ff7138;
+  animation: pe-ember-rise 5.5s linear infinite;
+  animation-delay: var(--pe-delay);
+}
+[data-profile-effect="embers"] > .profile-effect-layer > :nth-child(even) {
+  width: 5px;
+  height: 7px;
+  background: #ff9f52;
+  animation-duration: 6.5s;
+}
+[data-profile-effect="embers"] > .profile-effect-layer > :nth-child(3n) {
+  width: 9px;
+  height: 9px;
+}
+[data-profile-effect="embers"] > .profile-effect-layer > :nth-child(3n)::after {
+  inset: -8px;
+  background: #fff0c4;
+  animation: pe-spark-flare 3.5s ease-in-out infinite;
+  animation-delay: var(--pe-delay);
+}
+
+[data-profile-effect="aurora"] > .profile-effect-layer > .profile-effect-mark {
+  top: -28px;
+  left: -10%;
+  width: 120%;
+  height: 64px;
+  border-radius: 42% 58% 48% 52%;
+  background: linear-gradient(180deg, transparent 24%, #69f4d84d 42%, #91ffeacc 53%, #9cb9ff88 61%, transparent 88%);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12% 88%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 12% 88%, transparent);
+  filter: drop-shadow(0 0 4px #63f5d180);
+  animation: pe-aurora-drift 9s ease-in-out infinite alternate;
+  animation-delay: var(--pe-delay);
+}
+[data-profile-effect="aurora"] > .profile-effect-layer > .profile-effect-mark::before {
+  content: "";
+  position: absolute;
+  inset: 12px 0;
+  border-radius: inherit;
+  background: repeating-linear-gradient(92deg, transparent 0 9px, #c7fff54d 10px, transparent 12px 20px);
+  -webkit-mask-image: linear-gradient(transparent, #000, transparent);
+  mask-image: linear-gradient(transparent, #000, transparent);
+}
+[data-profile-effect="aurora"] > .profile-effect-layer > :nth-child(2) {
+  top: auto;
+  bottom: -32px;
+  background: linear-gradient(180deg, transparent 15%, #9cafff77 38%, #7fffd8cc 51%, #60c5df55 65%, transparent 88%);
+  animation-direction: alternate-reverse;
+}
+[data-profile-effect="aurora"] > .profile-effect-layer > :nth-child(n+3) {
+  top: -12%;
+  left: -20px;
+  width: 44px;
+  height: 120%;
+  border-radius: 50%;
+  background: linear-gradient(90deg, transparent, #9bbcff55 34%, #78f7d6bb 55%, transparent 90%);
+  -webkit-mask-image: linear-gradient(transparent, #000 24% 68%, transparent);
+  mask-image: linear-gradient(transparent, #000 24% 68%, transparent);
+  animation-name: pe-aurora-curtain;
+}
+[data-profile-effect="aurora"] > .profile-effect-layer > :last-child {
+  left: auto;
+  right: -20px;
+  animation-direction: alternate-reverse;
+}
+
+[data-profile-effect="starfall"] > .profile-effect-layer > .profile-effect-mark {
+  left: 8px;
+  top: -100px;
+  width: 3px;
+  height: 90px;
+  background: linear-gradient(transparent, #84b9ff66 35%, #b8dcff 80%, #fff);
+  filter: drop-shadow(0 0 4px #8fbdff);
+  transform-origin: bottom;
+  --pe-meteor-tilt: -12deg;
+  --pe-meteor-drift: 8px;
+  animation: pe-starfall 5.4s linear infinite;
+}
+[data-profile-effect="starfall"] > .profile-effect-layer > :nth-child(2) {
+  left: auto;
+  right: 22px;
+  height: 100px;
+  animation-delay: -1.8s;
+}
+[data-profile-effect="starfall"] > .profile-effect-layer > :nth-child(3) {
+  left: 16px;
+  height: 65px;
+  animation-delay: -3.6s;
+}
+[data-profile-effect="starfall"] > .profile-effect-layer > .profile-effect-mark::after {
+  content: "";
+  position: absolute;
+  bottom: -5px;
+  left: -5px;
+  width: 13px;
+  height: 13px;
+  background: #eff8ff;
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+}
+
+.cosmetic-effect-sample > .profile-effect-layer {
+  -webkit-mask-image: linear-gradient(#000 0 10px, transparent 24px calc(100% - 24px), #000 calc(100% - 10px));
+  mask-image: linear-gradient(#000 0 10px, transparent 24px calc(100% - 24px), #000 calc(100% - 10px));
+}
+.cosmetic-effect-sample[data-profile-effect="aurora"] > .profile-effect-layer > .profile-effect-mark {
+  top: -20px;
+  height: 52px;
+}
+.cosmetic-effect-sample[data-profile-effect="aurora"] > .profile-effect-layer > :nth-child(2) {
+  top: auto;
+  bottom: -24px;
+}
+.cosmetic-effect-sample[data-profile-effect="aurora"] > .profile-effect-layer > :nth-child(n+3) {
+  top: -12%;
+  height: 120%;
+}
+
+/* Legacy frame polish only. Leave rank, ember-ring and arcane-pulse untouched. */
+:is(.frame-gold-trim, .frame-frost, .frame-verdant, .frame-mestre-ouro) {
+  position: relative;
+  animation: none;
+  --pe-frame-color: #f8d574;
+  --pe-frame-duration: 10s;
+}
+.frame-frost { --pe-frame-color: #b4efff; --pe-frame-duration: 12s; }
+.frame-verdant { --pe-frame-color: #a3f0a7; --pe-frame-duration: 14s; }
+.frame-mestre-ouro { --pe-frame-color: #fff0b0; --pe-frame-duration: 8s; }
+
+:is(.frame-gold-trim, .frame-frost, .frame-verdant, .frame-mestre-ouro)::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  z-index: 2;
+  pointer-events: none;
+  border-radius: inherit;
+  background: conic-gradient(from 20deg, transparent 0deg 285deg,
+    var(--pe-frame-color) 312deg, #fff 320deg, transparent 330deg);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+  animation: pe-frame-glint var(--pe-frame-duration) ease-in-out infinite;
+}
+
+/* The same authored silhouette is used by the package and the CSS-only fallback. */
+.frame-gold-trim { --pe-frame-art: url("../../cosmetics/frame-gold-trim.svg"); }
+.frame-frost { --pe-frame-art: url("../../cosmetics/frame-frost.svg"); }
+.frame-verdant { --pe-frame-art: url("../../cosmetics/frame-verdant.svg"); }
+:is(.frame-gold-trim, .frame-frost, .frame-verdant) {
+  overflow: visible;
+  border-color: transparent;
+  box-shadow: none;
+}
+:is(.frame-gold-trim, .frame-frost, .frame-verdant)::before {
+  inset: -16%;
+  border-radius: 0;
+  background: var(--pe-frame-art) center / contain no-repeat;
+  -webkit-mask: none;
+  mask: none;
+  animation: none;
+  opacity: 1;
+  transform: none;
+}
+:is(.frame-gold-trim, .frame-frost, .frame-verdant)::after {
+  content: "";
+  position: absolute;
+  inset: -16%;
+  z-index: 4;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 42%, #fff4 47%, #fff 50%, transparent 55%) 160% 0 / 300% 100%;
+  -webkit-mask: var(--pe-frame-art) center / contain no-repeat;
+  mask: var(--pe-frame-art) center / contain no-repeat;
+  animation: pe-frame-etch-light var(--pe-frame-duration) ease-in-out infinite;
+  opacity: .8;
+}
+@keyframes pe-frame-etch-light {
+  0%, 60% { background-position: 160% 0; }
+  88%, 100% { background-position: -60% 0; }
+}
+
+@keyframes pe-glint-travel {
+  0% { left: -24px; opacity: .2; }
+  12%, 88% { opacity: 1; }
+  100% { left: 100%; opacity: .2; }
+}
+@keyframes pe-glass-pass {
+  0%, 65% { left: -50%; opacity: 0; }
+  70% { opacity: .8; }
+  92%, 100% { left: 130%; opacity: 0; }
+}
+@keyframes pe-ember-rise {
+  0% { transform: translate(0, 0); opacity: 0; }
+  12%, 75% { opacity: 1; }
+  100% { transform: translate(18px, -120px); opacity: 0; }
+}
+@keyframes pe-spark-flare {
+  0%, 42%, 100% { transform: scale(.55) rotate(0deg); opacity: .35; }
+  60% { transform: scale(1.15) rotate(20deg); opacity: 1; }
+  76% { transform: scale(.8) rotate(35deg); opacity: .7; }
+}
+@keyframes pe-aurora-drift {
+  from { transform: translate(-3%, -4px) skewY(-2deg) scaleY(.85); opacity: .75; }
+  to { transform: translate(3%, 6px) skewY(2deg) scaleY(1.15); opacity: 1; }
+}
+@keyframes pe-aurora-curtain {
+  from { transform: skewX(-8deg) translateY(-8px); opacity: .6; }
+  to { transform: skewX(8deg) translateY(8px); opacity: 1; }
+}
+@keyframes pe-starfall {
+  0% { transform: translate(0, 0) rotate(var(--pe-meteor-tilt)); opacity: 0; }
+  12%, 72% { opacity: 1; }
+  90%, 100% { transform: translate(var(--pe-meteor-drift), calc(100cqh + 120px)) rotate(var(--pe-meteor-tilt)); opacity: 0; }
+}
+@keyframes pe-frame-glint {
+  0%, 65% { transform: rotate(0deg); opacity: .15; }
+  72% { opacity: .95; }
+  90%, 100% { transform: rotate(360deg); opacity: .15; }
+}
+
+[data-profile-effects-paused] .profile-effect-mark,
+[data-profile-effects-paused] .profile-effect-mark::after,
+[data-profile-effects-paused] :is(.frame-gold-trim, .frame-frost, .frame-verdant)::after,
+[data-profile-effects-paused] :is(.frame-gold-trim, .frame-frost, .frame-verdant, .frame-mestre-ouro)::before {
+  animation-play-state: paused !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-effect-mark,
+  .profile-effect-mark::after,
+  :is(.frame-gold-trim, .frame-frost, .frame-verdant)::after,
+  :is(.frame-gold-trim, .frame-frost, .frame-verdant, .frame-mestre-ouro)::before {
+    animation: none !important;
+  }
+  [data-profile-effect="embers"] > .profile-effect-layer > *,
+  [data-profile-effect="starfall"] > .profile-effect-layer > *,
+  [data-profile-effect="glass"] > .profile-effect-layer > * { display: none; }
+  [data-profile-effect="aurora"] > .profile-effect-layer { opacity: .55; }
+}
+
+@media (forced-colors: active) {
+  .profile-effect-layer,
+  :is(.frame-gold-trim, .frame-frost, .frame-verdant)::after,
+  :is(.frame-gold-trim, .frame-frost, .frame-verdant, .frame-mestre-ouro)::before {
+    display: none;
+  }
+}

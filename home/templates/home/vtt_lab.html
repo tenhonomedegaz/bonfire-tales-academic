@@ -1,0 +1,123 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>Laboratorio VTT | Bonfire</title>
+  <link rel="icon" href="{% static 'brand/icon.png' %}">
+  <link rel="stylesheet" href="{% static 'css/pages/vtt-lab.css' %}">
+  <link rel="stylesheet" href="{% static 'css/pages/vtt-lab-map.css' %}">
+</head>
+<body>
+  <header class="lab-header">
+    <a href="/" class="lab-brand"><img src="{% static 'brand/icon.png' %}" alt="">Bonfire <span>VTT</span></a>
+    <span class="lab-badge">Laboratorio privado</span>
+    <span id="lab-status" role="status" aria-live="polite">Carregando sessoes...</span>
+  </header>
+  <main id="vtt-lab" data-api="/vtt/laboratorio/api/sessoes/" data-renderer="{% static 'vtt/renderer.js' %}">
+    <aside class="lab-sessions" aria-label="Sessoes">
+      <h1>Sessoes</h1>
+      <form id="create-session">
+        {% csrf_token %}
+        <label for="session-name">Nome da sessao</label>
+        <input id="session-name" name="nome" maxlength="100" value="Mesa de teste" required>
+        <button type="submit">Criar sessao</button>
+      </form>
+      <div id="sessions-list"></div>
+      <details class="lab-combat"><summary>Imagem do mapa</summary><form id="configure-map">
+        <label for="map-url">Imagem HTTPS ou /static/</label><input id="map-url" type="text" maxlength="2048" autocomplete="off">
+        <label for="map-cell-px">Pixels por celula</label><input id="map-cell-px" type="number" min="1" max="4096" step="any" value="64" required>
+        <div class="lab-coordinates"><label>Origem X (px)<input id="map-origin-x" type="number" min="-32768" max="32768" step="any" value="0" required></label><label>Origem Y (px)<input id="map-origin-y" type="number" min="-32768" max="32768" step="any" value="0" required></label></div>
+        <label for="map-opacity">Opacidade da imagem</label><input id="map-opacity" type="range" min="0" max="1" step="0.05" value="1">
+        <label for="map-grid-opacity">Opacidade da grade</label><input id="map-grid-opacity" type="range" min="0" max="1" step="0.05" value="0.25">
+        <button type="submit" disabled>Aplicar mapa</button><button id="clear-map" type="button" disabled>Remover imagem</button>
+        <output id="map-image-status" aria-live="polite"></output>
+      </form></details>
+      <details class="lab-combat"><summary>Terreno de teste</summary><form id="paint-terrain">
+        <div class="lab-coordinates"><label>X<input id="terrain-x" type="number" min="0" step="1" value="1" required></label><label>Y<input id="terrain-y" type="number" min="0" step="1" value="1" required></label></div>
+        <label for="terrain-kind">Celula</label><select id="terrain-kind"><option value="normal">Normal</option><option value="difficult">Dificil</option><option value="blocked">Bloqueada</option></select>
+        <button type="submit" disabled>Aplicar terreno</button></form>
+      </details>
+      <section id="combat-panel" class="lab-combat">
+        <h2>Combate por tags</h2>
+        <p id="combat-status" role="status">Sem combate</p>
+        <form id="start-combat">
+          <fieldset id="combat-teams"><legend>Participantes e equipes</legend><div id="teams-list"></div></fieldset>
+          <button type="submit" disabled>Iniciar combate</button>
+        </form>
+        <div id="combat-controls" hidden>
+          <label for="combat-actor">Ator do turno</label><select id="combat-actor"></select>
+          <button id="start-combat-turn" type="button" disabled>Iniciar turno</button>
+          <button id="end-combat-turn" type="button" disabled>Encerrar turno</button>
+          <button id="end-combat" type="button" disabled>Encerrar combate</button>
+          <details><summary>Eventos do motor</summary><pre id="combat-engine-events"></pre></details>
+        </div>
+      </section>
+    </aside>
+    <section class="lab-table" aria-label="Mesa">
+      <div class="lab-toolbar">
+        <strong id="table-name">Nenhuma sessao selecionada</strong>
+        <span id="table-revision"></span>
+        <button id="zoom-in" type="button" title="Aproximar" aria-label="Aproximar" disabled>+</button>
+        <button id="zoom-out" type="button" title="Afastar" aria-label="Afastar" disabled>-</button>
+        <button id="frame-board" type="button" disabled>Enquadrar</button>
+        <button id="refresh-session" type="button" disabled>Atualizar</button>
+      </div>
+      <div id="board-viewport"><div id="board-empty">Selecione uma sessao</div></div>
+      <div class="lab-turn"><span id="turn-number">Turno 0</span><button id="next-turn" type="button" disabled>Proximo turno <img src="{% static 'icons/lucide/chevron-right.svg' %}" alt=""></button></div>
+      <div id="token-list" class="lab-token-list" aria-label="Tokens"></div>
+    </section>
+    <aside class="lab-inspector" aria-label="Ficha e registro">
+      <form id="import-character">
+        <h2>Importar ficha</h2>
+        <label for="character-id">ID do personagem</label>
+        <input type="number" id="character-id" min="1" step="1" required>
+        <button type="submit" disabled>Importar copia</button>
+      </form>
+      <form id="import-creature">
+        <h2>Importar criatura</h2>
+        <label for="creature-id">ID do bestiario</label>
+        <input type="number" id="creature-id" min="1" step="1" required>
+        <button type="submit" disabled>Importar criatura</button>
+      </form>
+      <section id="combat-actions" hidden>
+        <section id="combat-walking"><h2>Deslocamento do turno</h2><p id="walk-balance"></p>
+          <form id="walk-form"><div class="lab-coordinates"><label>X<input id="walk-x" type="number" min="0" step="1" required></label><label>Y<input id="walk-y" type="number" min="0" step="1" required></label><label>Z<input id="walk-z" type="number" min="0" max="0" step="1" value="0" required></label></div>
+            <button id="point-walk" type="button" aria-pressed="false">Apontar destino</button>
+            <button type="submit">Prever caminho</button><output id="walk-preview" aria-live="polite"></output>
+            <button id="confirm-walk" type="button" disabled>Caminhar</button>
+          </form></section>
+        <h2>Acao do turno</h2>
+        <label for="combat-target">Alvo</label><select id="combat-target"></select>
+        <form id="combat-attack">
+          <label for="combat-action">Fonte da acao</label><select id="combat-action"></select>
+          <label class="lab-check"><input id="attack-hit" type="checkbox" checked> Acerto declarado</label>
+          <label for="attack-damage">Dano rolado (manual)</label><input id="attack-damage" type="number" min="0" max="1000000" step="1" value="0" required>
+          <label for="attack-type">Tipo de dano (tag)</label><select id="attack-type" required></select>
+          <button type="submit" disabled>Resolver ataque</button>
+        </form>
+        <form id="combat-heal"><label for="heal-amount">Cura declarada (manual)</label><div class="lab-inline"><input id="heal-amount" type="number" min="0" max="1000000" step="1" value="0" required><button type="submit" disabled>Curar</button></div></form>
+      </section>
+      <section id="token-inspector" hidden>
+        <h2 id="token-name"></h2>
+        <dl id="token-facts"></dl>
+        <ul id="token-warnings" class="lab-warnings"></ul>
+        <details id="spell-access" hidden><summary id="spell-access-summary">Magias da copia</summary><ul id="spell-access-list"></ul><ul id="spell-access-warnings" class="lab-warnings"></ul></details>
+        <section id="token-resources" hidden>
+          <h3>Recursos da copia</h3><dl id="resource-facts"></dl>
+          <form id="set-resource"><label for="resource-id">Recurso de teste</label><select id="resource-id"></select><label for="resource-current">Saldo de teste (manual)</label><div class="lab-inline"><input id="resource-current" type="number" min="0" step="1" required><button type="submit">Aplicar saldo</button></div></form>
+        </section>
+        <form id="measure-distance"><h3>Regua 3D</h3><label for="measure-target">Token de destino</label><select id="measure-target"></select><button type="submit">Medir distancia</button><output id="measure-result" aria-live="polite"></output></form>
+        <form id="set-hp"><label for="token-hp">PV de teste (manual)</label><div class="lab-inline"><input id="token-hp" type="number" min="0" step="1" required><button type="submit">Aplicar</button></div></form>
+        <form id="move-token"><fieldset><legend>Posicao de teste</legend><div class="lab-coordinates"><label>X<input id="token-x" type="number" min="0" step="1" required></label><label>Y<input id="token-y" type="number" min="0" step="1" required></label><label>Z<input id="token-z" type="number" min="0" max="100" step="1" required></label></div><button type="submit">Mover</button></fieldset></form>
+        <button id="move-on-board" type="button" aria-pressed="false">Escolher destino</button>
+        <details><summary>Snapshot da ficha</summary><pre id="token-snapshot"></pre></details>
+      </section>
+      <section class="lab-log"><h2>Registro</h2><ol id="event-list"></ol></section>
+    </aside>
+  </main>
+  <script type="module" src="{% static 'js/vtt-lab.js' %}"></script>
+</body>
+</html>

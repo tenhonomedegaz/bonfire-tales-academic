@@ -1,0 +1,19 @@
+<li class="conquista-item {% if c.obtida %}is-obtida{% else %}is-bloqueada{% endif %}"{% if notification_anchor %} id="conquista-{{ c.slug }}"{% endif %}>
+  <details class="conquista-info">
+    <summary aria-label="{{ c.nome }} — {% if c.obtida %}obtida{% else %}bloqueada{% endif %}; abrir detalhes">
+      {% if c.obtida %}
+        {% if c.icone_url %}<img class="conquista-icone" src="{{ c.icone_url }}" alt="" loading="lazy">{% else %}<span class="conquista-icone conquista-icone-fallback" aria-hidden="true">🏆</span>{% endif %}
+      {% else %}
+        <span class="conquista-icone conquista-icone-lock" aria-hidden="true">🔒</span>
+      {% endif %}
+      <span class="conquista-nome">{{ c.nome }}</span>
+      <span class="conquista-expand" aria-hidden="true">⌄</span>
+    </summary>
+    <div class="conquista-info-body">
+      {% if c.descricao %}<p>{{ c.descricao }}</p>{% endif %}
+      {% if c.obtida %}<p>Obtida em {{ c.concedida_em|date:'d/m/Y' }}.</p>
+      {% else %}<p>Ainda bloqueada.</p>{% endif %}
+      {% include 'home/partials/_conquista_metric_progress.html' %}
+    </div>
+  </details>
+</li>

@@ -1,0 +1,49 @@
+{% extends 'home/base.html' %}
+{% load static tz %}
+{% block body_class %}gestao-page{% endblock %}
+{% block meta_robots %}noindex, nofollow{% endblock %}
+{% block content_libraries %}{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/gestao.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'css/pages/character-log-reviews.css' %}?v=1">
+<script src="{% static 'js/gestao.js' %}?v=1" defer></script>
+{% endblock %}
+{% block ad_containers %}{% endblock %}
+{% block ad_containers_right %}{% endblock %}
+{% block mobile_ad_top %}{% endblock %}
+{% block mobile_ad %}{% endblock %}
+{% block main_class %}gestao-main{% endblock %}
+{% block content %}
+{% timezone 'America/Sao_Paulo' %}
+<div class="gestao-workspace">
+  <div class="gestao-bar">
+    <a class="gestao-brand" href="{% url 'gestao:index' %}">Gestão</a>
+    <nav class="gestao-nav" aria-label="Gestão">
+      {% if can_view_people %}
+      <a href="{% url 'gestao:index' %}"{% if management_section == 'index' %} aria-current="page"{% endif %}>Início</a>
+      <a href="{% url 'gestao:people' %}"{% if management_section == 'people' %} aria-current="page"{% endif %}>Pessoas</a>
+      {% endif %}
+      {% if user.is_superuser %}<a href="{% url 'gestao:character_logs' %}"{% if management_section == 'character_logs' %} aria-current="page"{% endif %}>Fichas do bot</a>{% endif %}
+      {% if can_review_history %}<a href="{% url 'gestao:character_log_reviews' %}"{% if management_section == 'character_log_reviews' %} aria-current="page"{% endif %}>Conciliacao de historico</a>{% endif %}
+    </nav>
+    <div class="gestao-secondary-links">
+      {% if user.is_superuser %}<a href="/admin/">Ferramentas técnicas</a>{% endif %}
+      <a class="gestao-site-link" href="/">Voltar ao site</a>
+    </div>
+  </div>
+  {% if messages %}
+  <div class="gestao-messages" aria-live="polite">
+    {% for message in messages %}<p class="gestao-notice {{ message.tags }}" role="status">{{ message }}</p>{% endfor %}
+  </div>
+  {% endif %}
+  {% block gestao_content %}{% endblock %}
+  {% if page_obj and not preview %}
+  <nav class="gestao-pagination" aria-label="Paginação">
+    {% if previous_url %}<a class="gestao-button" href="{{ previous_url }}" rel="prev"><img class="gestao-icon" src="{% static 'icons/lucide/chevron-left.svg' %}" alt="">Anterior</a>{% else %}<span class="gestao-button" aria-disabled="true">Anterior</span>{% endif %}
+    <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    {% if next_url %}<a class="gestao-button" href="{{ next_url }}" rel="next">Próxima<img class="gestao-icon" src="{% static 'icons/lucide/chevron-right.svg' %}" alt=""></a>{% else %}<span class="gestao-button" aria-disabled="true">Próxima</span>{% endif %}
+  </nav>
+  {% endif %}
+</div>
+{% endtimezone %}
+{% endblock %}

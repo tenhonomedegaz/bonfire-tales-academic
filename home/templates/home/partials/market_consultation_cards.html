@@ -1,0 +1,16 @@
+{% load distance_display %}
+{% for entry in market_extra_entries %}
+<template id="{{ entry.id }}-tpl">
+  <article class="mkt-card market-consult-card">
+    <header class="mkt-item-heading">
+      <figure class="mkt-figure"><svg class="market-item-icon" aria-hidden="true"><use href="#mkt-icon-{{ entry.icon }}"></use></svg><figcaption class="sr-only">{{ entry.category.label }}</figcaption></figure>
+      <div class="market-item-identity"><p class="mkt-card-kind">{{ entry.category.label }}</p><h2 class="mkt-card-name">{{ entry.name|dual_distance }}</h2><span class="market-entry-status is-consult">{% if entry.type == 'guide' %}Orientações{% else %}Somente consulta{% endif %}</span></div>
+    </header>
+    {% if entry.type == 'reference' %}
+      <div class="market-consult-price"><div><span>Valor de referência</span><strong>{{ entry.price }}</strong></div><p>{% if entry.service %}Contratação e benefícios não são aplicados automaticamente à ficha.{% else %}Esta versão do item não está cadastrada para compra. Nenhum ouro será descontado.{% endif %}</p></div>
+    {% elif entry.economy %}<p class="market-consult-note">Esta é a orientação do texto antigo. Nas compras, valem os preços atuais do catálogo, sem arredondamento automático para ouro inteiro.</p>{% endif %}
+    {% for paragraph in entry.paragraphs %}<p class="market-guide-paragraph">{{ paragraph|dual_distance }}</p>{% endfor %}
+    {% include 'home/partials/market_item_notes.html' with notes=entry.notes %}
+  </article>
+</template>
+{% endfor %}

@@ -1,0 +1,436 @@
+{% extends 'home/base.html' %}
+{% load static %}
+{% block body_class %}bft-masters{% endblock %}
+{% block main_class %}mh-main{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/master-hub.css' %}?v=3">{% endblock %}
+
+{% block content %}
+<div class="master-area mh-guide">
+{% include 'home/components/master_nav.html' %}
+<div class="-mx-4 md:-mx-8 -mt-8 mb-4">
+
+  <section class="relative py-14 bg-gradient-to-b from-[var(--bg1)] to-[var(--bg0)] border-b border-[var(--stroke)] overflow-hidden">
+    <div class="absolute inset-0 bg-[#000] opacity-10 pointer-events-none" style="background-image: url('data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.65\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noiseFilter)\' opacity=\'0.4\'/%3E%3C/svg%3E'); mix-blend-mode: overlay;"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vw] bg-[var(--flame)]/5 rounded-full blur-[120px]"></div>
+
+    <div class="container mx-auto px-4 text-center relative z-10">
+      <div class="inline-flex items-center justify-center px-2 py-1 rounded text-xs font-bold bg-[var(--ember)] text-white mb-2.5">
+        Área da Staff
+      </div>
+      <h1 class="font-rpg text-5xl md:text-7xl font-bold text-[var(--text)] mt-2.5 mb-4 tracking-tighter">
+        Grimório do <span class="text-gradient">Mestre</span>
+      </h1>
+      <p class="text-xl text-[var(--muted)] max-w-2xl mx-auto leading-relaxed">
+        Tudo o que você precisa para narrar no Bonfire Tales RPG: regras de comunidade, alinhamento de lore e suporte oficial.
+      </p>
+
+      <div class="flex flex-wrap justify-center gap-2.5 mt-6">
+        <a href="{% url 'profile' %}?aba=mestre" class="px-5 py-2 rounded bg-[var(--flame)] hover:bg-[var(--ember)] text-white font-bold transition-all shadow-lg hover:-translate-y-0.5">
+          {% if master_applications_open %}Solicitar permissão no perfil{% else %}Consultar cadastro no perfil{% endif %}
+        </a>
+        <a href="https://discord.gg/eyqe7rj2AX" target="_blank" class="px-5 py-2 rounded border border-[var(--stroke)] text-[var(--text)] hover:bg-[var(--bg1)] font-bold transition-all">
+          Abrir Missão (Bot)
+        </a>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="container mx-auto px-4 mt-10 flex justify-center pb-14">
+  <aside class="mh-guide-index" aria-label="Navegação do guia de mestres">
+    <p class="mh-eyebrow">Seu guia de mestragem</p>
+    <h2>Prepare sua jornada</h2>
+    <a href="#boas-vindas">Princípios e segurança</a>
+    <a href="#requisitos">Requisitos e candidatura</a>
+    <a href="#fluxo-de-aprovacao">Avaliação e aprovação</a>
+    <a href="#ferramentas">Ferramentas</a>
+    <a href="#publicacao">Publicação e sessão</a>
+    <a href="#divisao">Missões múltiplas</a>
+    <a href="#hierarquia">Hierarquia de mestres</a>
+    <a href="#penalidades">Procedimentos</a>
+    <div class="mh-guide-next">
+      <strong>Já tem uma história?</strong>
+      <p>Prepare sua apresentação e organize seus convites.</p>
+      <a class="mh-button" href="{% url 'profile' %}?aba=mestre">Meu perfil · Mestre →</a>
+      <p class="mh-footnote">A administração concede a permissão após avaliar o pedido. Os requisitos deste guia continuam válidos.</p>
+    </div>
+  </aside>
+  <article class="w-full max-w-4xl">
+    
+    
+    <section id="boas-vindas" class="scroll-mt-28 mb-10">
+      <h2 class="font-rpg text-3xl font-bold text-[var(--text)] mb-5 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 text-[var(--flame)]"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+        1) Boas-vindas & Diretrizes Gerais
+      </h2>
+      <p class="text-[var(--muted)] leading-relaxed mb-4">
+        Seja bem-vindo à mesa, Mestre! Esta seção resume o que esperamos de quem narra no Bonfire Tales RPG e o que os jogadores podem esperar de você.
+      </p>
+
+      <div class="grid md:grid-cols-2 gap-3 my-5">
+        <div class="p-4 rounded-lg bg-[var(--bg1)] border border-[var(--stroke)]">
+          <h4 class="font-bold text-[var(--text)] mb-2">Nossos Princípios</h4>
+          <ul class="space-y-2 text-sm text-[var(--muted)] list-none">
+            <li class="flex gap-2">✦ <span class="text-[var(--text)]">Diversão com segurança:</span> Respeite os limites do grupo.</li>
+            <li class="flex gap-2">✦ <span class="text-[var(--text)]">Escolhas que importam:</span> Evite trilhos narrativos ("railroad").</li>
+            <li class="flex gap-2">✦ <span class="text-[var(--text)]">Coerência:</span> Use o material oficial como âncora.</li>
+          </ul>
+        </div>
+        <div class="p-4 rounded-lg bg-[var(--bg1)] border border-[var(--stroke)]">
+          <h4 class="font-bold text-[var(--text)] mb-2">Autonomia</h4>
+          <p class="text-sm text-[var(--muted)] leading-relaxed">
+            Você tem total liberdade durante a sessão. Para impactos permanentes no mundo (morte de reis, destruição de cidades), fazemos um alinhamento rápido com os Loremasters.
+          </p>
+        </div>
+      </div>
+
+      <div class="my-4 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 relative overflow-hidden">
+        <div class="relative z-10">
+          <h3 class="font-bold text-amber-500 flex items-center gap-2 mb-1.5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Quando alinhar previamente?
+          </h3>
+          <ul class="list-disc list-inside space-y-1 text-sm text-[var(--text)]">
+            <li>Afeta NPCs centrais (líderes, organizações globais)?</li>
+            <li>Muda o mapa físico ou político permanentemente?</li>
+            <li>Revela segredos maiores do cenário (deuses, mitologia)?</li>
+            <li>Impacta tramas de outros mestres em andamento?</li>
+          </ul>
+          <p class="mt-2 font-bold text-amber-500">Se respondeu "sim" a qualquer item, fale com um Loremaster.</p>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-2.5 my-5">
+        <div class="p-3 rounded border border-emerald-500/20 bg-emerald-500/5 text-center">
+          <div class="inline-flex justify-center px-2 py-1 rounded text-xs font-bold bg-emerald-500 text-white mb-1.5">Sem Alinhamento</div>
+          <p class="text-xs text-[var(--muted)] mt-1.5">Criar taverna, comerciante local ou rumor de vila.</p>
+        </div>
+        <div class="p-3 rounded border border-amber-500/20 bg-amber-500/5 text-center">
+          <div class="inline-flex justify-center px-2 py-1 rounded text-xs font-bold bg-amber-500 text-white mb-1.5">Recomendado</div>
+          <p class="text-xs text-[var(--muted)] mt-1.5">Morte de nobre regional ou fechamento de rota comercial.</p>
+        </div>
+        <div class="p-3 rounded border border-red-500/20 bg-red-500/5 text-center">
+          <div class="inline-flex justify-center px-2 py-1 rounded text-xs font-bold bg-[var(--flame)] text-white mb-1.5">Necessário</div>
+          <p class="text-xs text-[var(--muted)] mt-1.5">Destruir cidade, revelar deuses ou mover fronteiras.</p>
+        </div>
+      </div>
+
+      <h3 class="font-rpg text-2xl font-bold mt-8 mb-4">Comportamento & Segurança</h3>
+      <p class="text-[var(--muted)] mb-4">O mestre age como anfitrião. Combine o tom da aventura antes do início.</p>
+
+      <div class="border-l-2 border-[var(--stroke)] pl-6 space-y-4 my-5 relative">
+        <div class="relative">
+          <div class="absolute -left-10 w-8 h-8 rounded-full bg-[var(--bg0)] border-2 border-[var(--ember)] text-[var(--ember)] flex items-center justify-center font-bold text-sm">1</div>
+          <h4 class="text-lg font-bold text-[var(--text)] mb-1">Pare a cena</h4>
+          <p class="text-[var(--muted)]">Baixe o tom, fale com calma e suspenda a ação.</p>
+        </div>
+        <div class="relative">
+          <div class="absolute -left-10 w-8 h-8 rounded-full bg-[var(--bg0)] border-2 border-[var(--ember)] text-[var(--ember)] flex items-center justify-center font-bold text-sm">2</div>
+          <h4 class="text-lg font-bold text-[var(--text)] mb-1">Ouça</h4>
+          <p class="text-[var(--muted)]">Escute as partes envolvidas de forma objetiva.</p>
+        </div>
+        <div class="relative">
+          <div class="absolute -left-10 w-8 h-8 rounded-full bg-[var(--bg0)] border-2 border-[var(--ember)] text-[var(--ember)] flex items-center justify-center font-bold text-sm">3</div>
+          <h4 class="text-lg font-bold text-[var(--text)] mb-1">Solução Mínima</h4>
+          <p class="text-[var(--muted)]">Corte o tema, mude a cena ou separe os personagens.</p>
+        </div>
+        <div class="relative">
+          <div class="absolute -left-10 w-8 h-8 rounded-full bg-[var(--bg0)] border-2 border-[var(--ember)] text-[var(--ember)] flex items-center justify-center font-bold text-sm">4</div>
+          <h4 class="text-lg font-bold text-[var(--text)] mb-1">Registre</h4>
+          <p class="text-[var(--muted)]">Anote a decisão no chat da missão para referência futura.</p>
+        </div>
+        <div class="relative">
+          <div class="absolute -left-10 w-8 h-8 rounded-full bg-[var(--bg0)] border-2 border-[var(--ember)] text-[var(--ember)] flex items-center justify-center font-bold text-sm">5</div>
+          <h4 class="text-lg font-bold text-[var(--text)] mb-1">Escale</h4>
+          <p class="text-[var(--muted)]">Se o problema persistir ou for grave (assédio), chame a staff.</p>
+        </div>
+      </div>
+    </section>
+
+    
+    <section id="requisitos" class="scroll-mt-28 mb-10">
+      <h2 class="font-rpg text-3xl font-bold text-[var(--text)] mb-5 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 text-[var(--ember)]"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        2) Requisitos para Mestres
+      </h2>
+      <div class="space-y-2.5 mb-5">
+        <div class="flex items-center gap-2.5 p-3 rounded bg-[var(--bg1)] border border-[var(--stroke)]">
+          <div class="w-10 h-10 rounded bg-[var(--bg2)] flex items-center justify-center text-[var(--ember)] font-bold">A</div>
+          <div>
+            <h4 class="font-bold text-sm text-[var(--text)]">Rank Ametista</h4>
+            <p class="text-xs text-[var(--muted)]">Estar no rank Ametista ou superior como jogador.</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2.5 p-3 rounded bg-[var(--bg1)] border border-[var(--stroke)]">
+          <div class="w-10 h-10 rounded bg-[var(--bg2)] flex items-center justify-center text-[var(--ember)] font-bold">14</div>
+          <div>
+            <h4 class="font-bold text-sm text-[var(--text)]">Tempo de Casa</h4>
+            <p class="text-xs text-[var(--muted)]">Ter seu primeiro personagem liberado há pelo menos 14 dias.</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2.5 p-3 rounded bg-[var(--bg1)] border border-[var(--stroke)]">
+          <div class="w-10 h-10 rounded bg-[var(--bg2)] flex items-center justify-center text-[var(--ember)] font-bold">5e</div>
+          <div>
+            <h4 class="font-bold text-sm text-[var(--text)]">Conhecimento de Regras</h4>
+            <p class="text-xs text-[var(--muted)]">Familiaridade com o PHB/DMG (D&D 5e/2024).</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="my-4 border border-[var(--stroke)] rounded overflow-hidden">
+        <div class="bg-[var(--bg1)] px-3 py-1.5 border-b border-[var(--stroke)] flex justify-between items-center text-sm font-bold text-[var(--text)]">
+          <span>Como solicitar a avaliação</span>
+        </div>
+        <div class="p-3 bg-[var(--bg0)] overflow-x-auto">
+          <p class="text-[var(--muted)] text-sm leading-relaxed">{% if master_applications_open %}Abra a aba <a class="mh-text-link" href="{% url 'profile' %}?aba=mestre">Mestre no seu perfil</a> e envie o pedido de participação. A equipe avaliará os requisitos antes de conceder a permissão.{% else %}Novas solicitações estão temporariamente encerradas enquanto o formulário é revisado. Você pode consultar seu cadastro existente na aba <a class="mh-text-link" href="{% url 'profile' %}?aba=mestre">Mestre no seu perfil</a>.{% endif %}</p>
+        </div>
+      </div>
+    </section>
+
+    
+    <section id="fluxo-de-aprovacao" class="scroll-mt-28 mb-10">
+      <h2 class="font-rpg text-3xl font-bold text-[var(--text)] mb-5 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 text-[var(--ember)]"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+        3) Fluxo de Aprovação (Mestre em Teste)
+      </h2>
+      
+      <div class="border-l-2 border-[var(--stroke)] pl-6 space-y-4 my-5 relative">
+        <div class="relative">
+          <div class="absolute -left-10 w-8 h-8 rounded-full bg-[var(--bg0)] border-2 border-[var(--ember)] text-[var(--ember)] flex items-center justify-center font-bold text-sm">1</div>
+          <h4 class="text-lg font-bold text-[var(--text)] mb-1">Onboarding</h4>
+          <p class="text-[var(--muted)]">Acesso à mesa Premium do Roll20 e contato com um Loremaster.</p>
+        </div>
+        <div class="relative">
+          <div class="absolute -left-10 w-8 h-8 rounded-full bg-[var(--bg0)] border-2 border-[var(--ember)] text-[var(--ember)] flex items-center justify-center font-bold text-sm">2</div>
+          <h4 class="text-lg font-bold text-[var(--text)] mb-1">Preparação</h4>
+          <p class="text-[var(--muted)]">Envio de um resumo curto da missão para o avaliador.</p>
+        </div>
+        <div class="relative">
+          <div class="absolute -left-10 w-8 h-8 rounded-full bg-[var(--bg0)] border-2 border-[var(--ember)] text-[var(--ember)] flex items-center justify-center font-bold text-sm">3</div>
+          <h4 class="text-lg font-bold text-[var(--text)] mb-1">Condução</h4>
+          <p class="text-[var(--muted)]">Narrar de 3 a 5 missões com a presença do avaliador em vaga obrigatória.</p>
+        </div>
+        <div class="relative">
+          <div class="absolute -left-10 w-8 h-8 rounded-full bg-[var(--bg0)] border-2 border-[var(--ember)] text-[var(--ember)] flex items-center justify-center font-bold text-sm">4</div>
+          <h4 class="text-lg font-bold text-[var(--text)] mb-1">Relatórios</h4>
+          <p class="text-[var(--muted)]">Publicar relatórios em até 3 dias após cada mesa.</p>
+        </div>
+        <div class="relative">
+          <div class="absolute -left-10 w-8 h-8 rounded-full bg-[var(--bg0)] border-2 border-[var(--ember)] text-[var(--ember)] flex items-center justify-center font-bold text-sm">5</div>
+          <h4 class="text-lg font-bold text-[var(--text)] mb-1">Feedback Final</h4>
+          <p class="text-[var(--muted)]">Síntese de pontos fortes e ajustes para efetivação.</p>
+        </div>
+      </div>
+      
+      <div class="my-4 rounded-lg border border-blue-500/20 bg-blue-500/10 p-3 relative overflow-hidden">
+        <div class="relative z-10">
+          <h3 class="font-bold text-blue-400 flex items-center gap-2 mb-1.5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            Prazos
+          </h3>
+          <p class="text-sm text-[var(--text)]">Primeira missão em até 15 dias após cargo. Missões subsequentes com intervalo máximo de 15 dias.</p>
+        </div>
+      </div>
+    </section>
+
+
+    <section id="ferramentas" class="scroll-mt-28 mb-10">
+      <h2 class="font-rpg text-3xl font-bold text-[var(--text)] mb-5 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 text-[var(--muted)]"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        4) Ferramentas Recomendadas
+      </h2>
+      <div class="grid sm:grid-cols-2 gap-2.5">
+        <a href="https://tabletopaudio.com/" target="_blank" class="p-3 rounded border border-[var(--stroke)] hover:border-[var(--ember)] transition-colors">
+          <h4 class="font-bold text-sm mb-1 text-[var(--text)]">Tabletop Audio</h4>
+          <p class="text-xs text-[var(--muted)]">Trilhas e ambiências gratuitas de 10 minutos.</p>
+        </a>
+        <a href="https://dungeonscrawl.com/" target="_blank" class="p-3 rounded border border-[var(--stroke)] hover:border-[var(--ember)] transition-colors">
+          <h4 class="font-bold text-sm mb-1 text-[var(--text)]">Dungeon Scrawl</h4>
+          <p class="text-xs text-[var(--muted)]">Criador de mapas simples diretamente no navegador.</p>
+        </a>
+      </div>
+    </section>
+
+    
+    <section id="publicacao" class="scroll-mt-28 mb-10">
+      <h2 class="font-rpg text-3xl font-bold text-[var(--text)] mb-5 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 text-[var(--ember)]"><path d="M8 21h12a2 2 0 0 0 2-2v-2H10v2a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v3h4"/><path d="M19 17V5a2 2 0 0 0-2-2H4"/></svg>
+        5) Publicação & 6) Execução
+      </h2>
+      <p class="text-[var(--muted)] mb-4">Utilize o comando <code class="text-[var(--ember)] font-mono bg-[var(--bg1)] px-1 rounded">/missão-criar</code> no bot do Discord.</p>
+
+      <details class="group bg-[var(--bg1)] border border-[var(--stroke)] rounded mb-4">
+        <summary class="cursor-pointer font-bold p-3 flex justify-between items-center text-[var(--text)]">
+          Checklist Rápido de Sessão
+          <span class="transition group-open:rotate-180">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </span>
+        </summary>
+        <div class="p-3 border-t border-[var(--stroke)] bg-[var(--bg0)] space-y-2.5">
+          <div>
+            <h5 class="font-bold text-xs uppercase text-[var(--ember)] mb-1.5">Antes de Começar</h5>
+            <ul class="text-sm text-[var(--muted)] list-disc list-inside">
+              <li>Confirmar mínimo de 3 jogadores.</li>
+              <li>Aplicar Baixa Prioridade (/baixa-adicionar no bot).</li>
+              <li>Postar bloco de "Gastos e Ganhos".</li>
+            </ul>
+          </div>
+          <div>
+            <h5 class="font-bold text-xs uppercase text-[var(--ember)] mb-1.5">Pós-Sessão</h5>
+            <ul class="text-sm text-[var(--muted)] list-disc list-inside">
+              <li>Atualizar relatório completo em até 3 dias.</li>
+              <li>Registrar impactos permanentes no mundo.</li>
+              <li>Validar moedas de mestragem (100 MM a cada 02:30h).</li>
+            </ul>
+          </div>
+        </div>
+      </details>
+
+      <div class="my-4 border border-[var(--stroke)] rounded overflow-hidden">
+        <div class="bg-[var(--bg1)] px-3 py-1.5 border-b border-[var(--stroke)] flex justify-between items-center text-sm font-bold text-[var(--text)]">
+          <span>Modelo de Relatório Completo</span>
+        </div>
+        <div class="p-3 bg-[var(--bg0)] overflow-x-auto">
+          <pre class="text-[var(--muted)] font-mono text-sm leading-relaxed" style="white-space: pre-wrap;">Missão: Título da Missão
+Mestre: Nome
+Data: DD/MM/AAAA
+Rank: @Rank
+Participantes: Nomes
+Ganhos e Gastos: Itens, ouro, consumos
+Resumo: Breve explicação...
+Acontecimentos Importantes: Impactos em personagens e cenário.</pre>
+        </div>
+      </div>
+    </section>
+
+    
+    <section id="divisao" class="scroll-mt-28 mb-10">
+      <h2 class="font-rpg text-3xl font-bold text-[var(--text)] mb-5 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 text-[var(--ember)]"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        7) Divisão de Sessões
+      </h2>
+      <div class="my-4 rounded-lg border border-blue-500/20 bg-blue-500/10 p-3 relative overflow-hidden">
+        <div class="relative z-10">
+          <p class="text-sm text-[var(--text)]">Intervalo máximo de 15 dias entre partes. Conclusão total em até 30 dias.</p>
+        </div>
+      </div>
+      <div class="my-4 border border-[var(--stroke)] rounded overflow-hidden">
+        <div class="bg-[var(--bg1)] px-3 py-1.5 border-b border-[var(--stroke)] flex justify-between items-center text-sm font-bold text-[var(--text)]">
+          <span>Fechamento de Parte</span>
+        </div>
+        <div class="p-3 bg-[var(--bg0)] overflow-x-auto">
+          <pre class="text-[var(--muted)] font-mono text-sm leading-relaxed" style="white-space: pre-wrap;">Parte X finalizada em DD/MM — duração: __h — total: __h. Próxima parte prevista para janela DD/MM-DD/MM. Atualizem Gastos e Ganhos.</pre>
+        </div>
+      </div>
+    </section>
+
+    
+    <section id="hierarquia" class="scroll-mt-28 mb-10">
+      <h2 class="font-rpg text-3xl font-bold text-[var(--text)] mb-5 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 text-[var(--ember)]"><circle cx="12" cy="5" r="3"/><line x1="12" y1="22" x2="12" y2="8"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        8) Hierarquia de Mestres
+      </h2>
+      <div class="grid gap-2.5">
+        <div class="p-3 rounded-lg bg-[var(--bg1)] border border-[var(--stroke)] group hover:border-[var(--ember)] transition-all">
+          <div class="flex justify-between items-start mb-2">
+            <h4 class="font-bold text-[var(--text)]">Mestre</h4>
+            <div class="inline-flex justify-center px-2 py-1 rounded text-xs font-bold bg-emerald-500 text-white">Ativo</div>
+          </div>
+          <p class="text-xs text-[var(--muted)]">Narra todos os ranks e missões de Background.</p>
+        </div>
+        <div class="p-3 rounded-lg bg-[var(--bg1)] border border-[var(--stroke)] group hover:border-[var(--ember)] transition-all">
+          <div class="flex justify-between items-start mb-2">
+            <h4 class="font-bold text-[var(--text)]">Mestre Conselheiro</h4>
+            <div class="inline-flex justify-center px-2 py-1 rounded text-xs font-bold bg-amber-500 text-white">15+ Mesas</div>
+          </div>
+          <p class="text-xs text-[var(--muted)]">Itens mágicos, maldições e publicações no jornal mundial.</p>
+        </div>
+        <div class="p-3 rounded-lg bg-[var(--bg1)] border border-[var(--stroke)] group hover:border-[var(--ember)] transition-all">
+          <div class="flex justify-between items-start mb-2">
+            <h4 class="font-bold text-[var(--text)]">Mestre Ancião</h4>
+            <div class="inline-flex justify-center px-2 py-1 rounded text-xs font-bold bg-amber-500 text-white">Especialista</div>
+          </div>
+          <p class="text-xs text-[var(--muted)]">Missões de Ascensão e planejamento de eventos oficiais.</p>
+        </div>
+        <div class="p-3 rounded-lg bg-[var(--bg1)] border border-[var(--stroke)] group hover:border-[var(--ember)] transition-all">
+          <div class="flex justify-between items-start mb-2">
+            <h4 class="font-bold text-[var(--text)]">Grão-Mestre Ancião</h4>
+            <div class="inline-flex justify-center px-2 py-1 rounded text-xs font-bold bg-[var(--flame)] text-white">Lendário</div>
+          </div>
+          <p class="text-xs text-[var(--muted)]">Missões de Lenda e mudanças geopolíticas massivas.</p>
+        </div>
+      </div>
+    </section>
+
+    
+    <section id="penalidades" class="scroll-mt-28 mb-10">
+      <h2 class="font-rpg text-3xl font-bold text-[var(--text)] mb-5 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 text-[var(--flame)]"><path d="m14 13-7.5 7.5c-.83.83-2.17.83-3 0 0 0 0 0 0 0a2.12 2.12 0 0 1 0-3L11 10"/><path d="m16 16 6-6"/><path d="m8 8 6-6"/><path d="m9 7 8 8"/><path d="m21 11-8-8"/></svg>
+        9) Penalidades & Procedimentos
+      </h2>
+      
+      <details class="group bg-[var(--bg1)] border border-[var(--stroke)] rounded mb-2.5">
+        <summary class="cursor-pointer font-bold p-3 flex justify-between items-center text-[var(--text)]">
+          Banimento em Mesas (Pelo Mestre)
+          <span class="transition group-open:rotate-180">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </span>
+        </summary>
+        <div class="p-3 border-t border-[var(--stroke)] bg-[var(--bg0)]">
+          <p class="text-sm text-[var(--muted)] mb-2.5">Restrição aplicada pelo mestre que vale somente para suas mesas.</p>
+          <h5 class="font-bold text-xs uppercase text-[var(--flame)] mb-1.5">Motivos Elegíveis</h5>
+          <ul class="text-sm text-[var(--muted)] mb-2.5 list-disc list-inside">
+            <li>Assédio ou hostilidade após orientação.</li>
+            <li>Sabotagem proposital de cena.</li>
+            <li>Quebra grave de regras (trapaça, flood).</li>
+          </ul>
+          <div class="border border-[var(--stroke)] rounded overflow-hidden">
+            <div class="bg-[var(--bg1)] px-3 py-1.5 border-b border-[var(--stroke)] flex justify-between items-center text-sm font-bold text-[var(--text)]">
+              <span>Modelo de Registro de Banimento</span>
+            </div>
+            <div class="p-3 bg-[var(--bg0)] overflow-x-auto">
+              <pre class="text-[var(--muted)] font-mono text-sm leading-relaxed" style="white-space: pre-wrap;">Banimento de Mesa — Registro
+Mestre: ____
+Jogador/Personagem: ____
+Motivo: ____
+Evidências: (link ou print)
+Duração: 7/14/30 dias.</pre>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="group bg-[var(--bg1)] border border-[var(--stroke)] rounded mb-4">
+        <summary class="cursor-pointer font-bold p-3 flex justify-between items-center text-[var(--text)]">
+          Escala de Penalidades (Mestres)
+          <span class="transition group-open:rotate-180">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </span>
+        </summary>
+        <div class="p-3 border-t border-[var(--stroke)] bg-[var(--bg0)] space-y-2.5">
+          <div class="border-l-2 border-amber-500 pl-4">
+            <h6 class="font-bold text-[var(--text)] text-sm">1ª Ocorrência Leve</h6>
+            <p class="text-xs text-[var(--muted)]">Atrasos sistemáticos ou relatórios fora do prazo: BP + Perda de Aventuras.</p>
+          </div>
+          <div class="border-l-2 border-red-500 pl-4">
+            <h6 class="font-bold text-[var(--text)] text-sm">Falta Grave</h6>
+            <p class="text-xs text-[var(--muted)]">Abuso de poder, assédio ou fraude: Revogação do cargo e perda da mesa Premium.</p>
+          </div>
+        </div>
+      </details>
+
+      <div class="my-4 rounded-lg border border-red-500/20 bg-red-500/10 p-3 relative overflow-hidden">
+        <div class="relative z-10">
+          <h3 class="font-bold text-[var(--flame)] flex items-center gap-2 mb-1.5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Quando chamar a Staff?
+          </h3>
+          <p class="text-sm text-[var(--text)]">Assédio, discriminação, disputa insolúvel entre jogadores ou descumprimento sistemático de regras.</p>
+        </div>
+      </div>
+    </section>
+
+  </article>
+</div>
+</div>
+{% endblock %}

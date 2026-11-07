@@ -1,0 +1,243 @@
+/* ════════════════════════════════════════════════════════════════════
+   Itens Mágicos — layout mestre-detalhe (reaproveita .talent-main-grid /
+   .talent-list-panel / .talent-detail-panel de talentos.css para a
+   largura/scroll/sticky/drawer mobile já prontos).
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Cores canônicas por raridade (base, sem _menor/_maior) */
+:root {
+  --rar-comum: #94a3b8;
+  --rar-incomum: #22c55e;
+  --rar-raro: #3b82f6;
+  --rar-muito_raro: #a855f7;
+  --rar-lendario: #f97316;
+  --rar-artefato: #ef4444;
+}
+
+.mi-shell { display: flex; flex-direction: column; }
+
+/* ---- Filtros ---- */
+.mi-rarity-chip {
+  align-items: center;
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: .68rem;
+  font-weight: 800;
+  gap: .3rem;
+  letter-spacing: .02em;
+  padding: .25rem .6rem;
+  text-transform: uppercase;
+  transition: border-color .2s ease, background .2s ease, color .2s ease, transform .2s ease;
+}
+.mi-rarity-chip:hover {
+  border-color: var(--ember);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+.mi-rarity-chip.active {
+  background: linear-gradient(90deg, rgba(210,23,23,.16), var(--bg1) 70%);
+  border-color: var(--ember);
+  color: var(--spark);
+  box-shadow: inset 0 0 12px rgba(210,23,23,.18);
+}
+.mi-rarity-dot {
+  border-radius: 999px;
+  box-shadow: 0 0 6px currentColor;
+  display: inline-block;
+  height: .55rem;
+  width: .55rem;
+}
+.rarity-dot-comum { background: var(--rar-comum); color: var(--rar-comum); }
+.rarity-dot-incomum { background: var(--rar-incomum); color: var(--rar-incomum); }
+.rarity-dot-raro { background: var(--rar-raro); color: var(--rar-raro); }
+.rarity-dot-muito_raro { background: var(--rar-muito_raro); color: var(--rar-muito_raro); }
+.rarity-dot-lendario { background: var(--rar-lendario); color: var(--rar-lendario); }
+.rarity-dot-artefato { background: var(--rar-artefato); color: var(--rar-artefato); }
+
+/* Chip ativo herda a cor da raridade quando aplicável */
+.mi-rarity-chip.rarity-comum.active { border-color: var(--rar-comum); color: var(--rar-comum); box-shadow: inset 0 0 12px rgba(148,163,184,.18); }
+.mi-rarity-chip.rarity-incomum.active { border-color: var(--rar-incomum); color: var(--rar-incomum); box-shadow: inset 0 0 12px rgba(34,197,94,.18); }
+.mi-rarity-chip.rarity-raro.active { border-color: var(--rar-raro); color: var(--rar-raro); box-shadow: inset 0 0 12px rgba(59,130,246,.18); }
+.mi-rarity-chip.rarity-muito_raro.active { border-color: var(--rar-muito_raro); color: #c084fc; box-shadow: inset 0 0 12px rgba(168,85,247,.18); }
+.mi-rarity-chip.rarity-lendario.active { border-color: var(--rar-lendario); color: var(--rar-lendario); box-shadow: inset 0 0 12px rgba(249,115,22,.18); }
+.mi-rarity-chip.rarity-artefato.active { border-color: var(--rar-artefato); color: var(--rar-artefato); box-shadow: inset 0 0 12px rgba(239,68,68,.18); }
+
+/* ---- Item da lista (mestre) ---- */
+.mi-list-item {
+  align-items: center;
+  background: var(--bg0);
+  border: 1px solid transparent;
+  border-left: 3px solid var(--stroke);
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  gap: .45rem;
+  justify-content: space-between;
+  padding: .45rem .7rem;
+  transition: border-color .2s ease, background .2s ease, transform .2s ease, box-shadow .2s ease;
+}
+.mi-list-item:hover {
+  background: var(--bg1);
+  border-color: var(--stroke);
+  box-shadow: 0 0 14px rgba(210,23,23,.12);
+  transform: translateX(2px);
+}
+.mi-list-item.selected {
+  background: var(--bg1);
+  border-color: var(--ember);
+}
+.mi-list-item-main { min-width: 0; }
+.mi-list-item-name {
+  color: var(--text);
+  font-size: .9rem;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mi-list-item-meta {
+  color: var(--muted);
+  font-size: .68rem;
+  letter-spacing: .04em;
+  margin-top: .15rem;
+  text-transform: uppercase;
+}
+.mi-attune-mark {
+  align-items: center;
+  background: rgba(239,68,68,.12);
+  border: 1px solid rgba(239,68,68,.4);
+  border-radius: 999px;
+  color: #ef4444;
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: .65rem;
+  font-weight: 900;
+  height: 1.25rem;
+  justify-content: center;
+  width: 1.25rem;
+}
+/* Preço na lista (espelha .mu-list-item-price do mundano) */
+.mi-list-item-price {
+  background: var(--bg2);
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  color: var(--spark);
+  flex-shrink: 0;
+  font-size: .68rem;
+  font-weight: 700;
+  padding: .2rem .55rem;
+  white-space: nowrap;
+}
+/* Item sem preço = recompensa de missão: rótulo compacto que pode quebrar em 2 linhas */
+.mi-list-item-price.is-mission {
+  color: var(--muted);
+  font-weight: 600;
+  line-height: 1.12;
+  max-width: 6.5rem;
+  text-align: center;
+  white-space: normal;
+}
+/* Linha "Preço" no painel de detalhe */
+.mi-detail-price {
+  align-items: baseline;
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  display: flex;
+  gap: .5rem;
+  justify-content: space-between;
+  margin-bottom: .75rem;
+  padding: .4rem .7rem;
+}
+.mi-detail-price-label {
+  color: var(--muted);
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.mi-detail-price-value {
+  color: var(--spark);
+  font-weight: 800;
+}
+.mi-detail-price-value.is-mission {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* Borda esquerda colorida por raridade */
+.mi-list-item.rarity-comum { border-left-color: var(--rar-comum); }
+.mi-list-item.rarity-incomum { border-left-color: var(--rar-incomum); }
+.mi-list-item.rarity-raro { border-left-color: var(--rar-raro); }
+.mi-list-item.rarity-muito_raro { border-left-color: var(--rar-muito_raro); }
+.mi-list-item.rarity-lendario { border-left-color: var(--rar-lendario); }
+.mi-list-item.rarity-artefato { border-left-color: var(--rar-artefato); }
+
+/* ---- Detalhe ---- */
+.mi-detail { width: 100%; }
+.mi-detail-head {
+  border-bottom: 2px solid var(--stroke);
+  margin-bottom: .7rem;
+  padding-bottom: .55rem;
+}
+.mi-detail-rarity {
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  color: var(--muted);
+  display: inline-block;
+  font-size: .66rem; /* piso 8.5px no root 13px */
+  font-weight: 800;
+  letter-spacing: .06em;
+  margin-bottom: .4rem;
+  padding: .18rem .5rem;
+  text-transform: uppercase;
+}
+.mi-detail-rarity.rarity-comum { color: var(--rar-comum); border-color: rgba(148,163,184,.45); background: rgba(148,163,184,.1); }
+.mi-detail-rarity.rarity-incomum { color: var(--rar-incomum); border-color: rgba(34,197,94,.45); background: rgba(34,197,94,.1); }
+.mi-detail-rarity.rarity-raro { color: var(--rar-raro); border-color: rgba(59,130,246,.45); background: rgba(59,130,246,.1); }
+.mi-detail-rarity.rarity-muito_raro { color: #c084fc; border-color: rgba(168,85,247,.45); background: rgba(168,85,247,.12); }
+.mi-detail-rarity.rarity-lendario { color: var(--rar-lendario); border-color: rgba(249,115,22,.45); background: rgba(249,115,22,.12); }
+.mi-detail-rarity.rarity-artefato { color: var(--rar-artefato); border-color: rgba(239,68,68,.45); background: rgba(239,68,68,.12); }
+
+.mi-detail.rarity-comum .mi-detail-head { border-bottom-color: var(--rar-comum); }
+.mi-detail.rarity-incomum .mi-detail-head { border-bottom-color: var(--rar-incomum); }
+.mi-detail.rarity-raro .mi-detail-head { border-bottom-color: var(--rar-raro); }
+.mi-detail.rarity-muito_raro .mi-detail-head { border-bottom-color: var(--rar-muito_raro); }
+.mi-detail.rarity-lendario .mi-detail-head { border-bottom-color: var(--rar-lendario); }
+.mi-detail.rarity-artefato .mi-detail-head { border-bottom-color: var(--rar-artefato); }
+
+.mi-detail-title {
+  color: var(--text);
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1.15;
+  text-shadow: 0 0 18px rgba(210,23,23,.25);
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.mi-detail-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  margin-bottom: .75rem;
+}
+.mi-pill {
+  background: var(--bg2);
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .01em;
+  padding: .2rem .6rem;
+}
+.mi-pill-attune {
+  background: rgba(239,68,68,.1);
+  border-color: rgba(239,68,68,.35);
+  color: #ef4444;
+}
+.mi-detail-desc { margin-top: .25rem; }

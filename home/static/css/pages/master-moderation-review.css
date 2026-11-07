@@ -1,0 +1,12 @@
+.mh-moderation-review{width:min(480px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto;padding:22px;border:1px solid #a65e48;border-radius:5px;background:#23161a;color:#f2e9e0;box-shadow:0 18px 50px #000a}
+.mh-moderation-review::backdrop{background:#080506c9}
+.mh-moderation-review h2{font:500 28px/1.25 'Frank Ruhl Libre',Georgia,serif;margin:0 0 12px;color:#f5e9df}
+.mh-moderation-review p{font-size:12px;line-height:1.7;margin:0 0 16px;color:#dec8bc}
+.mh-moderation-review dl{display:grid;grid-template-columns:minmax(100px,1fr) minmax(0,1.6fr);gap:8px 12px;margin:0 0 18px}
+.mh-moderation-review dt{color:#bcaeaa;font-size:11px}
+.mh-moderation-review dd{margin:0;font-size:12px;overflow-wrap:anywhere}
+.mh-moderation-review .mh-text-link{display:inline-block;margin-bottom:19px}
+.mh-moderation-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px}
+.mh-moderation-actions button{min-height:44px;padding:9px 14px;border:1px solid #9e6049;border-radius:3px;background:#352129;color:#f2e9e0;cursor:pointer}
+.mh-moderation-actions [data-master-moderation-confirm]{background:#8c2625;border-color:#d46443;font-weight:700}
+.mh-moderation-actions button:focus-visible,.mh-moderation-review a:focus-visible{outline:2px solid #ffba65;outline-offset:3px}

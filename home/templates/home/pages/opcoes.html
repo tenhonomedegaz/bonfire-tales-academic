@@ -1,0 +1,55 @@
+{% extends 'home/base.html' %}
+{% load static %}
+{% block body_class %}bft-options{% endblock %}
+{% block main_class %}flex-1 w-full bft-options-main{% endblock %}
+{% block title %}Opções adicionais - Bonfire Tales RPG{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/opcoes.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'css/pages/opcoes_redesign.css' %}?v=1">
+<script src="{% static 'js/opcoes.js' %}?v=4" defer></script>
+{% endblock %}
+{% block content %}
+<section class="option-page" aria-labelledby="optionsTitle" data-can-edit="{{ can_edit_wiki|yesno:'true,false' }}">
+    <header class="option-masthead">
+        <div class="option-masthead-copy">
+            <nav class="option-breadcrumb" aria-label="Localização"><a href="{% url 'home' %}">Bonfire Tales</a><span aria-hidden="true">/</span><span>Livro do jogador</span></nav>
+            <h1 id="optionsTitle">Opções adicionais</h1>
+            <p>Aprofunde o seu jeito de jogar. <span>Estilos, técnicas e segredos para o seu personagem.</span></p>
+        </div>
+        <div class="option-masthead-art" aria-hidden="true"></div>
+    </header>
+
+    <div class="option-workspace">
+        <button type="button" id="optionOpenList" class="option-mobile-button" aria-controls="opcoesList" aria-expanded="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M3 6h1M3 12h1M3 18h1"/></svg>Escolher opção</button>
+        <button type="button" id="optionListBackdrop" class="option-list-backdrop" aria-label="Fechar catálogo" aria-hidden="true" tabindex="-1" hidden></button>
+        <aside id="opcoesList" class="option-sidebar" aria-labelledby="optionIndexTitle" tabindex="-1">
+            <div class="option-index-heading"><h2 id="optionIndexTitle">Explore as opções</h2><button type="button" id="optionCloseList" aria-label="Fechar catálogo" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div>
+            <div class="option-tools">
+                <label for="optionSearch">Buscar opção</label>
+                <div class="option-search-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg><input type="search" id="optionSearch" placeholder="Nome, requisito, classe…" autocomplete="off" disabled></div>
+                <label for="optionCategory">Categoria</label>
+                <select id="optionCategory" disabled><option value="">Todas as categorias</option>{% for category in opcao_categorias %}<option value="{{ category }}">{{ category }}</option>{% endfor %}</select>
+                <div class="option-tool-buttons"><button type="button" id="optionFilters" aria-haspopup="dialog" aria-controls="optionFilterModal" aria-expanded="false" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Filtros<span id="optionFilterCount" hidden>0</span></button><button type="button" id="optionSort" aria-label="Ordem alfabética: A a Z. Inverter ordem." disabled><span id="optionSortLabel">A–Z</span><span aria-hidden="true">↕</span></button></div>
+                <div class="option-index-status"><span id="optionResults" role="status" aria-live="polite">{{ json_opcoes|length }} opções</span><button type="button" id="optionReset" hidden>Limpar</button></div>
+                <p id="optionActiveFilters" hidden></p>
+            </div>
+            <nav id="opcoesListItems" aria-label="Lista de opções">{% for option in json_opcoes %}<a href="#opcao-{{ option.slug }}" data-option-slug="{{ option.slug }}"><span>{{ option.nome }}</span><small>{{ option.tipo }}</small></a>{% empty %}<p class="option-list-empty">Nenhuma opção cadastrada.</p>{% endfor %}</nav>
+        </aside>
+
+        <article id="opcaoDetail" class="option-detail" aria-label="Opção selecionada">
+            {% if not json_opcoes %}<div class="option-empty"><h2>Nenhuma opção cadastrada</h2><p>O catálogo está vazio no momento.</p></div>{% endif %}
+            <noscript><div class="option-fallback-note">Ative o JavaScript para usar a busca e os filtros. Você pode consultar todas as opções abaixo.</div>{% for option in json_opcoes %}<section class="option-fallback-entry" id="opcao-{{ option.slug }}"><h2>{{ option.nome }}</h2><p>{{ option.tipo }}</p><p>Pré-requisitos: {{ option.pre_requisito|default:'Não informado.' }}</p>{% if option.acessos %}<h3>Acesso por classe e subclasse</h3><ul>{% for access in option.acessos %}<li>{{ access.nome }}{% if access.tipo == 'Subclasse' %} ({{ access.classe }}){% endif %} · nível {{ access.nivel }}</li>{% endfor %}</ul>{% endif %}<div>{{ option.descricao|linebreaks }}</div></section>{% endfor %}</noscript>
+        </article>
+    </div>
+
+    <div id="optionFilterModal" class="option-filter-modal" role="dialog" aria-modal="true" aria-labelledby="optionFiltersTitle" aria-describedby="optionFiltersHint" tabindex="-1" hidden>
+        <button type="button" id="optionFilterBackdrop" class="option-filter-backdrop" aria-label="Fechar filtros" aria-hidden="true" tabindex="-1"></button>
+        <div class="option-filter-panel">
+            <header><div><p class="option-eyebrow">Personalize a consulta</p><h2 id="optionFiltersTitle">Filtrar opções</h2></div><button type="button" id="optionFilterClose" aria-label="Fechar filtros"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></header>
+            <div class="option-filter-content"><section><h3>Categoria</h3><div id="optionTypeFilters" class="option-filter-chips"></div></section><section><h3>Etiquetas adicionais</h3><div id="optionTagFilters" class="option-filter-chips"></div></section><p id="optionFiltersHint">Combine uma categoria e uma etiqueta. Para encontrar uma classe, um nível ou um pré-requisito específico, use a busca do catálogo.</p></div>
+            <footer><button type="button" id="optionFilterClear">Limpar tudo</button><button type="button" id="optionFilterApply">Aplicar filtros</button></footer>
+        </div>
+    </div>
+</section>
+{{ json_opcoes|json_script:'opcoes-data' }}
+{% endblock %}

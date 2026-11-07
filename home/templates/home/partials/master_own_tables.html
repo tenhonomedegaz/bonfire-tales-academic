@@ -1,0 +1,22 @@
+{% load tz %}
+<section class="mh-section" id="minhas-missoes" aria-labelledby="minhas-missoes-titulo">
+  <div class="mh-section-head">
+    <div><p class="mh-eyebrow">Suas histórias em preparação</p><h3 id="minhas-missoes-titulo">Meus anúncios de mesa</h3></div>
+    {% if community.is_master %}<a class="mh-button" href="{% url 'master_table_create' %}">+ Preparar anúncio</a>{% endif %}
+  </div>
+  <p class="mh-intro">O anúncio no site não cria nem altera missões no Discord.</p>
+  {% if commercial_status %}<p role="status">Vitrine paga demonstrativa: {{ commercial_status.completed_tables }}/3 mesas concluídas nos últimos 30 dias, {{ commercial_status.open_tables }}/1 aberta registrada no bot. {% if commercial_status.activity_unavailable %}Consulta ao bot temporariamente indisponível.{% endif %} {% if commercial_status.admin_authorized %}Autorização comercial registrada.{% else %}Autorização comercial pendente.{% endif %} {% if commercial_status.eligible %}Você pode enviar uma proposta paga para revisão; nenhuma cobrança é realizada pelo anúncio.{% endif %}</p>{% endif %}
+  {% if request.GET.salvo %}<p class="mh-notice" role="status">Anúncio salvo. Confira o estado abaixo.</p>{% endif %}
+  <div class="mh-own-list">
+    {% for table in my_tables %}
+    <article class="mh-own-table">
+      <div><span class="mh-state" data-state="{{ table.estado }}">{{ table.get_estado_display }}</span><h4>{{ table.titulo }}</h4><p>{% if table.agenda_combinar %}Datas a combinar{% else %}{{ table.data|timezone:'America/Sao_Paulo'|date:'d/m/Y · H:i' }} · Brasília{% endif %} · {{ table.ranks_display }}</p>{% if table.nota_revisao %}<p class="mh-review-note">Retorno da equipe: {{ table.nota_revisao }}</p>{% endif %}</div>
+      <div class="mh-actions">
+        {% if community.is_master %}<a class="mh-text-link" href="{% url 'master_table_edit' table.pk %}">Editar</a>{% endif %}
+        <a class="mh-text-link" href="{% url 'master_table_detail' table.pk %}">Visualizar</a>
+        {% if table.estado != 'encerrado' %}<form method="post" action="{% url 'master_table_action' table.pk %}">{% csrf_token %}<input type="hidden" name="acao" value="encerrar"><input type="hidden" name="revisao" value="{{ table.revisao }}"><button class="mh-text-link" type="submit">Encerrar anúncio</button></form>{% endif %}
+      </div>
+    </article>
+    {% empty %}<div class="mh-empty"><h4>Sua próxima aventura começa aqui</h4><p>Monte um convite com banner, premissa e informações para o grupo. Inscrições e confirmações continuam no Discord.</p></div>{% endfor %}
+  </div>
+</section>

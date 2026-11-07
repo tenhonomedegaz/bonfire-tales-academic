@@ -1,0 +1,25 @@
+{% comment %}GRADE DE SLOTS da Mochila (Ficha v2, onda B).
+
+A lista de slots NÃO está escrita aqui: vem de `mochila.slots`, montado por
+home/slots.py a partir dos slots REAIS do catálogo (TbItemMagico.slot + os slots que a
+mecânica dos itens mundanos produz). Cadastrar item num slot novo faz o cartão nascer.
+Acessório aparece com vaga ilimitada — concede efeito sem ocupar o corpo (regra do PO).
+Espera no contexto: mochila, p.{% endcomment %}
+<div class="slot-grid" data-slots-grid>
+  {% for s in mochila.slots %}
+  <div class="slot-cell{% if s.sem_vaga %} is-open{% elif s.itens %} is-filled{% else %} is-free{% endif %}"
+       data-slot="{{ s.slug }}" title="{{ s.rotulo }}{% if s.sem_vaga %} — não consome vaga{% else %} — {{ s.ocupadas }}/{{ s.vagas }}{% endif %}">
+    <span class="slot-name">{{ s.rotulo }}</span>
+    {% if s.itens %}
+      <ul class="slot-items">
+        {% for it in s.itens %}
+        <li class="slot-item">{% if it.qtd > 1 %}{{ it.qtd }}× {% endif %}{{ it.nome }}{% if it.sintonizado %} <span class="slot-attuned" title="Sintonizado">◆</span>{% endif %}</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <span class="slot-empty">livre</span>
+    {% endif %}
+    <span class="slot-cap">{% if s.sem_vaga %}∞{% else %}{{ s.ocupadas }}/{{ s.vagas }}{% endif %}</span>
+  </div>
+  {% endfor %}
+</div>

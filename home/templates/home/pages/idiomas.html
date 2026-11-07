@@ -1,0 +1,72 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block title %}Idiomas - Bonfire Tales RPG{% endblock %}
+{% block body_class %}bft-languages{% endblock %}
+{% block main_class %}flex-1 w-full bft-languages-main{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/idiomas.css' %}?v=1">
+<script defer src="{% static 'js/idiomas.js' %}?v=4"></script>
+{% endblock %}
+
+{% block content %}
+<section class="language-shell" aria-labelledby="languagesTitle">
+  <header class="language-masthead">
+    <div class="language-masthead-copy">
+      <nav class="language-breadcrumb" aria-label="Localização"><a href="{% url 'home' %}">Bonfire Tales</a><span aria-hidden="true">/</span><span>Personagens</span></nav>
+      <h1 id="languagesTitle">Idiomas</h1>
+      <p>Palavras também abrem caminhos. <span>Conheça as línguas basais, derivadas e exóticas de Cinéria.</span></p>
+    </div>
+    <div class="language-masthead-art" aria-hidden="true"></div>
+  </header>
+
+  <noscript><p class="language-notice">Consulte os idiomas abaixo. Ative o JavaScript para usar a busca e o transcritor de ambientação.</p></noscript>
+  <div class="language-grid">
+    <button type="button" id="languageMobileMenu" class="language-mobile-button" aria-controls="languageSidebar" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Escolher idioma</button>
+    <button type="button" id="languageBackdrop" class="language-backdrop" aria-label="Fechar lista" tabindex="-1" hidden></button>
+    <aside id="languageSidebar" class="language-sidebar" aria-labelledby="languageIndexTitle">
+      <div class="language-sidebar-heading"><h2 id="languageIndexTitle">Vozes de Cinéria</h2><button type="button" id="languageCloseMenu" class="language-close" aria-label="Fechar lista de idiomas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div>
+      <div class="language-tools">
+        <label for="languageSearch">Buscar idioma</label>
+        <div class="language-search-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg><input id="languageSearch" type="search" placeholder="Nome, referência ou escrita…" autocomplete="off"></div>
+        <label for="languageCategory">Categoria</label>
+        <select id="languageCategory"><option value="">Todas as categorias</option>{% for slug,label in categorias %}<option value="{{ slug }}">{{ label }}</option>{% endfor %}</select>
+      </div>
+      <div class="language-index-status"><span id="languageResultCount" role="status" aria-live="polite">{{ idiomas|length }} idiomas</span><button type="button" id="languageResetFilters" hidden>Limpar</button></div>
+      <nav id="languageList" class="language-list custom-scrollbar" aria-label="Lista de idiomas">
+        {% for idioma in idiomas %}
+        {% ifchanged idioma.categoria %}<h3 class="language-group-title" data-language-group="{{ idioma.categoria }}">{% if idioma.categoria == 'basal' %}Basais{% elif idioma.categoria == 'derivado' %}Derivados{% elif idioma.categoria == 'exotico' %}Exóticos{% else %}{{ idioma.categoria_label }}{% endif %}</h3>{% endifchanged %}
+        <a class="language-row language-index-item" href="#{{ idioma.slug }}" data-language-slug="{{ idioma.slug }}" data-category="{{ idioma.categoria }}" data-search="{{ idioma.nome }} {{ idioma.nome_mundo }} {{ idioma.idioma_caracteristico }} {{ idioma.transcricao }} {{ idioma.categoria_label }}"><span><span class="language-index-name">{{ idioma.nome }}</span><span class="language-index-meta">{{ idioma.nome_mundo|default:idioma.categoria_label }}</span></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m10 7 5 5-5 5"/></svg></a>
+        {% endfor %}
+        <div id="languageEmpty" class="language-list-empty" hidden><p>Nenhum idioma encontrado.</p><button type="button" id="languageEmptyReset">Limpar busca e filtros</button></div>
+      </nav>
+    </aside>
+
+    <div class="language-reading">
+      <div id="languageDetails">
+        {% for idioma in idiomas %}
+        <article class="language-detail" data-language-detail="{{ idioma.slug }}" aria-labelledby="{{ idioma.slug }}">
+          <header class="language-detail-header">
+            <div class="language-emblem" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.1"><path d="m16 2 12 7v14l-12 7L4 23V9Z"/><path d="M9 11h9a3 3 0 0 1 3 3v4h-5l-4 3v-3H9Z"/><path d="M13 9h9v8M12 14h6"/></svg></div>
+            <div><p class="language-eyebrow">Idioma {{ idioma.categoria_label|lower }}</p><h2 id="{{ idioma.slug }}" tabindex="-1">{{ idioma.nome }}</h2>{% if idioma.nome_mundo %}<p class="language-world-name">{{ idioma.nome_mundo }}</p>{% endif %}</div>
+          </header>
+          <dl class="language-meta"><div><dt>Referência sonora</dt><dd>{{ idioma.idioma_caracteristico|default:'Própria' }}</dd></div><div><dt>Sistema de escrita</dt><dd>{{ idioma.transcricao|default:'Oral' }}</dd></div></dl>
+        </article>
+        {% empty %}<p class="language-notice">Nenhum idioma cadastrado.</p>{% endfor %}
+      </div>
+
+      <section class="language-transcriber" aria-labelledby="translator-title">
+        <header class="language-transcriber-heading"><div><p class="language-eyebrow">Dê voz à sua aventura</p><h2 id="translator-title">Transcritor de ambientação</h2><p>Crie falas, cartas e inscrições para a sua mesa.</p></div></header>
+        <div class="language-target-field"><label for="languageTarget">Idioma de destino</label><select id="languageTarget" disabled>{% for idioma in idiomas %}<option value="{{ idioma.slug }}">{{ idioma.nome }}{% if idioma.nome_mundo %} · {{ idioma.nome_mundo }}{% endif %}</option>{% endfor %}</select></div>
+        <div class="language-workspace">
+          <div class="language-source-field"><div class="language-field-heading"><label for="languageSource">Texto em Comum</label><span id="languageCharacterCount">0 / 1.200</span></div><textarea id="languageSource" rows="7" maxlength="1200" placeholder="Digite uma fala, carta ou inscrição…" aria-describedby="languageTranscriptionHint" disabled></textarea><button type="button" id="languageClearText" class="language-clear-text" disabled>Limpar texto</button></div>
+          <div class="language-result-field"><div class="language-field-heading"><span id="languageResultLabel">Transcrição</span><span class="language-live-label"><span aria-hidden="true"></span>Em tempo real</span></div><div class="language-output-wrap"><p id="languageResultPlaceholder" aria-hidden="true">Sua transcrição aparece aqui.</p><output id="languageResult" aria-labelledby="languageResultLabel" aria-live="polite" aria-atomic="true"></output></div><div class="language-output-actions"><span id="languageWriting"></span><button type="button" id="copyTranslation" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="1"/><path d="M16 8V4H4v12h4"/></svg><span id="languageCopyLabel">Copiar</span></button></div></div>
+        </div>
+        <p id="languageCopyStatus" class="language-copy-status" role="status" aria-live="polite"></p>
+        <p id="languageTranscriptionHint" class="language-transcription-hint">Transcrição fictícia para ambientação: não é uma tradução literal nem reproduz um alfabeto canônico. A escrita e a referência sonora acima são informações do idioma.</p>
+      </section>
+    </div>
+  </div>
+</section>
+{{ idiomas_json|json_script:'language-data' }}
+{% endblock %}

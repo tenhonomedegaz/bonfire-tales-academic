@@ -1,0 +1,619 @@
+{% extends 'home/base.html' %}
+{% load static editorial_images cosmetic_packages %}
+
+{% block body_class %}bft-profile{% endblock %}
+{% block main_class %}bft-profile-main{% endblock %}
+{% block content_libraries %}{% include 'home/includes/content_libraries.html' with defer_scripts=True %}{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/perfil.css' %}?v=10">
+<link rel="stylesheet" href="{% static 'css/components/tema_swatch.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=4">
+<link rel="stylesheet" href="{% static 'css/pages/profile-redesign.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'css/pages/master-hub.css' %}?v=3">
+<script src="{% static 'js/tema_swatch.js' %}?v=4" defer></script>
+<script src="{% static 'js/profile-dirty.js' %}?v=1" defer></script>
+{% if appearance.theme_css_href %}<link rel="stylesheet" id="perfil-preview-theme-css" href="{{ appearance.theme_css_href }}">{% endif %}
+<title>Meu Perfil — Bonfire Tales RPG</title>
+{% endblock %}
+
+{% block content %}
+{% if master_demo %}<p class="master-area mh-notice" role="status">Demonstração visual: este perfil e suas missões são fictícios. Nenhuma autorização real é concedida.</p>{% endif %}
+{% if appearance.background_url|safe_profile_image %}<div class="profile-bg-media" id="profile-bg-media" style="background-image:url('{{ appearance.background_url|safe_profile_image }}');"></div>{% else %}<div class="profile-bg-media" id="profile-bg-media" style="display:none"></div>{% endif %}
+<div class="profile-page {{ appearance.theme_class }}{% if appearance.background_url|safe_profile_image %} profile-has-bg{% endif %}" id="profile-root" data-theme-category="{{ appearance.theme_category|default:'classico' }}" data-theme-motif="{{ appearance.theme_motif|default:'none' }}"{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %}>
+
+    <!-- Toasts -->
+    {% for msg in success_messages %}
+    <div class="profile-toast success">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        {{ msg }}
+    </div>
+    {% endfor %}
+    {% for msg in error_messages %}
+    <div class="profile-toast error">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        {{ msg }}
+    </div>
+    {% endfor %}
+
+    <!-- Header do Perfil -->
+    <div class="profile-header profile-hero{% if profile.banner_url|safe_profile_image %} cosmetic-has-banner{% endif %}">
+        {% if profile.banner_url|safe_profile_image %}
+        <div class="profile-banner-media" style="background-image:url('{{ profile.banner_url|safe_profile_image }}');"></div>
+        {% endif %}
+        <div class="profile-avatar-wrapper profile-editor-avatar" id="profile-avatar-main">
+            {% if profile.avatar_url|safe_profile_image %}
+            <img src="{{ profile.avatar_url|safe_profile_image }}" alt="Avatar de {{ user.username }}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="profile-avatar-fallback" style="display:none;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            {% else %}
+            <div class="profile-avatar-fallback">
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+        {% endif %}
+        </div>
+        <div class="profile-hero-copy">
+        <p class="profile-kicker">Sua presença em Cinéria</p>
+        <h1 class="profile-username">{{ user.username }}</h1>
+        {% if profile.bio %}<p class="profile-bio-preview">{{ profile.bio }}</p>{% endif %}
+        {% if user.is_superuser %}
+        <span class="profile-role is-staff">Administrador</span>
+        {% elif user.is_staff %}
+        <span class="profile-role is-staff">Staff</span>
+        {% else %}
+        <span class="profile-role">{{ community.role_label|default:'Jogador' }}</span>
+        {% endif %}
+        <a href="{% url 'public_profile' user.username %}" class="profile-public-link">Ver perfil público <span aria-hidden="true">↗</span></a>
+        </div>
+    </div>
+
+    <nav class="mh-profile-tabs" aria-label="Abas do meu perfil">
+      <a href="{% url 'profile' %}"{% if request.GET.aba != 'mestre' %} aria-current="page"{% endif %}>Meu perfil</a>
+      <a href="{% url 'profile' %}?aba=mestre{% if master_demo %}&demo=1{% endif %}"{% if request.GET.aba == 'mestre' %} aria-current="page"{% endif %}>Mestre{% if community.status_mestre == 'pendente' %}<span>Em avaliação</span>{% endif %}</a>
+    </nav>
+    <div{% if request.GET.aba != 'mestre' %} hidden{% endif %}>{% if participation_form %}{% include 'home/partials/master_profile_editor.html' %}{% endif %}</div>
+    <div{% if request.GET.aba == 'mestre' %} hidden{% endif %}>
+    <nav class="profile-nav" aria-label="Áreas do meu perfil">
+        <a href="#perfil-identidade">Identidade</a><a href="#perfil-aparencia">Aparência</a><a href="#perfil-insignias">Insígnias</a><a href="#conquistas">Conquistas</a><a href="#perfil-comunidade">Comunidade</a><a href="#perfil-creditos">Créditos</a><a href="#perfil-seguranca">Segurança</a><a href="#perfil-discord">Discord</a>
+    </nav>
+    {% if local_accounts_preview %}<p class="profile-local-notice">Conta de demonstração. As alterações são salvas somente nesta cópia local.</p>{% endif %}
+
+    <!-- Seção: Dados do Perfil + PRÉVIA VIVA (coluna sticky à direita) -->
+    <form method="post" class="profile-section profile-editor" enctype="multipart/form-data" id="perfil-form" data-save-error="{{ error_messages|yesno:'true,false' }}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="update_profile">
+
+        <div class="perfil-editor-layout">
+        <div class="perfil-editor-main">
+        <section class="profile-editor-group" id="perfil-identidade">
+
+        <h2 class="profile-section-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Dados do Perfil
+        </h2>
+
+        <div class="profile-field">
+            <label class="profile-label" for="id_username">Nome de Usuário</label>
+            <input class="profile-input" type="text" id="id_username" name="username" value="{{ user.username }}" maxlength="30" minlength="3" required autocomplete="username">
+        </div>
+
+        <div class="profile-field">
+            <label class="profile-label" for="id_email">E-mail</label>
+            <input class="profile-input" type="email" id="id_email" name="email" value="{{ user.email|default:'' }}" placeholder="voce@email.com" autocomplete="email">
+            <span class="avatar-preview-hint">Usado para entrar com e-mail e para vincular suas compras de colaborador (Asaas). Use o mesmo e-mail do pagamento.</span>
+            {% if user.email %}{% if profile.email_verified %}
+            <span class="avatar-preview-hint" style="color:#22c55e">✓ E-mail confirmado.</span>
+            {% else %}
+            <span class="avatar-preview-hint" style="color:var(--flame)">E-mail ainda não confirmado — veja abaixo.</span>
+            {% endif %}{% endif %}
+        </div>
+
+        <div class="profile-field">
+            <label class="profile-label" for="id_bio">Bio publica</label>
+            <textarea class="profile-input profile-textarea" id="id_bio" name="bio" rows="3" maxlength="800" placeholder="Uma frase curta sobre voce, seus personagens ou suas mesas...">{{ profile.bio|default:'' }}</textarea>
+        </div>
+        </section>
+
+        <section class="profile-editor-group" id="perfil-aparencia">
+        <h2 class="profile-section-title">Aparência do perfil</h2>
+        <p><a class="cw-atelier-link" href="{% url 'cosmetic_discovery' %}" target="_blank" rel="noopener">Explorar cosméticos ↗</a></p>
+        <div class="profile-field">
+            <label class="profile-label" for="id_avatar_url">Foto de Perfil (URL da imagem)</label>
+            <input class="profile-input" type="url" id="id_avatar_url" name="avatar_url" value="{{ profile.avatar_url|default:'' }}" placeholder="https://i.imgur.com/sua-foto.png" autocomplete="off">
+            <label class="profile-file-drop" for="id_avatar_file">
+                <span>Enviar imagem ou GIF</span>
+                <input type="file" id="id_avatar_file" name="avatar_file" accept="image/png,image/jpeg,image/webp,image/gif">
+            </label>
+            <div class="avatar-preview-row">
+                <img id="avatar-preview-img" class="avatar-preview-small"
+                     src="{{ profile.avatar_url|safe_profile_image }}"
+                     alt="Preview"
+                     style="{% if not profile.avatar_url|safe_profile_image %}display:none;{% endif %}"
+                     onerror="this.style.display='none';">
+                <span class="avatar-preview-hint">Cole um link ou envie um arquivo. Upload substitui a URL.</span>
+            </div>
+            {% if profile.avatar_url %}
+            <label class="profile-inline-check"><input type="checkbox" name="clear_avatar"> Remover foto atual</label>
+            {% endif %}
+        </div>
+
+        <div class="profile-field">
+            <label class="profile-label" for="id_banner_url">Banner do Perfil (URL da imagem ou GIF)</label>
+            <input class="profile-input" type="url" id="id_banner_url" name="banner_url" value="{{ profile.banner_url|default:'' }}" placeholder="https://.../banner.gif" autocomplete="off">
+            <label class="profile-file-drop" for="id_banner_file">
+                <span>Enviar banner ou GIF</span>
+                <input type="file" id="id_banner_file" name="banner_file" accept="image/png,image/jpeg,image/webp,image/gif">
+            </label>
+            <div class="banner-preview-box" id="banner-preview-box" style="{% if profile.banner_url|safe_profile_image %}background-image:url('{{ profile.banner_url|safe_profile_image }}');{% else %}display:none;{% endif %}"></div>
+            <span class="avatar-preview-hint">GIFs e imagens estaticas funcionam para todos os usuarios.</span>
+            {% if profile.banner_url %}
+            <label class="profile-inline-check"><input type="checkbox" name="clear_banner"> Remover banner atual</label>
+            {% endif %}
+        </div>
+
+        <div class="profile-field">
+            <label class="profile-label" for="id_background_url">Imagem de Fundo da Página (URL da imagem ou GIF)</label>
+            <input class="profile-input" type="url" id="id_background_url" name="background_url" value="{{ profile.background_url|default:'' }}" placeholder="https://.../fundo.jpg" autocomplete="off">
+            <label class="profile-file-drop" for="id_background_file">
+                <span>Enviar fundo ou GIF</span>
+                <input type="file" id="id_background_file" name="background_file" accept="image/png,image/jpeg,image/webp,image/gif">
+            </label>
+            <div class="banner-preview-box" id="background-preview-box" style="aspect-ratio:16/6;{% if profile.background_url|safe_profile_image %}background-image:url('{{ profile.background_url|safe_profile_image }}');{% else %}display:none;{% endif %}"></div>
+            <span class="avatar-preview-hint">Preenche o fundo da sua pagina de perfil (cover, fixo). Um overlay escuro mantem os cartoes legiveis.</span>
+            {% if profile.background_url %}
+            <label class="profile-inline-check"><input type="checkbox" name="clear_background"> Remover fundo atual</label>
+            {% endif %}
+        </div>
+
+
+
+        <div class="profile-cosmetic-launchers">
+            <div class="profile-field">
+                {% cosmetic_catalog appearance_theme_options 'tema' 'id_profile_theme' 'profile_theme' appearance.theme_key 'perfil' 'Tema' 'profile-input' %}
+                {% if locked_theme_preference %}<label class="profile-inline-check"><input type="checkbox" name="clear_locked_profile_theme"> Esquecer tema Colab guardado</label>{% endif %}
+            </div>
+            <div class="profile-field">
+                {% cosmetic_catalog appearance_frame_options 'moldura' 'id_avatar_frame' 'avatar_frame' appearance.frame_key 'perfil' 'Moldura' 'profile-input' %}
+                {% if locked_frame_preference %}<label class="profile-inline-check"><input type="checkbox" name="clear_locked_avatar_frame"> Esquecer moldura Colab guardada</label>{% endif %}
+            </div>
+            <div class="profile-field">
+                {% cosmetic_catalog appearance_effect_options 'efeito' 'id_profile_effect' 'profile_effect' appearance.effect_key 'perfil' 'Efeito' 'profile-input' %}
+                {% if locked_effect_preference %}<label class="profile-inline-check"><input type="checkbox" name="clear_locked_profile_effect"> Esquecer efeito Colab guardado</label>{% endif %}
+            </div>
+        </div>
+
+        {# Cores do tema Personalizado — aparecem quando Tema = Personalizado #}
+        {% if colab_cosmetic_locked %}
+        <p class="avatar-preview-hint">Cosméticos Colab exigem assinatura ativa e Discord vinculado a esta conta. {% if not profile.discord_user_id and discord_oauth_on %}<a href="{% url 'discord_login' %}?next=/perfil/">Conectar Discord</a>{% endif %}</p>
+        {% endif %}
+        <div class="profile-appearance-grid custom-theme-controls" id="profile-custom-controls" style="{% if not appearance.is_custom %}display:none;{% endif %}margin-top:.5rem">
+            <label class="profile-field"><span class="profile-label">Destaque</span><input type="color" class="profile-input" name="custom_accent" id="id_custom_accent" value="{{ appearance.custom.accent }}"></label>
+            <label class="profile-field"><span class="profile-label">Destaque 2</span><input type="color" class="profile-input" name="custom_accent2" id="id_custom_accent2" value="{{ appearance.custom.accent2 }}"></label>
+            <label class="profile-field"><span class="profile-label">Superfície</span><input type="color" class="profile-input" name="custom_surface" id="id_custom_surface" value="{{ appearance.custom.surface }}"></label>
+            <label class="profile-field"><span class="profile-label">Fundo</span><input type="color" class="profile-input" name="custom_deep" id="id_custom_deep" value="{{ appearance.custom.deep }}"></label>
+            <label class="profile-inline-check" style="grid-column:1/-1"><input type="checkbox" name="custom_gradiente" id="id_custom_gradiente" {% if appearance.custom.gradiente %}checked{% endif %}> Degradê animado no destaque</label>
+        </div>
+
+        </section>
+        <section class="profile-editor-group" id="perfil-acessibilidade">
+        <h2 class="profile-section-title">Acessibilidade</h2>
+        <div class="profile-field">
+            <div class="profile-checkbox-group">
+                <input type="checkbox" id="id_vlibras_enabled" name="vlibras_enabled" {% if profile.vlibras_enabled %}checked{% endif %}>
+                <label class="profile-checkbox-label" for="id_vlibras_enabled">
+                    <span class="profile-checkbox-title">Habilitar VLibras</span>
+                    <span class="profile-checkbox-desc">Ativa o tradutor de Libras (Língua Brasileira de Sinais) no site.</span>
+                </label>
+            </div>
+        </div>
+
+        </section>
+
+        <!-- Seção: Badges & Títulos (mesmo form/action update_profile) -->
+        <div class="profile-badges-editor" id="perfil-insignias">
+            <h3 class="profile-subsection-title">Badges &amp; Títulos</h3>
+
+            <div class="profile-field">
+                <label class="profile-label" for="id_titulo_equipado">Título sob o nome</label>
+                <select class="profile-input" name="titulo_equipado" id="id_titulo_equipado">
+                    <option value="" {% if not titulo_equipado_slug %}selected{% endif %}>Nenhum</option>
+                    {% for t in titulos_disponiveis %}
+                    <option value="{{ t.slug }}" {% if t.slug == titulo_equipado_slug %}selected{% endif %}>{{ t.nome }}</option>
+                    {% endfor %}
+                </select>
+                {% if not titulos_disponiveis %}
+                <span class="avatar-preview-hint">Você ainda não tem títulos. Eles são concedidos por conquistas e eventos.</span>
+                {% endif %}
+            </div>
+
+            <div class="profile-field">
+                <span class="profile-label">Insígnias em destaque na vitrine <span class="avatar-preview-hint" style="text-transform:none;letter-spacing:0">(até 6, aparecem primeiro no seu perfil)</span></span>
+                {% if badges_concedidas %}
+                <div class="profile-badge-picker">
+                    {% for b in badges_concedidas %}
+                    <label class="profile-badge-pick {{ b.classe }}" title="{{ b.tooltip }}">
+                        <input type="checkbox" name="badges_destaque" value="{{ b.slug }}" {% if b.slug in badges_destaque_slugs %}checked{% endif %}>
+                        {% if b.icone_asset %}<img class="profile-badge-icon" src="{{ b.icone_asset }}" alt="" loading="lazy">{% elif b.icone %}<span class="profile-badge-emoji" aria-hidden="true">{{ b.icone }}</span>{% endif %}
+                        <span class="profile-badge-name">{{ b.nome }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <span class="avatar-preview-hint">Você ainda não tem insígnias concedidas. As automáticas (Equipe, Apoiador, Fundador) já aparecem sozinhas no seu perfil.</span>
+                {% endif %}
+                {% if badges_derivadas %}
+                <input type="hidden" name="badges_visibilidade_enviada" value="1">
+                <span class="profile-label" style="margin-top:.65rem">Insígnias automáticas visíveis</span>
+                <div class="profile-badge-picker profile-badges-derivadas-preview">
+                    {% for b in badges_derivadas %}
+                    <label class="profile-badge-pick {{ b.classe }}" title="{{ b.tooltip }}">
+                        <input type="checkbox" name="badges_derivadas_visiveis" value="{{ b.slug }}" {% if b.slug == 'staff' or b.slug not in badges_derivadas_ocultas_slugs %}checked{% endif %} {% if b.slug == 'staff' %}disabled{% endif %}>
+                        {% if b.icone %}<span class="profile-badge-emoji" aria-hidden="true">{{ b.icone }}</span>{% endif %}
+                        <span class="profile-badge-name">{{ b.nome }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+                <span class="avatar-preview-hint">Equipe é obrigatória. Fundador e as demais automáticas podem ser ocultadas.</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Seção: Conquistas (progresso — só leitura; concessão é manual/staff) -->
+        <div class="profile-badges-editor" id="conquistas">
+            <h3 class="profile-subsection-title">Conquistas
+                <span class="avatar-preview-hint" style="text-transform:none;letter-spacing:0">({{ conquistas.obtidas_count }} / {{ conquistas.total }})</span>
+            </h3>
+            <p><a href="{% url 'conquista_notificacoes' %}">Notificações de conquistas{% if conquistas_nao_lidas %} ({{ conquistas_nao_lidas }}){% endif %}</a></p>
+            {% if conquistas.obtidas or conquistas.bloqueadas %}
+            <ul class="conquista-grid">
+                {% for c in conquistas.obtidas %}
+                {% include 'home/partials/_conquista_item.html' with notification_anchor=True %}
+                {% endfor %}
+                {% for c in conquistas.bloqueadas %}
+                {% include 'home/partials/_conquista_item.html' with notification_anchor=True %}
+                {% endfor %}
+            </ul>
+            {% include 'home/partials/_conquista_evidencias_privadas.html' %}
+            {% else %}
+            <span class="avatar-preview-hint">Nenhuma conquista disponível ainda. Elas são concedidas pela equipe.</span>
+            {% endif %}
+        </div>
+
+        {% comment %}Seção: Social (curtir/seguir) — só leitura. Contagens + listas simples,
+        colapsáveis. Sem feed por enquanto: aqui o dono vê QUEM interagiu.{% endcomment %}
+        <div class="profile-badges-editor" id="perfil-comunidade">
+            <h3 class="profile-subsection-title">Curtidas &amp; Seguidores</h3>
+            <div class="profile-social profile-social-own">
+                <span class="profile-social-stat"><strong>{{ social.curtidas }}</strong> curtida{{ social.curtidas|pluralize }}</span>
+                <span class="profile-social-stat"><strong>{{ social.seguidores }}</strong> seguidor{{ social.seguidores|pluralize:"es" }}</span>
+                <span class="profile-social-stat"><strong>{{ social.seguindo }}</strong> seguindo</span>
+            </div>
+            <div class="profile-social-lists">
+                <details class="profile-social-list">
+                    <summary>Seguidores ({{ social.seguidores }})</summary>
+                    {% if social_seguidores %}
+                    <ul>
+                        {% for p in social_seguidores %}
+                        <li>
+                            <a href="{% url 'public_profile' p.username %}">
+                                {% if p.avatar_url %}<img src="{{ p.avatar_url }}" alt="" loading="lazy">{% else %}<span class="profile-social-initial" aria-hidden="true">{{ p.username|first|upper }}</span>{% endif %}
+                                <span>{{ p.username }}</span>
+                            </a>
+                            <em>{{ p.desde|date:'d/m/Y' }}</em>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="avatar-preview-hint">Ninguém te segue ainda.</p>
+                    {% endif %}
+                </details>
+                <details class="profile-social-list">
+                    <summary>Seguindo ({{ social.seguindo }})</summary>
+                    {% if social_seguindo %}
+                    <ul>
+                        {% for p in social_seguindo %}
+                        <li>
+                            <a href="{% url 'public_profile' p.username %}">
+                                {% if p.avatar_url %}<img src="{{ p.avatar_url }}" alt="" loading="lazy">{% else %}<span class="profile-social-initial" aria-hidden="true">{{ p.username|first|upper }}</span>{% endif %}
+                                <span>{{ p.username }}</span>
+                            </a>
+                            <em>{{ p.desde|date:'d/m/Y' }}</em>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="avatar-preview-hint">Você ainda não segue ninguém. Visite o <a href="{% url 'jogadores' %}">catálogo de jogadores</a>.</p>
+                    {% endif %}
+                </details>
+                <details class="profile-social-list">
+                    <summary>Curtiram seu perfil ({{ social.curtidas }})</summary>
+                    {% if social_curtidas %}
+                    <ul>
+                        {% for p in social_curtidas %}
+                        <li>
+                            <a href="{% url 'public_profile' p.username %}">
+                                {% if p.avatar_url %}<img src="{{ p.avatar_url }}" alt="" loading="lazy">{% else %}<span class="profile-social-initial" aria-hidden="true">{{ p.username|first|upper }}</span>{% endif %}
+                                <span>{{ p.username }}</span>
+                            </a>
+                            <em>{{ p.desde|date:'d/m/Y' }}</em>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="avatar-preview-hint">Nenhuma curtida ainda.</p>
+                    {% endif %}
+                </details>
+            </div>
+        </div>
+
+<div class="profile-save-bar"><span>Pronto para mostrar sua história?</span>
+        <button type="submit" class="profile-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Salvar Perfil
+        </button>
+        </div>
+
+        </div>{# /.perfil-editor-main #}
+
+
+        </div>{# /.perfil-editor-layout #}
+    </form>
+
+    <div class="profile-account-grid">
+    <section id="perfil-creditos" class="profile-section profile-credits" aria-labelledby="social-credit-heading">
+        <h2 class="profile-section-title" id="social-credit-heading">Créditos de contribuição</h2>
+        <p>Saldo: <strong>{{ social_credit_balance }}</strong></p>
+        {% if not social_redemption_quotes %}<p>Prévia de resgate indisponível: a política ainda não foi ativada ou não há personagem elegível.</p>{% endif %}
+        {% if social_redemption_quotes %}
+        <h3>Resgate de aventura e recompensa</h3>
+        <p>Confira custo e benefício antes de confirmar. O resgate debita créditos e entrega a recompensa ao personagem escolhido.</p>
+        <p>O ouro exibido é bruto; dívidas vencidas podem reter parte dele, conforme as regras da carteira.</p>
+        <ul>
+            {% for quote in social_redemption_quotes %}
+            <li>{{ quote.character.nome }}: 1 aventura e {{ quote.gold_pc }} PC por {{ quote.cost }} créditos.
+                {% if quote.progression %}Conta para progressão.{% else %}Não conta para progressão.{% endif %}
+                Limite: {{ quote.period_limit }} em {{ quote.period_days }} dias e {{ quote.character_limit }} por personagem.
+                {% if not quote.affordable %}Saldo insuficiente.{% endif %}
+                {% if not quote.within_period_limit %}Limite do período atingido.{% endif %}
+                {% if not quote.within_character_limit %}Limite do personagem atingido.{% endif %}
+                Política {{ quote.policy_version }}; tabela de ouro: {{ quote.gold_source }}.
+                {% if quote.affordable and quote.within_period_limit and quote.within_character_limit %}
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="redeem_social_credit">
+                    <input type="hidden" name="character_id" value="{{ quote.character.pk }}">
+                    <input type="hidden" name="request_id" value="{{ quote.request_id }}">
+                    <button type="submit">Confirmar resgate para {{ quote.character.nome }}</button>
+                </form>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        {% if social_redemptions %}
+        <details class="profile-social-list">
+            <summary>Resgates anteriores</summary>
+            <ul>
+                {% for redemption in social_redemptions %}
+                <li>{{ redemption.created_at|date:'d/m/Y H:i' }} · {{ redemption.character.nome }} ·
+                    {{ redemption.cost }} créditos · {{ redemption.gold_pc }} PC ·
+                    política {{ redemption.policy.version }} ·
+                    {% if redemption.reversed_at %}estornado{% elif redemption.reversal_review_requested_at %}em revisão administrativa{% else %}entregue{% endif %}</li>
+                {% endfor %}
+            </ul>
+        </details>
+        {% endif %}
+        <details class="profile-social-list">
+            <summary>Histórico recente</summary>
+            {% if social_credit_entries %}
+            <ul>
+                {% for entry in social_credit_entries %}
+                <li class="social-credit-entry">{{ entry.created_at|date:'d/m/Y H:i' }} · {{ entry.kind }} · {{ entry.delta }} · {{ entry.operation_ref }}</li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p>Nenhum lançamento registrado.</p>
+            {% endif %}
+        </details>
+    </section>
+
+    {% if user.email and not profile.email_verified %}
+    <!-- Seção: Confirmar E-mail -->
+    <form method="post" class="profile-section">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="resend_verification">
+        <h2 class="profile-section-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            Confirmar E-mail
+        </h2>
+        <p class="avatar-preview-hint" style="margin-bottom:.5rem">Enviamos um link de confirmação para <strong style="color:var(--ember)">{{ user.email }}</strong>. Confirme para o e-mail valer (login e cobrança). Não recebeu?</p>
+        <button type="submit" class="profile-btn" style="background:transparent;border:1px solid var(--stroke)">Reenviar confirmação</button>
+    </form>
+    {% endif %}
+
+    {% if has_password %}
+    <!-- Seção: Alterar Senha -->
+    <form method="post" class="profile-section" id="perfil-seguranca">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="change_password">
+
+        <h2 class="profile-section-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Alterar Senha
+        </h2>
+
+        <div class="profile-field">
+            <label class="profile-label" for="id_current_password">Senha Atual</label>
+            <input class="profile-input" type="password" id="id_current_password" name="current_password" required autocomplete="current-password">
+        </div>
+
+        <div class="profile-field">
+            <label class="profile-label" for="id_new_password">Nova Senha</label>
+            <input class="profile-input" type="password" id="id_new_password" name="new_password" required minlength="6" autocomplete="new-password">
+        </div>
+
+        <div class="profile-field">
+            <label class="profile-label" for="id_confirm_password">Confirmar Nova Senha</label>
+            <input class="profile-input" type="password" id="id_confirm_password" name="confirm_password" required minlength="6" autocomplete="new-password">
+        </div>
+
+        <button type="submit" class="profile-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Alterar Senha
+        </button>
+    </form>
+    {% else %}
+    <!-- Seção: Definir Senha de Acesso (conta criada via Discord, sem senha) -->
+    <form method="post" class="profile-section" id="perfil-seguranca">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="set_password_initial">
+
+        <h2 class="profile-section-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Definir Senha de Acesso
+        </h2>
+
+        <p class="avatar-preview-hint" style="margin-bottom:.5rem">Você entrou pelo Discord, então ainda não tem senha. Confirme seu <strong>e-mail</strong> acima e defina uma senha para também poder entrar com e-mail/usuário — sem depender do Discord.</p>
+
+        <div class="profile-field">
+            <label class="profile-label" for="id_new_password">Nova Senha</label>
+            <input class="profile-input" type="password" id="id_new_password" name="new_password" required minlength="6" autocomplete="new-password">
+        </div>
+
+        <div class="profile-field">
+            <label class="profile-label" for="id_confirm_password">Confirmar Senha</label>
+            <input class="profile-input" type="password" id="id_confirm_password" name="confirm_password" required minlength="6" autocomplete="new-password">
+        </div>
+
+        <button type="submit" class="profile-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Definir Senha
+        </button>
+    </form>
+    {% endif %}
+
+    <!-- Seção: Conta do Discord -->
+    <div class="profile-section" id="perfil-discord">
+        <h2 class="profile-section-title">
+            <svg width="16" height="16" viewBox="0 0 127.14 96.36" fill="currentColor" aria-hidden="true"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>
+            Conta do Discord
+        </h2>
+
+        {% if discord_msg == 'vinculado' %}<p class="profile-message profile-message-success">Conta do Discord vinculada!</p>
+        {% elif discord_msg == 'desvinculado' %}<p class="profile-message profile-message-success">Conta do Discord desvinculada.</p>
+        {% elif discord_msg == 'ja_vinculado' %}<p class="profile-message profile-message-error">Esse Discord já está vinculado a outra conta.</p>{% endif %}
+
+        {% if profile.discord_user_id %}
+            <p class="profile-label">Vinculado como <strong style="color:var(--ember)">{{ profile.discord_username|default:profile.discord_user_id }}</strong>.</p>
+            <p class="avatar-preview-hint">Seu rank e personagens do bot são sincronizados por este vínculo.</p>
+            <form method="post" action="{% url 'discord_unlink' %}" style="margin-top:.5rem">
+                {% csrf_token %}
+                <button type="submit" class="profile-btn" style="background:transparent;border:1px solid var(--stroke)">Desvincular Discord</button>
+            </form>
+        {% elif discord_oauth_on %}
+            <p class="avatar-preview-hint">Conecte seu Discord para sincronizar rank e personagens do bot, e poder entrar com um clique.</p>
+            <a href="{% url 'discord_login' %}?next=/perfil/" class="profile-btn" style="display:inline-flex;margin-top:.5rem;background:#5865F2;border:none">
+                <svg width="14" height="14" viewBox="0 0 127.14 96.36" fill="currentColor" aria-hidden="true"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07Z"/></svg>
+                Conectar Discord
+            </a>
+        {% else %}
+            <p class="avatar-preview-hint">Login com Discord indisponível no momento.</p>
+        {% endif %}
+    </div>
+
+</div>
+</div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const abrirConquistaDaNotificacao = () => {
+        const id = window.location.hash.slice(1);
+        if (!id.startsWith('conquista-')) return;
+        const card = document.getElementById(id);
+        if (!card || !card.closest('#conquistas')) return;
+        const detalhes = card.querySelector('details.conquista-info');
+        if (!detalhes) return;
+        detalhes.open = true;
+        requestAnimationFrame(() => {
+            card.scrollIntoView({ block: 'center' });
+            detalhes.querySelector('summary').focus({ preventScroll: true });
+        });
+    };
+    abrirConquistaDaNotificacao();
+    window.addEventListener('hashchange', abrirConquistaDaNotificacao);
+    const urlInput = document.getElementById('id_avatar_url');
+    const preview = document.getElementById('avatar-preview-img');
+    const avatarFile = document.getElementById('id_avatar_file');
+    const bannerUrl = document.getElementById('id_banner_url');
+    const bannerFile = document.getElementById('id_banner_file');
+    const bannerPreview = document.getElementById('banner-preview-box');
+
+    if (urlInput && preview) {
+        urlInput.addEventListener('input', () => {
+            const url = urlInput.value.trim();
+            if (url) {
+                preview.src = url;
+                preview.style.display = 'block';
+                preview.onerror = () => { preview.style.display = 'none'; };
+            } else {
+                preview.style.display = 'none';
+            }
+        });
+    }
+
+    if (avatarFile && preview) {
+        avatarFile.addEventListener('change', () => {
+            const file = avatarFile.files && avatarFile.files[0];
+            if (!file) return;
+            preview.src = URL.createObjectURL(file);
+            preview.style.display = 'block';
+        });
+    }
+
+    const setBanner = (url) => {
+        if (!bannerPreview) return;
+        if (url) {
+            bannerPreview.style.backgroundImage = `url("${url}")`;
+            bannerPreview.style.display = 'block';
+        } else {
+            bannerPreview.style.display = 'none';
+        }
+    };
+
+    if (bannerUrl) {
+        bannerUrl.addEventListener('input', () => setBanner(bannerUrl.value.trim()));
+    }
+    if (bannerFile) {
+        bannerFile.addEventListener('change', () => {
+            const file = bannerFile.files && bannerFile.files[0];
+            if (!file) return;
+            setBanner(URL.createObjectURL(file));
+        });
+    }
+
+    // --- Fundo da página (background) ---
+    const bgUrl = document.getElementById('id_background_url');
+    const bgFile = document.getElementById('id_background_file');
+    const bgPreview = document.getElementById('background-preview-box');
+    const setBg = (url) => {
+        if (!bgPreview) return;
+        if (url) { bgPreview.style.backgroundImage = `url("${url}")`; bgPreview.style.display = 'block'; }
+        else { bgPreview.style.display = 'none'; }
+    };
+    if (bgUrl) bgUrl.addEventListener('input', () => setBg(bgUrl.value.trim()));
+    if (bgFile) bgFile.addEventListener('change', () => {
+        const file = bgFile.files && bgFile.files[0];
+        if (file) setBg(URL.createObjectURL(file));
+    });
+
+    const themeSelect = document.getElementById('id_profile_theme');
+    const customBox = document.getElementById('profile-custom-controls');
+    const syncCustomControls = () => {
+        if (customBox) customBox.style.display = themeSelect && themeSelect.value === 'custom' ? '' : 'none';
+    };
+    if (themeSelect) themeSelect.addEventListener('change', syncCustomControls);
+    syncCustomControls();
+});
+</script>
+{% endblock %}

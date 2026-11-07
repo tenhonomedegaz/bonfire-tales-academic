@@ -1,0 +1,240 @@
+{% extends 'home/base.html' %}
+{% load static %}
+{% block body_class %}bft-journal bft-journal-list{% endblock %}
+{% block main_class %}flex-1 w-full min-w-0{% endblock %}
+{% block extra_head %}
+<style>
+.jornal-hero {
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(183, 99, 35, .24), transparent 65%),
+    linear-gradient(to bottom, #202024, #09090a);
+  background-size: cover;
+  border-bottom: 1px solid var(--stroke);
+  padding: 1.75rem 1.25rem 1.25rem;
+  text-align: center;
+}
+.jornal-hero-title {
+  color: #fff;
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-shadow: 0 4px 24px rgba(0,0,0,.8);
+  text-transform: uppercase;
+}
+.jornal-hero-sub {
+  color: var(--muted);
+  font-size: .85rem;
+  margin-top: .5rem;
+}
+.jornal-grid {
+  display: grid;
+  gap: .85rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  max-width: 1200px;
+  margin: 1.25rem auto;
+  padding: 0 1.25rem;
+}
+.jornal-card {
+  background: var(--bg1);
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: border-color .25s, transform .25s, box-shadow .25s;
+}
+.jornal-card:hover {
+  border-color: var(--ember);
+  box-shadow: 0 12px 40px rgba(0,0,0,.5);
+  transform: translateY(-3px);
+}
+.jornal-card.is-destaque {
+  grid-column: 1 / -1;
+}
+.jornal-card.is-destaque .jornal-card-cover {
+  min-height: 280px;
+}
+.jornal-card-cover {
+  background-color: #1a1a1e;
+  background-position: center;
+  background-size: cover;
+  min-height: 180px;
+  position: relative;
+}
+.jornal-card-cover::after {
+  background: linear-gradient(to top, rgba(0,0,0,.85) 0%, transparent 60%);
+  bottom: 0;
+  content: "";
+  height: 50%;
+  left: 0;
+  position: absolute;
+  right: 0;
+}
+.jornal-badge-destaque {
+  background: var(--ember);
+  border-radius: 4px;
+  color: #070707;
+  font-size: .6rem;
+  font-weight: 900;
+  left: 12px;
+  letter-spacing: .1em;
+  padding: 4px 8px;
+  position: absolute;
+  text-transform: uppercase;
+  top: 12px;
+  z-index: 1;
+}
+.jornal-card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: .4rem;
+  padding: .75rem;
+}
+.jornal-card-title {
+  color: #fff;
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+.jornal-card-summary {
+  color: var(--muted);
+  font-size: .82rem;
+  line-height: 1.45;
+  flex: 1;
+}
+.jornal-card-meta {
+  align-items: center;
+  border-top: 1px solid var(--stroke);
+  color: var(--muted);
+  display: flex;
+  font-size: .7rem;
+  gap: .4rem;
+  margin-top: .4rem;
+  padding-top: .5rem;
+}
+.jornal-card-meta .author {
+  color: var(--ember);
+  font-weight: 700;
+}
+.jornal-actions {
+  display: flex;
+  justify-content: center;
+  padding: .7rem;
+}
+.jornal-new-btn {
+  align-items: center;
+  background: var(--ember);
+  border-radius: 6px;
+  color: #070707;
+  display: inline-flex;
+  font-size: .78rem;
+  font-weight: 900;
+  gap: .4rem;
+  letter-spacing: .06em;
+  padding: .55rem .9rem;
+  text-transform: uppercase;
+  transition: background .2s, transform .2s;
+}
+.jornal-new-btn:hover {
+  background: var(--flame);
+  transform: translateY(-1px);
+}
+.jornal-empty {
+  color: var(--muted);
+  font-size: .9rem;
+  grid-column: 1 / -1;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+}
+.jornal-pagination {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  justify-content: center;
+  margin: 1rem auto 2rem;
+  padding: 0 1.25rem;
+}
+.jornal-pagination a {
+  border: 1px solid var(--stroke);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: .85rem;
+  font-weight: 700;
+  padding: .55rem .8rem;
+}
+.jornal-pagination a:hover,
+.jornal-pagination a:focus-visible { border-color: var(--ember); color: var(--ember); }
+.jornal-pagination span { color: var(--muted); font-size: .85rem; }
+@media (prefers-reduced-motion: reduce) {
+  .jornal-card,
+  .jornal-new-btn { transition: none; }
+  .jornal-card:hover,
+  .jornal-new-btn:hover { transform: none; }
+}
+</style>
+<link rel="stylesheet" href="{% static 'css/pages/journal-redesign.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'css/pages/journal-newspaper.css' %}?v=1">
+{% endblock %}
+
+{% block content %}<section class="journal-edition" aria-labelledby="journalTitle">
+{% include 'home/partials/journal_preview_notice.html' %}
+<header class="jornal-hero">
+  <div class="journal-masthead-top"><span>Bonfire Tales RPG</span><span>Notícias de um mundo vivo</span></div>
+  <div class="journal-masthead-main"><span class="journal-mark"><img src="{% static 'brand/icon.png' %}" alt="" width="72" height="72"></span><div><p class="journal-kicker">Histórias que atravessam Cinéria</p>
+  <h1 class="jornal-hero-title" id="journalTitle">Jornal de Cinéria</h1>
+  <p class="jornal-hero-sub">As últimas notícias, relatos e acontecimentos do mundo vivo.</p></div></div>
+  <div class="journal-masthead-bottom"><span>Entre uma aventura e outra, o mundo continua.</span><a href="{% url 'mundo_regioes' %}">Explore os territórios <span aria-hidden="true">↗</span></a></div>
+</header>
+
+{% if can_edit_wiki %}
+<div class="jornal-actions">
+  <a href="{% url 'jornal_create' %}" class="jornal-new-btn">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+    Publicar Novo Artigo
+  </a>
+</div>
+{% endif %}
+
+<div class="jornal-grid">
+  {% for artigo in artigos %}
+  <a href="{% url 'jornal_detail' slug=artigo.slug %}" class="jornal-card {% if artigo.destaque %}is-destaque{% endif %}{% if artigo.safe_image_url %} has-cover{% else %} no-cover{% endif %}">
+    <div class="journal-card-heading">
+      <div class="journal-card-rubric">{% if artigo.destaque %}<span class="jornal-badge-destaque">Destaque</span>{% else %}<span>Reportagem</span>{% endif %}</div>
+      <h2 class="jornal-card-title">{{ artigo.titulo }}</h2>
+      <div class="jornal-card-meta">
+        <span class="author">{{ artigo.autor.username|default:"Redação" }}</span>
+        <span>&middot;</span>
+        <span>{{ artigo.data_publicacao|date:"d M Y" }}</span>
+      </div>
+    </div>
+    {% if artigo.safe_image_url %}<div class="jornal-card-cover"><img class="journal-print-image" src="{{ artigo.safe_image_url }}" alt="" loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"></div>{% endif %}
+    <div class="jornal-card-body">
+      {% if artigo.resumo %}
+      <p class="jornal-card-summary">{{ artigo.resumo }}</p>
+      {% endif %}
+      <span class="journal-read-link">Ler reportagem <span aria-hidden="true">→</span></span>
+    </div>
+  </a>
+  {% empty %}
+  <div class="jornal-empty">
+    <span class="journal-empty-mark">{% include 'home/partials/journal_mark.html' %}</span>
+    <p class="journal-kicker">As prensas estão silenciosas… por enquanto.</p>
+    <h3>A próxima notícia ainda está por ser escrita.</h3>
+    <p>Quando uma nova reportagem for publicada, ela aparecerá aqui. Enquanto isso, conheça os lugares e as histórias de Cinéria.</p>
+    <div class="journal-empty-links"><a href="{% url 'mundo_regioes' %}">Explorar territórios →</a><a href="{% url 'mundo_cronicas' %}">Ler crônicas</a></div>
+  </div>
+  {% endfor %}
+</div>
+{% if page_obj.has_other_pages %}
+<nav class="jornal-pagination" aria-label="Páginas do Jornal">
+  {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" rel="prev">Artigos mais recentes</a>{% endif %}
+  <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+  {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" rel="next">Artigos anteriores</a>{% endif %}
+</nav>
+{% endif %}
+<footer class="journal-paper-footer"><span>Bonfire Tales RPG · Jornal de Cinéria</span><span aria-hidden="true">◆</span><span>Entre uma aventura e outra, o mundo continua.</span></footer>
+</section>{% endblock %}

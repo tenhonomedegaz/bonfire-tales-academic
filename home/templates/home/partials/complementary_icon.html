@@ -1,0 +1,8 @@
+<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+{% if kind == 'search' %}<circle cx="14" cy="14" r="9"/><path d="m21 21 7 7M10 14h8m-4-4v8"/>
+{% elif kind == 'bell' %}<path d="M6 23h20l-3-5v-7a7 7 0 0 0-14 0v7zM13 27a3 3 0 0 0 6 0M16 2v2"/>
+{% elif kind == 'mail' %}<rect x="3" y="6" width="26" height="20" rx="2"/><path d="m3 8 13 10L29 8M3 25l9-10m17 10-9-10"/>
+{% elif kind == 'shield' %}<path d="m16 3 11 5v9c0 7-11 12-11 12S5 24 5 17V8zM11 16l4 4 7-8"/>
+{% elif kind == 'book' %}<path d="M16 8C10 3 3 5 3 5v22s7-2 13 2c6-4 13-2 13-2V5s-7-2-13 3v21M7 11h5m-5 5h5m-5 5h5m8-10h5m-5 5h5m-5 5h5"/>
+{% else %}<path d="M18 3c1 8-8 10-4 17 1-3 4-4 6-7 1 5 6 9 3 14-3 5-12 5-15-1-4-8 3-14 5-18 0 4 3 5 5-5z"/>{% endif %}
+</svg>

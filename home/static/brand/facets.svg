@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" fill="none" stroke="#B31515" stroke-width=".8">
+  <!-- Decorative faceted linework, not a substitute for the official logo. -->
+  <path d="M150 12 270 82 270 218 150 288 30 218 30 82Z M150 12 150 94 30 82 98 184 30 218 M270 82 150 94 202 184 270 218 M150 288 98 184 202 184 150 288 M150 94 98 184 M150 94 202 184 M30 82 150 288 270 82 M150 12 30 218 270 218 150 12"/>
+  <path d="M150 2v6 M150 292v6 M6 150h14 M280 150h14" stroke="#FF6A00"/>
+</svg>

@@ -1,0 +1,291 @@
+:root {
+      --bg0: #09090A;
+      --bg1: #101012;
+      --card-glass: rgba(20, 20, 23, 0.7);
+      --stroke: #27272A;
+      --text: #EDEDED;
+      --muted: #A1A1AA;
+      --ember: #F27007;
+      --flame: #D21717;
+      --spark: #F7B113;
+    }
+    
+    html,
+    body {
+      max-width: 100%;
+      font-size: 13px;
+    }
+
+    body {
+      background-color: var(--bg0);
+      color: var(--text);
+      font-family: 'Open Sans', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Native dropdown menus must remain legible in the site's dark theme. */
+    body select { color-scheme: dark; }
+    body select option,
+    body select optgroup {
+      background-color: #18181B;
+      color: var(--text);
+    }
+    body select option:disabled { color: var(--muted); }
+    body select:focus-visible {
+      outline: 2px solid var(--ember);
+      outline-offset: 2px;
+    }
+
+    /* Global Noise Texture */
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)" opacity="0.4"/%3E%3C/svg%3E');
+      opacity: 0.08;
+      pointer-events: none;
+      z-index: 9999;
+      mix-blend-mode: overlay;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 10px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg0);
+      border-left: 1px solid var(--stroke);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #333;
+      border: 2px solid var(--bg0);
+      border-radius: 5px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--muted);
+    }
+
+    .custom-scrollbar::-webkit-scrollbar {
+      height: 8px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: var(--bg0);
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: var(--stroke);
+      border-radius: 4px;
+    }
+
+    /* Standard Markdown Colors (matches markdown.js aliases) */
+    .bonfire-color-black { color: #111827 !important; }
+    .bonfire-color-dark-blue { color: #2563eb !important; }
+    .bonfire-color-dark-green { color: #16a34a !important; }
+    .bonfire-color-dark-aqua { color: #0891b2 !important; }
+    .bonfire-color-dark-red { color: #dc2626 !important; }
+    .bonfire-color-dark-purple { color: #9333ea !important; }
+    .bonfire-color-gold { color: #f59e0b !important; }
+    .bonfire-color-gray { color: #9ca3af !important; }
+    .bonfire-color-dark-gray { color: #6b7280 !important; }
+    .bonfire-color-blue { color: #60a5fa !important; }
+    .bonfire-color-green { color: #22c55e !important; }
+    .bonfire-color-aqua { color: #22d3ee !important; }
+    .bonfire-color-red { color: #ef4444 !important; }
+    .bonfire-color-light-purple { color: #c084fc !important; }
+    .bonfire-color-yellow { color: #facc15 !important; }
+    .bonfire-color-white { color: #ffffff !important; }
+    .bonfire-color-ember { color: var(--ember) !important; }
+    .bonfire-color-flame { color: var(--flame) !important; }
+    .bonfire-color-spark { color: var(--spark) !important; }
+    .bonfire-color-muted { color: var(--muted) !important; }
+    .bonfire-color-page { color: var(--territory-color, var(--ember)) !important; }
+    
+    .bonfire-markdown span[class^="bonfire-color-"] strong {
+      color: inherit;
+    }
+    .bonfire-markdown span[class^="bonfire-color-"] em {
+      color: inherit;
+    }
+
+    /* 5e-tools style tables for markdown */
+    .bonfire-markdown table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 11px;
+      margin: 0.6rem 0;
+    }
+    .bonfire-markdown th {
+      background: #3a0b0b;
+      color: #ffffff;
+      font-weight: 800;
+      text-transform: uppercase;
+      padding: 0.4rem 0.55rem;
+      text-align: left;
+      border: 1px solid var(--stroke);
+    }
+    .bonfire-markdown td {
+      border: 1px solid var(--stroke);
+      padding: 0.4rem 0.55rem;
+    }
+    .bonfire-markdown tr:nth-child(even) td {
+      background: var(--bg2);
+    }
+
+    /* 5e-tools base typography for markdown */
+    .bonfire-markdown strong { color: var(--text); font-weight: 800; }
+    .bonfire-markdown p {
+      margin-bottom: 0.6rem;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    .bonfire-markdown {
+      max-width: 100%;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    .bonfire-markdown h1 { font-size: 1.25rem; font-weight: 800; margin: 0.9rem 0 0.4rem; }
+    .bonfire-markdown h2 { font-size: 1.1rem; font-weight: 700; margin: 0.7rem 0 0.35rem; }
+    .bonfire-markdown h3 { font-size: 0.95rem; font-weight: 700; margin: 0.65rem 0 0.3rem; }
+    .bonfire-markdown h4 { font-size: 0.85rem; font-weight: 700; margin: 0.6rem 0 0.25rem; }
+    .bonfire-markdown ul,
+    .bonfire-markdown ol { padding-left: 1.4rem; margin-bottom: 0.6rem; }
+    .bonfire-markdown ul { list-style: disc outside; }
+    .bonfire-markdown ul ul { list-style: circle outside; }
+    .bonfire-markdown ol { list-style: decimal outside; }
+    .bonfire-markdown li + li { margin-top: 0.25rem; }
+    .bonfire-markdown blockquote {
+      border-left: 3px solid var(--ember);
+      padding-left: 0.85rem;
+      color: var(--muted);
+      margin: 0.6rem 0;
+    }
+    .bonfire-markdown a { color: var(--spark); text-decoration: underline; }
+    .bonfire-markdown code {
+      background: var(--bg0);
+      border: 1px solid var(--stroke);
+      border-radius: 4px;
+      padding: 0 0.35rem;
+      font-size: 0.9em;
+    }
+    .bonfire-center {
+      text-align: center;
+      font-weight: 800;
+      color: var(--text);
+    }
+    .bonfire-toggle { margin: 0.6rem 0; }
+    .bonfire-toggle summary {
+      border: 1px solid var(--ember);
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      padding: 7px 12px;
+      text-transform: uppercase;
+    }
+    .bonfire-toggle summary::marker,
+    .bonfire-toggle summary::-webkit-details-marker { display: none; }
+    .bonfire-toggle-content {
+      border: 1px solid var(--stroke);
+      border-radius: 6px;
+      margin-top: 0.45rem;
+      padding: 0.5rem 0.7rem;
+      background: var(--bg0);
+    }
+
+    [x-cloak] { display: none !important; }
+
+    /* Utility: Bonfire Underline (The Identity) */
+    .bonfire-underline {
+      position: relative;
+      display: inline-block;
+    }
+    .bonfire-underline::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: -4px;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent 0%, var(--flame) 30%, var(--ember) 70%, transparent 100%);
+      opacity: 0.8;
+    }
+
+    /* Utility: Glass Card */
+    .glass-card {
+      background: var(--card-glass);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Utility: Text Gradient */
+    .text-gradient {
+      background: linear-gradient(to right, var(--text) 20%, var(--muted) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .font-rpg {
+      font-family: 'Frank Ruhl Libre', serif;
+    }
+
+    /* Custom Toggle Blocks (::toggle) Styles */
+    .bonfire-h1-lore {
+      color: #fff;
+      font-family: 'Frank Ruhl Libre', serif;
+      font-size: 1.5rem;
+      font-weight: 900;
+      margin: 1.1rem 0 0.6rem;
+      text-transform: uppercase;
+    }
+    .h1-group-panel { display: none; }
+    .h1-group-panel.is-visible { display: block; animation: fadeTopic .3s ease both; }
+
+    @keyframes fadeTopic {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .subtopic-btn {
+      background: var(--bg1);
+      border: 1px solid var(--stroke);
+      border-radius: 4px;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: .75rem;
+      font-weight: 700;
+      padding: .4rem .7rem;
+      text-transform: uppercase;
+      transition: all .2s;
+    }
+    .subtopic-btn:hover {
+      border-color: var(--spark);
+      color: var(--spark);
+    }
+    .subtopic-btn.is-active {
+      background: color-mix(in srgb, var(--ember) 15%, transparent);
+      border-color: var(--spark);
+      color: var(--spark);
+    }
+    .subtopic-body-title {
+      font-family: 'Frank Ruhl Libre', serif;
+      font-size: .95rem;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+    .subtopic-body-title::after {
+      content: " \2014 ";
+      color: var(--muted);
+      font-weight: 400;
+    }
+    .h1-group-panel .bonfire-markdown p:first-child {
+      display: inline;
+    }

@@ -1,0 +1,165 @@
+/* Bonfire talent catalogue. Scoped to avoid changing other rulebooks. */
+body.bft-talents {
+  --bg0: #0a0a0a; --bg1: #131112; --bg2: #201416; --stroke: #422326;
+  --text: #f2eee8; --muted: #b9b3b3; --ember: #b31515; --flame: #ff6a00;
+  background: #0a0a0a; color: var(--text); font-family: 'Open Sans', sans-serif;
+}
+.bft-talents .bft-header { border-bottom-color: #572023; }
+.bft-talents .bft-footer { border-top-color: #572023; }
+.bft-talents .bft-talents-main { max-width: 1400px; margin: 0 auto; padding: 22px 28px 48px; min-width: 0; }
+.bft-talents .talent-page, .bft-talents .talent-main-grid, .bft-talents .talent-detail-body { min-width: 0; }
+.bft-talents .talent-page [hidden] { display: none !important; }
+.bft-talents .talent-masthead { position: relative; overflow: hidden; border: 1px solid #693034; border-top: 2px solid #b31515; background: #161011; margin-bottom: 20px; }
+.bft-talents .talent-masthead-copy { position: relative; z-index: 1; padding: 16px 24px 20px; }
+.bft-talents .talent-breadcrumb { display: flex; flex-wrap: wrap; gap: 9px; font-size: .76rem; letter-spacing: .08em; text-transform: uppercase; color: #c5b0ad; }
+.bft-talents .talent-breadcrumb a:hover { color: #fff; }
+.bft-talents .talent-masthead h1 { font-family: 'Frank Ruhl Libre', Georgia, serif; font-size: clamp(2.3rem, 3.5vw, 3rem); line-height: 1.05; font-weight: 500; letter-spacing: -.025em; margin: 8px 0; }
+.bft-talents .talent-masthead p { color: #e4d1c9; font-size: .97rem; line-height: 1.6; margin: 0; }
+.bft-talents .talent-masthead p span { color: #bcb4b2; }
+.bft-talents .talent-masthead-art { position: absolute; inset: 0 0 0 43%; opacity: .78; background: linear-gradient(90deg, #161011, #16101188 45%, #09060644), url('../../brand/facets.svg') right center / auto 270px no-repeat, url('../../brand/campfire.webp') center 58% / cover; }
+.bft-talents .talent-main-grid { display: grid; grid-template-columns: 280px minmax(0, 1fr); align-items: start; gap: 22px; }
+.bft-talents .talent-list-panel { position: sticky; top: calc(var(--bft-header-height, 72px) + 12px); display: flex; flex-direction: column; min-width: 0; max-height: calc(100dvh - var(--bft-header-height, 72px) - 24px); padding: 14px 12px 8px; overflow: hidden; background: #131112; border: 1px solid #422326; border-top: 2px solid #7c2228; }
+.bft-talents .talent-index-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+.bft-talents .talent-index-heading h2 { font-family: 'Frank Ruhl Libre', Georgia, serif; font-size: 1.48rem; font-weight: 500; line-height: 1.2; margin: 0; }
+.bft-talents #talentCloseMenu { display: none; }
+.bft-talents .talent-tools { flex-shrink: 0; }
+.bft-talents .talent-tools label { display: block; font-size: .79rem; color: #c2b3b0; margin-bottom: 5px; }
+.bft-talents .talent-search-wrap { position: relative; }
+.bft-talents .talent-search-wrap svg { position: absolute; width: 16px; height: 16px; top: 12px; left: 10px; color: #b99b97; pointer-events: none; }
+.bft-talents #searchInput { width: 100%; min-width: 0; min-height: 40px; padding: 9px 8px 9px 32px; border: 1px solid #513035; border-radius: 3px; background: #0d0b0c; color: #eee7e2; font: inherit; font-size: .86rem; color-scheme: dark; }
+.bft-talents #searchInput::placeholder { color: #a59492; font-size: .8rem; }
+.bft-talents .talent-tool-buttons { display: grid; grid-template-columns: 1fr auto; gap: 7px; margin: 9px 0; }
+.bft-talents .talent-tool-buttons button { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 37px; padding: 7px 12px; border: 1px solid #693034; border-radius: 3px; color: #e7d1c8; background: #251416; font-size: .85rem; }
+.bft-talents .talent-tool-buttons button:hover { background: #3c171c; border-color: #b95341; color: #fff; }
+.bft-talents .talent-tool-buttons svg { width: 16px; height: 16px; }
+.bft-talents #filterCount { background: #b31515; color: #fff; border-radius: 3px; font-size: .72rem; padding: 1px 6px; }
+.bft-talents .talent-quick-types { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); border: 1px solid #513035; border-radius: 3px; overflow: hidden; }
+.bft-talents .talent-quick-types button { min-height: 35px; padding: 5px 7px; color: #bfb0ac; font-size: .81rem; border-right: 1px solid #513035; background: #0f0c0d; }
+.bft-talents .talent-quick-types button:last-child { border-right: 0; }
+.bft-talents .talent-quick-types button[aria-pressed=true] { color: #fff0e7; background: #6a171b; box-shadow: inset 0 -2px #ee6a3c; }
+.bft-talents .talent-index-status { display: flex; justify-content: space-between; align-items: center; min-height: 39px; gap: 8px; font-size: .78rem; color: #b7a5a0; }
+.bft-talents #talentReset { padding: 6px 0 6px 8px; color: #efb19b; text-decoration: underline; text-underline-offset: 3px; }
+.bft-talents .talent-active-filters { color: #d0a89b; font-size: .76rem; line-height: 1.5; overflow-wrap: anywhere; margin: 0 0 8px; }
+.bft-talents #talentosListItems { display: flex; flex-direction: column; min-height: 80px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #703038 #151112; gap: 3px; padding-right: 4px; }
+.bft-talents #talentosListItems > a { display: flex; gap: 8px; flex-shrink: 0; padding: 10px 9px; border: 1px solid transparent; border-left: 2px solid transparent; border-radius: 2px; background: transparent; text-decoration: none; }
+.bft-talents #talentosListItems > a:hover { border-color: #47272c; background: #241619; }
+.bft-talents #talentosListItems > a[aria-current] { background: linear-gradient(90deg, #4b0d0d, #281417); border-color: #6a292e; border-left-color: #ef572c; }
+.bft-talents .talent-index-copy { flex: 1; min-width: 0; }
+.bft-talents .talent-index-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.bft-talents .talent-index-tags span { max-width: 100%; overflow-wrap: anywhere; color: #d6b4a7; font-size: .6rem; line-height: 1.3; }
+.bft-talents #talentosListItems h3 { font-size: .89rem; font-weight: 600; color: #ded1cb; line-height: 1.4; overflow-wrap: anywhere; }
+.bft-talents #talentosListItems a[aria-current] h3 { color: #fff2e8; }
+.bft-talents #talentosListItems p { font-size: .63rem; letter-spacing: .09em; color: #b6a19a; margin-top: 4px; }
+.bft-talents .talent-index-type { flex-shrink: 0; padding-top: 1px; }
+.bft-talents .talent-index-type span { border-color: #523036; color: #d6b4a7; font-size: .6rem; padding: 2px 4px; border-radius: 2px; }
+.bft-talents .talent-detail-panel { padding: 0; margin: 0; border: 1px solid #422326; background: #131112; min-width: 0; }
+.bft-talents .talent-detail-header { position: relative; display: flex; align-items: center; gap: 14px; padding: 18px 24px; min-height: 92px; background: linear-gradient(100deg, #3b0e12, #211317 65%, #161112); border-bottom: 1px solid #60272d; }
+.bft-talents .talent-detail-header::after { content: ''; position: absolute; inset: 0 0 0 65%; background: url('../../brand/facets.svg') right center / 200px no-repeat; opacity: .18; pointer-events: none; }
+.bft-talents .talent-detail-emblem { width: 40px; height: 40px; flex: 0 0 40px; color: #e58660; }
+.bft-talents .talent-detail-emblem svg { width: 100%; height: 100%; }
+.bft-talents .talent-detail-heading { min-width: 0; flex: 1; position: relative; z-index: 1; }
+.bft-talents .talent-is-epic .talent-detail-header { background: linear-gradient(105deg, #501016, #2b1618 65%, #1b1312); border-bottom-color: #a34e31; }
+.bft-talents .talent-is-epic .talent-detail-emblem { color: #ffad6f; }
+.bft-talents #talentosListItems > a[data-talent-type=epico] .talent-index-type span { color: #ffc18f; border-color: #865036; background: #301b16; }
+.bft-talents .talent-epic-guide { border: 1px solid #75402f; border-left: 2px solid #ff6a00; border-radius: 3px; background: #231516; margin: 0 0 22px; }
+.bft-talents .talent-epic-guide summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; padding: 11px 13px; color: #f1c2a4; font-size: .86rem; font-weight: 600; list-style: none; }
+.bft-talents .talent-epic-guide summary::-webkit-details-marker { display: none; }
+.bft-talents .talent-epic-guide summary:hover { color: #fff0e1; background: #341b1b; }
+.bft-talents .talent-epic-guide-action { color: #ffad6f; font-size: 1.3rem; line-height: 1; transition: transform .15s; }
+.bft-talents .talent-epic-guide[open] .talent-epic-guide-action { transform: rotate(45deg); }
+.bft-talents .talent-epic-guide[open] summary { border-bottom: 1px solid #69352b; }
+.bft-talents .talent-epic-guide > div { padding: 14px 16px; color: #d6c1b6; line-height: 1.8; font-size: .93rem; }
+.bft-talents .talent-epic-guide p { margin: 0 0 12px; }
+.bft-talents .talent-epic-guide p:last-child { margin-bottom: 0; }
+.bft-talents .talent-eyebrow { font-size: .7rem; letter-spacing: .13em; text-transform: uppercase; color: #e19a83; margin: 0 0 5px; }
+.bft-talents .talent-eyebrow span { padding: 0 5px; opacity: .5; }
+.bft-talents [data-talent-title] { margin: 0; font-family: 'Frank Ruhl Libre', Georgia, serif; font-size: clamp(1.85rem, 2.5vw, 2.45rem); font-weight: 500; line-height: 1.15; letter-spacing: -.015em; color: #f7e9df; overflow-wrap: anywhere; scroll-margin-top: 90px; }
+.bft-talents .talent-detail-body { padding: 20px 26px 28px; }
+.bft-talents .talent-detail-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 15px; }
+.bft-talents .talent-detail-tags span { border: 1px solid #543037; background: #251719; color: #d8b5a9; font-size: .76rem; padding: 3px 7px; border-radius: 2px; }
+.bft-talents .talent-meta { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); margin: 0 0 22px; border: 1px solid #4a272c; background: #1b1315; }
+.bft-talents .talent-meta > div { padding: 11px 14px; min-width: 0; }
+.bft-talents .talent-meta > div + div { border-left: 1px solid #4a272c; }
+.bft-talents .talent-meta dt { font-size: .7rem; color: #e3a18b; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 5px; }
+.bft-talents .talent-meta dd { color: #ded1cb; font-size: .92rem; line-height: 1.65; margin: 0; overflow-wrap: anywhere; }
+.bft-talents .talent-copy { max-width: 88ch; font-size: 1rem; line-height: 1.8; color: #d3ccc7; overflow-wrap: anywhere; }
+.bft-talents .talent-copy p { margin: 0 0 1.1em; }
+.bft-talents .talent-copy > p:first-child:has(> em:only-child) { font-family: 'Frank Ruhl Libre', Georgia, serif; font-size: 1.23rem; line-height: 1.65; color: #e7c9bb; padding-left: 16px; border-left: 2px solid #b31515; margin-bottom: 21px; }
+.bft-talents .talent-copy h2, .bft-talents .talent-copy h3, .bft-talents .talent-copy h4, .bft-talents .talent-copy h5, .bft-talents .talent-copy h6 { font-family: 'Frank Ruhl Libre', Georgia, serif; color: #f4e3d8; font-weight: 500; line-height: 1.3; margin: 26px 0 12px; text-transform: none; font-size: 1.55rem; }
+.bft-talents .talent-copy ul, .bft-talents .talent-copy ol { padding-left: 22px; margin: 12px 0 20px; }
+.bft-talents .talent-copy li { padding-left: 3px; margin: 9px 0; }
+.bft-talents .talent-copy li::marker { color: #d66048; }
+.bft-talents .talent-copy li > strong:first-child { color: #f1d0bd; }
+.bft-talents .talent-copy > ul > li:has(.talent-benefit-label) { margin: 13px 0; }
+.bft-talents .talent-copy .talent-benefit-label { display: block; font-size: 1.02rem; margin-bottom: 3px; }
+.bft-talents .talent-copy li > ul, .bft-talents .talent-copy li > ol { margin: 8px 0; }
+.bft-talents .talent-copy a { color: #f1aa85; text-decoration: underline; text-decoration-color: #9a5042; text-underline-offset: 3px; }
+.bft-talents .talent-copy a:hover { color: #ffd5b8; }
+.bft-talents .talent-copy table { display: table; width: 100%; max-width: 100%; table-layout: fixed; border-collapse: collapse; margin: 20px 0; font-size: .9rem; line-height: 1.65; }
+.bft-talents .talent-copy th, .bft-talents .talent-copy td { white-space: normal; overflow-wrap: anywhere; padding: 10px 12px; border: 1px solid #4e2a2e; text-align: left; }
+.bft-talents .talent-copy th { background: #421117; color: #f2d2c4; font-size: .75rem; letter-spacing: .06em; }
+.bft-talents .talent-copy tr:nth-child(even) td { background: #1d1416; }
+.bft-talents .talent-copy blockquote { border-left: 2px solid #b31515; background: #211416; color: #dfc6b9; padding: 13px 17px; margin: 18px 0; }
+.bft-talents .talent-copy blockquote p:last-child { margin-bottom: 0; }
+.bft-talents .talent-copy .bonfire-toggle { border: 1px solid #543037; background: #1b1315; border-radius: 3px; margin: 16px 0; }
+.bft-talents .talent-copy .bonfire-toggle > summary { padding: 12px 14px; color: #f0c8b4; cursor: pointer; }
+.bft-talents .talent-copy .bonfire-toggle-content { padding: 12px 16px; }
+.bft-talents .talent-empty { padding: 32px 26px; }
+.bft-talents .talent-empty h2 { font-family: 'Frank Ruhl Libre', Georgia, serif; font-size: 1.8rem; }
+.bft-talents .talent-empty p { color: #b9b3b3; margin: 12px 0 20px; }
+.bft-talents .talent-empty button { padding: 10px 15px; border: 1px solid #c84b3c; border-radius: 3px; background: #8e1b20; color: #fff3eb; }
+.bft-talents #filterModal { z-index: 110; }
+.bft-talents .filter-panel { border-color: #693034; border-top: 2px solid #b31515; background: #171112; border-radius: 4px; max-height: calc(100dvh - 32px); display: flex; flex-direction: column; }
+.bft-talents .filter-panel > div:nth-child(2) { min-height: 0; }
+.bft-talents #talentFiltersTitle { font-family: 'Frank Ruhl Libre', Georgia, serif; font-size: 1.6rem; text-transform: none; }
+.bft-talents .filter-panel h3 { color: #d5b5a9; font-size: .77rem; }
+.bft-talents .filter-panel button.filter-chip-pop { min-height: 38px; font-size: .82rem; border-radius: 3px; color: #d5c5bf; background: #211719; border-color: #593139; }
+.bft-talents .filter-panel button[aria-pressed=true] { background: #6a171b; color: #fff0e7; border-color: #d66048; }
+.bft-talents #applyFilterModal { background: #b31515; min-height: 42px; }
+.bft-talents #applyFilterModal:hover { background: #ca2921; }
+.bft-talents #filterClose { min-width: 40px; min-height: 40px; }
+.bft-talents .wiki-editor { background: #191113; border-color: #693034; }
+.bft-talents :is(button, input, select, textarea, a, summary):focus-visible { outline: 2px solid #ff9c66; outline-offset: 3px; }
+.bft-talents #talentoDetail [data-talent-title]:focus { outline: 2px solid #ff9c66; outline-offset: 4px; }
+.bft-talents.talent-modal-open #main-content { z-index: 80; }
+.bft-talents .talent-detail-panel noscript section { padding: 20px; border-bottom: 1px solid #693034; }
+@media (min-width: 1101px) {
+  .bft-talents .talent-mobile-menu-button, .bft-talents .talent-mobile-backdrop { display: none; }
+}
+@media (max-width: 1100px) {
+  .bft-talents .bft-talents-main { padding: 16px 20px 85px; }
+  .bft-talents .talent-main-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .bft-talents .talent-mobile-menu-button { display: inline-flex; position: fixed; bottom: 18px; left: 20px; top: auto; height: 44px; width: auto; max-width: calc(100vw - 40px); padding: 0 15px; gap: 8px; border-color: #c64b3a; background: #65151b; color: #fff0e6; border-radius: 4px; font-size: .9rem; box-shadow: 0 4px 22px #0008; transition: background-color .2s; }
+  .bft-talents.talent-menu-open .talent-mobile-menu-button { left: 20px; }
+  .bft-talents .talent-mobile-menu-button svg { width: 18px; height: 18px; }
+  .bft-talents .talent-list-panel { position: fixed; top: 0; bottom: 0; height: 100dvh; left: 0; width: min(88vw, 350px); padding: 20px 14px 78px; border-top: 2px solid #b31515; border-right: 1px solid #693034; overflow: hidden; }
+  .bft-talents .talent-list-panel > #talentSearchBar { position: static; margin: 0; padding: 0; border: 0; background: transparent; }
+  .bft-talents #talentCloseMenu { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border: 1px solid #593139; border-radius: 3px; color: #e3b6a3; }
+  .bft-talents #talentCloseMenu svg { width: 20px; height: 20px; }
+  .bft-talents .talent-mobile-backdrop { inset: 0; }
+  .bft-talents .filter-panel { width: 100% !important; max-height: calc(100dvh - 24px) !important; }
+  .bft-talents #filterModal { padding: 12px; }
+}
+@media (max-width: 600px) {
+  .bft-talents .bft-talents-main { padding: 12px 12px 85px; }
+  .bft-talents .talent-masthead { margin-bottom: 14px; }
+  .bft-talents .talent-masthead-copy { padding: 15px 17px 18px; }
+  .bft-talents .talent-masthead p { font-size: .89rem; }
+  .bft-talents .talent-masthead p span { display: block; }
+  .bft-talents .talent-masthead-art { left: 20%; opacity: .3; }
+  .bft-talents .talent-detail-header { padding: 17px 15px; gap: 10px; flex-wrap: wrap; }
+  .bft-talents .talent-detail-emblem { width: 30px; height: 30px; flex-basis: 30px; }
+  .bft-talents .talent-eyebrow { font-size: .62rem; letter-spacing: .09em; }
+  .bft-talents [data-talent-title] { font-size: 1.85rem; }
+  .bft-talents .talent-detail-body { padding: 16px 17px 24px; }
+  .bft-talents .talent-meta { grid-template-columns: minmax(0, 1fr); margin-bottom: 19px; }
+  .bft-talents .talent-meta > div + div { border-left: 0; border-top: 1px solid #4a272c; }
+  .bft-talents .talent-meta > div { padding: 10px 12px; }
+  .bft-talents .talent-copy { font-size: .97rem; line-height: 1.8; }
+  .bft-talents .talent-copy table { font-size: .82rem; }
+  .bft-talents .talent-copy th, .bft-talents .talent-copy td { padding: 8px 7px; }
+  .bft-talents .talent-mobile-menu-button, .bft-talents.talent-menu-open .talent-mobile-menu-button { left: 12px; bottom: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bft-talents .talent-page *, .bft-talents .talent-page *::before, .bft-talents .talent-page *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}

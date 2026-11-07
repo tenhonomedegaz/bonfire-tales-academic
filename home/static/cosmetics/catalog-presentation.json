@@ -1,0 +1,191 @@
+{
+  "version": 1,
+  "items": {
+    "efeito-faiscas-da-forja": {
+      "thumbnail": "cosmetics/thumbs/efeito-faiscas-da-forja.webp"
+    },
+    "efeito-fogueira-partilhada": {
+      "thumbnail": "cosmetics/thumbs/efeito-fogueira-partilhada.webp"
+    },
+    "efeito-folhas-da-trilha": {
+      "thumbnail": "cosmetics/thumbs/efeito-folhas-da-trilha.webp"
+    },
+    "efeito-lua-cristal": {
+      "thumbnail": "cosmetics/thumbs/efeito-lua-cristal.webp"
+    },
+    "efeito-lua-negra": {
+      "thumbnail": "cosmetics/thumbs/efeito-lua-negra.webp"
+    },
+    "efeito-lua-vermelha": {
+      "thumbnail": "cosmetics/thumbs/efeito-lua-vermelha.webp"
+    },
+    "efeito-vigilia-das-lanternas": {
+      "thumbnail": "cosmetics/thumbs/efeito-vigilia-das-lanternas.webp"
+    },
+    "moldura-arcane-pulse": {
+      "thumbnail": "cosmetics/thumbs/moldura-arcane-pulse.webp"
+    },
+    "moldura-elo-ambar-aberta": {
+      "thumbnail": "cosmetics/thumbs/moldura-elo-ambar-aberta.webp"
+    },
+    "moldura-elo-ambar-fechada": {
+      "thumbnail": "cosmetics/thumbs/moldura-elo-ambar-fechada.webp"
+    },
+    "moldura-elo-ametista-aberta": {
+      "thumbnail": "cosmetics/thumbs/moldura-elo-ametista-aberta.webp"
+    },
+    "moldura-elo-ametista-fechada": {
+      "thumbnail": "cosmetics/thumbs/moldura-elo-ametista-fechada.webp"
+    },
+    "moldura-elo-diamante-aberta": {
+      "thumbnail": "cosmetics/thumbs/moldura-elo-diamante-aberta.webp"
+    },
+    "moldura-elo-diamante-fechada": {
+      "thumbnail": "cosmetics/thumbs/moldura-elo-diamante-fechada.webp"
+    },
+    "moldura-elo-esmeralda-aberta": {
+      "thumbnail": "cosmetics/thumbs/moldura-elo-esmeralda-aberta.webp"
+    },
+    "moldura-elo-esmeralda-fechada": {
+      "thumbnail": "cosmetics/thumbs/moldura-elo-esmeralda-fechada.webp"
+    },
+    "moldura-elo-obsidiana-aberta": {
+      "thumbnail": "cosmetics/thumbs/moldura-elo-obsidiana-aberta.webp"
+    },
+    "moldura-elo-obsidiana-fechada": {
+      "thumbnail": "cosmetics/thumbs/moldura-elo-obsidiana-fechada.webp"
+    },
+    "moldura-elo-rubi-aberta": {
+      "thumbnail": "cosmetics/thumbs/moldura-elo-rubi-aberta.webp"
+    },
+    "moldura-elo-rubi-fechada": {
+      "thumbnail": "cosmetics/thumbs/moldura-elo-rubi-fechada.webp"
+    },
+    "moldura-elo-topazio-aberta": {
+      "thumbnail": "cosmetics/thumbs/moldura-elo-topazio-aberta.webp"
+    },
+    "moldura-elo-topazio-fechada": {
+      "thumbnail": "cosmetics/thumbs/moldura-elo-topazio-fechada.webp"
+    },
+    "moldura-ember-ring": {
+      "thumbnail": "cosmetics/thumbs/moldura-ember-ring.webp"
+    },
+    "moldura-frost": {
+      "thumbnail": "cosmetics/thumbs/moldura-frost.webp"
+    },
+    "moldura-gold-trim": {
+      "thumbnail": "cosmetics/thumbs/moldura-gold-trim.webp"
+    },
+    "moldura-guardiao-da-fogueira": {
+      "thumbnail": "cosmetics/thumbs/moldura-guardiao-da-fogueira.webp"
+    },
+    "moldura-lua-cristal": {
+      "thumbnail": "cosmetics/thumbs/moldura-lua-cristal.webp"
+    },
+    "moldura-lua-negra": {
+      "thumbnail": "cosmetics/thumbs/moldura-lua-negra.webp"
+    },
+    "moldura-lua-vermelha": {
+      "thumbnail": "cosmetics/thumbs/moldura-lua-vermelha.webp"
+    },
+    "moldura-verdant": {
+      "thumbnail": "cosmetics/thumbs/moldura-verdant.webp"
+    },
+    "moldura-vigilia-das-lanternas": {
+      "thumbnail": "cosmetics/thumbs/moldura-vigilia-das-lanternas.webp"
+    },
+    "tema-arcane": {
+      "thumbnail": "cosmetics/thumbs/tema-arcane.webp",
+      "category": "classico"
+    },
+    "tema-bonfire": {
+      "thumbnail": "cosmetics/thumbs/tema-bonfire.webp",
+      "category": "classico"
+    },
+    "tema-lua-vermelha": {
+      "thumbnail": "cosmetics/thumbs/tema-lua-vermelha.webp",
+      "category": "especial"
+    },
+    "tema-lua-negra": {
+      "thumbnail": "cosmetics/thumbs/tema-lua-negra.webp",
+      "category": "especial"
+    },
+    "tema-lua-cristal": {
+      "thumbnail": "cosmetics/thumbs/tema-lua-cristal.webp",
+      "category": "especial"
+    },
+    "tema-vigilia-das-lanternas": {
+      "thumbnail": "cosmetics/thumbs/tema-vigilia-das-lanternas.webp",
+      "category": "especial"
+    },
+    "tema-guardiao-da-fogueira": {
+      "thumbnail": "cosmetics/thumbs/tema-guardiao-da-fogueira.webp",
+      "category": "especial"
+    },
+    "tema-rank-obsidiana": {
+      "thumbnail": "cosmetics/thumbs/tema-rank-obsidiana.webp",
+      "category": "especial"
+    },
+    "tema-rank-ametista": {
+      "thumbnail": "cosmetics/thumbs/tema-rank-ametista.webp",
+      "category": "especial"
+    },
+    "tema-rank-topazio": {
+      "thumbnail": "cosmetics/thumbs/tema-rank-topazio.webp",
+      "category": "especial"
+    },
+    "tema-rank-esmeralda": {
+      "thumbnail": "cosmetics/thumbs/tema-rank-esmeralda.webp",
+      "category": "especial"
+    },
+    "tema-rank-ambar": {
+      "thumbnail": "cosmetics/thumbs/tema-rank-ambar.webp",
+      "category": "especial"
+    },
+    "tema-rank-rubi": {
+      "thumbnail": "cosmetics/thumbs/tema-rank-rubi.webp",
+      "category": "especial"
+    },
+    "tema-rank-diamante": {
+      "thumbnail": "cosmetics/thumbs/tema-rank-diamante.webp",
+      "category": "especial"
+    },
+    "tema-ember": {
+      "thumbnail": "cosmetics/thumbs/tema-ember.webp",
+      "category": "classico"
+    },
+    "tema-verdant": {
+      "thumbnail": "cosmetics/thumbs/tema-verdant.webp",
+      "category": "classico"
+    },
+    "tema-moonlit": {
+      "thumbnail": "cosmetics/thumbs/tema-moonlit.webp",
+      "category": "classico"
+    },
+    "tema-custom": {
+      "thumbnail": "cosmetics/thumbs/tema-custom.webp",
+      "category": "classico"
+    },
+    "moldura-none": {
+      "thumbnail": "cosmetics/thumbs/none.webp"
+    },
+    "efeito-none": {
+      "thumbnail": "cosmetics/thumbs/none.webp"
+    },
+    "efeito-soft-glow": {
+      "thumbnail": "cosmetics/thumbs/efeito-soft-glow.webp"
+    },
+    "efeito-glass": {
+      "thumbnail": "cosmetics/thumbs/efeito-glass.webp"
+    },
+    "efeito-embers": {
+      "thumbnail": "cosmetics/thumbs/efeito-embers.webp"
+    },
+    "efeito-aurora": {
+      "thumbnail": "cosmetics/thumbs/efeito-aurora.webp"
+    },
+    "efeito-starfall": {
+      "thumbnail": "cosmetics/thumbs/efeito-starfall.webp"
+    }
+  }
+}

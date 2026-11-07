@@ -1,0 +1,8 @@
+<dialog class="co-dialog" id="co-review" aria-labelledby="co-review-title" aria-describedby="co-review-note">
+  <div class="co-dialog-top"><span class="co-eyebrow">Confira antes de continuar</span><button type="button" data-co-close aria-label="Fechar confirmação">×</button></div>
+  <h2 id="co-review-title">Revisar escolha</h2><p data-co-product></p>
+  <dl class="co-summary"><div><dt>Valor</dt><dd data-co-amount></dd></div><div><dt>Modalidade</dt><dd data-co-mode></dd></div></dl>
+  <p class="co-account-target" data-co-account-target{% if not user.is_authenticated %} hidden{% endif %}><span data-co-account-label>Conta Bonfire que receberá o benefício:</span> <strong data-co-account>{{ user.username }}</strong></p>
+  <p id="co-review-note" data-co-note></p><p class="co-demo-text" data-co-demo hidden>Exemplo visual. O pagamento e o resgate estão desativados na prévia.</p>
+  <div class="co-dialog-actions"><button type="button" class="co-btn co-btn-secondary" data-co-close>Voltar</button><button type="button" class="co-btn" data-co-proceed>Continuar</button></div>
+</dialog>

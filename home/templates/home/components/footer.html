@@ -1,0 +1,10 @@
+{% load static %}
+<footer class="bft-footer">
+  <div class="bft-width bft-footer-top">
+    <div class="bft-footer-brand"><a class="bft-brand" href="{% url 'home' %}"><img src="{% static 'brand/icon.png' %}" alt="" width="42" height="48"><span>Bonfire Tales<small>RPG · UM MUNDO COMPARTILHADO</small></span></a><p>Onde aventureiros descansam<br>e histórias começam.</p><div class="bft-socials"><a href="https://discord.gg/eyqe7rj2AX" target="_blank" rel="noopener noreferrer">Discord ↗</a><a href="https://www.instagram.com/bonfiretalesrpg/" target="_blank" rel="noopener noreferrer">Instagram ↗</a><a href="https://www.youtube.com/@bonfiretalesrpg" target="_blank" rel="noopener noreferrer">YouTube ↗</a></div></div>
+    <nav aria-label="Comece sua jornada"><h2>Comece sua jornada</h2><a href="{% url 'home' %}#como-jogar">Como jogar</a><a href="{% url 'register' %}">Criar conta</a><a href="{% url 'login' %}">Entrar na conta</a><a href="{% url 'criacao_ficha' %}">Criar personagem</a><a href="{% url 'guia_mestres' %}">Quero mestrar</a></nav>
+    <nav aria-label="Explore o Bonfire"><h2>Explore o Bonfire</h2><a href="{% url 'mapa' %}">Atlas de Cinéria</a><a href="{% url 'mundo_cronicas' %}">Crônicas</a><a href="{% url 'sistemas_missoes' %}">Missões</a><a href="{% url 'classes' %}">Classes e regras</a><a href="{% url 'atualizacoes' %}">Atualizações</a></nav>
+    <div class="bft-footer-support"><span class="bft-eyebrow">MANTENHA A CHAMA ACESA</span><p>Jogar é gratuito.<br>Colaborar é uma escolha.</p><a href="{% url 'colaborador' %}">Conheça a colaboração <span aria-hidden="true">↗</span></a></div>
+  </div>
+  <div class="bft-width bft-footer-bottom"><p>© {% now 'Y' %} Bonfire Tales RPG. Feito de encontros e histórias.</p><nav aria-label="Informações do site"><a href="{% url 'sobre' %}">Sobre</a><a href="{% url 'contato' %}">Contato</a><a href="{% url 'privacidade' %}">Privacidade</a><a href="{% url 'termos' %}">Termos de uso</a>{% if adsense_enabled and ads_enabled %}<button type="button" class="bft-privacy-choices" data-privacy-choices hidden>Privacidade e cookies</button>{% endif %}</nav></div>
+</footer>

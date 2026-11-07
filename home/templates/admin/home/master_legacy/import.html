@@ -1,0 +1,13 @@
+{% extends 'admin/base_site.html' %}
+{% block content %}
+<h1>{{ title }}</h1>
+{% if plan %}
+<p>{{ plan.masters|length }} mestres, {{ plan.entries|length }} registros de aventuras/resgates.</p>
+<p>Checksum da planilha: <code>{{ plan.source_sha256 }}</code></p>
+<p>Os nomes e numeros de Fogueira serao preservados. Carteiras existentes nao serao sobrescritas automaticamente.</p>
+{% for warning in plan.warnings %}<p>{{ warning }}</p>{% endfor %}
+<form method="post">{% csrf_token %}<input type="hidden" name="payload" value="{{ payload }}"><button type="submit" name="confirmar" value="1">Confirmar importacao do historico</button></form>
+{% else %}
+<form method="post" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}<button type="submit">Conferir planilha</button></form>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,121 @@
+.cronica-layout {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 1.25rem 2.5rem;
+}
+.cronica-hero {
+  border-bottom: 1px solid var(--stroke);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 240px;
+  padding: 1.5rem clamp(1rem, 4vw, 2rem);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.cronica-hero-cover {
+  height: 100%;
+  inset: 0;
+  object-fit: cover;
+  opacity: .42;
+  position: absolute;
+  width: 100%;
+  z-index: -1;
+}
+.cronica-eyebrow {
+  color: var(--ember);
+  font-size: .72rem;
+  font-weight: 900;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+.cronica-title {
+  color: #fff;
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  font-weight: 900;
+  line-height: 1.2;
+  margin-top: .5rem;
+  text-transform: uppercase;
+}
+.cronica-meta {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: .78rem;
+  gap: .5rem;
+  margin-top: .75rem;
+}
+.cronica-meta .author { color: var(--spark); font-weight: 700; }
+.cronica-meta .personagem { color: var(--ember); font-style: italic; }
+.cronica-body {
+  margin-top: 1.5rem;
+}
+.cronica-body .bonfire-markdown {
+  color: var(--muted);
+  font-size: .88rem;
+  line-height: 1.5;
+}
+.cronica-body .bonfire-markdown strong { color: #fff; }
+.cronica-body .bonfire-markdown h1,
+.cronica-body .bonfire-markdown h2,
+.cronica-body .bonfire-markdown h3 {
+  color: var(--ember);
+  font-family: 'Frank Ruhl Libre', serif;
+  text-transform: uppercase;
+}
+.cronica-status-banner {
+  background: var(--bg1);
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  margin-top: 1rem;
+  padding: .7rem .9rem;
+}
+.cronica-status-banner.pendente { border-left: 4px solid #f7b113; }
+.cronica-status-banner.reprovada { border-left: 4px solid #ef4444; }
+.cronica-status-banner h4 {
+  font-size: .78rem;
+  font-weight: 900;
+  margin-bottom: .35rem;
+  text-transform: uppercase;
+}
+.cronica-status-banner.pendente h4 { color: #f7b113; }
+.cronica-status-banner.reprovada h4 { color: #ef4444; }
+.cronica-status-banner p {
+  color: var(--muted);
+  font-size: .82rem;
+  line-height: 1.45;
+}
+.cronica-back {
+  align-items: center;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: .78rem;
+  font-weight: 700;
+  gap: .35rem;
+  margin-top: 1.25rem;
+  transition: color .2s;
+}
+.cronica-back:hover { color: var(--ember); }
+.cronica-reactions { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem; margin-top: 1.25rem; color: var(--muted); font-size: .84rem; }
+.cronica-reactions button { border: 1px solid var(--stroke); border-radius: 6px; background: var(--bg1); color: var(--ember); cursor: pointer; padding: .45rem .8rem; font-weight: 700; }
+.cronica-reactions button[aria-pressed="true"] { border-color: var(--ember); }
+.cronica-reactions button:focus-visible, .cronica-reactions a:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+.cronica-reactions button:disabled { opacity: .6; cursor: wait; }
+.cronica-reactions [role="alert"] { color: #ef4444; }
+.cronica-comments { margin-top: 2rem; border-top: 1px solid var(--stroke); padding-top: 1rem; }
+.cronica-comments h2 { color: var(--ember); font-family: 'Frank Ruhl Libre', serif; }
+.cronica-comment { border: 1px solid var(--stroke); border-radius: 8px; margin: .75rem 0; padding: .75rem; color: var(--muted); }
+.cronica-comment-reply { margin-left: clamp(.5rem, 4vw, 2rem); }
+.cronica-comments-pages { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin: 1.25rem 0; color: var(--muted); }
+.cronica-comments-pages a { color: var(--ember); text-decoration: underline; }
+.cronica-comment header { font-size: .8rem; }
+.cronica-comment-text { color: #fff; overflow-wrap: anywhere; white-space: normal; }
+.cronica-comments form { display: grid; gap: .5rem; margin: .75rem 0; }
+.cronica-comments textarea { display: block; width: 100%; min-height: 5rem; background: var(--bg1); color: #fff; border: 1px solid var(--stroke); border-radius: 6px; padding: .5rem; }
+.cronica-comments button { justify-self: start; color: var(--ember); border: 1px solid var(--stroke); border-radius: 6px; background: var(--bg1); padding: .45rem .8rem; cursor: pointer; }
+.cronica-comments :is(button, summary, textarea, input):focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+.cronica-comments details { margin-top: .5rem; }
+.cronica-comments summary { cursor: pointer; }

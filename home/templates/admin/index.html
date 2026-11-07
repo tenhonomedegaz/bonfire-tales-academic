@@ -1,0 +1,85 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'admin/css/dashboard.css' %}"><link rel="stylesheet" href="{% static 'css/admin/tag_library.css' %}"><link rel="stylesheet" href="{% static 'css/admin/dashboard_search.css' %}">{% endblock %}
+
+{% block extrahead %}{{ block.super }}<script defer src="{% static 'js/admin/dashboard_search.js' %}"></script>{% endblock %}
+
+{% block coltype %}colMS{% endblock %}
+
+{% block bodyclass %}{{ block.super }} dashboard{% endblock %}
+
+{% block breadcrumbs %}{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <div class="dashboard-welcome">
+        <h1>Bem-vindo ao Painel de Conteúdo</h1>
+        <p>Escolha uma tarefa ou área abaixo.</p>
+    </div>
+
+    <div class="dashboard-search" role="search">
+        <label for="dashboard-search-input">Pesquisar tarefas e cadastros</label>
+        <div class="dashboard-search-controls">
+            <input id="dashboard-search-input" type="search" autocomplete="off"
+                   placeholder="Ex.: crônicas, magias, territórios"
+                   aria-describedby="dashboard-search-status">
+            <button id="dashboard-search-clear" type="button" hidden>Limpar</button>
+        </div>
+        <p id="dashboard-search-status" role="status" aria-live="polite"></p>
+    </div>
+
+    <section class="bonfire-admin-tools" aria-labelledby="admin-tools-title">
+        <h2 id="admin-tools-title">Ferramentas editoriais</h2>
+        <div class="bonfire-admin-tools-grid">
+            {% if master_review_access %}
+            <a href="{% url 'master_dashboard' %}#permissoes"><strong>Solicitações de mestre</strong><span>{{ pending_master_requests_count }} pendente{{ pending_master_requests_count|pluralize:'s' }} aguardando avaliação da administração.</span></a>
+            {% endif %}
+            <a href="{% url 'mundo_jornal' %}">
+                <strong>Jornal</strong>
+                <span>Consultar artigos e abrir a publicação editorial.</span>
+            </a>
+            <a href="{% url 'cronicas_review' %}">
+                <strong>Revisão de crônicas</strong>
+                <span>Examinar textos pendentes e decisões da redação.</span>
+            </a>
+            <a href="{% url 'admin:tag_library' %}">
+                <strong>Biblioteca de Tags</strong>
+                <span>Consultar verbos, alterar a interpretação e revisar o histórico.</span>
+            </a>
+            <a href="{% url 'admin:markdown_editor' %}">
+                <strong>Editor Markdown</strong>
+                <span>Validar a apresentação de textos e referências.</span>
+            </a>
+            {% if perms.home.change_tbcronicadenuncia %}
+            <a href="{% url 'cronica_denuncias' %}">
+                <strong>Moderação de crônicas</strong>
+                <span>Revisar denúncias e decidir sobre conteúdo publicado.</span>
+            </a>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="bonfire-admin-tools" aria-labelledby="admin-operation-title">
+        <h2 id="admin-operation-title">Operação</h2>
+        <div class="bonfire-admin-tools-grid">
+            <a href="{% url 'admin:server_logs' %}">
+                <strong>Console</strong>
+                <span>Logs, configuração e restauração controlada.</span>
+            </a>
+            {% if request.user.is_superuser %}
+            <a href="{% url 'admin:catalog_export' %}"><strong>Exportar dados</strong><span>Catálogos e campos selecionados em Excel.</span></a>
+            <a href="{% url 'managed_api_key_console' %}">
+                <strong>Chaves de API</strong>
+                <span>Gerenciar acesso protegido à integração.</span>
+            </a>
+            {% endif %}
+        </div>
+    </section>
+
+    {# Lista de apps/modelos renderizada aqui (navegacao empilhada, essencial no celular) #}
+    <div class="app-list">
+        {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+    </div>
+</div>
+{% endblock %}

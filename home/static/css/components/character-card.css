@@ -1,0 +1,11 @@
+.public-character-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr));gap:16px}
+.profile-character-card{padding:16px;min-width:0;border:1px solid var(--stroke);border-top:3px solid var(--profile-accent,var(--ember));border-radius:4px;background:var(--profile-deep,var(--bg1));box-shadow:none}
+.profile-character-card .cw-card-identity{display:grid;grid-template-columns:68px minmax(0,1fr);align-items:center;gap:22px;text-decoration:none}
+.profile-character-card .cw-card-portrait{display:grid;place-items:center;width:68px;height:68px;aspect-ratio:1;border-radius:50%;overflow:visible;position:relative;isolation:isolate;margin:12px 8px;background:var(--profile-deep,var(--bg1));color:var(--text);font-size:28px}
+.profile-character-card .cw-card-portrait>img{width:100%;height:100%;border-radius:50%;object-fit:cover}
+.profile-character-card .cw-card-heading{min-width:0}.profile-character-card .cw-card-heading>div{display:flex;flex-wrap:wrap;align-items:start;justify-content:space-between;gap:6px}
+.profile-character-card .cw-card-heading h3{font:700 21px/1.25 'Frank Ruhl Libre',Georgia,serif;color:var(--text);margin:0;overflow-wrap:anywhere}
+.profile-character-card .cw-card-heading p{margin:5px 0;color:var(--muted);font-size:13px}
+.profile-character-card .bf-rank{display:inline-flex;align-items:center;gap:6px;margin-top:8px;font-size:12px}
+.profile-character-card .rank-insignia{width:28px;height:28px;object-fit:contain}
+@media(max-width:600px){.profile-character-card .cw-card-identity{grid-template-columns:58px minmax(0,1fr)}.profile-character-card .cw-card-portrait{width:58px;height:58px}}

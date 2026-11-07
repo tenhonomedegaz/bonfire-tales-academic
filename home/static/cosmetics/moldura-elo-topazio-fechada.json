@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "slug": "moldura-elo-topazio-fechada",
+  "type": "moldura",
+  "scope": "ambos",
+  "layers": [
+    {
+      "slot": "avatar",
+      "file": "rank-topazio-open-base-v1.webp",
+      "fallback": "rank-topazio-open-base-v1.png",
+      "width": 512,
+      "height": 512,
+      "sprite": "full",
+      "motion": "none",
+      "aperture": {
+        "cx": 50.195,
+        "cy": 50,
+        "diameter": 55.859
+      }
+    },
+    {
+      "slot": "avatar",
+      "file": "rank-topazio-visor-parts-v1-upper.webp",
+      "fallback": "rank-topazio-visor-parts-v1-upper.png",
+      "width": 512,
+      "height": 512,
+      "sprite": "full",
+      "motion": "retract",
+      "retract_mask": "rank-topazio-visor-parts-v1-aperture.webp",
+      "retract": {
+        "x": 0,
+        "y": -32,
+        "rotate": 0,
+        "duration": 580,
+        "delay": 0
+      }
+    },
+    {
+      "slot": "avatar",
+      "file": "rank-topazio-visor-parts-v1-left.webp",
+      "fallback": "rank-topazio-visor-parts-v1-left.png",
+      "width": 512,
+      "height": 512,
+      "sprite": "full",
+      "motion": "retract",
+      "retract_mask": "rank-topazio-visor-parts-v1-aperture.webp",
+      "retract": {
+        "x": -27,
+        "y": 2,
+        "rotate": -4,
+        "duration": 540,
+        "delay": 45
+      }
+    },
+    {
+      "slot": "avatar",
+      "file": "rank-topazio-visor-parts-v1-right.webp",
+      "fallback": "rank-topazio-visor-parts-v1-right.png",
+      "width": 512,
+      "height": 512,
+      "sprite": "full",
+      "motion": "retract",
+      "retract_mask": "rank-topazio-visor-parts-v1-aperture.webp",
+      "retract": {
+        "x": 27,
+        "y": 2,
+        "rotate": 4,
+        "duration": 540,
+        "delay": 45
+      }
+    }
+  ]
+}

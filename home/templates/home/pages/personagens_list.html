@@ -1,0 +1,77 @@
+{% extends 'home/base.html' %}
+{% load static %}
+{% block body_class %}bft-character-list{% endblock %}
+{% block main_class %}cw-main flex-1 w-full min-w-0{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/character-workflows.css' %}?v=2"><link rel="stylesheet" href="{% static 'css/pages/character-archive-review.css' %}?v=1"><link rel="stylesheet" href="{% static 'css/pages/character-publication-review.css' %}?v=1"><link rel="stylesheet" href="{% static 'css/pages/character-delete-review.css' %}?v=1"><script src="{% static 'js/character-list.js' %}?v=2" defer></script><script src="{% static 'js/character-archive-review.js' %}?v=1" defer></script><script src="{% static 'js/character-publication-review.js' %}?v=1" defer></script><script src="{% static 'js/character-delete-review.js' %}?v=1" defer></script>{% endblock %}
+
+{% block content %}
+<section class="cw-list-page animate-fade-in" aria-labelledby="cw-list-title">
+  <header class="cw-hero mb-4 flex flex-wrap items-end justify-between gap-2.5 border-b border-[var(--stroke)] pb-4">
+    <div>
+      <p class="cw-eyebrow">Bonfire Tales RPG · Suas histórias</p>
+      <h1 id="cw-list-title" class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">Meus Personagens</h1>
+      <p class="cw-hero-intro">Cada ficha, uma história em Cinéria.</p>
+      <p class="mt-1 text-sm text-[var(--muted)]">
+        Fichas ativas:
+        <strong class="text-[var(--text)]">{{ slots_usados }}</strong>{% if limite_detalhe.ilimitado %}<span class="text-[var(--muted)]"> (ilimitado)</span>{% else %}<span class="text-[var(--muted)]">/{{ limite }}</span>{% endif %}
+        {% if not limite_detalhe.ilimitado %}
+          <span class="ml-1 text-xs">· base {{ limite_detalhe.base }}{% if limite_detalhe.esmeralda %} +1 Esmeralda{% endif %}{% if limite_detalhe.colaborador %} +1 colaboração{% endif %}{% if limite_detalhe.mestre_ouro %} +1 Mestre Ouro vitalício{% endif %}</span>
+        {% endif %}
+      </p>
+    </div>
+    {% if pode_criar %}
+      <a href="{% url 'criacao_ficha' %}" class="rounded bg-bonfire-gradient px-3 py-1.5 text-sm font-bold text-white hover:opacity-90">+ Criar Personagem</a>
+    {% else %}
+      <a href="{% url 'character_slots' %}" class="rounded border border-[var(--stroke)] bg-[var(--bg1)] px-3 py-1.5 text-sm font-semibold text-[var(--ember)]">Ver meus slots →</a>
+    {% endif %}
+  </header>
+
+  <p class="cw-slots-note">{{ fichas_preservadas }} fichas preservadas. <a href="{% url 'character_slots' %}">Ver direitos e capacidade →</a></p>
+  {% if esmeralda_review_pending %}<p class="cw-slots-note">Há progresso de nível 13 em revisão. <a href="{% url 'character_slots' %}">Entenda o limite atual →</a></p>{% endif %}
+  <div class="cw-search-tools" hidden data-cw-controls><label for="cw-search">Encontrar uma ficha<input type="search" id="cw-search" maxlength="160" placeholder="Nome, raça ou classe…" autocomplete="off"></label><label for="cw-group">Mostrar<select id="cw-group"><option value="">Todas as fichas</option><option value="ativo">Somente ativas</option><option value="inativo">Somente inativas</option></select></label><button type="button" data-cw-clear>Limpar filtros</button><p role="status" aria-live="polite" data-cw-count></p></div>
+  <section class="cw-card-group" data-cw-group="ativo" aria-labelledby="cw-active-title">
+  <h2 id="cw-active-title" class="mb-2 font-serif text-lg font-bold text-[var(--text)]">Ativos <span class="cw-section-note">Prontos para continuar a aventura</span></h2>
+  {% if ativos %}
+    <div class="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+      {% for c in ativos %}
+        {% include 'home/partials/personagem_card.html' with c=c cofre=False %}
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="rounded border border-dashed border-[var(--stroke)] bg-[var(--bg1)] px-3 py-4 text-center text-sm text-[var(--muted)]">Nenhuma ficha ativa. {% if pode_criar %}Crie a sua primeira!{% else %}Escolha suas fichas ativas no gerenciamento de slots.{% endif %}</p>
+  {% endif %}
+  </section>
+
+  {% if cofre %}
+    <section class="cw-card-group" data-cw-group="inativo" aria-labelledby="cw-inactive-title">
+    <h2 id="cw-inactive-title" class="mb-2 mt-4 font-serif text-lg font-bold text-[var(--muted)]">Inativas <span class="text-xs font-normal">Suas histórias continuam preservadas</span></h2>
+    <div class="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+      {% for c in cofre %}
+        {% include 'home/partials/personagem_card.html' with c=c cofre=True %}
+      {% endfor %}
+    </div>
+    </section>
+  {% endif %}
+  <p class="cw-no-match" data-cw-empty hidden>Nenhuma ficha encontrada. Tente outro nome, raça ou classe, ou limpe os filtros.</p>
+
+  {% if is_staff and todas %}
+    <h2 class="cw-staff-title mb-2 mt-6 font-serif text-lg font-bold text-[var(--spark)]">Fichas de outras contas (staff)</h2>
+    <div class="cw-search-tools" hidden data-cw-staff-controls><label for="cw-staff-search">Encontrar personagem ou conta<input type="search" id="cw-staff-search" maxlength="160" placeholder="Personagem, dono, raça ou classe…" autocomplete="off"></label><label for="cw-staff-group">Mostrar<select id="cw-staff-group"><option value="">Todas as fichas</option><option value="ativo">Somente ativas</option><option value="inativo">Somente inativas</option></select></label><button type="button" data-cw-staff-clear>Limpar filtros</button><p role="status" aria-live="polite" data-cw-staff-count></p></div>
+    <div class="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+      {% for c in todas %}
+        <a href="{% url 'ficha_detail' c.obj.id_personagem %}" class="block rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3 hover:border-[var(--spark)]" data-cw-staff-card data-cw-staff-search="{{ c.obj.nome }} {{ c.dono }} {{ c.raca }} {{ c.classe }}" data-cw-staff-kind="{% if c.obj.arquivado %}inativo{% else %}ativo{% endif %}">
+          <div class="flex items-center justify-between">
+            <span class="font-serif font-bold text-[var(--text)]">{{ c.obj.nome }}</span>
+            <span class="text-xs text-[var(--muted)]">@{{ c.dono }}</span>
+          </div>
+          <p class="mt-1 text-xs text-[var(--muted)]">{{ c.raca }} · {{ c.classe }} · Nv {{ c.nivel }}{% if c.obj.arquivado %} · inativa{% endif %}</p>
+        </a>
+      {% endfor %}
+    </div>
+    <p class="cw-no-match" data-cw-staff-empty hidden>Nenhuma ficha de outra conta encontrada. Ajuste a busca ou limpe os filtros.</p>
+  {% endif %}
+  {% include 'home/partials/character_archive_review.html' %}
+  {% include 'home/partials/character_publication_review.html' %}
+  {% include 'home/partials/character_delete_review.html' %}
+</section>
+{% endblock %}

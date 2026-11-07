@@ -1,0 +1,40 @@
+{% extends 'home/base.html' %}
+{% load static %}
+{% block body_class %}bft-chronicles bft-chronicles-reports{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/cronica_detail.css' %}"><link rel="stylesheet" href="{% static 'css/pages/chronicles-redesign.css' %}?v=1">{% endblock %}
+{% block content %}
+<section class="cronica-layout">
+  <h1>Denúncias de crônicas</h1>
+  {% for report in denuncias %}
+  <article class="cronica-status-banner">
+    <h2>{{ report.cronica.titulo }}</h2>
+    <p>Denunciado por {{ report.denunciante.username }} em {{ report.criado_em|date:'d/m/Y H:i' }}.</p>
+    <p>Motivo: {{ report.motivo }}</p>
+    <p>Conteúdo no momento da denúncia: {{ report.alvo_snapshot|linebreaksbr }}</p>
+    {% if report.alvo_alterado %}<p role="alert">O conteúdo mudou após a denúncia. A decisão de ocultar exige uma nova avaliação; esta denúncia ainda pode ser descartada.</p>{% endif %}
+    {% if report.comentario %}
+      <p>Comentário atual de {{ report.comentario.autor.username }}: {{ report.comentario.texto|linebreaksbr }}</p>
+    {% else %}
+      <p>Denúncia da crônica: <a href="{% url 'cronica_detail' report.cronica.slug %}">ver conteúdo</a>.</p>
+    {% endif %}
+    <p>Estado: {{ report.get_estado_display }}</p>
+    {% if not report.comentario and report.credit_event %}
+      {% if report.credit_event.acao == 'credit_reversal_review' %}
+      <p role="alert">Estorno dos créditos pendente de análise administrativa.</p>
+      {% else %}
+      <p>Créditos comunitários estornados com registro auditável.</p>
+      {% endif %}
+    {% endif %}
+    <form method="post" action="{% url 'cronica_moderar_denuncia' report.pk %}">
+      {% csrf_token %}
+      {% if report.estado == 'pendente' %}
+      <button name="action" value="descartar" type="submit">Descartar denúncia</button>
+      {% if not report.alvo_alterado %}<button name="action" value="ocultar" type="submit">Ocultar conteúdo</button>{% endif %}
+      {% else %}
+      <button name="action" value="restaurar" type="submit">Restaurar conteúdo</button>
+      {% endif %}
+    </form>
+  </article>
+  {% empty %}<p>Não há denúncias pendentes.</p>{% endfor %}
+</section>
+{% endblock %}

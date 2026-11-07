@@ -1,0 +1,949 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block body_class %}bft-races{% endblock %}
+{% block main_class %}bft-races-main flex-1 w-full{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/raca_detail.css' %}?v=10">
+  <link rel="stylesheet" href="{% static 'css/pages/vastieren.css' %}?v=3">
+<script src="{% static 'js/vastieren.js' %}?v=4"></script>
+
+{% endblock %}
+
+{% block content %}
+<div class="bft-races-shell">
+  {% if race_preview %}<p class="race-preview-notice">Prévia local · Humanoides demonstrativos e Vastieren dos DOCX revisados, sem conexão ao banco oficial.</p>{% endif %}
+  <button type="button" class="race-mobile-menu-toggle" data-race-menu-toggle aria-controls="raceSidebar" aria-expanded="false" aria-label="Abrir lista de raças">
+    <svg xmlns="http://www.w3.org/2000/svg" class="open-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 5 7 7-7 7"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" class="close-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 19-7-7 7-7"/></svg>
+    <span class="race-mobile-toggle-label">Raças</span>
+  </button>
+  <div class="race-mobile-backdrop" data-race-menu-close></div>
+  <div class="race-detail-layout">
+    <aside id="raceSidebar" class="race-sidebar h-full">
+      <div class="race-sidebar-heading"><span>Biblioteca de Cinéria</span><h2>Raças</h2><a href="{% url 'racas' %}" data-race-route>Todos os povos <span aria-hidden="true">↗</span></a></div>
+      <div class="mb-3">
+        <label class="relative block">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--muted)]">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          </span>
+          <input id="raceSearch" type="search" aria-label="Buscar raça" aria-controls="raceNav" placeholder="Buscar raça..." class="w-full rounded border border-[var(--stroke)] bg-[var(--bg1)] py-2 pl-9 pr-3 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)]">
+        </label>
+      </div>
+
+      {% comment %}
+        <details class="group/race-nav relative rounded border border-[var(--stroke)] bg-[var(--bg1)]">
+          <summary class="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-bold uppercase tracking-widest text-[var(--text)] list-none">
+            <span class="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[var(--ember)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 8 4.5-8 4.5-8-4.5L12 3Z"/><path d="m4 12 8 4.5 8-4.5"/><path d="m4 16.5 8 4.5 8-4.5"/></svg>
+              {% if raca %}{{ raca.nome }}{% else %}Selecione uma Raça{% endif %}
+            </span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform group-open/race-nav:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </summary>
+          <div class="absolute left-0 top-full z-10 mt-1 max-h-60 w-full overflow-y-auto rounded border border-[var(--stroke)] bg-[var(--bg1)] shadow-2xl animate-fade-in-down origin-top">
+            {% for item in all_racas %}
+            <a href="{% url 'raca_detail' slug=item.slug %}" data-search="{{ item.nome }} {{ item.tagline }}" class="race-nav-item block border-b border-[var(--stroke)] px-4 py-3 text-sm font-bold uppercase last:border-0 hover:bg-[var(--bg2)] hover:text-[var(--ember)] {% if item.id_raca == selected_raca_id %}text-[var(--ember)]{% else %}text-[var(--muted)]{% endif %}">
+              {{ item.nome }}
+            </a>
+            {% endfor %}
+          </div>
+        </details>
+      {% endcomment %}
+      <nav id="raceNav" class="mb-4">
+        <details class="group/race-cat w-full rounded border border-[var(--stroke)] bg-[var(--bg1)]" data-race-nav-group open>
+          <summary class="flex cursor-pointer items-center justify-between px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-[var(--text)] list-none hover:bg-[var(--bg2)] transition-colors select-none">
+            <span class="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[var(--ember)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              Humanoides
+            </span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[var(--muted)] transition-transform duration-200 group-open/race-cat:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </summary>
+          <div class="p-2 grid gap-1 border-t border-[var(--stroke)] bg-[var(--bg0)]/30">
+            {% for item in all_racas %}
+            <a href="{% url 'raca_detail' slug=item.slug %}" data-race-search-item data-search="{{ item.nome }} {{ item.catalog_label }} {{ item.tagline }} humanoides recebem essência disponíveis"{% if item.id_raca == selected_raca_id %} aria-current="page"{% endif %} class="race-nav-item block rounded border px-3 py-1.5 text-xs font-bold uppercase transition-colors {% if item.id_raca == selected_raca_id %}border-[var(--flame)] bg-[var(--flame)]/5 text-[var(--text)]{% else %}border-transparent text-[var(--muted)] hover:border-[var(--stroke)] hover:bg-[var(--bg1)] hover:text-[var(--text)]{% endif %}">
+              {{ item.catalog_label|default:item.nome }}
+            </a>
+            {% empty %}
+            <p class="p-2 text-xs text-[var(--muted)]">Nenhuma raça cadastrada.</p>
+            {% endfor %}
+          </div>
+        </details>
+        {% for group in race_future_groups %}
+        <details class="race-nav-future" data-race-nav-group{% if selected_vastieren_slug and group.slug == 'vastieren' %} open{% endif %}>
+          <summary><span>{{ group.name }} <small>{{ group.entries|length }}</small></span><span aria-hidden="true">⌄</span></summary>
+          <div><p class="race-nav-group-note">{% if group.page_count %}{{ group.page_count }} páginas revisadas{% else %}Em breve{% endif %} · Sem essência</p>{% for entry in group.entries %}<a href="{% if entry.available %}{{ entry.url }}{% else %}{% url 'racas' %}#raca-previa-{{ entry.slug }}{% endif %}" class="race-nav-preview"{% if entry.available %} data-race-available{% endif %}{% if selected_vastieren_slug == entry.slug %} aria-current="page"{% endif %} data-race-route data-race-search-item data-search="{{ entry.search }}">{{ entry.name }}{% if entry.reviewed %}<span class="race-nav-reviewed" aria-label="Mecânicas revisadas">✓</span>{% endif %}</a>{% endfor %}</div>
+        </details>
+        {% endfor %}
+        <p id="raceSearchEmpty" class="hidden p-3 text-sm text-[var(--muted)]" role="status" aria-live="polite">Nenhuma raça corresponde à busca.</p>
+      </nav>
+
+      <div id="raceTraitsContainer">
+        {% include 'home/partials/raca_detail_content.html' with only_traits=True %}
+      </div>
+    </aside>
+
+    <section class="min-w-0 race-main-content" aria-label="Povos e detalhes de raça">
+      {% include 'home/partials/raca_detail_content.html' with only_content=True %}
+    </section>
+  </div>
+</div>
+
+<script>
+  // Remove indentação acidental que o marked.js interpretaria como bloco de
+  // código (texto monoespaçado em caixa). Mantém recuo pequeno só para
+  // sub-itens de lista, padronizando a formatação de traços e talentos.
+  function dedentMarkdown(value) {
+    return String(value || '').split('\n').map(line => {
+      const indent = (line.match(/^[ \t]*/) || [''])[0];
+      if (!/\t/.test(indent) && indent.length < 4) return line;
+      const rest = line.slice(indent.length);
+      return /^([-*+]\s|\d+[.)]\s)/.test(rest) ? '  ' + rest : rest;
+    }).join('\n');
+  }
+
+  function renderMarkdownToHtml(value) {
+    const cleanValue = dedentMarkdown(String(value || '').trim());
+    if (typeof renderBonfireMarkdown === 'function' && typeof sanitizeBonfireMarkdownHtml === 'function') {
+      return sanitizeBonfireMarkdownHtml(renderBonfireMarkdown(cleanValue));
+    }
+    return escapeHtml(cleanValue).replace(/\n/g, '<br>');
+  }
+
+  function renderMarkdownElement(element, raw) {
+    // Guarda a fonte para a prévia e impede que o renderizador global
+    // substitua o HTML saneado quando ocorrer DOMContentLoaded.
+    const trimmed = dedentMarkdown(String(raw || '').trim());
+    element.dataset.markdownRaw = trimmed;
+    element.dataset.markdownManual = 'true';
+    element.innerHTML = renderMarkdownToHtml(trimmed);
+  }
+
+  function renderAllMarkdown() {
+    document.querySelectorAll('[data-markdown-source]').forEach(element => {
+      const raw = element.dataset.markdownRaw ?? element.textContent;
+      renderMarkdownElement(element, raw);
+    });
+  }
+
+  function initPage() {
+    renderAllMarkdown();
+    const vastierenPage = document.querySelector('[data-vastieren-page]');
+    if (vastierenPage) { window.initVastierenPage(vastierenPage); return; }
+
+    const container = document.getElementById('raceDetailContainer');
+    if (!container) return;
+
+    const artOpen = document.getElementById('raceArtOpen');
+    const artDialog = document.getElementById('raceArtDialog');
+    const artFullImage = document.getElementById('raceArtFullImage');
+    artOpen?.addEventListener('click', () => {
+      if (!artFullImage?.src || !artDialog) return;
+      artDialog.showModal();
+    });
+    artDialog?.querySelector('[data-race-art-close]')?.addEventListener('click', () => artDialog.close());
+    artDialog?.addEventListener('close', () => artOpen?.focus());
+    artDialog?.addEventListener('click', event => {
+      if (event.target === artDialog) artDialog.close();
+    });
+
+    // 0. Lore: garante o primeiro botão/painel ativo em cada grupo de subtópicos
+    //    (o clique é tratado pelo handler global de markdown.js)
+    container.querySelectorAll('.race-lore-group').forEach(group => {
+      if (!group.querySelector('.subtopic-btn.is-active')) {
+        group.querySelector('.subtopic-btn')?.classList.add('is-active');
+      }
+      if (!group.querySelector('.h1-group-panel.is-visible')) {
+        group.querySelector('.h1-group-panel')?.classList.add('is-visible');
+      }
+    });
+
+    // 1. Tab Switching Setup
+    const tabButtons = container.querySelectorAll('[data-tab-btn]');
+    const tabPanes = container.querySelectorAll('.tab-pane');
+    container.querySelector('.race-tabs')?.setAttribute('role', 'tablist');
+
+    function selectRaceTab(btn, moveFocus = false) {
+      const targetTab = btn.getAttribute('data-tab-btn');
+      container.setAttribute('data-active-tab', targetTab);
+      tabButtons.forEach(b => {
+        b.classList.toggle('active', b === btn);
+        b.setAttribute('aria-selected', String(b === btn));
+        b.tabIndex = b === btn ? 0 : -1;
+      });
+      tabPanes.forEach(pane => {
+        const active = pane.id === `tab-content-${targetTab}`;
+        pane.classList.toggle('active', active);
+        pane.hidden = !active;
+      });
+      if (moveFocus) btn.focus();
+    }
+
+    tabButtons.forEach((btn, index) => {
+      btn.id = `race-tab-${btn.dataset.tabBtn}`;
+      btn.setAttribute('role', 'tab');
+      btn.setAttribute('aria-controls', `tab-content-${btn.dataset.tabBtn}`);
+      const panel = container.querySelector(`#tab-content-${btn.dataset.tabBtn}`);
+      panel?.setAttribute('role', 'tabpanel');
+      panel?.setAttribute('aria-labelledby', btn.id);
+      btn.addEventListener('click', () => selectRaceTab(btn));
+      btn.addEventListener('keydown', event => {
+        const direction = {ArrowRight: 1, ArrowLeft: -1}[event.key];
+        if (!direction && !['Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabButtons.length - 1 : (index + direction + tabButtons.length) % tabButtons.length;
+        selectRaceTab(tabButtons[next], true);
+      });
+    });
+    selectRaceTab(container.querySelector('[data-tab-btn].active') || tabButtons[0]);
+    container.querySelector('[data-race-jump]')?.addEventListener('click', () => {
+      container.querySelector('[data-tab-btn].active')?.focus({preventScroll: true});
+      container.querySelector('.race-tabs')?.scrollIntoView({block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
+    });
+
+    // 2. Lineage / Essence Selection Setup
+    const linhagemSelect = document.getElementById('linhagemSelect');
+    const essenciaSelect = document.getElementById('essenciaSelect');
+    const elementSelect = container.querySelector('#raceElementSelect');
+    const modeInputs = container.querySelectorAll('[name="race-origin-mode"]');
+    let originMode = '';
+    let activeElement = 'undine';
+    let portraits = {};
+    try { portraits = JSON.parse(container.querySelector('#racePortraitData')?.textContent || '{}'); }
+    catch (error) { console.warn('Catálogo visual indisponível; usando arte editorial.'); }
+    const defaultSex = portraits.defaultSex || 'feminino';
+    let portraitSex = container.dataset.baseCustomImage === 'true' ? 'editorial' : defaultSex;
+    let portraitChoices = [];
+
+    modeInputs.forEach(input => input.addEventListener('change', () => {
+      if (input.disabled) return;
+      originMode = input.value;
+      clearAllSelection();
+    }));
+    container.querySelector('[data-reset-origin]')?.addEventListener('click', () => {
+      originMode = '';
+      clearAllSelection();
+    });
+    container.querySelector('[data-view-portrait]')?.addEventListener('click', () => {
+      artOpen?.focus({preventScroll: true});
+      container.querySelector('.race-hero-media')?.scrollIntoView({block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
+    });
+    elementSelect?.addEventListener('change', () => {
+      if (!portraits.elements?.[elementSelect.value]) return;
+      activeElement = elementSelect.value;
+      updateSelection();
+    });
+    function changePortrait(direction) {
+      if (portraitChoices.length < 2) return;
+      const current = portraitChoices.findIndex(item => item.sex === portraitSex);
+      portraitSex = portraitChoices[(current + direction + portraitChoices.length) % portraitChoices.length].sex;
+      updateSelection();
+    }
+    container.querySelector('[data-portrait-prev]')?.addEventListener('click', () => changePortrait(-1));
+    container.querySelector('[data-portrait-next]')?.addEventListener('click', () => changePortrait(1));
+    container.addEventListener('race:restore-visual', event => {
+      const state = event.detail || {};
+      if (['linhagem', 'essencia', ''].includes(state.mode)) originMode = state.mode;
+      if (portraits.elements?.[state.element]) activeElement = state.element;
+      if (['feminino', 'masculino', 'editorial'].includes(state.sex)) portraitSex = state.sex;
+      updateSelection();
+    });
+
+    function setLineage(slug) {
+      originMode = 'linhagem';
+      container.setAttribute('data-active-lineage', slug);
+      container.setAttribute('data-active-essence', '');
+      updateSelection();
+    }
+
+    function setEssence(slug) {
+      originMode = 'essencia';
+      container.setAttribute('data-active-essence', slug);
+      container.setAttribute('data-active-lineage', '');
+      updateSelection();
+    }
+
+    function clearAllSelection() {
+      container.setAttribute('data-active-lineage', '');
+      container.setAttribute('data-active-essence', '');
+      updateSelection();
+    }
+
+    if (linhagemSelect) {
+      linhagemSelect.addEventListener('change', (e) => {
+        const slug = e.target.value;
+        if (!slug) {
+          clearAllSelection();
+        } else {
+          setLineage(slug);
+        }
+      });
+    }
+
+    if (essenciaSelect) {
+      essenciaSelect.addEventListener('change', (e) => {
+        const slug = e.target.value;
+        if (!slug) {
+          clearAllSelection();
+        } else {
+          setEssence(slug);
+        }
+      });
+    }
+
+    // Goto Talents Buttons
+    container.querySelectorAll('[data-goto-talents-btn]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const talBtn = container.querySelector('[data-tab-btn="talentos"]');
+        if (talBtn) talBtn.click();
+        talBtn?.focus({preventScroll: true});
+        container.querySelector('.race-tabs')?.scrollIntoView({block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
+      });
+    });
+
+    // Selection Update Rendering Function
+    function updateSelection() {
+      const activeLineage = container.getAttribute('data-active-lineage') || '';
+      const activeEssence = container.getAttribute('data-active-essence') || '';
+      const elemental = activeEssence === 'elemental';
+      container.dataset.originMode = originMode;
+      container.dataset.activeElement = elemental ? activeElement : '';
+      modeInputs.forEach(input => { input.checked = input.value === originMode; });
+      container.querySelector('[data-lineage-field]').hidden = originMode !== 'linhagem';
+      container.querySelector('[data-essence-field]').hidden = originMode !== 'essencia';
+      container.querySelector('[data-element-field]').hidden = !elemental;
+      container.querySelector('[data-origin-hint]').hidden = !!originMode;
+      container.querySelector('[data-reset-origin]').disabled = !originMode;
+      if (elementSelect) elementSelect.value = activeElement;
+
+      // Sync dropdown select values to match the attributes
+      const linSelect = document.getElementById('linhagemSelect');
+      const essSelect = document.getElementById('essenciaSelect');
+      if (linSelect && linSelect.value !== activeLineage) linSelect.value = activeLineage;
+      if (essSelect && essSelect.value !== activeEssence) essSelect.value = activeEssence;
+
+      // Update Preview Card Image & Text
+      const previewImg = document.getElementById('racePreviewImage');
+      const previewTitle = document.getElementById('racePreviewTitle');
+      const previewLabel = document.getElementById('racePreviewLabel');
+
+      let imgUrl = container.getAttribute('data-base-image') || '';
+      let focusX = container.getAttribute('data-base-focus-x') || '50';
+      let focusY = container.getAttribute('data-base-focus-y') || '50';
+      let labelText = 'Raça Base';
+      let selectionName = container.getAttribute('data-race-name') || '';
+      const baseName = selectionName;
+      let pair = portraits.base;
+      let customImage = container.dataset.baseCustomImage === 'true';
+
+      if (activeEssence && essSelect) {
+        const selectedOpt = essSelect.querySelector(`option[value="${activeEssence}"]`);
+        if (selectedOpt) {
+          imgUrl = selectedOpt.getAttribute('data-image') || imgUrl;
+          focusX = selectedOpt.getAttribute('data-focus-x') || focusX;
+          focusY = selectedOpt.getAttribute('data-focus-y') || focusY;
+          selectionName = selectedOpt.getAttribute('data-name') || selectedOpt.textContent;
+          labelText = 'Essência Selecionada';
+          pair = elemental ? portraits.elements?.[activeElement] : portraits.essences?.[activeEssence];
+          customImage = selectedOpt.dataset.customImage === 'true' && !elemental;
+          if (elemental && elementSelect) selectionName = `Elemental · ${elementSelect.selectedOptions[0]?.textContent || activeElement}`;
+        }
+      } else if (activeLineage && linSelect) {
+        const selectedOpt = linSelect.querySelector(`option[value="${activeLineage}"]`);
+        if (selectedOpt) {
+          imgUrl = selectedOpt.getAttribute('data-image') || imgUrl;
+          focusX = selectedOpt.getAttribute('data-focus-x') || focusX;
+          focusY = selectedOpt.getAttribute('data-focus-y') || focusY;
+          selectionName = selectedOpt.getAttribute('data-name') || selectedOpt.textContent;
+          labelText = 'Linhagem Selecionada';
+          pair = portraits.lineages?.[activeLineage] || portraits.lineages?.[activeLineage.normalize('NFD').replace(/[\u0300-\u036f]/g, '')];
+          customImage = selectedOpt.dataset.customImage === 'true';
+        }
+      }
+
+      // Editorial art remains a separately labelled slide when it is custom;
+      // the female/male illustrations never overwrite its saved URL or focus.
+      portraitChoices = [];
+      if (imgUrl && (customImage || !pair)) portraitChoices.push({sex:'editorial',url:imgUrl,x:focusX,y:focusY});
+      for (const sex of ['feminino', 'masculino']) {
+        // These are tall narrative illustrations. Prioritize the face when
+        // cropping to the compact hero; the dialog preserves the full scene.
+        if (pair?.[sex]) portraitChoices.push({sex,url:pair[sex],x:'50',y:'10'});
+      }
+      if (!portraitChoices.some(item => item.sex === portraitSex)) {
+        portraitSex = portraitChoices.some(item => item.sex === defaultSex) ? defaultSex : portraitChoices[0]?.sex;
+      }
+      const portrait = portraitChoices.find(item => item.sex === portraitSex);
+      if (portrait) { imgUrl = portrait.url; focusX = portrait.x; focusY = portrait.y; }
+      const sexLabel = portraitSex === 'feminino' ? 'Feminino' : portraitSex === 'masculino' ? 'Masculino' : 'Arte editorial';
+      const visualName = activeEssence || activeLineage ? `${baseName} · ${selectionName}` : baseName;
+      container.dataset.portraitSex = portraitSex || '';
+      const artControls = container.querySelector('[data-portrait-controls]');
+      if (artControls) artControls.hidden = portraitChoices.length < 2;
+      const position = container.querySelector('[data-portrait-position]');
+      if (position) position.textContent = portrait ? `${sexLabel} · ${portraitChoices.indexOf(portrait) + 1}/${portraitChoices.length}` : '';
+      const sexCaption = container.querySelector('#racePortraitSex');
+      if (sexCaption) sexCaption.textContent = portrait ? sexLabel : '';
+      for (const [selector, direction] of [['[data-portrait-prev]', -1], ['[data-portrait-next]', 1]]) {
+        const button = container.querySelector(selector);
+        const next = portraitChoices[(portraitChoices.indexOf(portrait) + direction + portraitChoices.length) % portraitChoices.length];
+        if (button && next) button.setAttribute('aria-label', `Mostrar arte ${next.sex === 'editorial' ? 'editorial' : next.sex === 'feminino' ? 'feminina' : 'masculina'} de ${visualName}`);
+      }
+      if (previewImg) {
+        previewImg.style.backgroundImage = imgUrl ? `url('${imgUrl}')` : 'none';
+        previewImg.style.backgroundPosition = `${focusX}% ${focusY}%`;
+      }
+      if (artOpen) {
+        artOpen.hidden = !imgUrl;
+        artOpen.setAttribute('aria-label', `Ver arte completa de ${visualName} · ${sexLabel}`);
+      }
+      if (artFullImage) {
+        if (imgUrl) artFullImage.src = imgUrl;
+        else artFullImage.removeAttribute('src');
+        artFullImage.alt = `Arte de ${visualName} · ${sexLabel}`;
+      }
+      if (previewTitle) previewTitle.textContent = visualName;
+      if (previewLabel) previewLabel.textContent = labelText;
+
+      // "Mostrando:" chip na Divergência Ancestral
+      const showingBadge = document.getElementById('raceShowingBadge');
+      if (showingBadge) {
+        showingBadge.textContent = (activeEssence || activeLineage) ? selectionName : 'Raça base';
+      }
+
+      // Update specific traits lists
+      container.querySelectorAll('[data-linhagem-traits]').forEach(el => {
+        const slug = el.getAttribute('data-linhagem-traits');
+        el.classList.toggle('hidden', slug !== activeLineage);
+      });
+      container.querySelectorAll('[data-essencia-traits]').forEach(el => {
+        const slug = el.getAttribute('data-essencia-traits');
+        el.classList.toggle('hidden', slug !== activeEssence);
+      });
+
+      // Update Lore tab views
+      const baseLore = document.getElementById('baseRaceLore');
+      if (baseLore) baseLore.classList.toggle('hidden', !!activeEssence);
+
+      container.querySelectorAll('[data-essencia-lore]').forEach(el => {
+        const slug = el.getAttribute('data-essencia-lore');
+        el.classList.toggle('hidden', slug !== activeEssence);
+      });
+
+      // Update guide box alerts on Talents tab
+      const alertEss = container.querySelector('[data-talents-filter-alert="essence"]');
+      const alertLin = container.querySelector('[data-talents-filter-alert="lineage"]');
+      const alertNone = container.querySelector('[data-talents-filter-alert="none"]');
+
+      if (alertEss) alertEss.classList.toggle('hidden', !activeEssence);
+      if (alertLin) alertLin.classList.toggle('hidden', !activeLineage);
+      if (alertNone) alertNone.classList.toggle('hidden', !!activeEssence || !!activeLineage);
+
+      applyTalentFilters();
+    }
+
+    // 3. Talent Levels Filter Setup
+    const activeLevels = window.activeRaceLevels || new Set([1, 5, 9, 13, 17]);
+    window.activeRaceLevels = activeLevels;
+
+    const levelToggles = container.querySelectorAll('[data-level-toggle-v2]');
+    levelToggles.forEach(btn => {
+      const lvl = parseInt(btn.getAttribute('data-level-toggle-v2'), 10);
+      btn.classList.toggle('active', activeLevels.has(lvl));
+      btn.setAttribute('aria-pressed', String(activeLevels.has(lvl)));
+
+      btn.addEventListener('click', () => {
+        if (activeLevels.has(lvl)) {
+          activeLevels.delete(lvl);
+          btn.classList.remove('active');
+        } else {
+          activeLevels.add(lvl);
+          btn.classList.add('active');
+        }
+        btn.setAttribute('aria-pressed', String(activeLevels.has(lvl)));
+        applyTalentFilters();
+      });
+    });
+
+    function applyTalentFilters() {
+      const activeLineage = container.getAttribute('data-active-lineage') || '';
+      const activeEssence = container.getAttribute('data-active-essence') || '';
+      const currentRaceSlug = container.getAttribute('data-race-slug') || '';
+
+      container.querySelectorAll('[data-talent-card-v2]').forEach(card => {
+        const lvlVal = parseInt(card.getAttribute('data-level'), 10) || 1;
+        
+        let group = 1;
+        if (lvlVal >= 17) group = 17;
+        else if (lvlVal >= 13) group = 13;
+        else if (lvlVal >= 9) group = 9;
+        else if (lvlVal >= 5) group = 5;
+
+        const levelMatches = activeLevels.has(group);
+        const cardLineage = card.getAttribute('data-linhagem') || '';
+        const cardEssence = card.getAttribute('data-essencia') || '';
+        const cardRace = card.getAttribute('data-origem-raca') || '';
+        const prereqText = (card.getAttribute('data-prereq') || '').toLowerCase();
+
+        // Check prerequisite restrictions
+        const hasLinhagemPrereq = prereqText.includes('linhagem') || prereqText.includes('linhagens');
+        const hasEssencePrereq = prereqText.includes('essência') || prereqText.includes('essencia');
+        const isOnlyLineage = hasLinhagemPrereq && !hasEssencePrereq;
+
+        let matchesSelection = false;
+
+        if (activeEssence) {
+          // If essence is selected:
+          // 1. Must be the selected essence's talent:
+          if (cardEssence === activeEssence) {
+            matchesSelection = true;
+          }
+          // 2. Or must be a base race talent of the current race, which does not require only-lineage:
+          else if (cardEssence === '' && cardLineage === '' && (cardRace === currentRaceSlug || cardRace === '') && !isOnlyLineage) {
+            matchesSelection = true;
+          }
+        } else if (activeLineage) {
+          // If a lineage is selected:
+          // 1. Must be the selected lineage's talent:
+          if (cardLineage === activeLineage) {
+            matchesSelection = true;
+          }
+          // 2. Or must be a base race talent of the current race:
+          else if (cardEssence === '' && cardLineage === '' && (cardRace === currentRaceSlug || cardRace === '')) {
+            matchesSelection = true;
+          }
+          // 3. Or if current race is human, and we are durkarn/salarin/goruun, we can select base talents of dwarf/elf/orc respectively,
+          //    provided they do not require specific lineages or "apenas linhagens":
+          else if (currentRaceSlug === 'humano' && cardEssence === '' && cardLineage === '') {
+            if (activeLineage === 'salarin' && cardRace === 'elfo' && !isOnlyLineage) {
+              matchesSelection = true;
+            } else if (activeLineage === 'durkarn' && cardRace === 'anao' && !isOnlyLineage) {
+              matchesSelection = true;
+            } else if (activeLineage === 'goruun' && cardRace === 'orc' && !isOnlyLineage) {
+              matchesSelection = true;
+            }
+          }
+        } else {
+          // If no lineage and no essence is selected:
+          // Must be a base race talent of the current race:
+          if (cardEssence === '' && cardLineage === '' && (cardRace === currentRaceSlug || cardRace === '')) {
+            matchesSelection = true;
+          }
+        }
+
+        card.classList.toggle('hidden', !(levelMatches && matchesSelection));
+      });
+
+      // Hide or show the level section based on visible cards
+      [1, 5, 9, 13, 17].forEach(level => {
+        const levelSection = document.getElementById(`talent-level-section-${level}`);
+        if (levelSection) {
+          const visibleCards = levelSection.querySelectorAll('[data-talent-card-v2]:not(.hidden)');
+          levelSection.classList.toggle('hidden', visibleCards.length === 0);
+        }
+      });
+      const empty = container.querySelector('[data-race-talent-empty]');
+      if (empty) empty.hidden = container.querySelectorAll('[data-talent-card-v2]:not(.hidden)').length > 0;
+    }
+
+    // 4. Trait Editing Inline Binder (for both basic traits and talent cards)
+    container.querySelectorAll('[data-race-trait-card]').forEach(card => {
+      const edit = card.querySelector('[data-trait-edit]');
+      const form = card.querySelector('[data-trait-form]');
+      const cancel = card.querySelector('[data-trait-cancel]');
+      const preview = card.querySelector('[data-trait-preview]');
+      const textarea = form?.elements.descricao;
+      if (!edit || !form || !preview || !textarea) return;
+      form.id = `trait-editor-${card.dataset.traitId}`;
+      edit.setAttribute('aria-controls', form.id);
+      edit.setAttribute('aria-expanded', 'false');
+      const error = document.createElement('p');
+      error.className = 'wiki-inline-error';
+      error.setAttribute('role', 'alert');
+      error.tabIndex = -1;
+      error.hidden = true;
+      form.querySelector('.wiki-inline-actions').before(error);
+      const prereq = preview.querySelector('[data-trait-prereq]') || (() => {
+        const element = document.createElement('div');
+        element.className = 'talent-card-prereq hidden';
+        element.setAttribute('data-trait-prereq', '');
+        preview.prepend(element);
+        return element;
+      })();
+      const markdownTarget = preview.querySelector('[data-markdown-source]');
+      const updatePreview = () => {
+        const isTalent = form.elements.talento_racial.value === 'true' || form.elements.talento_racial.checked;
+        const requirement = form.elements.pre_requisito ? form.elements.pre_requisito.value.trim() : '';
+        prereq.textContent = `Pré-requisito: ${requirement}`;
+        prereq.classList.toggle('hidden', !(isTalent && requirement));
+        if (markdownTarget) renderMarkdownElement(markdownTarget, textarea.value);
+      };
+      const closeTraitEditor = () => {
+        if (form.getAttribute('aria-busy') === 'true') return;
+        form.reset();
+        updatePreview();
+        error.hidden = true;
+        form.classList.remove('is-open');
+        edit.setAttribute('aria-expanded', 'false');
+        edit.focus();
+      };
+
+      edit.addEventListener('click', (event) => {
+        event.stopPropagation();
+        form.classList.add('is-open');
+        edit.setAttribute('aria-expanded', 'true');
+        textarea.focus();
+      });
+      cancel?.addEventListener('click', closeTraitEditor);
+      form.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && form.getAttribute('aria-busy') !== 'true') {
+          event.preventDefault();
+          closeTraitEditor();
+        }
+      });
+
+      textarea.addEventListener('input', updatePreview);
+      form.addEventListener('input', event => {
+        if (event.target.name === 'pre_requisito' || event.target.name === 'talento_racial') {
+          updatePreview();
+        }
+      });
+      
+      form.addEventListener('submit', async event => {
+        event.preventDefault();
+        if (form.getAttribute('aria-busy') === 'true') return;
+        const data = Object.fromEntries(new FormData(form).entries());
+        if ('tags_json_text' in data) {
+          data.tags_json = data.tags_json_text.split('\n').map(t => t.trim()).filter(Boolean);
+          delete data.tags_json_text;
+        }
+        const traitId = card.dataset.traitId;
+        const selection = {
+          tab: container.getAttribute('data-active-tab'),
+          lineage: container.getAttribute('data-active-lineage'),
+          essence: container.getAttribute('data-active-essence'),
+          mode: originMode, element: activeElement, sex: portraitSex
+        };
+        const controls = Array.from(form.querySelectorAll('input, textarea, button'));
+        error.hidden = true;
+        form.setAttribute('aria-busy', 'true');
+        controls.forEach(control => { control.disabled = true; });
+        try {
+          const response = await fetch(`/wiki/tracos-raciais/${traitId}/editar/`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': decodeURIComponent(wikiCookie('csrftoken'))
+            },
+            body: JSON.stringify(data)
+          });
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok || !result.ok || !result.trait) {
+            throw new Error(result.error || 'Não foi possível salvar o traço.');
+          }
+          await loadContent(window.location.pathname, false);
+          const refreshed = document.getElementById('raceDetailContainer');
+          refreshed?.querySelector(`[data-tab-btn="${selection.tab}"]`)?.click();
+          const selector = selection.lineage ? document.getElementById('linhagemSelect')
+            : selection.essence ? document.getElementById('essenciaSelect') : null;
+          if (selector) {
+            selector.value = selection.lineage || selection.essence;
+            selector.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+          refreshed?.dispatchEvent(new CustomEvent('race:restore-visual', {detail: selection}));
+          refreshed?.querySelector(`[data-race-trait-card][data-trait-id="${traitId}"] [data-trait-edit]`)?.focus();
+        } catch (failure) {
+          error.textContent = failure.message || 'Não foi possível salvar o traço.';
+          error.hidden = false;
+          error.focus();
+        } finally {
+          form.removeAttribute('aria-busy');
+          controls.forEach(control => { control.disabled = false; });
+        }
+      });
+    });
+
+    // 5. Race Editing Inline Binder
+    const raceEditBtn = container.querySelector('[data-race-edit]');
+    const raceForm = container.querySelector('[data-race-form]');
+    const raceCancelBtn = container.querySelector('[data-race-cancel]');
+    if (raceEditBtn && raceForm) {
+      const raceSaveBtn = raceForm.querySelector('.wiki-inline-save');
+      const raceSaveError = raceForm.querySelector('[data-race-save-error]');
+      const cropPreviews = raceForm.querySelectorAll('[data-race-crop-preview]');
+      const refreshCropPreviews = () => {
+        const enteredUrl = raceForm.elements.imagem_url.value.trim();
+        // Show the effective default art without changing the saved URL field.
+        const url = enteredUrl === raceForm.dataset.raceSavedImage
+          ? raceForm.dataset.raceDisplayImage : enteredUrl;
+        const x = raceForm.elements.imagem_foco_x.value;
+        const y = raceForm.elements.imagem_foco_y.value;
+        cropPreviews.forEach(img => {
+          img.hidden = !url;
+          if (url && img.getAttribute('src') !== url) img.src = url;
+          if (!url) img.removeAttribute('src');
+          img.style.objectPosition = `${x}% ${y}%`;
+        });
+      };
+      raceForm.addEventListener('input', refreshCropPreviews);
+      refreshCropPreviews();
+      raceEditBtn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        raceForm.classList.add('is-open');
+        raceEditBtn.setAttribute('aria-expanded', 'true');
+        raceForm.elements.nome.focus();
+      });
+      const closeRaceEditor = () => {
+        if (raceForm.getAttribute('aria-busy') === 'true') return;
+        raceForm.reset();
+        refreshCropPreviews();
+        raceForm.classList.remove('is-open');
+        raceSaveError.hidden = true;
+        raceEditBtn.setAttribute('aria-expanded', 'false');
+        raceEditBtn.focus();
+      };
+      raceCancelBtn?.addEventListener('click', closeRaceEditor);
+      raceForm.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && raceForm.getAttribute('aria-busy') !== 'true') {
+          event.preventDefault();
+          closeRaceEditor();
+        }
+      });
+      raceForm.addEventListener('submit', async event => {
+        event.preventDefault();
+        if (raceForm.getAttribute('aria-busy') === 'true') return;
+        const data = Object.fromEntries(new FormData(raceForm).entries());
+        const raceId = raceForm.dataset.raceId;
+        raceSaveError.hidden = true;
+        raceForm.setAttribute('aria-busy', 'true');
+        raceSaveBtn.disabled = true;
+        raceCancelBtn.disabled = true;
+        try {
+          const response = await fetch(`/wiki/racas/${raceId}/editar/`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': decodeURIComponent(wikiCookie('csrftoken'))
+            },
+            body: JSON.stringify(data)
+          });
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok || !result.ok) {
+            throw new Error(result.error || 'Não foi possível salvar a raça.');
+          }
+          raceForm.classList.remove('is-open');
+          await loadContent(window.location.pathname, false);
+          document.querySelector('[data-race-edit]')?.focus();
+        } catch (failure) {
+          raceSaveError.textContent = failure.message || 'Não foi possível salvar a raça.';
+          raceSaveError.hidden = false;
+          raceSaveError.focus();
+        } finally {
+          raceForm.removeAttribute('aria-busy');
+          raceSaveBtn.disabled = false;
+          raceCancelBtn.disabled = false;
+        }
+      });
+    }
+    updateSelection();
+  }
+
+  // Sidebar Search
+  const raceSearch = document.getElementById('raceSearch');
+  const raceItems = Array.from(document.querySelectorAll('#raceNav .race-nav-item, #raceNav [data-race-available]'));
+  const raceSearchItems = Array.from(document.querySelectorAll('#raceNav [data-race-search-item]'));
+  const raceNavGroups = Array.from(document.querySelectorAll('[data-race-nav-group]'));
+  let raceNavOpenBeforeSearch = null;
+  const raceNav = document.getElementById('raceNav');
+  const raceSearchEmpty = document.getElementById('raceSearchEmpty');
+  const raceMenuToggle = document.querySelector('[data-race-menu-toggle]');
+  const raceMenuClosers = document.querySelectorAll('[data-race-menu-close]');
+  let raceFilterTimer = null;
+  const raceMobile = window.matchMedia('(max-width:1100px)');
+  const raceSidebar = document.getElementById('raceSidebar');
+
+  function setRaceMenuOpen(isOpen, returnFocus = false) {
+    isOpen = isOpen && raceMobile.matches;
+    document.body.classList.toggle('race-menu-open', isOpen);
+    raceMenuToggle?.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    raceMenuToggle?.setAttribute('aria-label', isOpen ? 'Fechar lista de raças' : 'Abrir lista de raças');
+    if (raceSidebar) raceSidebar.inert = raceMobile.matches && !isOpen;
+    if (isOpen) raceSearch?.focus();
+    else if (returnFocus) raceMenuToggle?.focus();
+  }
+  setRaceMenuOpen(false);
+  raceMobile.addEventListener('change', () => setRaceMenuOpen(false));
+
+  raceMenuToggle?.addEventListener('click', () => {
+    setRaceMenuOpen(!document.body.classList.contains('race-menu-open'));
+  });
+
+  raceMenuClosers.forEach(closer => {
+    closer.addEventListener('click', () => setRaceMenuOpen(false, true));
+  });
+
+  document.addEventListener('keydown', event => {
+    if (!document.body.classList.contains('race-menu-open')) return;
+    if (event.key === 'Escape') setRaceMenuOpen(false, true);
+    if (event.key === 'Tab') {
+      const controls = [...raceSidebar.querySelectorAll('a, button, input, summary, select')].filter(el => el.getClientRects().length && !el.disabled);
+      controls.push(raceMenuToggle);
+      // The floating toggle precedes the drawer in DOM order. Cycle explicitly
+      // so Tab cannot escape from its last link into the covered page content.
+      const current = controls.indexOf(document.activeElement);
+      const next = (current + (event.shiftKey ? -1 : 1) + controls.length) % controls.length;
+      event.preventDefault();
+      controls[next]?.focus();
+    }
+  });
+
+  function filterRaceList() {
+    const normalizeSearch = value => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/['’‘-]/g, '').toLocaleLowerCase('pt-BR');
+    const query = normalizeSearch(raceSearch.value.trim());
+    let matches = 0;
+    if (query && !raceNavOpenBeforeSearch) raceNavOpenBeforeSearch = raceNavGroups.map(group => group.open);
+    raceSearchItems.forEach(item => {
+      const text = normalizeSearch(item.dataset.search || '');
+      const visible = !query || text.includes(query);
+      item.classList.toggle('hidden', !visible);
+      if (visible) matches += 1;
+    });
+    raceSearchEmpty?.classList.toggle('hidden', !query || matches > 0);
+    raceNavGroups.forEach((group, index) => {
+      const hasMatch = [...group.querySelectorAll('[data-race-search-item]')].some(item => !item.classList.contains('hidden'));
+      group.hidden = !!query && !hasMatch;
+      if (query && hasMatch) group.open = true;
+      else if (!query && raceNavOpenBeforeSearch) group.open = raceNavOpenBeforeSearch[index];
+    });
+    if (!query) raceNavOpenBeforeSearch = null;
+    document.querySelectorAll('[data-race-card], [data-vastieren-card], [data-race-placeholder]').forEach(card => {
+      card.hidden = !!query && !normalizeSearch(card.dataset.search || '').includes(query);
+    });
+    document.querySelectorAll('[data-race-family]').forEach(group => {
+      group.hidden = !!query && ![...group.querySelectorAll('[data-race-card], [data-vastieren-card], [data-race-placeholder]')].some(card => !card.hidden);
+      const shortcut = document.querySelector(`[data-race-family-shortcut="${group.dataset.raceFamily}"]`);
+      if (shortcut) shortcut.hidden = group.hidden;
+    });
+    const catalogueEmpty = document.querySelector('[data-race-catalog-empty]');
+    if (catalogueEmpty) catalogueEmpty.hidden = !query || matches > 0;
+    raceNav?.classList.remove('race-nav-filtering');
+    void raceNav?.offsetWidth;
+    raceNav?.classList.add('race-nav-filtering');
+    if (raceFilterTimer) clearTimeout(raceFilterTimer);
+    raceFilterTimer = setTimeout(() => {
+      raceNav?.classList.remove('race-nav-filtering');
+      raceFilterTimer = null;
+    }, 260);
+  }
+  raceSearch?.addEventListener('input', filterRaceList);
+
+  // AJAX Loading
+  const contentArea = document.querySelector('.race-main-content');
+  
+  document.addEventListener('click', event => {
+    const link = event.target.closest('.race-nav-item, [data-race-route]');
+    if (!link || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    setRaceMenuOpen(false);
+    
+    const url = link.href;
+    loadContent(url);
+  });
+
+  window.addEventListener('popstate', () => {
+    if (/^\/jogador\/raca(?:\/|$)/.test(window.location.pathname)) {
+      if (raceSearch) {
+        raceSearch.value = '';
+        raceSearch.dispatchEvent(new Event('input'));
+      }
+      loadContent(window.location.pathname + window.location.search + window.location.hash, false);
+    } else {
+      window.location.reload();
+    }
+  });
+
+  async function loadContent(url, pushHistory = true) {
+    contentArea.setAttribute('aria-busy', 'true');
+    contentArea.style.opacity = '0.5';
+    contentArea.style.pointerEvents = 'none';
+    
+    try {
+      const destination = new URL(url, window.location.origin);
+      const requestUrl = new URL(destination);
+      requestUrl.hash = '';
+      requestUrl.searchParams.set('ajax', '1');
+      const response = await fetch(requestUrl);
+      if (!response.ok) throw new Error('Failed to load');
+      
+      const html = await response.text();
+      const temp = document.createElement('div');
+      temp.innerHTML = html;
+
+      // Update traits container if present
+      const newTraits = temp.querySelector('#ajax-traits-section');
+      const traitsContainer = document.getElementById('raceTraitsContainer');
+      if (newTraits && traitsContainer) {
+          traitsContainer.innerHTML = newTraits.innerHTML;
+      }
+
+      const newContent = temp.querySelector('#ajax-content-inner');
+      if (!newContent) throw new Error('Conteúdo da raça indisponível.');
+      if (newContent) {
+        contentArea.innerHTML = '';
+        contentArea.appendChild(newContent);
+      }
+      
+      // Update sidebar active state
+      raceItems.forEach(item => {
+          const isActive = item.href === url || item.href === window.location.origin + url;
+          item.classList.toggle('border-[var(--flame)]', isActive);
+          item.classList.toggle('bg-[var(--flame)]/5', isActive);
+          item.classList.toggle('text-[var(--text)]', isActive);
+          item.classList.toggle('border-transparent', !isActive);
+          item.classList.toggle('text-[var(--muted)]', !isActive);
+          if (isActive) {
+            item.setAttribute('aria-current', 'page');
+            const activeGroup = item.closest('details');
+            if (activeGroup) activeGroup.open = true;
+          }
+          else item.removeAttribute('aria-current');
+      });
+      
+      if (pushHistory && window.location.href !== destination.href) {
+        window.history.pushState({}, '', destination);
+      }
+      initPage();
+      filterRaceList();
+      const title = contentArea.querySelector('h1');
+      if (title) document.title = `${title.textContent.trim()} · Bonfire Tales RPG`;
+      const anchor = destination.hash ? document.getElementById(decodeURIComponent(destination.hash.slice(1))) : null;
+      if (anchor?.matches('[data-race-placeholder]')) anchor.open = true;
+      if ((pushHistory || anchor) && title) {
+        const focusTarget = anchor?.querySelector('summary') || anchor || title;
+        if (!focusTarget.matches('summary')) focusTarget.tabIndex = -1;
+        focusTarget.focus({preventScroll: true});
+        (anchor || contentArea).scrollIntoView({block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
+      }
+    } catch (err) {
+      console.error(err);
+      window.location.href = url; // Fallback to normal load
+    } finally {
+      contentArea.style.opacity = '1';
+      contentArea.style.pointerEvents = '';
+      contentArea.removeAttribute('aria-busy');
+    }
+  }
+
+  function wikiCookie(name) {
+    return document.cookie
+      .split('; ')
+      .find(row => row.startsWith(`${name}=`))
+      ?.split('=')[1] || '';
+  }
+
+  initPage();
+  // Native fragment links also work on a fresh page, without an AJAX request.
+  const initialPreview = document.getElementById(window.location.hash.slice(1));
+  if (initialPreview?.matches('[data-race-placeholder]')) initialPreview.open = true;
+</script>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block title %}Antecedentes - Bonfire Tales RPG{% endblock %}
+{% block body_class %}bft-backgrounds{% endblock %}
+{% block main_class %}flex-1 w-full bft-backgrounds-main{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/antecedentes.css' %}?v=4">
+<script defer src="{% static 'js/antecedentes.js' %}?v=3"></script>
+{% endblock %}
+
+{% block content %}
+{% include 'home/partials/antecedentes_content.html' %}
+{% endblock %}

@@ -1,0 +1,4 @@
+{% for b in bloco %}
+  <p class="mt-1.5 text-sm text-[var(--text)]">{% if b.nome %}<strong>{{ b.nome }}.</strong> {% endif %}<span class="text-[var(--muted)]">{{ b.texto|linebreaksbr }}</span></p>
+  {% if b.size_gate_note %}<p class="mt-0.5 text-xs text-[var(--spark)]">{{ b.size_gate_note }}</p>{% endif %}
+{% endfor %}

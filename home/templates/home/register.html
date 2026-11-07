@@ -1,0 +1,91 @@
+{% extends "home/base.html" %}
+
+{% block title %}Cadastro - Bonfire Tales{% endblock %}
+{% block meta_robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<div class="bft-auth">
+  <div class="bft-auth-shell">
+    {% include 'home/components/auth_story.html' %}
+    <div class="bft-auth-card">
+      <h1>Sua história começa aqui.</h1>
+      <p class="bft-auth-intro">Crie sua conta gratuita. Depois, vincule seu Discord e dê vida ao seu personagem.</p>
+
+      <form method="post" action="{% url 'register' %}">
+        {% csrf_token %}
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-semibold mb-1 text-[var(--muted)]" for="id_username">Usuário</label>
+            <input
+              type="text"
+              name="username"
+              id="id_username"
+              required
+              value="{{ form.username.value|default:'' }}"
+              class="w-full bg-[var(--bg0)] border border-[var(--stroke)] text-[var(--text)] text-sm py-2 px-3 focus:outline-none focus:border-[var(--ember)] focus:ring-1 focus:ring-[var(--ember)] rounded-sm"
+            >
+            {% if form.username.errors %}
+            <p class="text-red-500 text-xs">{{ form.username.errors|join:", " }}</p>
+            {% endif %}
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold mb-1 text-[var(--muted)]" for="id_email">Email</label>
+            <input
+              type="email"
+              name="email"
+              id="id_email"
+              value="{{ form.email.value|default:'' }}"
+              class="w-full bg-[var(--bg0)] border border-[var(--stroke)] text-[var(--text)] text-sm py-2 px-3 focus:outline-none focus:border-[var(--ember)] focus:ring-1 focus:ring-[var(--ember)] rounded-sm"
+            >
+            {% if form.email.errors %}
+            <p class="text-red-500 text-xs">{{ form.email.errors|join:", " }}</p>
+            {% endif %}
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold mb-1 text-[var(--muted)]" for="id_password1">Senha</label>
+            <input
+              type="password"
+              name="password1"
+              id="id_password1"
+              required
+              class="w-full bg-[var(--bg0)] border border-[var(--stroke)] text-[var(--text)] text-sm py-2 px-3 focus:outline-none focus:border-[var(--ember)] focus:ring-1 focus:ring-[var(--ember)] rounded-sm"
+            >
+            {% if form.password1.errors %}
+            <p class="text-red-500 text-xs">{{ form.password1.errors|join:", " }}</p>
+            {% endif %}
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold mb-1 text-[var(--muted)]" for="id_password2">Confirmar senha</label>
+            <input
+              type="password"
+              name="password2"
+              id="id_password2"
+              required
+              class="w-full bg-[var(--bg0)] border border-[var(--stroke)] text-[var(--text)] text-sm py-2 px-3 focus:outline-none focus:border-[var(--ember)] focus:ring-1 focus:ring-[var(--ember)] rounded-sm"
+            >
+            {% if form.password2.errors %}
+            <p class="text-red-500 text-xs">{{ form.password2.errors|join:", " }}</p>
+            {% endif %}
+          </div>
+
+          {% if form.non_field_errors %}
+          <p class="text-red-500 text-xs">{{ form.non_field_errors|join:", " }}</p>
+          {% endif %}
+
+          <div class="pt-2">
+            <button type="submit" class="w-full text-center flex items-center justify-center rounded-sm bg-gradient-to-r from-[var(--flame)] to-[var(--ember)] px-4 py-2 font-bold text-white shadow-[0_0_15px_rgba(210,23,23,0.3)] hover:shadow-[0_0_20px_rgba(210,23,23,0.6)] hover:brightness-110 transition-all">
+              Criar conta
+            </button>
+          </div>
+          <p class="text-center text-xs text-[var(--muted)]">
+            Já tem conta? <a href="{% url 'login' %}" class="text-[var(--ember)] hover:text-[var(--text)]">Entrar</a>
+          </p>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

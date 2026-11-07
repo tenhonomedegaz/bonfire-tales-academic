@@ -1,0 +1,5 @@
+<nav class="bft-quick-access{% if user.is_authenticated %} is-authenticated{% endif %}" aria-label="Acessos rápidos" data-nav-addition>
+  {% if user.is_authenticated %}<a href="{% url 'personagens' %}" class="na-character">Meus personagens</a>{% endif %}
+  <a href="{% url 'sistemas_missoes' %}" class="na-community">Missões</a>
+  <a href="{% url 'colaborador' %}" class="na-collaborator" aria-label="Seja um colaborador"><span class="na-full-label">Seja um colaborador</span><span class="na-small-label" aria-hidden="true">Seja colaborador</span><span aria-hidden="true">✦</span></a>
+</nav>

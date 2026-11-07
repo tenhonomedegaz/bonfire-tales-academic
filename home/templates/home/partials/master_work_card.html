@@ -1,0 +1,10 @@
+{% load editorial_images %}
+<article class="mp-work">
+  <a class="mp-work-visual" href="{% url 'master_work_detail' work.pk %}">
+    {% if work.imagem_url|safe_profile_image %}<img src="{{ work.imagem_url|safe_profile_image }}" alt="" loading="lazy">{% else %}<span class="mp-work-monogram" aria-hidden="true">{% if work.categoria == 'video' or work.categoria == 'trailer' %}▶{% else %}✦{% endif %}</span>{% endif %}
+    <span>{{ work.get_categoria_display }}</span>
+  </a>
+  <div class="mp-work-body"><h3><a href="{% url 'master_work_detail' work.pk %}">{{ work.titulo }}</a></h3>{% if work.descricao %}<p>{{ work.descricao|truncatechars:220 }}</p>{% endif %}
+    {% if gallery_owner %}<p class="mh-state" data-state="{{ work.estado }}">{{ work.get_estado_display }}</p>{% if can_edit %}<a class="mh-text-link" href="{% url 'master_work_edit' work.pk %}">Editar trabalho →</a>{% endif %}{% endif %}
+  </div>
+</article>

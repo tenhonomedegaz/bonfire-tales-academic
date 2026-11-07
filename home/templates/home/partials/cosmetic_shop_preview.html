@@ -1,0 +1,13 @@
+<div class="co-visual" aria-hidden="true">
+  {% if cosmetic.tipo == 'moldura' %}
+  <span class="banner-character-avatar co-preview-avatar {{ cosmetic.css_class }}{% if preview.package.avatar %} is-packaged{% endif %}"><span class="co-preview-initial">B</span>{% include 'home/partials/_cosmetic_preview.html' with layers=preview.package.avatar slot='avatar' %}{% if not preview.package.avatar and preview.image %}<img class="co-frame-image" src="{{ preview.image }}" alt="" loading="lazy">{% endif %}</span>
+  {% elif cosmetic.tipo == 'efeito' %}
+  <span class="cosmetic-effect-sample co-effect-sample {{ cosmetic.css_class }}"><span>Bonfire</span>{% include 'home/partials/_cosmetic_preview.html' with layers=preview.package.banner slot='banner' %}{% include 'home/partials/_cosmetic_preview.html' with layers=preview.package.ornament slot='ornament' %}</span>
+  {% elif cosmetic.tipo == 'tema' %}
+  <span class="co-theme-sample {{ cosmetic.css_class }}" style="{{ preview.theme_style }}"><span>Bonfire</span><span class="co-theme-lines"></span>{% include 'home/partials/_cosmetic_preview.html' with layers=preview.package.banner slot='banner' %}{% include 'home/partials/_cosmetic_preview.html' with layers=preview.package.ornament slot='ornament' %}</span>
+  {% elif preview.image %}<img class="co-preview-image" src="{{ preview.image }}" alt="" loading="lazy">
+  {% elif badge_image %}<img class="co-preview-image" src="{{ badge_image }}" alt="" loading="lazy">
+  {% elif preview.glyph or badge_glyph %}<span class="co-preview-glyph">{% firstof preview.glyph badge_glyph %}</span>
+  {% elif cosmetic.tipo == 'titulo' %}<span class="co-preview-title">{{ cosmetic.nome }}</span>
+  {% else %}{% include 'home/partials/shop_visual.html' %}{% endif %}
+</div>

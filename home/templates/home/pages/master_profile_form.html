@@ -1,0 +1,22 @@
+{% extends 'home/pages/master_shell.html' %}{% load static %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/pages/master-profile-preview.css' %}?v=1"><script defer src="{% static 'js/master-profile-preview.js' %}?v=1"></script>{% endblock %}
+{% block master_content %}
+<header class="mh-compact-head"><h1>Minha apresentação de mestre</h1><p>Escolha o que será mostrado na vitrine pública do site.</p></header>
+<form method="post" class="mh-profile-form" action="{% url 'participation_edit' %}" data-master-profile-form>
+  {% csrf_token %}
+  {% if participation_form.non_field_errors %}<div role="alert">{{ participation_form.non_field_errors }}</div>{% endif %}
+  {% for field in participation_form %}<div class="mh-form-field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% endfor %}
+  <section class="mh-profile-preview" aria-labelledby="master-preview-title" data-master-profile-preview>
+    <div class="mh-section-head"><div><p class="mh-eyebrow">Prévia privada</p><h2 id="master-preview-title">Seu portfólio público</h2></div><span class="mh-state" data-master-preview-state aria-live="polite"></span></div>
+    <p class="mh-preview-note">As alterações aparecem aqui enquanto você edita. Só serão salvas ao enviar o formulário.</p>
+    <div class="mh-reading" data-master-preview-field="apresentacao"></div>
+    <div class="mh-public-meta">
+      <div data-master-preview-group="estilo"><h3>Meu estilo</h3><p data-master-preview-field="estilo"></p></div>
+      <div data-master-preview-group="disponibilidade"><h3>Quando costumo narrar</h3><p data-master-preview-field="disponibilidade"></p></div>
+    </div>
+    <section class="mh-portfolio-story" data-master-preview-group="experiencia"><p class="mh-eyebrow">Trajetória</p><h3>Histórias que já passaram pela fogueira</h3><div class="mh-reading" data-master-preview-field="experiencia"></div></section>
+    <section class="mh-portfolio-story" data-master-preview-group="combinados"><p class="mh-eyebrow">Na minha mesa</p><h3>O que você pode esperar</h3><div class="mh-reading" data-master-preview-field="combinados"></div></section>
+  </section>
+  <p class="mh-actions"><button class="mh-button" type="submit">Salvar apresentação</button><a class="mh-text-link" href="{% url 'profile' %}?aba=mestre">Cancelar</a></p>
+</form>
+{% endblock %}

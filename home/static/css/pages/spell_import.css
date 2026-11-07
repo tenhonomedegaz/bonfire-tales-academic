@@ -1,0 +1,90 @@
+/* ============================================================================
+   BONFIRE ADMIN — Importacao de magias / itens magicos (spell_import.html,
+   tbitemmagico/import_form.html).
+   Depende dos tokens definidos em css/admin/bonfire_admin.css
+   (--bg1, --stroke, --ember, --muted, --text, --radius etc.).
+   ========================================================================== */
+.spell-import-shell {
+    display: grid;
+    gap: 14px;
+    max-width: 980px;
+}
+
+.spell-import-card {
+    background: var(--bg1);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius, 10px);
+    box-shadow: var(--shadow-card, 0 6px 22px rgba(0, 0, 0, .45));
+    padding: 14px;
+}
+
+.spell-import-card h2 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: var(--ember);
+    font-family: 'Frank Ruhl Libre', 'Open Sans', serif;
+    font-size: 1.05rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.spell-import-grid {
+    display: grid;
+    gap: 11px;
+}
+
+.spell-import-result {
+    border-left: 4px solid var(--ember);
+    padding-left: 10px;
+}
+
+.spell-columns {
+    columns: 2;
+    column-gap: 20px;
+}
+
+.spell-import-card h2:focus {
+    outline: 2px solid var(--ember);
+    outline-offset: 4px;
+}
+
+.spell-import-preview {
+    width: 100%;
+}
+
+.spell-import-preview th,
+.spell-import-preview td {
+    vertical-align: top;
+}
+
+.spell-import-details summary {
+    cursor: pointer;
+    color: var(--ember);
+}
+
+.spell-import-details dl {
+    display: grid;
+    grid-template-columns: minmax(8rem, 11rem) minmax(0, 1fr);
+    gap: 6px 12px;
+    margin: 12px 0 0;
+}
+
+.spell-import-details dt {
+    font-weight: 600;
+}
+
+.spell-import-details dd {
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.spell-import-long-text {
+    white-space: pre-wrap;
+}
+
+@media (max-width: 767px) {
+    .spell-columns { columns: 1; }
+    .spell-import-details dl { grid-template-columns: 1fr; }
+    .spell-import-details dd { margin-bottom: 8px; }
+}

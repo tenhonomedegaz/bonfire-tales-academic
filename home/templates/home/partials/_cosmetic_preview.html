@@ -1,0 +1,23 @@
+{% if layers %}
+<div class="cosmetic-layers cosmetic-layers--{{ slot }}{% if layers.0.overlay %} cosmetic-layers--overlay{% endif %}" aria-hidden="true" data-cosmetic-layers {% for layer in layers %}{% if layer.aperture %}data-aperture-x="{{ layer.aperture.cx|stringformat:'.3f' }}" data-aperture-y="{{ layer.aperture.cy|stringformat:'.3f' }}" data-aperture-size="{{ layer.aperture.diameter|stringformat:'.3f' }}"{% endif %}{% endfor %}>
+  {% for layer in layers %}
+  {% if layer.motion == 'helmet' %}
+  <span class="cosmetic-layer cosmetic-helmet" data-cosmetic-helmet style="{{ layer.opacity_style }}">
+    <span class="cosmetic-sprite cosmetic-sprite--open cosmetic-helmet-open"><img src="{{ layer.url }}" data-fallback="{{ layer.fallback }}" alt="" decoding="async" loading="lazy"></span>
+    <span class="cosmetic-sprite cosmetic-sprite--closed cosmetic-helmet-brow"><img src="{{ layer.url }}" data-fallback="{{ layer.fallback }}" alt="" decoding="async" loading="lazy"></span>
+    <span class="cosmetic-sprite cosmetic-sprite--closed cosmetic-helmet-left"><img src="{{ layer.url }}" data-fallback="{{ layer.fallback }}" alt="" decoding="async" loading="lazy"></span>
+    <span class="cosmetic-sprite cosmetic-sprite--closed cosmetic-helmet-right"><img src="{{ layer.url }}" data-fallback="{{ layer.fallback }}" alt="" decoding="async" loading="lazy"></span>
+    <span class="cosmetic-sprite cosmetic-sprite--closed cosmetic-helmet-chin"><img src="{{ layer.url }}" data-fallback="{{ layer.fallback }}" alt="" decoding="async" loading="lazy"></span>
+  </span>
+  {% elif layer.sprite == 'open' or layer.sprite == 'closed' %}
+  <span class="cosmetic-layer cosmetic-sprite cosmetic-sprite--{{ layer.sprite }}" style="{{ layer.opacity_style }}"><img src="{{ layer.url }}" data-fallback="{{ layer.fallback }}" alt="" decoding="async" loading="lazy"></span>
+  {% else %}
+  {% if layer.placement %}<span class="cosmetic-positioned" style="{{ layer.placement_style }}">{% endif %}
+  {% if layer.motion == 'retract' %}<span class="cosmetic-retract-viewport" style="{{ layer.retract_mask_style }}">{% endif %}
+  <img class="cosmetic-layer cosmetic-layer--{{ layer.anchor }} cosmetic-layer--{{ layer.motion }}" style="{{ layer.opacity_style }}{% if layer.retract_style %};{{ layer.retract_style }}{% endif %}" src="{{ layer.url }}" data-fallback="{{ layer.fallback }}"{% if layer.sequence_json %} data-cosmetic-sequence="{{ layer.sequence_json }}"{% endif %}{% if layer.parts_json %} data-cosmetic-parts="{{ layer.parts_json }}"{% endif %}{% if layer.mask_url %} data-cosmetic-mask="{{ layer.mask_url }}"{% endif %} width="{{ layer.width }}" height="{{ layer.height }}" alt="" decoding="async" loading="lazy">
+  {% if layer.motion == 'retract' %}</span>{% endif %}
+  {% if layer.placement %}</span>{% endif %}
+  {% endif %}
+  {% endfor %}
+</div>
+{% endif %}

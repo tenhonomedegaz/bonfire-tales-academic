@@ -1,0 +1,63 @@
+{% comment %}LISTA DA MOCHILA (Ficha v2, onda B). Uma linha por item: nome + selos, slot,
+quantidade, valor em moeda composta PO/PP/PC (home/moeda.py), peso e as ações.
+
+Equipar/desequipar/sintonizar vão por fetch (mochila.js) — os endpoints são os mesmos de
+sempre, só a UI mudou de lugar. Uso de consumível segue o fluxo clássico (POST + `next`),
+porque o mesmo botão existe nos contadores da aba Ficha e o reload mantém os dois em pé.
+Espera no contexto: mochila, p, pode_editar.{% endcomment %}
+{% if mochila.itens %}
+  <ul class="bag-list">
+    {% for it in mochila.itens %}
+      <li class="bag-row{% if it.equipado %} is-equipped{% endif %}">
+        <span class="bag-main">
+          <span class="bag-name" title="{{ it.nome }}">{% if it.qtd > 1 %}<span class="bag-qtd">{{ it.qtd }}×</span> {% endif %}{{ it.nome }}</span>
+          <span class="bag-badges">
+            {% if it.slot_rotulo %}<span class="bag-slot">{{ it.slot_rotulo }}</span>{% endif %}
+            {% if it.raridade %}<span class="pill muted">{{ it.raridade }}</span>{% endif %}
+            {% if it.equipado %}<span class="pill">equipado</span>{% endif %}
+            {% if it.sintonizado %}<span class="pill attuned">sintonizado</span>{% elif it.requer_sintonizacao %}<span class="pill muted">requer sintonização</span>{% endif %}
+            {% if it.consumivel %}<span class="pill muted">consumível</span>{% endif %}
+            {% for carga in it.cargas %}<span class="pill muted" title="{% if carga.reset %}Recupera: {{ carga.reset }}{% else %}Recuperação manual{% endif %}">{{ carga.nome }} {{ carga.atual }}/{{ carga.maximo }}</span>{% endfor %}
+            {% if it.concedido %}<span class="pill muted" title="Concedido pela staff{% if it.origem_nota %} — {{ it.origem_nota }}{% endif %}">concedido</span>{% endif %}
+          </span>
+        </span>
+        <span class="bag-meta">
+          {% if it.custo_display %}<span class="bag-price">{{ it.custo_display }}</span>{% endif %}
+          {% if it.peso %}<span class="bag-weight">{{ it.peso }}</span>{% endif %}
+        </span>
+        {% if pode_editar %}
+        <span class="bag-actions">
+          {% if it.consumivel %}
+            <form method="post" action="{% url 'personagem_usar_item_consumivel' p.id_personagem %}">
+              {% csrf_token %}<input type="hidden" name="next" value="{% url 'ficha_detail' p.id_personagem %}?aba=mochila"><input type="hidden" name="item" value="{{ it.id }}">
+              <button type="submit" class="bag-btn use" title="Usar 1 unidade">Usar</button>
+            </form>
+          {% endif %}
+          {% if it.pode_equipar %}
+            <form method="post" action="{% url 'personagem_equipar_item' p.id_personagem %}" data-mochila-form>
+              {% csrf_token %}<input type="hidden" name="item" value="{{ it.id }}">
+              <button type="submit" class="bag-btn{% if it.equipado %} on{% endif %}">{% if it.equipado %}Desequipar{% else %}Equipar{% endif %}</button>
+            </form>
+          {% endif %}
+          {% if it.requer_sintonizacao %}
+            <form method="post" action="{% url 'personagem_sintonizar_item' p.id_personagem %}" data-mochila-form>
+              {% csrf_token %}<input type="hidden" name="item" value="{{ it.id }}">
+              <button type="submit" class="bag-btn attune{% if it.sintonizado %} on{% endif %}">{% if it.sintonizado %}Dessintonizar{% else %}Sintonizar{% endif %}</button>
+            </form>
+          {% endif %}
+          {% comment %}A VENDA a 80% saiu daqui na onda C: vive no painel "Vender" do Mercado,
+          junto da compra e do personagem ativo. O anúncio de item mágico continua aqui.
+          Variantes com item-base ficam no balcão para não perder o snapshot da base.{% endcomment %}
+          {% if it.magico and not it.variante_base %}
+            <form method="post" action="{% url 'personagem_anunciar_magico' p.id_personagem %}" onsubmit="return confirm('Anunciar {{ it.nome|escapejs }} no Mercado da Comunidade? O item sai da mochila até vender ou cancelar.');">
+              {% csrf_token %}<input type="hidden" name="item" value="{{ it.id }}">
+              <button type="submit" class="bag-btn">Anunciar</button>
+            </form>
+          {% endif %}
+        </span>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+  {% if pode_editar %}<p class="bag-note">Comprar e vender (80% do valor) é no <a href="{% url 'mercado_itens_mundanos' %}?personagem={{ p.id_personagem }}">Mercado</a>, com este personagem no balcão.</p>{% endif %}
+{% else %}<p class="bag-empty">Mochila vazia. Compre no <a href="{% url 'mercado_itens_mundanos' %}?personagem={{ p.id_personagem }}" class="underline">Mercado</a> ou receba itens da staff.</p>{% endif %}

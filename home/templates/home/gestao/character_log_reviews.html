@@ -1,0 +1,92 @@
+{% extends 'home/gestao/shell.html' %}
+{% load static %}
+{% block gestao_content %}
+<div class="character-log-reviews">
+  <nav class="gestao-breadcrumb" aria-label="Caminho"><a href="{{ root_url }}">Conciliacao de historico</a>{% if entry %}<span aria-hidden="true">/</span><span>Registro #{{ entry.pk }}</span>{% endif %}</nav>
+  <header class="gestao-heading"><div class="gestao-identity"><h1>{% if entry %}{{ entry.observed.title|default:'Registro sem titulo' }}{% else %}Conciliacao de historico{% endif %}</h1><p class="gestao-muted">Historico privado de personagens</p></div>{% if entry %}<a class="gestao-button" href="{{ root_url }}"><img class="gestao-icon" src="{% static 'icons/lucide/chevron-left.svg' %}" alt="">Fila de revisao</a>{% endif %}</header>
+  {% if error %}<p class="gestao-errors" role="alert">{{ error }}</p>{% endif %}
+  {% if entry.observed.history_authority == 'registered_staff_log' %}<p class="gestao-notice">O log oficial ja foi aprovado pela staff e comprova a participacao historica. Uma pendencia aqui indica falta de vinculo ou divergencia de cadastro, nao ausencia de aprovacao.</p>{% endif %}
+  {% if not entry %}
+  <section class="gestao-section" aria-labelledby="queue-title">
+    <h2 id="queue-title">Fila de revisao</h2>
+    <form class="gestao-filters" method="get" action="{{ root_url }}">
+      <div class="gestao-field"><label for="id_state">Estado</label>{{ filter_form.state }}{{ filter_form.state.errors }}</div>
+      <div class="gestao-field gestao-grow"><label for="id_q">Personagem ou titulo</label>{{ filter_form.q }}{{ filter_form.q.errors }}</div>
+      <div class="gestao-field"><label for="id_source_id">Fonte (ID)</label>{{ filter_form.source_id }}{{ filter_form.source_id.errors }}</div>
+      <button class="gestao-button" type="submit"><img class="gestao-icon" src="{% static 'icons/lucide/search.svg' %}" alt="">Filtrar</button>
+      <a class="gestao-button" href="{{ root_url }}">Limpar</a>
+    </form>
+    {% if page_obj %}<p class="gestao-muted">{{ page_obj.paginator.count }} registro{{ page_obj.paginator.count|pluralize }}</p>{% endif %}
+    <table class="gestao-table review-queue"><caption class="review-sr-only">Registros para conciliacao</caption><thead><tr><th scope="col">Registro</th><th scope="col">Personagem / dono</th><th scope="col">Categoria / estado</th><th scope="col">Revisao</th></tr></thead><tbody>
+      {% for row in rows %}<tr>
+        <td data-label="Registro"><a href="{% url 'gestao:character_log_review_detail' row.entry.pk %}">{{ row.entry.observed.title|default:'Registro sem titulo' }}</a><span class="gestao-subline">{{ row.entry.observed.date|default:'Data nao informada' }} &middot; {{ row.entry.observed.master|default:'Mestre nao informado' }}</span><span class="gestao-subline">Aventuras declaradas: {{ row.entry.observed.adventures|default_if_none:'Nao informadas' }}</span></td>
+        <td data-label="Personagem / dono">{{ row.entry.source.character_name }}<span class="gestao-subline">@{{ row.entry.source.owner.username }} &middot; Fonte #{{ row.entry.source_id }}</span></td>
+        <td data-label="Categoria / estado">{{ row.category_label }}<span class="gestao-subline"><span class="gestao-status {% if row.entry.state == 'pending' or row.entry.state == 'stale' %}warning{% else %}muted{% endif %}">{{ row.state_label }}</span></span></td>
+        <td data-label="Revisao"><a class="gestao-button" href="{% url 'gestao:character_log_review_detail' row.entry.pk %}">Revisar #{{ row.entry.pk }}</a></td>
+      </tr>{% empty %}<tr><td colspan="4"><p class="gestao-empty">Nenhum registro nesta consulta.</p></td></tr>{% endfor %}
+    </tbody></table>
+  </section>
+  {% else %}
+  <section class="gestao-section" aria-labelledby="observed-title">
+    <div class="gestao-section-heading"><h2 id="observed-title">Origem e dados declarados</h2><span class="gestao-status {% if entry.state == 'pending' or entry.state == 'stale' %}warning{% else %}muted{% endif %}">{{ state_label }}</span></div>
+    <dl class="gestao-details">
+      <div><dt>Personagem / dono</dt><dd>{{ entry.source.character_name }}<span class="gestao-subline">@{{ entry.source.owner.username }} &middot; Fonte #{{ entry.source_id }}</span></dd></div>
+      <div><dt>Categoria atual</dt><dd>{{ category_label }}</dd></div>
+      <div><dt>Categoria declarada na origem</dt><dd>{{ declared_category }}</dd></div>
+      <div><dt>Servidor da origem</dt><dd>{{ source_guild_id|default:'Nao informado' }}</dd></div>
+      <div><dt>Data / mestre declarados</dt><dd>{{ entry.observed.date|default:'Nao informada' }}<span class="gestao-subline">{{ entry.observed.master|default:'Nao informado' }}</span></dd></div>
+      <div><dt>Aventuras declaradas / confirmadas</dt><dd>{{ entry.observed.adventures|default_if_none:'Nao informadas' }} / {{ entry.adventures_confirmed|default_if_none:'Nao confirmadas' }}</dd></div>
+      <div><dt>Referencia atual</dt><dd>{{ entry.reference|default:'Sem vinculo' }}</dd></div>
+      <div><dt>Ultima revisao</dt><dd>{% if entry.reviewed_at %}{{ entry.reviewed_at|date:'d/m/Y H:i' }}<span class="gestao-subline">@{{ entry.reviewed_by.username }}</span>{% else %}Ainda nao revisado{% endif %}</dd></div>
+    </dl>
+    {% if entry.observed.summary %}<p class="review-summary">{{ entry.observed.summary }}</p>{% endif %}
+    {% if declared_rewards %}<h3 class="review-rewards-title">Recompensas declaradas, nao creditadas</h3><dl class="gestao-details">{% for reward in declared_rewards %}<div><dt>{{ reward.label }}</dt><dd>{{ reward.value }}</dd></div>{% endfor %}</dl>{% endif %}
+    <p class="gestao-notice warning">Dados declarados nao comprovam credito. A categoria Bonfire ou salario, sozinha, nao autoriza aprovacao. Conciliacao e missao legada nao concedem aventuras, nivel ou recompensas.</p>
+  </section>
+  <section class="gestao-section" id="catalog" aria-labelledby="catalog-title">
+    <h2 id="catalog-title">Localizar missao ou recibo do dono</h2>
+    <form class="gestao-filters" method="get" action="{{ detail_url }}#catalog">
+      {% for field in catalog_form %}<div class="gestao-field{% if field.name == 'query' %} gestao-grow{% endif %}">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% endfor %}
+      <button class="gestao-button" type="submit"><img class="gestao-icon" src="{% static 'icons/lucide/search.svg' %}" alt="">Buscar</button>
+    </form>
+    {% if catalog_results %}
+    <fieldset class="review-results"><legend>{% if catalog_kind == 'missions' %}Selecionar missao{% else %}Selecionar recibo MM{% endif %}</legend>
+      <ul>{% for result in catalog_results %}<li><label class="review-result" for="result-{{ forloop.counter }}">
+        <input type="radio" id="result-{{ forloop.counter }}" name="reference" value="{{ result.reference }}" form="review-{% if catalog_kind == 'missions' %}link_mission{% else %}link_redemption{% endif %}" required>
+        <span><strong>{{ result.title }}</strong><span class="gestao-subline">{{ result.date|default:'Data nao informada' }} &middot; {{ result.master|default:'Mestre nao informado' }} &middot; {{ result.adventures|default_if_none:'Nao informadas' }} aventuras</span><span class="gestao-subline">{{ result.origin }} &middot; {{ result.reference }}</span>{% if result.characters %}<span class="gestao-subline">Personagens vinculados: {{ result.characters|join:', ' }}</span>{% endif %}</span>
+      </label></li>{% endfor %}</ul>
+    </fieldset>
+    <p class="gestao-subline">{{ catalog_results|length }} resultado{{ catalog_results|length|pluralize }} &middot; limite de 20</p>
+    {% elif catalog_searched %}<p class="gestao-empty">Nenhum resultado para esta consulta.</p>{% endif %}
+  </section>
+  <section class="gestao-section" aria-labelledby="decision-title">
+    <h2 id="decision-title">Decisao da revisao</h2>
+    {% if not can_review_entry %}<p class="gestao-notice warning">Voce e o dono deste historico. Outro revisor deve avaliar os registros; a revisao do proprio historico e exclusiva de administradores.</p>{% endif %}
+    <fieldset class="review-decision"{% if not can_review_entry %} disabled{% endif %}><legend class="review-sr-only">Acoes de conciliacao</legend>
+    {% for item in review_forms %}
+    <details class="review-action"{% if item.open or item.action == 'link_mission' and catalog_kind == 'missions' or item.action == 'link_redemption' and catalog_kind == 'redemptions' %} open{% endif %}>
+      <summary>{{ item.label }}</summary>
+      <form method="post" action="{{ detail_url }}" id="review-{{ item.action }}" class="review-form">{% csrf_token %}
+        <input type="hidden" name="action" value="{{ item.action }}"><input type="hidden" name="expected_version" value="{{ version }}">
+        {{ item.form.non_field_errors }}
+        {% if item.catalog %}<p class="gestao-muted">{% if item.action == 'link_mission' %}Missao selecionada no catalogo{% else %}Recibo MM selecionado no catalogo &middot; somente do dono desta fonte{% endif %}</p>{% endif %}
+        {% for field in item.form %}{% if not field.is_hidden %}<div class="gestao-field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% else %}{{ field.errors }}{% endif %}{% endfor %}
+        {% if item.action == 'register_missing_mission' %}<p class="gestao-notice">Registro historico com evidencia. Sem criar participacao jogavel ou creditar aventuras.</p>{% endif %}
+        <button class="gestao-button{% if item.action != 'reject' %} gestao-primary{% endif %}" type="submit"{% if item.catalog %}{% if not catalog_results or item.action == 'link_mission' and catalog_kind != 'missions' or item.action == 'link_redemption' and catalog_kind != 'redemptions' %} disabled{% endif %}{% endif %}><img class="gestao-icon" src="{% static 'icons/lucide/check.svg' %}" alt="">{{ item.label }}</button>
+      </form>
+    </details>
+    {% endfor %}
+    </fieldset>
+  </section>
+  <section class="gestao-section" id="audit" aria-labelledby="audit-title">
+    <h2 id="audit-title">Auditoria privada</h2>
+    <ol class="review-audits">{% for row in audit_rows %}<li>
+      <div class="gestao-receipt-heading"><strong>@{{ row.review.actor.username }}</strong><time datetime="{{ row.review.created_at|date:'c' }}">{{ row.review.created_at|date:'d/m/Y H:i' }}</time></div>
+      <dl class="review-audit-diff"><div><dt>Antes</dt><dd>{{ row.before.state }} &middot; {{ row.before.category }}<span class="gestao-subline">{{ row.before.reference|default:'Sem vinculo' }} &middot; {{ row.before.adventures|default_if_none:'Nao confirmadas' }} aventuras</span></dd></div><div><dt>Depois</dt><dd>{{ row.after.state }} &middot; {{ row.after.category }}<span class="gestao-subline">{{ row.after.reference|default:'Sem vinculo' }} &middot; {{ row.after.adventures|default_if_none:'Nao confirmadas' }} aventuras</span></dd></div></dl>
+      {% if row.review.note %}<p class="gestao-reason">{{ row.review.note }}</p>{% endif %}{% if row.review.evidence %}<p class="gestao-reason"><strong>Evidencia:</strong> {{ row.review.evidence }}</p>{% endif %}
+    </li>{% empty %}<li class="gestao-empty">Nenhuma revisao registrada.</li>{% endfor %}</ol>
+    {% if audit_page.paginator.num_pages > 1 %}<nav class="gestao-pagination" aria-label="Paginas da auditoria">{% if audit_previous %}<a class="gestao-button" href="{{ audit_previous }}" rel="prev">Anterior</a>{% endif %}<span>Pagina {{ audit_page.number }} de {{ audit_page.paginator.num_pages }}</span>{% if audit_next %}<a class="gestao-button" href="{{ audit_next }}" rel="next">Proxima</a>{% endif %}</nav>{% endif %}
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

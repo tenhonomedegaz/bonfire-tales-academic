@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "slug": "efeito-folhas-da-trilha",
+  "type": "efeito",
+  "scope": "ambos",
+  "overlay": true,
+  "layers": [
+    {
+      "slot": "banner",
+      "file": "community-effect-folhas-da-trilha-v1.webp",
+      "fallback": "community-effect-folhas-da-trilha-v1.png",
+      "width": 1200,
+      "height": 400,
+      "sprite": "full",
+      "motion": "drift",
+      "opacity": 0.88,
+      "placement": {
+        "x": 50,
+        "y": 50,
+        "width": 112
+      },
+      "motion_params": {
+        "distance": 18,
+        "duration": 32,
+        "delay": -16
+      }
+    }
+  ]
+}

@@ -1,0 +1,108 @@
+/* Raster nine-slice skins. Catalog data selects the class; no per-item rules engine. */
+.skin-colaborador-fogueira {
+    --lunar-edge: url('../../cosmetics/themes/community-forge-panel-v1.webp');
+    --lunar-accent: #e7bd7e;
+    --lunar-secondary: #c57e54;
+    --lunar-surface: #202124;
+    --lunar-deep: #111315;
+    --lunar-halo: #d29c4120;
+}
+.skin-lua-vermelha {
+    --lunar-edge: url('../../cosmetics/themes/blood-panel-v1.webp');
+    --lunar-accent: #e8b86e;
+    --lunar-secondary: #d57171;
+    --lunar-surface: #23171c;
+    --lunar-deep: #140f13;
+    --lunar-halo: #af343421;
+}
+.skin-lua-negra {
+    --lunar-edge: url('../../cosmetics/themes/black-panel-v1.webp');
+    --lunar-accent: #91cbae;
+    --lunar-secondary: #c7b67c;
+    --lunar-surface: #181e1c;
+    --lunar-deep: #0d1110;
+    --lunar-halo: #3e967821;
+}
+.skin-lua-cristal {
+    --lunar-edge: url('../../cosmetics/themes/crystal-panel-v1.webp');
+    --lunar-accent: #bde5ed;
+    --lunar-secondary: #d4dce8;
+    --lunar-surface: #19262d;
+    --lunar-deep: #10191f;
+    --lunar-halo: #91d6e021;
+}
+.skin-vigilia-das-lanternas {
+    --lunar-edge: url('../../cosmetics/themes/vigilia-panel-v1.webp');
+    --lunar-accent: #e4ba7b;
+    --lunar-secondary: #aac9b6;
+    --lunar-surface: #1e2423;
+    --lunar-deep: #101615;
+    --lunar-halo: #c3984921;
+}
+.skin-illustrated.theme-data {
+    --profile-accent: var(--lunar-accent);
+    --profile-accent-solid: var(--lunar-accent);
+    --profile-accent-2: var(--lunar-secondary);
+    --profile-surface: var(--lunar-surface);
+    --profile-deep: var(--lunar-deep);
+    --sheet-accent: var(--lunar-accent);
+    --sheet-accent-solid: var(--lunar-accent);
+    --sheet-accent-2: var(--lunar-secondary);
+    --sheet-surface: var(--lunar-surface);
+    --sheet-deep: var(--lunar-deep);
+    --pf-accent: var(--profile-accent-solid);
+    color: #ede9e5;
+    overflow-wrap: anywhere;
+}
+.skin-illustrated :is(.public-profile-main,.profile-hero-copy) { min-width: 0; }
+/* The 280px source corners include whole pendants: smaller slices repeat severed
+   corner ornaments along the edges. Round repeats only the remaining edge. */
+.skin-illustrated :is(
+    .profile-header,.profile-editor-group,.profile-section:not(.profile-editor),
+    .public-profile-card,.public-profile-section,.ficha-header,.ficha-card,.cw-public-panel
+),
+.player-card.skin-illustrated {
+    border: 1px solid var(--lunar-accent);
+    border-image: var(--lunar-edge) 280 / 40px / 0 round;
+    border-radius: 0;
+    background-color: var(--profile-surface, var(--lunar-surface));
+    box-shadow: inset 0 0 22px var(--lunar-halo);
+}
+.skin-illustrated :is(.profile-header.profile-hero,.ficha-header) {
+    background-image: none;
+}
+/* Banner children have their own background; reserve the painted rim so they
+   cannot cover the top and side ornaments. Other panels retain their spacing. */
+.skin-illustrated :is(.public-profile-card,.profile-header.profile-hero,.ficha-header) {
+    border-width: 22px;
+}
+.skin-illustrated :is(
+    .profile-section-title,.ficha-card-title,.public-profile-section-head h2,.cw-public-panel>h2
+) {
+    color: var(--lunar-accent);
+    letter-spacing: 0;
+    border-color: color-mix(in srgb, var(--lunar-accent) 28%, transparent);
+    animation: lunar-title-breath 9s ease-in-out infinite alternate;
+}
+.skin-illustrated :is(.profile-nav,.mh-profile-tabs) {
+    background-color: var(--lunar-deep);
+    border-color: color-mix(in srgb, var(--lunar-accent) 35%, transparent);
+}
+.skin-illustrated :is(.profile-nav,.mh-profile-tabs) a[aria-current='page'] {
+    border-color: var(--lunar-accent);
+    color: var(--lunar-accent);
+}
+@keyframes lunar-title-breath {
+    from { text-shadow: 0 0 0 transparent; }
+    to { text-shadow: 0 0 10px var(--lunar-halo); }
+}
+.tema-swatch-preview.skin-illustrated .tema-swatch-mini {
+    border: 1px solid transparent;
+    border-image: var(--lunar-edge) 280 / 12px / 0 round;
+    border-radius: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+    .skin-illustrated :is(
+        .profile-section-title,.ficha-card-title,.public-profile-section-head h2,.cw-public-panel>h2
+    ) { animation: none; }
+}

@@ -1,0 +1,432 @@
+Artificer
+
+Alquimista
+
+Nível de Artífice    Magias
+3º    Palavra Curativa [Healing word], Inflingir Ferimentos [Inflict Wounds]
+5º    Flecha Ácida [Acid Arrow], Esfera Flamejante [Flaming Sphere]
+9º    Forma Gasosa [Gaseous Form], Palavra Curativa em Massa [Mass Healing Word]
+13º    Praga [Blight], Proteção contra Morte [Death Ward]
+17º    Névoa Mortal [Cloudkill], Reencarcar [Reincarnate]
+
+Armadurista
+3º    Escudo [shield], Onda Trovejante [thunderwave]
+5º    Imagem Espelhada [mirror image], Detonar [shatter]
+9º    Raio Relâmpago [lightning bolt], Passo Trovejante [thunder step]
+13º    Escudo de Fogo [fire shield], Esfera de Tempestade [storm sphere]
+17º    Onda Destrutiva [destructive wave], Muralha de Força [wall of force]
+
+Aprimorado
+3º    Absorver Elementos [absorb elements], Golpe Trovejante [thunderous smite]
+5º    Alterar-se [alter self], Escalada de Aranha [spider climb]
+9º    Golpe Cegante [blinding smite], Aceleração [haste]
+13º    Liberdade de Movimentação [freedom of movement], Invisibilidade Maior [greater invisibility]
+17º    Golpe de Banimento [banishing smite], Potencializar Perícia [skill empowerment]
+
+Engenheiro de Construto
+3º    Mísseis Mágicos [magic missile], Escudo Arcano [shield]
+5º    Bafo de Dragão [dragon’s breath], Vínculo Protetor [warding bond]
+9º    Aura de Vitalidade [aura of vitality], Pequena Cabana de Leomond [leomond's tiny hut]
+13º    Metamorfose [polymorph], Escudo de Fogo [fire shield]
+17º    Círculo de Teletransporte [teleportation circle], Passo Distante [far step]
+
+Ferreiro de Batalha
+3º    Destruição Trovejante [thunderous smite], Escudo Arcano [shield]
+5º    Marca da Punição [branding smite], Arma Espiritual [spiritual weapon]
+9º    Destruição Cegante [blinding smite], Manto do Cruzado [crusader’s mantle]
+13º    Destruição Estonteante [staggering smite], Escudo de Fogo [fire shield]
+17º    Círculo de Poder [circle of power], Arma Sagrada [holy weapon]
+
+Magiduelista
+3º    Escudo [shield], Repreensão Infernal [hellish rebuke]
+5º    Borrão [blur], Raio Abrasador [scorching ray]
+9º    Contramágica [counterspell], Relâmpago [lightning bolt]
+13º    Rechaço [backlash], Muralha de Fogo [wall of fire]
+17º    Deslocamento Temporal [temporal shunt], Muralha de Força [wall of force]
+
+Caçador
+
+Aliança Selvagem
+
+3º    Amizade Animal [Animal Friendship] Absorver Elementos [Absorb Elements]
+5º    Sopro de Dragão [Dragon's Breath] Vínculo Protetor [Warding Bond]
+9º    Conjurar Animais [Conjure Animals] Proteção contra Energia [Protection from Energy]
+13º    Dominar Fera [Dominate Beast] Escudo de Fogo [Fire Shield]
+17º    Comunhão com a Natureza [Commune with Nature] Despertar [Awaken]
+
+Crepusculo
+
+3º    Disfarçar-se [Disguise Self] Névoa Obscurecente [Fog Cloud]
+5º    Escuridão [Darkness] Truque da Corda [Rope Trick]
+9º    Medo [Fear] Indetectabilidade [Nondetection]
+13º    Mortalha de Sombras [Shadow of Moil] Porta Dimensional [Dimension Door]
+17º    Modificar Memória [Modify Memory] Aparência [Seeming]
+
+Despertar
+3º    Comunhão Ancestral [Ancestral Communion] Golpe Iracundo [Wrathful Smite]
+5º    Alterar-se [Alter Self] Sentidos Animais [Beast Sense]
+9º    Corcel Fantasma [Phantom Steed] Pressa [Haste]
+13º    Dominar Fera [Dominate Beast] Chamado da Natureza [Call of the Wild]
+17º    Golpe do Vento de Aço [Steel Wind Strike] Despertar [Awaken]
+
+Enxame
+3º    Fogo das Fadas [Faerie Fire] Névoa Obscurecente [Fog Cloud]
+5º    Teia [Web] Passo Brumoso [Misty Step]
+9º    Forma Gasosa [Gaseous Form] Escudo Cacofônico [Cacophonic Shield]
+13º    Olho Arcano [Arcane Eye] Confusão [Confusion]
+17º    Praga de Insetos [Insect Plague] Vínculo Telepático de Rary [Rary's Telepathic Bond]
+
+Exorcistas
+3º    Detectar Mal e Bem [Detect Evil and Good]  Proteção contra o Mal e o Bem [Protection from Evil and Good]
+5º    Silêncio [Silence] Ver Invisíveis [See Invisibility]
+9º    Remover Maldição [Remove Curse] Corcel Fantasmagórico [Phantom Steed]
+13º    Banimento [Banishment] Assassino Fantasmagórico [Phantasmal Killer]
+17º    Solo Sepulcral [Grave Ground] Dissipar o Mal e o Bem [Dispel Evil and Good]
+
+Exterminadoress
+3º    Detectar Magia [Detect Magic] Detectar Venenos e Doenças [Detect Poison and Disease]
+5º    Ver o Invisível [See Invisibility] Detectar Pensamentos [Detect Thoughts]
+9º    Dissipar Magia [Dispel Magic] Proteção contra o Profano [Crooked Ward]
+13º    Adivinhação [Divination] Localizar Criatura [Locate Creature]
+17º    Imobilizar Monstro [Hold Monster] Saber Lendário [Legend Lore]
+
+Mutantes
+
+3º    Salto [Jump] Absorver Elementos [Absorb Elements]
+5º    Alterar-se [Alter Self] Crescer e Encolher [Enlarge/Reduce]
+9º    Pressa [Haste] Proteção contra Energia [Protection from Energy]
+13º    Polimorfia [Polymorph] Liberdade de Movimento [Freedom of Movement]
+17º    Imobilizar Monstro [Hold Monster] Reencarnar [Reincarnate]
+
+Viajantes
+
+3º    Proteção contra o Mal e o Bem [Protection from Evil and Good] Detectar o Mal e o Bem [Detect Evil and Good]
+5º    Passo Brumoso [Misty Step] Ver Invisíveis [See Invisibility]
+9º    Pressa [Haste] Piscar [Blink]
+13º    Banimento [Banishment] Porta Dimensional [Dimension Door]
+17º    Círculo de Teletransporte [Teleportation Circle] Destruição Banidora [Banishing Smite]
+
+Clérigo
+
+Arcano
+3º    Detectar Magia [Detect Magic], Mísseis Mágicos [Magic Missile], Arma Mágica [Magic Weapon], Presença Mística [Nystul's Magic Aura]
+5º    Contramágica [Counterspell], Dissipar Magia [Dispel Magic]
+7º    Olho Arcano [Arcane Eye], Baú Secreto [Leomund's Secret Chest]
+9º    Mão Arcana [Bigby's Hand], Círculo de Teletransporte [Teleportation Circle]
+
+Caos
+3º    Sussurros Dissonantes [Dissonant Whispers], Risada Histérica [Tasha's Hideous Laughter], Artimanha do Ilusionista [Nathair's Mischief], Força Fantasmagórica [Phantasmal Force]
+5º    Rogar Maldição [Bestow Curse], Invocar Paranóia [Enemies Abound]
+7º    Confusão [Confusion], Terreno Alucinógeno [Hallucinatory Terrain]
+9º    Dominar Pessoa [Dominate Person], Modificar Memória [Modify Memory]
+
+Escuridão
+3º    Mãos Sombrias [Arms of Hadar], Sono [Sleep], Escuridão [Darkness], Lâmina Umbral [Shadow Blade]
+5º    Escuridão Devoradora [Hunger of Hadar], Invocar Espírito Sombrio [Summon Shadowspawn]
+7º    Invisibilidade Maior [Greater Invisibility], Assassino Fantasmagórico [Phantasmal Killer]
+9º    Sombras Enfraquecedoras [Enervation], Despistar [Mislead]
+
+Guerra
+3º    Raio Guiador [Guiding Bolt], Escudo da Fé [Shield of Faith], Esquentar Metal [Heat Metal], Arma Mágica [Magic Weapon]
+5º    Manto do Cruzado [Crusader's Mantle], Espíritos Guardiões [Spirit Guardians]
+7º    Escudo Flamejante [Fire Shield], Movimento Irrestrito [Freedom of Movement]
+9º    Imobilizar Monstro [Hold Monster], Vendaval de Aço [Steel Wind Strike]
+
+Luz
+3º    Mãos Flamejantes [Burning Hands], Fogo das Fadas [Faerie Fire], Raio Ardente [Scorching Ray], Ver o Invisível [See Invisibility]
+5º    Luz do Dia [Daylight], Bola de Fogo [Fireball]
+7º    Olho Arcano [Arcane Eye], Muralha de Fogo [Wall of Fire]
+9º    Alvorada [Dawn], Vidência [Scrying]
+
+Morte
+3º    Vitalidade Falsa [False Life], Proteção Contra o Bem e o Mal [Protection from Evil and Good], Armadura Fúnebre [Death Armor], Repouso Gentil [Gentle Repose]
+5º    Falar com os Mortos [Speak with Dead], Invocar Morto Vivo [Summon Undead]
+7º    Malogro [Blight], Proteção Contra a Morte [Death Ward]
+9º    Cápsula Antivida [Antilife Shell], Reviver os Mortos [Raise Dead]
+
+Natureza
+3º    Emaranhar [Entangle], Bom Fruto [Goodberry], Lufada de Vento [Gust of Wind], Crescer Espinhos [Spike Growth]
+5º    Conjurar Animais [Conjure Animals], Crescer Plantas [Plant Growth]
+7º    Vinha Restritora [Grasping Vine], Polimorfia [Polymorph]
+9º    Comunhão com a Natureza [Commune with Nature], Passo das Árvores [Tree Stride]
+
+Ordem
+3º    Benção [Bless], Comando [Command], Imobilizar Pessoa [Hold Person], Zona da Verdade [Zone of Truth]
+5º    Fortaleza do Intelecto [Intellect Fortress], Lentidão [Slow]
+7º    Santuário Privado [Mordenkainen's Private Sanctum], Lança Psíquica [Raulothim's Psychic Lance]
+9º    Comunhão [Commune], Imobilizar Monstro [Hold Monster]
+
+Paz
+3º    Heroísmo [Heroism], Santuário [Sanctuary], Acalmar Emoções [Calm Emotions], Vínculo Protetor [Warding Bond]
+5º    Farol da Esperança [Beacon of Hope], Mensagem [Sending]
+7º    Aura da Pureza [Aura of Purity], Esfera Resiliente [Otiluke's Resilient Sphere]
+9º    Restauração Maior [Greater Restoration], Vínculo Telepático [Rary's Telepathic Bond]
+
+Tempestade
+3º    Névoa Obscurecente [Fog Cloud], Onda Trovejante [Thunderwave], Lufada de Vento [Gust of Wind], Despedaçar [Shatter]
+5º    Relâmpago [Lightning Bolt], Nevasca [Sleet Storm]
+7º    Tempestade de Gelo [Ice Storm], Esfera da Tormenta [Storm Sphere]
+9º    Comandar Ventos [Control Winds], Onda Destrutiva [Destructive Wave]
+
+Trapaça
+3º    Enfeitiçar Pessoa [Charm Person], Disfarçar-se [Disguise Self], Imagem Espelhada [Mirror Image], Passos Sem Pegadas [Pass Without Trace]
+5º    Padrão Hipnótico [Hypnotic Pattern], Proteção Contra Detecção [Nondetection]
+7º    Confusão [Confusion], Porta Dimensional [Dimension Door]
+9º    Despistar [Mislead], Semblante Ilusório [Seeming]
+
+Vida
+3º    Benção [Bless], Curar Ferimentos [Cure Wounds], Auxílio [Aid], Restauração Menor [Lesser Restoration]
+5º    Farol da Esperança [Beacon of Hope], Revivificar [Revivify]
+7º    Aura da Vida [Aura of Life], Proteção Contra a Morte [Death Ward]
+9º    Restauração Maior [Greater Restoration], Curar Ferimentos em Massa [Mass Cure Wounds]
+
+Druida
+
+Esporos
+3º    Infligir Ferimentos [Inflict Wounds], Dívida do Diabo [Devil's Due] TCM
+3º    Repouso Tranquilo [Gentle Repose], Armadura da Morte [Death Armor]
+5º    Animar Mortos [Animate Dead], Conceder Maldição [Bestow Curse]
+7º    Definhar [Blight], Sifão Sacrificial [Sacrificial Siphon] TCM
+9º    Névoa Mortal [Cloudkill], Contágio [Contagion]
+
+Estrelas
+3º    Truque    Orientação [Guidance]
+3º    1º    Raio Guiado [Guiding Bolt], Clarão do Fogo Estelar [Spellfire Flare]
+3º    2º    Raio Lunar [Moonbeam], Ventos de Verão [Summer Winds] TCM
+5º    3º    Colheita do Brilho Lunar [Harvest Moonglow] TCM, Clarividência [Clairvoyance]
+7º    4º    Radiância Enjoativa [Sickening Radiance], Sumidouro Gravitacional [Gravity Sinkhole]
+9º    5º    Muralha de Luz [Wall of Light], Alvorada [Dawn]
+13º    7º    Coroa de Estrelas [Crown of Stars]
+
+Lua
+3º    Truque    Fagulha Estelar [Starry Wisp], Selvageria Primeva [Primal Savagery]
+3º    1º    Curar Ferimentos [Cure Wounds], Lâmina Faminta [Hungering Blade] TCM
+3º    2º    Raio Lunar [Moonbeam], Passo Nebuloso [Misty Step]
+5º    3º    Conjurar Animais [Conjure Animals], Colheita do Brilho Lunar [Harvest Moonglow] TCM
+7º    4º    Fonte de Luz Lunar [Fount of Moonlight], Chamado do Selvagem [Call of the Wild] TCM
+9º    5º    Cura em Massa [Mass Cure Wounds], Manto Lunar de Alustriel [Alustriel's Mooncloak]
+
+Marés
+3º    Truque    Raio de Gelo [Ray of Frost]
+3º    1º    Onda Trovejante [Thunderwave], Névoa Obscurecente [Fog Cloud]
+3º    2º    Rajada de Vento [Gust of Wind], Estrondo [Shatter]
+5º    3º    Relâmpago [Lightning Bolt], Respirar na Água [Water Breathing]
+7º    4º    Controlar Água [Control Water], Tempestade de Gelo [Ice Storm]
+9º    5º    Conjurar Elemental [Conjure Elemental], Imobilizar Monstro [Hold Monster]
+
+Pastoreio Elemental
+Nível de Druida    Círculo da Magia    Água    Ar    Fogo    Terra
+3º    Truque    Moldar Água [Shape Water]    Lufada [Gust]    Controlar Chamas [Control Flames]    Moldar Terra [Mold Earth]
+3º    1º    Névoa Obscurecente [Fog Cloud]    Onda Trovejante [Thunderwave]    Mãos Flamejantes [Burning Hands]    Santuário [Sanctuary]
+3º    2º    Nublar [Blur]    Rajada de Vento [Gust of Wind]    Raio Ardente [Scorching Ray]    Agarrão Terreno de Maximilian [Maximilian's Earthen Grasp]
+5º    3º    Tempestade de Granizo [Sleet Storm]    Muralha de Vento [Wall of Wind]    Bola de Fogo [Fireball]    Mesclar-se às Rochas [Meld into Stone]
+7º    4º    Controlar a Água [Control Water]    Invisibilidade Maior [Greater Invisibility]    Escudo de Fogo [Fire Shield]    Moldar Rochas [Stone Shape]
+9º    5º    Cone de Frio [Cone of Cold]    Aparência [Seeming]    Coluna de Chamas [Flame Strike]    Muralha de Pedra [Wall of Stone]
+
+Universal (Sempre tem esses preparados) - Complemento do de cima
+3º    1º    Bênção [Bless]
+3º    2º    Invocar Fera [Summon Beast]
+5º    3º    Sinal da Esperança [Beacon of Hope]
+7º    4º    Invocar Elemental [Summon Elemental]
+9º    5º    Invocar Dragão [Summon Dragon]
+
+Sonhos
+3º    1º    Luz de Fadas [Faerie Fire], Adormecer [Sleep]
+3º    2º    Auxílio [Aid], Invisibilidade [Invisibility]
+7º    3º    Medo [Fear], Convocar Fada [Summon Fey]
+9º    4º    Confusão [Confusion], Assassino Fantasmagórico [Phantasmal Killer]
+13º    5º    Sonho [Dream], Vidência [Scrying]
+
+Druida da terra tem uma lista muito grande - A gente faz depois
+
+Feiticeiro
+
+Aberrante
+3º    Fragilizar Mente [Mind Sliver], Mãos Sombrias [Arms of Hadar], Sussurros Dissonantes [Dissonant Whispers], Acalmar Emoções [Calm Emotions], Detectar Pensamentos [Detect Thoughts]
+5º    Escuridão Devoradora [Hunger of Hadar], Mensagem [Sending]
+7º    Tentáculos Negros de Evard [Evard's Black Tentacles], Invocar Aberração [Summon Aberration]
+9º    Vínculo Telepático de Rary [Rary's Telepathic Bond], Telecinese [Telekinesis]
+
+Caos
+3º    Fragilizar Mente [Mind Sliver], Travessura de Nathair [Nathair's Mischief], Portal de Vórtice [Vortex Warp], Raio Caótico [Chaos Bolt]
+5º    Piscar [Blink], Pressa [Haste]
+7º    Confusão [Confusion], Polimorfia [Polymorph]
+9º    Estática Sináptica [Synaptic Static], Muralha de Energia [Wall of Force]
+
+Divina
+3º    Palavra Curativa [Healing Word], Proteção Contra o Bem e o Mal [Protection from Evil and Good], Auxílio [Aid], Restauração Menor [Lesser Restoration]
+5º    Andar Sobre as Águas [Water Walk], Revivificar [Revivify]
+7º    Aura de Pureza [Aura of Purity], Banimento [Banishment]
+9º    Restauração Maior [Greater Restoration], Reviver os Mortos [Raise Dead]
+
+Draconica
+3º    Orbe Cromático [Chromatic Orb], Comando [Command], Alterar a Forma [Alter Self], Sopro do Dragão [Dragon's Breath]
+5º    Medo [Fear], Voo [Fly]
+7º    Olho Arcano [Arcane Eye], Enfeitiçar Monstro [Charm Monster]
+9º    Conhecimento Lendário [Legend Lore], Invocar Dragão [Summon Dragon]
+
+Ordem
+3º    Alarme [Alarm], Proteção Contra o Bem e o Mal [Protection from Evil and Good], Auxílio [Aid], Restauração Menor [Lesser Restoration]
+5º    Dissipar Magia [Dispel Magic], Proteção Contra Energia [Protection from Energy]
+7º    Movimento Irrestrito [Freedom of Movement], Invocar Construto [Summon Construct]
+9º    Restauração Maior [Greater Restoration], Muralha de Energia [Wall of Force]
+
+Sombras
+3º    Mãos Sombrias [Arms of Hadar], Perdição [Bane], Escuridão [Darkness], Passos Sem Pegadas [Pass Without Trace]
+5º    Escuridão Devoradora [Hunger of Hadar], Invocar Espírito Sombrio [Summon Shadowspawn]
+7º    Assassino Fantasmagórico [Phantasmal Killer], Manto das Sombras [Shadow of Moil]
+9º    Sombras Enfraquecedoras [Enervation], Despistar [Mislead]
+
+Tempestade
+3º    Névoa Obscurecente [Fog Cloud], Onda Trovejante [Thunderwave], Lufada de Vento [Gust of Wind], Levitação [Levitate]
+5º    Convocar Relâmpagos [Call Lightning], Passo Trovejante [Thunder Step]
+7º    Controlar a Água [Control Water], Esfera da Tormenta [Storm Sphere]
+9º    Controlar os Ventos [Control Winds], Turbilhão [Maelstrom]
+
+Mistico
+
+Afogado
+3º    Criar ou Destruir Água [Create or Destroy Water], Silêncio [Silence]
+5º    Maremoto [Tidal Wave]
+7º    Controlar a Água [Control Water]
+9º    Mão de Bigby [Bigby’s Hand]
+11º    Esfera Congelante de Otiluke [Otiluke’s Freezing Sphere]
+13º    Vendaval [Whirlwind]
+15º    Tsunami [Tsunami]
+17º    Tempestade da Vingança [Storm of Vengeance]
+
+Arquifada
+3º    Sono [Sleep], Força Fantasmagórica [Phantasmal Force]
+5º    Piscar [Blink]
+7º    Conjurar Seres da Floresta [Conjure Woodland Beings]
+9º    Dominar Pessoa [Dominate Person]
+11º    Conjurar Fada [Conjure Fey]
+13º    Projetar Imagem [Project Image]
+15º    Dominar Monstro [Dominate Monster]
+17º    Encarnação Fantasmagórica [Weird]
+
+Ceifador
+3º    Bruxaria [Hex], Ver o Invisível [See Invisibility]
+5º    Piscar [Blink]
+7º    Movimentação Livre [Freedom of Movement]
+9º    Ataque do Vento de Aço [Steel Wind Strike]
+11º    Barreira de Lâminas [Blade Barrier]
+13º    Forma Etérea [Etherealness]
+15º    Limpar a Mente [Mind Blank]
+17º    Lâmina do Desastre [Blade of Disaster]
+
+Celestial
+3º    Curar Ferimentos [Cure Wounds], Ajuda [Aid]
+5º    Aura de Vitalidade [Aura of Vitality]
+7º    Aura de Vida [Aura of Life]
+9º    Dissipar o Bem e o Mal [Dispel Evil and Good]
+11º    Cura Completa [Heal]
+13º    Regeneração [Regenerate]
+15º    Aura Sagrada [Holy Aura]
+17º    Ressurreição Verdadeira [True Resurrection]
+
+Genio
+Nível    Dao    Djinni    Efreeti    Marid
+3º    Santuário [Sanctuary], Crescer Espinhos [Spike Growth]    Onda Trovejante [Thunderwave], Lufada de Vento [Gust of Wind]    Mãos Flamejantes [Burning Hands], Raio Ardente [Scorching Ray]    Névoa Obscurecente [Fog Cloud], Nublar [Blur]
+5º    Fundir-se à Pedra [Meld into Stone]    Muralha de Vento [Wind Wall]    Bola de Fogo [Fireball]    Nevasca [Sleet Storm]
+7º    Moldar Pedra [Stone Shape]    Invisibilidade Maior [Greater Invisibility]    Escudo de Fogo [Fire Shield]    Controlar a Água [Control Water]
+9º    Muralha de Pedra [Wall of Stone]    Similaridade [Seeming]    Coluna de Chamas [Flame Strike]    Cone de Frio [Cone of Cold]
+11º    Manto de Pedra [Investiture of Stone]    Manto de Vento [Investiture of Wind]    Manto de Chamas [Investiture of Flame]    Manto de Gelo [Investiture of Ice]
+
+Nos níveis 13, 15 e 17, as magias valem para todos os gênios: 13º Mansão Magnífica de Mordenkainen [Mordenkainen’s Magnificent Mansion]; 15º Labirinto [Maze]; 17º Desejo [Wish].
+
+Grande Antigo
+3º    Sussurros Dissonantes [Dissonant Whispers], Detectar Pensamentos [Detect Thoughts]
+5º    Infestar de Inimigos [Enemies Abound]
+7º    Assassino Fantasmagórico [Phantasmal Killer]
+9º    Telecinésia [Telekinesis]
+11º    Prisão Mental [Mental Prison]
+13º    Miragem Arcana [Mirage Arcane]
+15º    Enfraquecer Intelecto [Feeblemind]
+17º    Grito Psíquico [Psychic Scream]
+
+Imortal
+3º    Infligir Ferimentos [Inflict Wounds], Murchar e Florescer [Wither and Bloom]
+5º    Falar com os Mortos [Speak with Dead]
+7º    Malogro [Blight]
+9º    Enervação [Enervation]
+11º    Círculo da Morte [Circle of Death]
+13º    Dedo da Morte [Finger of Death]
+15º    Evaporação de Abi [Abi-Dalzim’s Horrid Wilting]
+17º    Devastação Temporal [Time Ravage]
+
+Infero
+3º    Comando [Command], Raio Ardente [Scorching Ray]
+5º    Bola de Fogo [Fireball]
+7º    Escudo de Fogo [Fire Shield]
+9º    Consagrar [Hallow]
+11º    Invocar Corruptor [Summon Fiend]
+13º    Amarrar Essência [Tether Essence]
+15º    Antipatia/Simpatia [Antipathy/Sympathy]
+17º    Portal [Gate]
+
+Paladino
+
+Conquista
+3º    Armadura de Agathys [Armor of Agathys], Destruição Furiosa [Wrathful Smite]
+5º    Imobilizar Pessoa [Hold Person], Silêncio [Silence]
+9º    Rogar Maldição [Bestow Curse], Medo [Fear]
+13º    Assassino Fantasmagórico [Phantasmal Killer], Pele de Pedra [Stoneskin]
+17º    Onda Destrutiva [Destructive Wave], Imobilizar Monstro [Hold Monster]
+
+Coroa
+Nível de Paladino    Magias
+3º    Benção [Bless], Comando [Command]
+5º    Vínculo Protetor [Warding Bond], Zona da Verdade [Zone of Truth]
+9º    Aura da Vitalidade [Aura of Vitality], Espíritos Guardiões [Spirit Guardians]
+13º    Banimento [Banishment], Santuário Privado [Mordenkainen's Private Sanctum]
+17º    Círculo do Poder [Circle of Power], Consagração [Hallow]
+
+Devoção
+3º    Proteção Contra o Bem e o Mal [Protection from Evil and Good], Escudo da Fé [Shield of Faith]
+5º    Auxílio [Aid], Zona da Verdade [Zone of Truth]
+9º    Farol da Esperança [Beacon of Hope], Dissipar Magia [Dispel Magic]
+13º    Aura da Vida [Aura of Life], Movimento Irrestrito [Freedom of Movement]
+17º    Comunhão [Commune], Alvorada [Dawn]
+
+Glória
+3º    Raio Guiador [Guiding Bolt], Heroísmo [Heroism]
+5º    Aprimorar Habilidade [Enhance Ability], Destruição Luminosa [Shining Smite]
+9º    Celeridade [Haste], Proteção Contra Energia [Protection from Energy]
+13º    Movimento Irrestrito [Freedom of Movement], Lança Psíquica [Raulothim's Psychic Lance]
+17º    Conhecimento Lendário [Legend Lore], Presença Magnífica [Yolande's Regal Presence]
+
+Morte
+3º    Falsa Vitalidade [False Life], Represália Infernal [Inflict Wounds]
+5º    Armadura Fúnebre [Death Armor], Definhar [Wither and Bloom]
+9º    Animar os Mortos [Animate Dead], Falar com os Mortos [Speak with Dead]
+13º    Proteção Contra a Morte [Death Ward], Manto das Sombras [Shadow of Moil]
+17º    Cápsula Antivida [Antilife Shell], Reviver [Raise Dead]
+
+Primordial
+3º    Emaranhar [Entangle], Falar com os Animais [Speak with Animals]
+5º    Passo Nebuloso [Misty Step], Raio Lunar [Moonbeam]
+9º    Conjurar Animais [Conjure Animals], Crescer Plantas [Plant Growth]
+13º    Guardião da Natureza [Guardian of Nature], Pele de Pedra [Stoneskin]
+17º    Comunhão com a Natureza [Commune with Nature], Manto Lunar [Alustriel's Mooncloak]
+
+Redenção
+3º    Santuário [Sanctuary], Sono [Sleep]
+5º    Acalmar Emoções [Calm Emotions], Imobilizar Pessoa [Hold Person]
+9º    Contramagia [Counterspell], Padrão Hipnótico [Hypnotic Pattern]
+13º    Esfera Resiliente [Otiluke's Resilient Sphere], Pele de Pedra [Stoneskin]
+17º    Imobilizar Monstro [Hold Monster], Muralha de Energia [Wall of Force]
+
+Vigilantes
+3º    Alarme [Alarm], Proteção Contra o Bem e o Mal [Protection from Evil and Good]
+5º    Evasão Arcana [Elminster's Elusion], Ver o Invisível [See Invisibility]
+9º    Dissipar Magia [Dispel Magic], Proteção Contra Detecção [Nondetection]
+13º    Aura da Pureza [Aura of Purity], Banimento [Banishment]
+17º    Destruição Exiladora [Banishing Smite], Vidência [Scrying]
+
+Vingança
+3º    Ataque Emaranhante [Ensnaring Strike], Marca do Caçador [Hunter's Mark]
+5º    Imobilizar Pessoa [Hold Person], Passo Nebuloso [Misty Step]
+9º    Celeridade [Haste], Proteção Contra Energia [Protection from Energy]
+13º    Porta Dimensional [Dimension Door], Destruição Atordoante [Staggering Smite]
+17º    Vidência [Scrying], Vendaval de Aço [Steel Wind Strike]

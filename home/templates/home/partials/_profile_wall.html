@@ -1,0 +1,68 @@
+{% load static editorial_images %}
+<section class="public-profile-section profile-wall" id="comentarios" aria-labelledby="profile-wall-heading" data-profile-wall>
+  <div class="public-profile-section-head">
+    <h2 id="profile-wall-heading">Comentários</h2>
+    <span>{{ wall.comments_page.paginator.count }}</span>
+  </div>
+  {% if wall.can_comment %}
+  <form method="post" action="{% url 'perfil_comentar' viewed_user.username %}" class="wall-composer" data-wall-composer>
+    {% csrf_token %}{{ wall.comment_form.chave_operacao }}
+    {% if wall.comment_form.errors %}<div role="alert">{{ wall.comment_form.errors }}</div>{% endif %}
+    <label for="wall-text">Deixe uma mensagem para {{ viewed_user.username }}</label>
+    <div class="wall-editor-tools" role="toolbar" aria-label="Formatação do comentário">
+      <button type="button" data-wall-format="bold" title="Negrito" aria-label="Negrito"><b>B</b></button>
+      <button type="button" data-wall-format="italic" title="Itálico" aria-label="Itálico"><i>I</i></button>
+      <button type="button" data-wall-tool="image" title="Inserir imagem" aria-label="Inserir imagem"><img src="{% static 'icons/lucide/image.svg' %}" alt=""></button>
+      <button type="button" data-wall-tool="link" title="Inserir link" aria-label="Inserir link"><img src="{% static 'icons/lucide/link.svg' %}" alt=""></button>
+      <button type="button" data-wall-emojis aria-expanded="false" aria-controls="wall-emojis" title="Emojis" aria-label="Emojis">☺</button>
+      <button type="button" data-wall-preview aria-expanded="false" aria-controls="wall-preview" title="Prévia" aria-label="Prévia"><img src="{% static 'icons/lucide/eye.svg' %}" alt=""></button>
+    </div>
+    <div id="wall-emojis" class="wall-emojis" hidden role="group" aria-label="Escolher emoji">
+      <button type="button" data-wall-emoji="🔥" title="Fogo">🔥</button><button type="button" data-wall-emoji="❤️" title="Coração">❤️</button><button type="button" data-wall-emoji="✨" title="Brilho">✨</button><button type="button" data-wall-emoji="🌙" title="Lua">🌙</button><button type="button" data-wall-emoji="🎲" title="Dado">🎲</button><button type="button" data-wall-emoji="⚔️" title="Espadas">⚔️</button><button type="button" data-wall-emoji="🎉" title="Celebração">🎉</button><button type="button" data-wall-emoji="👍" title="Gostei">👍</button>
+    </div>
+    <div class="wall-url-tool" data-wall-url-tool hidden>
+      <label for="wall-url">URL</label><input id="wall-url" type="url" inputmode="url" placeholder="https://" maxlength="2048">
+      <button type="button" data-wall-insert-url>Inserir</button><button type="button" data-wall-close-tool title="Cancelar" aria-label="Cancelar"><img src="{% static 'icons/lucide/x.svg' %}" alt=""></button>
+    </div>
+    <textarea id="wall-text" name="texto" rows="3" maxlength="4000" required placeholder="Uma lembrança de mesa, um recado, uma nova aventura…">{{ wall.comment_form.texto.value|default:'' }}</textarea>
+    <div id="wall-preview" class="wall-message bonfire-markdown" data-markdown-options="false" data-markdown-manual="true" hidden></div>
+    <div class="wall-compose-footer"><span data-wall-count aria-live="off">0 / 4.000</span><button type="submit" class="wall-publish"><img src="{% static 'icons/lucide/send.svg' %}" alt="">Publicar</button></div>
+    <p role="status" class="wall-status" data-wall-editor-status></p>
+  </form>
+  {% elif not request.user.is_authenticated %}
+  <p class="wall-signin"><a href="{% url 'login' %}?next={{ request.path|urlencode }}%23comentarios">Entre para deixar um comentário</a></p>
+  {% endif %}
+  <div class="wall-comments">
+    {% for comment in wall.comments_page %}
+    <article class="wall-comment" id="comentario-{{ comment.pk }}">
+      <a class="wall-avatar-link" href="{% url 'public_profile' comment.autor.username %}" aria-label="Perfil de {{ comment.autor.username }}">
+        <span class="public-profile-avatar wall-avatar {{ comment.frame_class }}{% if comment.frame_package.avatar %} is-packaged{% endif %}">
+          {% if comment.avatar_url|safe_profile_image %}<img src="{{ comment.avatar_url|safe_profile_image }}" alt="" width="48" height="48" loading="lazy" decoding="async">{% else %}<span>{{ comment.autor.username|first|upper }}</span>{% endif %}
+          {% include 'home/partials/_cosmetic_preview.html' with layers=comment.frame_package.avatar slot='avatar' %}
+        </span>
+      </a>
+      <div class="wall-comment-main">
+        <header><a href="{% url 'public_profile' comment.autor.username %}">{{ comment.autor.username }}</a><a class="wall-permalink" href="#comentario-{{ comment.pk }}"><time datetime="{{ comment.criado_em|date:'c' }}">{{ comment.criado_em|date:'d/m/Y · H:i' }}</time></a></header>
+        <div class="wall-message bonfire-markdown" data-markdown-source data-markdown-options="false" data-markdown-manual="true">{{ comment.texto }}</div>
+        <footer class="wall-comment-actions">
+          {% if comment.can_like %}
+          <form method="post" action="{% url 'perfil_comentario_curtir' comment.pk %}" data-wall-like>
+            {% csrf_token %}<input type="hidden" name="curtido" value="{% if comment.liked_by_viewer %}false{% else %}true{% endif %}">
+            <button type="submit" class="wall-like{% if comment.liked_by_viewer %} is-liked{% endif %}" aria-pressed="{% if comment.liked_by_viewer %}true{% else %}false{% endif %}" aria-label="{% if comment.liked_by_viewer %}Descurtir{% else %}Curtir{% endif %} comentário"><img src="{% static 'icons/lucide/heart.svg' %}" alt=""><span data-wall-like-count>{{ comment.like_count }}</span></button>
+          </form>
+          {% else %}<span class="wall-like-static"><img src="{% static 'icons/lucide/heart.svg' %}" alt="Curtidas"><span>{{ comment.like_count }}</span></span>{% endif %}
+          {% if comment.can_remove %}<form method="post" action="{% url 'perfil_comentario_remover' comment.pk %}" data-wall-remove>{% csrf_token %}<button type="submit" class="wall-remove" title="Remover comentário" aria-label="Remover comentário"><img src="{% static 'icons/lucide/trash.svg' %}" alt=""></button></form>{% endif %}
+          <span class="wall-status" data-wall-like-status role="status"></span>
+        </footer>
+      </div>
+    </article>
+    {% empty %}<p class="wall-empty">A primeira história por aqui pode ser sua.</p>{% endfor %}
+  </div>
+  {% if wall.comments_page.has_other_pages %}
+  <nav class="wall-pagination" aria-label="Páginas de comentários">
+    {% if wall.comments_page.has_previous %}<a href="?comentarios_page={{ wall.comments_page.previous_page_number }}{% if request.GET.aba == 'mestre' %}&aba=mestre{% endif %}#comentarios" aria-label="Comentários mais recentes"><img src="{% static 'icons/lucide/chevron-left.svg' %}" alt=""></a>{% endif %}
+    <span>{{ wall.comments_page.number }} / {{ wall.comments_page.paginator.num_pages }}</span>
+    {% if wall.comments_page.has_next %}<a href="?comentarios_page={{ wall.comments_page.next_page_number }}{% if request.GET.aba == 'mestre' %}&aba=mestre{% endif %}#comentarios" aria-label="Comentários mais antigos"><img src="{% static 'icons/lucide/chevron-right.svg' %}" alt=""></a>{% endif %}
+  </nav>
+  {% endif %}
+</section>

@@ -1,0 +1,148 @@
+/* ════════════════════════════════════════════════════════════════════
+   Itens Mundanos — layout mestre-detalhe (reaproveita .talent-main-grid /
+   .talent-list-panel / .talent-detail-panel de talentos.css para a
+   largura/scroll/sticky/drawer mobile já prontos).
+   ════════════════════════════════════════════════════════════════════ */
+
+.mu-shell { display: flex; flex-direction: column; }
+
+/* ---- Filtros (abas de categoria) ---- */
+.mu-cat-chip {
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .02em;
+  padding: .25rem .6rem;
+  text-transform: uppercase;
+  transition: border-color .2s ease, background .2s ease, color .2s ease, transform .2s ease;
+}
+.mu-cat-chip:hover {
+  border-color: var(--ember);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+.mu-cat-chip.active {
+  background: linear-gradient(90deg, rgba(210,23,23,.16), var(--bg1) 70%);
+  border-color: var(--ember);
+  color: var(--spark);
+  box-shadow: inset 0 0 12px rgba(210,23,23,.18);
+}
+
+/* ---- Item da lista (mestre) ---- */
+.mu-list-item {
+  align-items: center;
+  background: var(--bg0);
+  border: 1px solid transparent;
+  border-left: 3px solid var(--stroke);
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  gap: .45rem;
+  justify-content: space-between;
+  padding: .45rem .7rem;
+  transition: border-color .2s ease, background .2s ease, transform .2s ease, box-shadow .2s ease;
+}
+.mu-list-item:hover {
+  background: var(--bg1);
+  border-color: var(--stroke);
+  border-left-color: var(--ember);
+  box-shadow: 0 0 14px rgba(210,23,23,.12);
+  transform: translateX(2px);
+}
+.mu-list-item.selected {
+  background: var(--bg1);
+  border-color: var(--ember);
+  border-left-color: var(--ember);
+}
+.mu-list-item-main { min-width: 0; }
+.mu-list-item-name {
+  color: var(--text);
+  font-size: .9rem;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mu-list-item-meta {
+  color: var(--muted);
+  font-size: .68rem;
+  letter-spacing: .04em;
+  margin-top: .15rem;
+  text-transform: uppercase;
+}
+.mu-list-item-price {
+  background: var(--bg2);
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  color: var(--spark);
+  flex-shrink: 0;
+  font-size: .68rem;
+  font-weight: 700;
+  padding: .2rem .55rem;
+  white-space: nowrap;
+}
+
+/* ---- Detalhe ---- */
+.mu-detail { width: 100%; }
+.mu-detail-cat {
+  color: var(--ember);
+  display: block;
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  margin-bottom: .35rem;
+  text-transform: uppercase;
+}
+.mu-detail-title {
+  border-bottom: 2px solid var(--stroke);
+  color: var(--text);
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1.15;
+  margin-bottom: .7rem;
+  padding-bottom: .55rem;
+  text-shadow: 0 0 18px rgba(210,23,23,.25);
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.mu-detail-stats {
+  display: grid;
+  gap: .5rem;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  margin-bottom: .75rem;
+}
+.mu-stat {
+  background: var(--bg1);
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  padding: .5rem .65rem;
+}
+.mu-stat-label {
+  color: var(--muted);
+  display: block;
+  font-size: .6rem;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.mu-stat-value {
+  color: var(--text);
+  display: block;
+  font-size: 1rem;
+  font-weight: 700;
+  margin-top: .2rem;
+}
+.mu-stat-accent { color: var(--ember); }
+.mu-stat-stat { color: var(--spark); }
+.mu-detail-line {
+  color: var(--muted);
+  font-size: .9rem;
+  margin-bottom: .4rem;
+}
+.mu-detail-line strong { color: var(--text); }
+.mu-detail-desc { margin-top: .5rem; }

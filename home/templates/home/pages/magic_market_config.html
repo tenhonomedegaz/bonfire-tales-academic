@@ -1,0 +1,4 @@
+{% extends 'home/base.html' %}{% load static %}
+{% block body_class %}bft-magic-market{% endblock %}{% block main_class %}bft-market-main{% endblock %}{% block title %}Calendário da caravana | Bonfire Tales{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/magic-market.css' %}?v=1">{% endblock %}
+{% block content %}<section class="magic-config"><a href="{% url 'mercado_itens_magicos' %}">← Voltar ao mercado</a><h1>Calendário da caravana</h1><p>Somente a administração pode alterar estas regras. Deixe a data vazia para manter apenas o estoque permanente. Visitas já sorteadas não são refeitas.</p><form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit">Salvar configuração</button></form></section>{% endblock %}

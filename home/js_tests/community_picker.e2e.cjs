@@ -1,0 +1,63 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const url=process.env.COMMUNITY_PREVIEW_URL || 'http://127.0.0.1:8897/docs/cosmetics/20261102-community-catalog.html';
+const out=process.env.COMMUNITY_QA_OUT || path.resolve(__dirname,'../../docs/qa/community-picker-20261102');
+(async()=>{
+ fs.mkdirSync(out,{recursive:true});const browser=await chromium.launch({channel:'msedge',headless:true});
+ const report={errors:[],widths:[]};
+ try{
+  for(const width of [390,1440]){
+   const page=await browser.newPage({viewport:{width,height:950}});let calls=0;
+   page.on('pageerror',e=>report.errors.push(e.message));
+   page.on('request',r=>{if(r.url().includes('/perfil/cosmeticos/previa/'))calls++;});
+   await page.goto(url);await page.waitForFunction(()=>document.querySelectorAll('[data-catalog-ready]').length===3);
+   assert.equal(calls,0,'No candidate requests at page load');
+   assert.equal(await page.locator('[data-cosmetic-layers]').count(),0,'No eager full previews');
+   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+   await page.screenshot({path:path.join(out,width+'-selectors.png'),fullPage:true});
+   const frame=page.locator('[data-cosmetic-catalog][data-catalog-type="moldura"]');
+   const dialog=frame.locator('dialog');await frame.locator('[data-catalog-open]').click();
+   await frame.locator('[data-catalog-key="verdant"]').click();
+   await page.waitForFunction(()=>!document.querySelector('[data-catalog-type="moldura"] [data-catalog-apply]').disabled);
+   await frame.locator('[data-catalog-preview] img').evaluateAll(images=>Promise.all(images.map(i=>i.decode())));
+   assert.equal(await frame.locator('[data-catalog-preview] [data-cosmetic-layers]').count(),1);
+   assert.equal(await frame.locator('select').inputValue(),'none');
+   await dialog.screenshot({path:path.join(out,width+'-verdant-preview.png')});
+   await page.keyboard.press('Escape');assert.equal(await frame.locator('select').inputValue(),'none');
+   assert.equal(await frame.locator('[data-cosmetic-layers]').count(),0,'Close destroys layers');
+   await frame.locator('[data-catalog-open]').click();await frame.locator('[data-catalog-key="verdant"]').click();
+   await page.waitForFunction(()=>!document.querySelector('[data-catalog-type="moldura"] [data-catalog-apply]').disabled);
+   await frame.locator('[data-catalog-apply]').click();assert.equal(await frame.locator('select').inputValue(),'verdant');
+   await frame.locator('[data-catalog-open]').click();
+   await frame.locator('[data-catalog-key="guardiao-da-fogueira"]').click();
+   await page.waitForFunction(()=>document.querySelector('[data-catalog-type="moldura"] [data-catalog-name]').textContent.includes('Fogueira'));
+   await page.waitForFunction(()=>!document.querySelector('[data-catalog-type="moldura"] [data-catalog-acquisition]').hidden);
+   assert(await frame.locator('[data-catalog-apply]').isDisabled());
+   assert((await frame.locator('[data-catalog-acquisition]').getAttribute('href')).endsWith('/colaborador/'));
+   await frame.locator('[data-catalog-preview] img').evaluateAll(images=>Promise.all(images.map(i=>i.decode())));
+   await dialog.screenshot({path:path.join(out,width+'-colab-frame-locked.png')});
+   await frame.locator('[data-catalog-apply]').evaluate(e=>{e.disabled=false;e.click();});
+   assert.equal(await frame.locator('select').inputValue(),'verdant','Tampering cannot equip a locked item');
+   await page.keyboard.press('Escape');
+   const theme=page.locator('[data-catalog-type="tema"]');await theme.locator('[data-catalog-open]').click();
+   await theme.locator('[data-catalog-category="especial"]').click();
+   await theme.locator('[data-catalog-key="guardiao-da-fogueira"]').click();
+   await page.waitForFunction(()=>document.querySelector('[data-catalog-type="tema"] .skin-colaborador-fogueira'));
+   const card=theme.locator('.skin-colaborador-fogueira .public-profile-card');
+   assert((await card.evaluate(e=>getComputedStyle(e).borderImageSource)).includes('community-forge-panel-v1.webp'));
+   await theme.locator('dialog').screenshot({path:path.join(out,width+'-colab-theme.png')});
+   await page.keyboard.press('Escape');
+   const effect=page.locator('[data-catalog-type="efeito"]');await effect.locator('[data-catalog-open]').click();
+   await effect.locator('[data-catalog-key="folhas-da-trilha"]').click();
+   await page.waitForFunction(()=>!document.querySelector('[data-catalog-type="efeito"] [data-catalog-apply]').disabled);
+   assert.equal(await effect.locator('[data-catalog-preview] .cosmetic-layer--drift').count(),1);
+   await effect.locator('dialog').screenshot({path:path.join(out,width+'-leaves-effect.png')});
+   await effect.locator('[data-catalog-apply]').click();assert.equal(await effect.locator('select').inputValue(),'folhas-da-trilha');
+   assert.equal(await page.locator('dialog [data-cosmetic-layers]').count(),0);
+   report.widths.push({width,lazy:true,lockedPreview:true,noUnauthorizedApply:true,cancel:true,apply:true,artLoaded:true,requests:calls});
+   await page.close();
+  }
+  assert.deepEqual(report.errors,[]);report.passed=true;console.log(JSON.stringify(report));
+ }finally{await browser.close();fs.writeFileSync(path.join(out,'checks.json'),JSON.stringify(report,null,2));}
+})().catch(error=>{console.error(error);process.exitCode=1;});

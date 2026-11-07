@@ -1,0 +1,171 @@
+/* Bonfire character workspace. Presentation only; existing forms and engine own rules. */
+.bft-character-main { width:100%; max-width:1360px; margin:0 auto; padding:22px 28px 44px; }
+.character-breadcrumb { display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin:0 0 15px; color:#aba5a1; font-size:12px; }
+.character-breadcrumb a { color:#d8d0ca; text-decoration:none; }
+.character-breadcrumb a:hover { color:#ff8a43; }
+.character-eyebrow,.cf-chapter { color:#f5854f; font:700 10px/1.5 'Open Sans',sans-serif; text-transform:uppercase; letter-spacing:.14em; }
+.character-hero { position:relative; min-height:135px; padding:22px 110px 21px 24px; border:1px solid #723025; border-left:3px solid #b31515; border-radius:3px; background:url('/static/brand/facets.svg') right center/390px auto no-repeat,linear-gradient(110deg,#2b1010,#111011 68%); overflow:hidden; }
+.character-hero h1 { margin:3px 0 5px; color:#f2eee8; font-size:34px; line-height:1.1; }
+.character-hero p:not(.character-eyebrow) { max-width:710px; color:#c3bbb6; font-size:13px; line-height:1.65; }
+.character-hero a { font-size:12px; }
+.character-hero-mark { position:absolute; right:25px; top:29px; width:65px; opacity:.85; }
+.character-hero-mark img { width:100%; height:auto; }
+.character-local-note { margin:0 0 15px; padding:8px 12px; border-left:2px solid #7f3526; background:#1c1412; color:#bfb2a9; font-size:11px; line-height:1.65; }
+.character-preview-feedback { position:fixed; bottom:18px; right:18px; z-index:80; display:flex; align-items:start; gap:16px; max-width:min(440px,calc(100vw - 36px)); padding:16px; border:1px solid #bb5d38; background:#241711; color:#f1e5dc; box-shadow:0 8px 25px #0008; font-size:13px; line-height:1.7; }
+.character-preview-feedback[hidden] { display:none; }
+.character-preview-feedback button { flex:none; font-size:20px; line-height:1; color:#f0b995; padding:4px; }
+.bft-creator .cf-layout { display:grid; grid-template-columns:minmax(0,1fr) 315px; gap:20px; }
+.bft-creator .cf-stepper { top:calc(var(--bft-header-height) + 8px); padding:5px; background:#131111; border-color:#4a2a24; border-radius:3px; margin-bottom:17px; }
+.bft-creator .cf-stepper ol { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); overflow:visible; gap:2px; }
+.bft-creator .cf-step-tab { flex-direction:column; justify-content:center; gap:5px; min-width:0; padding:9px 2px; border-radius:2px; }
+.bft-creator .cf-step-name { font-size:11px; }
+.bft-creator .cf-step-badge { width:23px; height:23px; border-radius:3px; transform:rotate(45deg); }
+.bft-creator .cf-step-badge span,.bft-creator .cf-step-badge::after { transform:rotate(-45deg); }
+.bft-creator .cf-step-tab.is-current { background:#3b1413; border-color:#a93a28; color:#fff1e6; }
+.bft-creator .cf-step-tab.is-current .cf-step-badge { border-color:#df6b3d; color:#ffb37e; }
+.bft-creator .cf-step-tab.is-complete .cf-step-badge { background:#8e2420; border-color:#be4930; }
+.bft-creator .cf-step > div:not(.cf-step-err) { padding:19px 21px; border-color:#3d2924; border-radius:3px; background:linear-gradient(135deg,#191515,#121212 70%); }
+.bft-creator .cf-step h2 { font:600 23px/1.3 'Frank Ruhl Libre',serif; color:#f1e6df; margin-bottom:9px; }
+.bft-creator .cf-step h2 span { font:400 12px 'Open Sans',sans-serif; color:#b9aaa1; }
+.bft-creator .cf-step p { line-height:1.7; }
+.bft-creator .cf-step p.text-xs { font-size:12px; }
+.bft-creator .cf-step select,.bft-creator .cf-step input[type=text] { min-height:40px; border-radius:3px; color:#e8e1dc; border-color:#4c3530; background:#0e0d0d; font-size:13px; }
+.bft-creator #cf-nome { font:500 19px 'Frank Ruhl Libre',serif; padding:11px 13px; }
+.bft-creator .cf-step input:focus-visible,.bft-creator .cf-step select:focus-visible,.bft-creator button:focus-visible { outline:2px solid #ff934e; outline-offset:3px; }
+.bft-creator input[type=checkbox],.bft-creator input[type=radio] { accent-color:#c14327; }
+.bft-creator .cf-step label.cursor-pointer:has(input:checked) { border-color:#a8452c; background:#2a1713; }
+.bft-creator [data-point-buy] { border-color:#4c3028; border-radius:3px; }
+.bft-creator [data-point-buy] table { min-width:0; table-layout:fixed; }
+.bft-creator [data-point-buy] th:first-child { width:42%; }
+.bft-creator [data-point-buy] tr { border-color:#342723; }
+.bft-creator [data-point-buy] td { padding-top:6px; padding-bottom:6px; }
+.bft-creator [data-point-buy] thead { background:#2c1714; }
+.bft-creator [data-point-buy] tbody tr:nth-child(even) { background:#191412; }
+.bft-creator [data-point-buy] [data-score] { min-height:24px; border:0; }
+.bft-creator [data-point-buy] [data-inc],.bft-creator [data-point-buy] [data-dec] { min-width:28px; min-height:22px; }
+.bft-creator .cf-stepnav { z-index:25; bottom:10px; margin-top:16px; padding:10px; border:1px solid #683025; border-radius:3px; background:#171110; box-shadow:0 7px 25px #0007; flex-wrap:wrap; }
+.bft-creator .cf-stepnav > a,.bft-creator .cf-btn { min-height:39px; border-radius:3px; font-size:12px; }
+.bft-creator .cf-btn-primary { background:linear-gradient(110deg,#a51b17,#c33c22); border:1px solid #e05b35; }
+.bft-creator .cf-btn-primary:hover { background:#c13621; }
+.bft-creator .cf-info { border-color:#4c3029; border-left-color:#b34a2f; background:#110e0d; border-radius:3px; padding:13px; }
+.bft-creator .cf-info-tagline { color:#e59b73; font-size:13px; }
+.bft-creator .cf-info-resumo,.bft-creator .cf-info-trait-desc { font-size:13px; line-height:1.7; }
+.bft-creator .cf-info-trait { padding:9px 0; border-bottom:1px solid #302421; }
+.bft-creator .cf-info-trait:last-child { border:0; }
+.bft-creator .cf-info-trait-nome { font:600 17px/1.4 'Frank Ruhl Libre',serif; margin-bottom:5px; }
+.bft-creator .cf-preview { top:calc(var(--bft-header-height) + 8px); border:1px solid #7c3829; border-top:3px solid #b31515; border-radius:3px; background:#141111; }
+.bft-creator .cf-preview-head { padding:13px 16px; background:url('/static/brand/facets.svg') right center/190px,linear-gradient(110deg,#3b1512,#171212); border-color:#633024; }
+.bft-creator .cf-preview-title { font:600 20px 'Frank Ruhl Libre',serif; color:#f2eee8; }
+.bft-creator .cf-preview-body { padding:17px; }
+.bft-creator .cf-preview-name { font-size:23px; line-height:1.25; margin-bottom:15px; }
+.bft-creator .cf-preview-sub { display:block; font:400 12px/1.6 'Open Sans',sans-serif; margin-top:6px; }
+.bft-creator .cf-vital { padding:12px 3px; border-radius:3px; border-color:#503127; background:#201310; }
+.bft-creator .cf-vital .v { font:700 28px 'Frank Ruhl Libre',serif; color:#f2e7dd; }
+.bft-creator .cf-vital.accent .v { color:#ff9c61; }
+.bft-creator .cf-attr { border-radius:3px; border-color:#392a25; padding:9px 3px; }
+.bft-creator .cf-preview-extra { font-size:12px; }
+.bft-creator #cf-review { line-height:1.8; }
+.bft-creator #cf-review > div { padding:10px 0; border-bottom:1px solid #392823; }
+/* Completed sheet: the same three-column sheet, a compact identity ribbon. */
+.bft-character-sheet .ficha-main { max-width:1440px; padding:22px 28px 44px; }
+.bft-character-sheet .ficha.theme-ember:not([style]) { --sheet-accent:#c23f28; --sheet-accent-2:#ff6a00; --sheet-gold:#f1a16a; --sheet-surface:#171313; --sheet-deep:#0d0c0c; }
+.bft-character-sheet .character-sheet-label { margin-left:auto; color:#e77d47; font-size:10px; letter-spacing:.13em; text-transform:uppercase; }
+.bft-character-sheet .ficha-banner { gap:0; border:1px solid color-mix(in srgb,var(--ficha-accent) 55%,#292322); border-top:3px solid var(--ficha-accent); border-radius:3px; background:var(--sheet-surface); overflow:hidden; }
+.bft-character-sheet .banner-scroll { display:grid; grid-template-columns:72px minmax(0,1fr); gap:4px 16px; align-content:center; padding:19px 21px; border:0; border-radius:0; background:url('/static/brand/facets.svg') right center/300px auto no-repeat,linear-gradient(110deg,color-mix(in srgb,var(--ficha-accent) 17%,var(--sheet-deep)),var(--sheet-deep)); }
+.bft-character-sheet .banner-character-avatar { width:72px; height:72px; grid-row:1 / 4; align-self:center; border-radius:4px; border-color:color-mix(in srgb,var(--ficha-accent) 60%,var(--stroke)); }
+.bft-character-sheet .ficha-title-line,.bft-character-sheet .banner-classes,.bft-character-sheet .banner-actions { grid-column:2; }
+.bft-character-sheet .ficha-name { font:600 30px/1.1 'Frank Ruhl Libre',serif; color:var(--text); }
+.bft-character-sheet .banner-level-inline { font-size:10px; border-radius:3px; }
+.bft-character-sheet .banner-class { font-size:12px; }
+.bft-character-sheet .banner-actions { margin-top:5px; gap:6px; }
+.bft-character-sheet .banner-btn { border-radius:3px; font-size:11px; min-height:30px; }
+.bft-character-sheet .banner-identity { border:0; border-left:1px solid var(--stroke); border-radius:0; padding:17px 20px; background:var(--sheet-surface); }
+.bft-character-sheet .banner-fields { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.bft-character-sheet .banner-field { border:0; border-radius:0; padding:5px 0; background:transparent; }
+.bft-character-sheet .banner-field.wide { grid-column:span 2; }
+.bft-character-sheet .banner-rank-icon { width:27px; height:30px; }
+.bft-character-sheet .banner-rank-field > .banner-rank-visual { flex:0 0 27px; }
+.banner-rank-visual { position:relative; display:block; width:27px; height:32px; flex:none; }
+.banner-rank-visual svg { display:block; width:100%; height:100%; fill:#201813; stroke:var(--ficha-gold,#ec9a64); stroke-width:1.3; }
+.banner-rank-visual img { position:absolute; inset:0; background:var(--sheet-surface); object-fit:contain; }
+.banner-rank-visual img[hidden] { display:none; }
+.bft-character-sheet .banner-field .lbl { font-size:9px; letter-spacing:.1em; }
+.bft-character-sheet .banner-field .val { font-size:12px; }
+.bft-character-sheet .ficha-tabs { position:sticky; top:var(--bft-header-height); z-index:30; display:flex; gap:3px; padding:5px; background:var(--sheet-deep); border:1px solid var(--stroke); border-radius:3px; }
+.bft-character-sheet .ficha-tab { flex:1; border-radius:2px; padding:10px 12px; min-width:0; font-size:12px; }
+.bft-character-sheet .ficha-tab.is-active { background:color-mix(in srgb,var(--ficha-accent) 25%,var(--sheet-deep)); border-color:var(--ficha-accent); color:var(--text); }
+.bft-character-sheet .ficha-columns { gap:15px; }
+.bft-character-sheet .ficha-panel { padding:14px; border:1px solid var(--stroke); border-radius:3px; background:var(--sheet-surface); box-shadow:none; }
+.bft-character-sheet .ficha .ficha-section-title { font:600 18px/1.4 'Frank Ruhl Libre',serif; text-transform:none; letter-spacing:0; color:var(--text); padding-bottom:9px; margin-bottom:10px; border-color:color-mix(in srgb,var(--ficha-accent) 50%,var(--stroke)); }
+.bft-character-sheet .line-row { padding:6px 0; font-size:12px; line-height:1.5; }
+.bft-character-sheet .line-row .name { min-width:0; }
+.bft-character-sheet .line-row .val { flex-shrink:0; font-variant-numeric:tabular-nums; }
+.bft-character-sheet .attr-box { border-radius:3px; background:var(--sheet-deep); }
+.bft-character-sheet .attr-score { font-family:'Frank Ruhl Libre',serif; }
+.bft-character-sheet .vital-seals { gap:12px; }
+.bft-character-sheet .hp-track { border-radius:3px; background:color-mix(in srgb,var(--ficha-accent) 12%,var(--sheet-deep)); }
+.bft-character-sheet .hp-cell .v { font-family:'Frank Ruhl Libre',serif; }
+.bft-character-sheet .feat-card { border-radius:3px; border-color:var(--stroke); background:var(--sheet-deep); }
+.bft-character-sheet .feat-head { padding:11px 12px; }
+.bft-character-sheet .feat-name { font:600 17px/1.3 'Frank Ruhl Libre',serif; color:var(--text); }
+.bft-character-sheet .feat-meta { font-size:10px; margin-top:4px; }
+.bft-character-sheet .feat-body-inner { font-size:13px; line-height:1.8; padding:0 13px 14px; }
+.bft-character-sheet .feat-body-inner p + p { margin-top:10px; }
+.bft-character-sheet .feat-body-inner h2,.bft-character-sheet .feat-body-inner h3 { font:600 19px/1.4 'Frank Ruhl Libre',serif; margin:18px 0 7px; }
+.bft-character-sheet .feat-group-title { font-size:11px; letter-spacing:.06em; color:var(--ficha-gold); padding:9px 0; }
+.bft-character-sheet .feat-grid { gap:8px; }
+.bft-character-sheet .feat-tools button,.bft-character-sheet .feat-search { border-radius:3px; }
+.bft-character-sheet .pers-box,.bft-character-sheet .slot-cell,.bft-character-sheet .bag-stat { border-radius:3px; }
+.bft-character-sheet textarea,.bft-character-sheet select,.bft-character-sheet input:not([type=checkbox]):not([type=radio]) { border-radius:3px; }
+.bft-character-sheet .pers-grid { gap:12px; }
+.bft-character-sheet .pers-box textarea,.bft-character-sheet .notas-box textarea { font-size:13px; line-height:1.7; }
+.bft-character-sheet button:focus-visible,.bft-character-sheet a:focus-visible { outline:2px solid var(--ficha-gold); outline-offset:3px; }
+@media(min-width:1100px) { .bft-character-sheet .ficha-columns { grid-template-columns:minmax(0,.85fr) minmax(0,1fr) minmax(0,1.3fr); } }
+@media(max-width:1099px) { .bft-character-main,.bft-character-sheet .ficha-main { padding:18px 18px 35px; } .bft-creator .cf-layout { grid-template-columns:minmax(0,1fr) 275px; gap:14px; } .bft-creator .cf-step-name { font-size:10px; } .bft-creator .cf-step > div:not(.cf-step-err) { padding:15px; } }
+@media(max-width:899px) { .bft-creator .cf-layout { grid-template-columns:1fr; } .bft-creator .cf-preview { position:static; } .bft-character-sheet .banner-identity { border-left:0; border-top:1px solid var(--stroke); } }
+@media(max-width:599px) {
+  .bft-character-main,.bft-character-sheet .ficha-main { padding:14px 12px 28px; }
+  .character-breadcrumb { font-size:11px; margin-bottom:12px; }
+  .character-hero { padding:18px 60px 18px 16px; min-height:0; background:linear-gradient(110deg,#2b1010,#111011); }
+  .character-hero h1 { font-size:29px; }
+  .character-hero-mark { width:36px; right:14px; top:25px; }
+  .character-hero .character-eyebrow { font-size:9px; }
+  .bft-creator .cf-stepper { top:var(--bft-header-height); padding:4px; }
+  .bft-creator .cf-stepper ol { grid-template-columns:repeat(3,minmax(0,1fr)); gap:3px; }
+  .bft-creator .cf-step-tab { flex-direction:row; justify-content:flex-start; min-height:39px; padding:6px; gap:7px; }
+  .bft-creator .cf-step-badge { width:18px; height:18px; font-size:10px; }
+  .bft-creator .cf-step-name { display:inline; font-size:10px; }
+  .bft-creator .cf-step > div:not(.cf-step-err) { padding:15px 12px; }
+  .bft-creator [data-point-buy] th:first-child { width:37%; }
+  .bft-creator [data-point-buy] th { padding:8px 3px; font-size:8px; letter-spacing:0; }
+  .bft-creator [data-point-buy] td { padding:5px 3px; font-size:12px; }
+  .bft-creator [data-point-buy] td:first-child span { display:block; font-size:10px; }
+  .bft-creator [data-point-buy] td>div { padding:2px; gap:1px; }
+  .bft-creator [data-point-buy] [data-score] { width:23px; }
+  .bft-creator [data-point-buy] [data-inc],.bft-creator [data-point-buy] [data-dec] { min-width:22px; padding:0; }
+  .bft-creator .cf-stepnav { bottom:5px; padding:8px; gap:5px; }
+  .bft-creator .cf-hint { flex-basis:100%; order:-1; }
+  .bft-character-sheet .banner-scroll { grid-template-columns:54px minmax(0,1fr); padding:17px 14px; gap:5px 12px; }
+  .bft-character-sheet .banner-character-avatar { width:54px; height:64px; grid-row:1 / 3; }
+  .bft-character-sheet .ficha-name { font-size:24px; }
+  .bft-character-sheet .banner-actions { grid-column:1 / -1; display:flex; flex-direction:row; flex-wrap:wrap; margin-top:8px; }
+  .bft-character-sheet .banner-actions .banner-btn { width:auto; min-height:34px; padding:8px 12px; flex:0 1 auto; text-align:center; }
+  .bft-character-sheet .banner-identity { padding:13px 14px; }
+  .bft-character-sheet .banner-fields { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .bft-character-sheet .banner-field.wide { grid-column:auto; }
+  .bft-character-sheet .banner-progress-field { flex-wrap:wrap; }
+  .bft-character-sheet .banner-progress-field > span { flex:1 1 100%; }
+  .bft-character-sheet .banner-progress-field > span + span { padding:0; border:0; }
+  .bft-character-sheet .banner-nextlvl { min-width:0; }
+  .bft-character-sheet .character-sheet-label { display:none; }
+  .bft-character-sheet .ficha-tabs { flex-wrap:wrap; gap:3px; }
+  .bft-character-sheet .ficha-tab { flex:1 1 28%; padding:8px 5px; font-size:11px; }
+  .bft-character-sheet .ficha-columns { gap:12px; }
+  .bft-character-sheet .ficha-panel { padding:12px; }
+}
+@media(prefers-reduced-motion:reduce) { .bft-creator .cf-step { animation:none; } }
+@media print {
+  .bft-character-sheet .ficha-tabs { position:static; }
+  .bft-character-sheet .ficha-panel,.bft-character-sheet .ficha-banner,.bft-character-sheet .banner-scroll,.bft-character-sheet .banner-identity,.bft-character-sheet .feat-card { background:#fff!important; color:#111!important; box-shadow:none!important; }
+  .bft-character-sheet .ficha-name,.bft-character-sheet .ficha-section-title,.bft-character-sheet .feat-name { color:#111!important; }
+}

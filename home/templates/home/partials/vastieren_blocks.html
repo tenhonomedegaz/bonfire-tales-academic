@@ -1,0 +1,6 @@
+{% for block in blocks %}
+  {% if block.type == 'heading' %}<{{ block.tag }}>{{ block.text }}</{{ block.tag }}>
+  {% elif block.type == 'paragraph' %}<p>{{ block.text|linebreaksbr }}</p>
+  {% elif block.type == 'list' %}<ul>{% for item in block.items %}<li>{{ item }}</li>{% endfor %}</ul>
+  {% elif block.type == 'table' %}<div class="vastieren-table-scroll" role="region" aria-label="Tabela de {{ table_label }}" tabindex="0"><table><thead><tr>{% for cell in block.header %}<th scope="col">{% for paragraph in cell %}{{ paragraph }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</th>{% endfor %}</tr></thead><tbody>{% for row in block.rows %}<tr>{% for cell in row %}<td>{% for paragraph in cell %}{{ paragraph }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>{% endif %}
+{% endfor %}

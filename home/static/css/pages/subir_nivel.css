@@ -1,0 +1,114 @@
+/* Experiência dedicada de LEVEL-UP (subir_nivel.html). Reaproveita o design system do
+   criador (criador.css: .cf-layout/.cf-stepper/.cf-step/.cf-stepnav/.cf-preview/.cf-btn) e
+   os cartões do level-up (levelup.css: .lvl-card/.lvl-badge/.lvl-field/.lvl-chip). Aqui só
+   o que é exclusivo desta página: cabeçalho imersivo, cards de ganhos e a etapa de revisão. */
+
+.sn-wrap { max-width: 1100px; margin: 0 auto; }
+
+/* ---- Cabeçalho imersivo ---------------------------------------------- */
+.sn-hero {
+  position: relative;
+  border: 1px solid var(--stroke);
+  border-radius: 0.75rem;
+  background:
+    radial-gradient(120% 140% at 50% -20%, color-mix(in srgb, var(--flame) 22%, transparent), transparent 60%),
+    var(--bg1);
+  padding: 1.1rem 1.1rem 1.25rem;
+  margin-bottom: 1rem;
+  text-align: center;
+  overflow: hidden;
+}
+.sn-hero-back {
+  position: absolute; top: 0.7rem; left: 0.8rem;
+  font-size: 12.5px; color: var(--muted);
+}
+.sn-hero-back:hover { color: var(--ember); }
+.sn-hero-kicker { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); }
+.sn-hero-title {
+  font-family: 'Frank Ruhl Libre', serif; font-weight: 800;
+  font-size: clamp(1.5rem, 4vw, 2.1rem);
+  color: var(--flame); line-height: 1.05; margin: 0.15rem 0 0.4rem;
+}
+.sn-leveljump { display: inline-flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem; }
+.sn-lvl-from, .sn-lvl-to {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 2.6rem; height: 2.6rem; padding: 0 0.5rem;
+  border-radius: 0.6rem; font-family: 'Frank Ruhl Libre', serif; font-weight: 800; font-size: 1.5rem;
+  border: 1px solid var(--stroke); background: var(--bg0); color: var(--text);
+}
+.sn-lvl-to { border-color: var(--flame); color: var(--flame);
+  box-shadow: 0 0 20px -6px color-mix(in srgb, var(--flame) 60%, transparent); }
+.sn-lvl-arrow { font-size: 1.4rem; color: var(--ember); }
+.sn-hero-classline { font-size: 13px; color: var(--muted); }
+.sn-class-chip { color: var(--text); font-weight: 600; }
+.sn-class-chip em { color: var(--ember); font-style: normal; }
+.sn-classpick { display: inline-flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; justify-content: center; }
+
+/* ---- Nada a fazer ---------------------------------------------------- */
+.sn-nothing { text-align: center; max-width: 30rem; margin: 1.5rem auto; }
+.sn-nothing-title { font-family: 'Frank Ruhl Libre', serif; font-weight: 700; font-size: 1.05rem; color: var(--text); }
+.sn-nothing-sub { font-size: 13px; color: var(--muted); margin-top: 0.35rem; }
+
+/* ---- Títulos de etapa ------------------------------------------------ */
+.sn-step-title { font-family: 'Frank Ruhl Libre', serif; font-weight: 700; font-size: 1.15rem; color: var(--text); margin: 0; }
+.sn-step-sub { font-size: 12.5px; color: var(--muted); margin: 0.15rem 0 0; line-height: 1.5; }
+
+/* ---- Cards de GANHOS do nível ---------------------------------------- */
+.sn-grants { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: 0.5rem; }
+.sn-grant {
+  display: flex; align-items: center; gap: 0.6rem;
+  border: 1px solid var(--stroke); border-left: 3px solid var(--ember);
+  border-radius: 0.55rem; background: var(--bg1); padding: 0.6rem 0.7rem;
+}
+.sn-grant--pv { border-left-color: var(--flame); }
+.sn-grant--sub { border-left-color: var(--spark); }
+.sn-grant-ico { font-size: 1.2rem; line-height: 1; }
+.sn-grant-name { font-size: 12.5px; font-weight: 700; color: var(--text); }
+.sn-grant-val { font-size: 12px; color: var(--muted); }
+.sn-grant--pv .sn-grant-val { color: var(--flame); font-weight: 700; }
+.sn-grant-note { color: var(--muted); font-weight: 400; }
+
+/* ---- Features novas (accordion) -------------------------------------- */
+.sn-features { border: 1px solid var(--stroke); border-radius: 0.55rem; background: var(--bg1); overflow: hidden; }
+.sn-features-hdr {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; font-weight: 700;
+  color: var(--ember); padding: 0.5rem 0.7rem; border-bottom: 1px solid var(--stroke);
+}
+.sn-feature { border-bottom: 1px solid color-mix(in srgb, var(--stroke) 55%, transparent); }
+.sn-feature:last-child { border-bottom: 0; }
+.sn-feature > summary {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.6rem;
+  padding: 0.55rem 0.7rem; cursor: pointer; list-style: none;
+}
+.sn-feature > summary::-webkit-details-marker { display: none; }
+.sn-feature > summary::before { content: '▸'; color: var(--ember); font-size: 0.8rem; transition: transform .15s; }
+.sn-feature[open] > summary::before { transform: rotate(90deg); }
+.sn-feature-name { flex: 1 1 auto; font-size: 13px; font-weight: 600; color: var(--text); }
+.sn-feature-src { font-size: 10.5px; color: var(--muted); white-space: nowrap; }
+.sn-feature-desc { padding: 0 0.7rem 0.6rem 1.5rem; font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+
+/* ---- Multiclasse (alternativa) --------------------------------------- */
+.sn-mc {
+  border: 1px dashed var(--stroke); border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--bg1) 70%, transparent);
+  padding: 0.65rem 0.75rem; margin-top: 0.3rem;
+}
+.sn-mc-hdr { font-size: 12.5px; font-weight: 700; color: var(--text); }
+.sn-mc-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin-top: 0.5rem; }
+
+/* ---- Revisão --------------------------------------------------------- */
+.sn-review-hdr { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; color: var(--ember); margin-bottom: 0.5rem; }
+.lvl-chip.is-anchor { background: color-mix(in srgb, var(--flame) 14%, var(--bg0)); border-color: color-mix(in srgb, var(--flame) 45%, var(--stroke)); font-weight: 600; }
+
+/* ---- Ajustes finos --------------------------------------------------- */
+#sn-main .cf-step { animation: sn-fade .18s ease-out; }
+@keyframes sn-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.cf-stepnav .cf-hint { flex: 1 1 auto; }
+.cf-stepnav [data-sn-cancel] { text-decoration: none; display: inline-flex; align-items: center; }
+.field-invalid { outline: 2px solid var(--flame) !important; outline-offset: 1px; }
+
+@media (max-width: 430px) {
+  .sn-grants { grid-template-columns: 1fr; }
+  .cf-stepnav { flex-wrap: wrap; }
+  .cf-stepnav .cf-btn, .cf-stepnav [data-sn-cancel] { flex: 1 1 auto; justify-content: center; }
+}

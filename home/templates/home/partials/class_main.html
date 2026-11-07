@@ -1,0 +1,138 @@
+{% load static %}
+{% if classe %}
+<article class="class-detail" data-class-page="{{ classe.slug }}">
+  <header class="class-reference-header">
+    <nav class="class-breadcrumb" aria-label="Localização nas classes"><a href="{% url 'classes' %}" data-class-route>Classes</a><span aria-hidden="true">/</span><span>{{ classe.nome }}</span></nav>
+    <div class="class-reference-masthead">
+      {% with banner_path='brand/classes/'|add:classe.slug|add:'-v1.webp' %}<img class="class-reference-banner" src="{% static banner_path %}" width="1200" height="500" alt="" decoding="async">{% endwith %}
+      <div class="class-reference-heading">
+        <div class="class-reference-title"><span class="class-title-emblem">{% include 'home/components/class_emblem.html' with slug=classe.slug %}</span><h1>{{ classe.nome }}</h1><a href="#class-features">Habilidades <span aria-hidden="true">↓</span></a></div>
+        {% if classe.tagline %}<p class="class-reference-tagline">{{ classe.tagline }}</p>{% endif %}
+      </div>
+    </div>
+  </header>
+  <div class="class-reference-layout">
+  <div class="class-reference-primary">
+  {% include 'home/partials/class_progression.html' %}
+  <section class="class-specializations" id="class-specializations" data-subclass-anchor>
+      <h2 class="mb-2 flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-widest text-[var(--muted)]">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-[var(--muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 8 4.5-8 4.5-8-4.5L12 3Z"/><path d="m4 12 8 4.5 8-4.5"/><path d="m4 16.5 8 4.5 8-4.5"/></svg>
+        {% if classe.slug == 'mistico' %}Patrono · Subclasse{% else %}Subclasses{% endif %} {% if subclasses %}<span>· {{ subclasses|length }} opções</span>{% endif %}
+      </h2>
+      <div class="flex flex-wrap gap-1.5 items-center">
+        <button type="button" data-subclass-toggle="" aria-pressed="true" class="subclass-toggle rounded border border-[var(--flame)] bg-[var(--flame)]/10 px-2.5 py-1 text-[12px] font-bold uppercase tracking-wider text-[var(--text)]">Base</button>
+        {% for sub in subclasses %}
+        <button type="button" data-subclass-toggle="{{ sub.slug }}" aria-pressed="false" class="subclass-toggle rounded border border-[var(--stroke)] px-2.5 py-1 text-[12px] font-bold uppercase tracking-wider text-[var(--muted)] hover:border-[var(--spark)] hover:text-[var(--text)]">{{ sub.nome }}</button>
+        {% endfor %}
+        {% if subclasses %}
+        <label data-subclass-only-toggle class="hidden ml-1.5 flex items-center gap-1.5 cursor-pointer select-none rounded border border-[var(--stroke)] px-2 py-1 text-[12px] font-bold uppercase tracking-wider text-[var(--muted)] hover:border-[var(--spark)] hover:text-[var(--text)] transition-colors" title="{% if classe.slug == 'mistico' %}Mostrar apenas habilidades da subclasse e da manifestação selecionadas{% else %}Mostrar apenas habilidades da subclasse selecionada{% endif %}">
+          <input type="checkbox" data-subclass-only-check class="accent-[var(--spark)]" style="width: 12px; height: 12px;">
+          {% if classe.slug == 'mistico' %}Só especializações{% else %}Só Subclasse{% endif %}
+        </label>
+        {% endif %}
+      </div>
+      {% for story in subclass_presentations %}
+      <section class="class-subclass-presentation" data-subclass-presentation="{{ story.slug }}" aria-labelledby="subclass-presentation-{{ forloop.counter }}"{% if story.slug != selected_subclass_slug %} hidden{% endif %}>
+        <details class="class-subclass-reading">
+          <summary class="class-subclass-banner">
+            <img src="{% static story.banner %}" width="1200" height="400" alt="" loading="lazy" decoding="async">
+            <h3 id="subclass-presentation-{{ forloop.counter }}">{{ story.name }}</h3>
+            <span class="class-subclass-reading-action"><span class="when-closed">Ler apresentação</span><span class="when-open">Recolher apresentação</span><span aria-hidden="true">⌄</span></span>
+          </summary>
+          <div class="class-subclass-story">
+            {% for paragraph in story.paragraphs %}<p>{{ paragraph }}</p>{% empty %}<p>A apresentação narrativa deste caminho ainda não foi cadastrada.</p>{% endfor %}
+          </div>
+        </details>
+      </section>
+      {% endfor %}
+      {% if classe.slug == 'mistico' %}
+      <div class="class-manifestation-controls" data-manifestation-controls hidden>
+        <h2 id="class-manifestation-title">Manifestação Mística <span>· Níveis 1, 3 e 18</span></h2>
+        <p>Uma escolha independente do patrono. Compare as opções ou acompanhe a evolução de uma manifestação.</p>
+        <div class="class-manifestation-options" role="group" aria-labelledby="class-manifestation-title">
+          <button type="button" data-manifestation-toggle="" aria-pressed="true" aria-controls="classFeatureList">Comparar todas</button>
+          <button type="button" data-manifestation-toggle="arma" aria-pressed="false" aria-controls="classFeatureList">Arma Mística</button>
+          <button type="button" data-manifestation-toggle="contrato" aria-pressed="false" aria-controls="classFeatureList">Contrato Místico</button>
+          <button type="button" data-manifestation-toggle="livro" aria-pressed="false" aria-controls="classFeatureList">Livro Místico</button>
+          <button type="button" data-manifestation-toggle="marca" aria-pressed="false" aria-controls="classFeatureList">Marca Mística</button>
+        </div>
+        <span class="bft-sr-only" data-manifestation-status role="status" aria-live="polite"></span>
+      </div>
+      {% endif %}
+    </section>
+  </div>
+  <aside class="class-reference-aside" id="class-essentials" aria-label="Ficha inicial: proficiências, equipamento e multiclasse">{% include 'home/partials/class_traits.html' %}</aside>
+  <section class="class-features class-reference-features" id="class-features">
+    <div class="class-section-heading"><h2>Habilidades</h2><span data-class-feature-status role="status" aria-live="polite"></span></div>
+    <div class="class-feature-filters" data-class-feature-filters hidden><label>Buscar habilidade<input type="search" data-class-feature-search placeholder="Nome ou trecho da habilidade" aria-controls="classFeatureList"></label><label>Nível<select data-class-feature-level aria-controls="classFeatureList"><option value="">Todos os níveis</option></select></label><button type="button" data-class-feature-clear>Limpar filtros</button></div>
+    <div class="class-feature-list" id="classFeatureList" data-feature-list>
+        {% for item in habilidade_sections %}
+        <article class="{% if item.is_subclass %}hidden subclass-content{% endif %} class-feature-card overflow-hidden rounded border border-[var(--stroke)] bg-[var(--bg1)]" {% if item.is_subclass %}data-subclass-slug="{{ item.subclasse_slug }}"{% else %}data-base-feature{% endif %}{% if classe.slug == 'mistico' and not item.is_subclass and 'Manifestação Mística' in item.habilidade.nome %} data-manifestation-feature{% endif %} data-feature-level="{{ item.habilidade.niveladquirido }}" data-feature-card data-feature-id="{{ item.habilidade.id_habilidade }}">
+          <header class="flex items-center justify-between border-b px-2.5 py-1.5 {% if item.is_subclass %}border-[var(--spark)]/70 bg-[var(--spark)]/5{% else %}border-[var(--flame)]/40 bg-[var(--flame)]/5{% endif %}">
+            <h3 data-feature-title class="font-rpg text-[14px] font-bold {% if item.is_subclass %}text-[var(--spark)]{% else %}text-[var(--ember)]{% endif %}">Nível {{ item.habilidade.niveladquirido }}: {{ item.display_name|default:item.habilidade.nome }}</h3>
+            <div class="flex items-center gap-2">
+              {% if item.is_subclass %}
+              <span class="class-subclass-label rounded border border-[var(--stroke)] bg-[var(--bg0)] px-1.5 py-0.5 text-[12px] font-bold uppercase tracking-widest text-[var(--muted)]">{{ item.subclasse.nome }}</span>
+              {% endif %}
+              {% if can_edit_wiki %}
+              <button type="button" class="wiki-edit-button !text-[12px] !px-1.5 !py-0.5" data-feature-edit>Editar</button>
+              {% endif %}
+            </div>
+          </header>
+          <div class="bonfire-markdown p-2.5 text-[14px] leading-[1.4] text-[var(--muted)] max-w-none" data-markdown>{{ item.habilidade.descricao }}</div>
+          {% if can_edit_wiki %}
+          <form class="wiki-inline-editor" data-feature-form>
+            <div class="wiki-inline-row">
+              <label>Nome <input name="nome" value="{{ item.habilidade.nome }}"></label>
+              <label>Nível <input name="niveladquirido" type="number" min="0" max="20" value="{{ item.habilidade.niveladquirido }}"></label>
+            </div>
+            <label>Texto real <textarea name="descricao">{{ item.habilidade.descricao }}</textarea></label>
+            <label>Tags <span class="text-[12px] text-[var(--muted)]">(uma por linha)</span>
+              <textarea name="tags_json_text" rows="6" spellcheck="false" class="font-mono !text-[12px]">{% for tag in item.habilidade.tags_json %}{{ tag }}
+{% endfor %}</textarea></label>
+            <div class="wiki-inline-actions">
+              <button type="button" class="wiki-inline-cancel" data-feature-cancel>Cancelar</button>
+              <button type="submit" class="wiki-inline-save">Salvar</button>
+            </div>
+          </form>
+          {% endif %}
+        </article>
+        {% endfor %}
+      </div>
+    {% if not habilidade_sections %}<p class="class-empty">Nenhuma habilidade disponível para esta classe.</p>{% endif %}
+    <p class="class-empty" data-class-feature-empty hidden>Nenhuma habilidade corresponde aos filtros. Tente outro nome, nível ou subclasse.</p>
+  </section>
+  </div>
+</article>
+{% else %}
+<article class="class-catalog" data-class-catalog>
+  <header class="class-hero">
+    <div><p class="class-kicker">BIBLIOTECA DE CINÉRIA / CLASSES</p><h1>Seu jeito de<br><em>mudar o mundo.</em></h1><p class="class-lead">A força que você domina. A magia que você desperta. O caminho que transforma um aventureiro em uma lenda.</p><a class="class-text-link" href="#class-catalog-grid">Encontre sua classe <span aria-hidden="true">↘</span></a></div>
+    <div class="class-catalog-seal" aria-hidden="true"><img src="{% static 'brand/facets.svg' %}" width="180" height="180" alt=""><span>UMA ESCOLHA.<br>INÚMERAS HISTÓRIAS.</span></div>
+  </header>
+  <div class="class-catalog-meta"><span><strong>{{ all_classes|length }}</strong> classes para explorar</span>{% if total_subclasses %}<span><strong>{{ total_subclasses }}</strong> caminhos de especialização</span>{% endif %}<span>Progressão, recursos e habilidades</span></div>
+  <section class="class-catalog-library" aria-labelledby="class-catalog-title">
+    <div class="class-section-heading"><div><p class="class-kicker">QUAL SERÁ O SEU CAMINHO?</p><h2 id="class-catalog-title">Classes de personagem</h2></div><span data-class-catalog-status role="status" aria-live="polite">{{ all_classes|length }} classes</span></div>
+    <div class="class-catalog-tools" data-class-catalog-tools hidden>
+      <label class="class-catalog-search"><span class="bft-sr-only">Buscar no catálogo de classes</span><input type="search" data-class-catalog-search placeholder="Busque por classe ou atributo…" aria-controls="class-catalog-grid"><span aria-hidden="true">⌕</span></label>
+      <div class="class-attribute-filters" aria-label="Filtrar por atributo principal"><button type="button" data-class-attribute="" aria-pressed="true">Todas</button><button type="button" data-class-attribute="forca" aria-pressed="false">Força</button><button type="button" data-class-attribute="destreza" aria-pressed="false">Destreza</button><button type="button" data-class-attribute="inteligencia" aria-pressed="false">Inteligência</button><button type="button" data-class-attribute="sabedoria" aria-pressed="false">Sabedoria</button><button type="button" data-class-attribute="carisma" aria-pressed="false">Carisma</button></div>
+    </div>
+    <div class="class-catalog-grid" id="class-catalog-grid">
+      {% for item in all_classes %}
+      <a class="class-card" href="{% url 'classe_detail' slug=item.slug %}" data-class-route data-class-card data-search="{{ item.nome }} {{ item.tagline }} {{ item.atributo_principal }}" data-attribute="{{ item.atributo_principal }}">
+        {% with banner_path='brand/classes/'|add:item.slug|add:'-v1.webp' %}
+        <div class="class-card-banner"><img src="{% static banner_path %}" width="1200" height="500" alt="" loading="lazy" decoding="async"></div>
+        {% endwith %}
+        <div class="class-card-content">
+          <h3>{{ item.nome }}</h3>{% if item.tagline %}<p class="class-card-description">{{ item.tagline }}</p>{% endif %}
+          <dl><div><dt>Atributo principal</dt><dd>{{ item.atributo_principal|default:'Consulte a classe' }}</dd></div><div><dt>Dado de vida</dt><dd>{{ item.dado_vida|default:'Consulte a classe' }}</dd></div></dl>
+          <span class="class-card-link">Explorar classe <span aria-hidden="true">↗</span></span>
+        </div>
+      </a>
+      {% empty %}<p class="class-empty">Nenhuma classe disponível no momento. Volte em breve para explorar novos caminhos.</p>{% endfor %}
+    </div>
+    <div class="class-empty" data-class-catalog-empty hidden><h3>Nenhum caminho encontrado.</h3><p>Tente outro nome ou remova o filtro de atributo.</p><button type="button" data-class-catalog-clear>Limpar busca e filtros</button></div>
+  </section>
+  <aside class="class-next-step"><div><p class="class-kicker">SUA HISTÓRIA TEM MAIS DE UMA ESCOLHA</p><h2>A classe é o caminho.<br>O personagem é você.</h2><p>Combine suas habilidades com a herança de um povo e dê o próximo passo na criação do seu aventureiro.</p></div><a class="bft-button bft-button-ghost" href="{% url 'racas' %}">Explore os povos de Cinéria <span aria-hidden="true">↗</span></a></aside>
+</article>
+{% endif %}

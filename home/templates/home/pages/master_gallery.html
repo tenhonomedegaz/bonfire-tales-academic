@@ -1,0 +1,7 @@
+{% extends 'home/pages/master_shell.html' %}{% load static %}
+{% block master_content %}<link rel="stylesheet" href="{% static 'css/pages/master-portfolio.css' %}?v=1">
+<header class="mh-compact-head"><p class="mh-eyebrow">Seu trabalho tem lugar em Cinéria</p><h1>Galeria de mestre</h1><p>Mostre o que você cria para a mesa: cenários, mapas, relatos e projetos. Tudo no seu portfólio Bonfire.</p><div class="mh-actions">{% if can_edit %}<a class="mh-button" href="{% url 'master_work_create' %}">Adicionar trabalho</a>{% endif %}<a class="mh-text-link" href="{% url 'profile' %}?aba=mestre">Voltar ao meu portfólio →</a></div></header>
+{% if request.GET.salvo %}<p class="mh-notice" role="status">Trabalho salvo. O envio para revisão não o publica automaticamente.</p>{% endif %}
+<div class="mp-grid">{% for work in works %}{% include 'home/partials/master_work_card.html' with gallery_owner=True %}{% empty %}<section class="mh-empty"><h2>Sua primeira história começa aqui</h2><p>Adicione um trabalho e envie para revisão quando estiver pronto. Rascunhos são visíveis somente para você e para a equipe responsável.</p></section>{% endfor %}</div>
+{% include 'home/partials/master_eligibility.html' %}
+{% endblock %}

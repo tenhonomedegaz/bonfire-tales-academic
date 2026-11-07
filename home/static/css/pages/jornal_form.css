@@ -1,0 +1,235 @@
+.editor-shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.25rem 1.25rem 2.5rem;
+}
+.editor-header {
+  margin-bottom: 1.25rem;
+}
+.editor-header h1 {
+  color: #fff;
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 1.8rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.editor-header p {
+  color: var(--muted);
+  font-size: .82rem;
+  margin-top: .35rem;
+}
+.editor-fields {
+  display: grid;
+  gap: .7rem;
+  grid-template-columns: 1fr 1fr;
+  margin-bottom: 1rem;
+}
+.editor-field {
+  display: grid;
+  gap: .35rem;
+}
+.editor-field.full { grid-column: 1 / -1; }
+.editor-field label {
+  color: var(--muted);
+  font-size: .68rem;
+  font-weight: 900;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.editor-field input,
+.editor-field select {
+  background: var(--bg1);
+  border: 1px solid var(--stroke);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: .85rem;
+  padding: .5rem .6rem;
+}
+.editor-split {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 380px minmax(0, 1fr);
+  min-height: 500px;
+}
+.editor-toolbar {
+  align-items: center;
+  background: var(--bg1);
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  margin-bottom: .7rem;
+  padding: .5rem;
+}
+.editor-tool {
+  background: var(--bg0);
+  border: 1px solid var(--stroke);
+  border-radius: 5px;
+  color: var(--text);
+  cursor: pointer;
+  font-size: .72rem;
+  font-weight: 900;
+  padding: .4rem .55rem;
+  text-transform: uppercase;
+}
+.editor-tool:hover { border-color: var(--ember); color: var(--ember); }
+.editor-status { color: var(--muted); font-size: .72rem; margin-left: auto; }
+.editor-panel {
+  background: var(--bg1);
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+.editor-panel-header {
+  align-items: center;
+  border-bottom: 1px solid var(--stroke);
+  display: flex;
+  justify-content: space-between;
+  padding: .5rem .65rem;
+}
+.editor-panel-header h2 {
+  color: var(--ember);
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: .75rem;
+  font-weight: 900;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.editor-panel-header span {
+  color: var(--muted);
+  font-size: .7rem;
+}
+.editor-textarea {
+  background: var(--bg0);
+  border: 0;
+  color: var(--text);
+  flex: 1;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: .85rem;
+  line-height: 1.45;
+  outline: none;
+  padding: .7rem;
+  resize: none;
+  width: 100%;
+}
+.editor-textarea:focus-visible {
+  outline: 2px solid var(--ember);
+  outline-offset: -2px;
+}
+.editor-preview {
+  color: var(--muted);
+  flex: 1;
+  font-size: .85rem;
+  line-height: 1.5;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+  padding: .7rem;
+}
+.editor-preview-cover[hidden] { display: none; }
+.editor-preview-cover img {
+  display: block;
+  width: 100%;
+  max-height: 12rem;
+  object-fit: cover;
+}
+.editor-preview-heading {
+  padding: .75rem;
+  border-bottom: 1px solid var(--stroke);
+}
+.editor-preview-heading h3 {
+  margin: 0 0 .25rem;
+  color: var(--text);
+  font: 600 1rem/1.3 'Frank Ruhl Libre', Georgia, serif;
+  overflow-wrap: anywhere;
+}
+.editor-preview-heading span {
+  color: var(--muted);
+  font-size: .75rem;
+}
+.editor-preview-heading .editor-preview-featured[hidden],
+.editor-preview-heading p[hidden] { display: none; }
+.editor-preview-heading .editor-preview-featured {
+  display: inline-block;
+  margin-bottom: .45rem;
+  padding: .15rem .45rem;
+  border-radius: 3px;
+  background: var(--ember);
+  color: #070707;
+  font-weight: 700;
+}
+.editor-preview-heading p {
+  margin: .45rem 0 0;
+  color: var(--muted);
+  font-size: .8rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.artigo-layout--atlas .editor-preview-heading {
+  color: var(--atlas-ink);
+  border-bottom-color: var(--atlas-rule);
+}
+.artigo-layout--atlas .editor-preview-heading h3,
+.artigo-layout--atlas .editor-preview-heading span,
+.artigo-layout--atlas .editor-preview-heading p { color: var(--atlas-ink); }
+.artigo-layout--atlas .editor-preview-heading .editor-preview-featured {
+  color: var(--atlas-header-text);
+  background: var(--atlas-header-bg);
+}
+.editor-preview strong { color: #fff; }
+.editor-preview h1, .editor-preview h2, .editor-preview h3 {
+  color: var(--ember);
+  font-family: 'Frank Ruhl Libre', serif;
+  text-transform: uppercase;
+}
+.editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .55rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+.editor-cancel {
+  border: 1px solid var(--stroke);
+  border-radius: 5px;
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 900;
+  padding: .55rem .9rem;
+  text-transform: uppercase;
+}
+.editor-submit {
+  background: var(--ember);
+  border-radius: 5px;
+  color: #070707;
+  font-size: .78rem;
+  font-weight: 900;
+  padding: .55rem .9rem;
+  text-transform: uppercase;
+  transition: background .2s;
+}
+.editor-submit:hover { background: var(--flame); }
+@media (max-width: 900px) {
+  .editor-fields { grid-template-columns: 1fr; }
+  .editor-split { grid-template-columns: 1fr; min-height: 300px; }
+}
+.editor-tool:focus-visible, .editor-cancel:focus-visible,
+.editor-submit:focus-visible {
+  outline: 2px solid var(--ember);
+  outline-offset: 2px;
+}
+.editor-submit:disabled { cursor: wait; opacity: .65; }
+.editor-save-error {
+  color: #fca5a5;
+  font-size: .85rem;
+  margin: .7rem 0 0;
+  text-align: right;
+}
+.editor-save-error[hidden] { display: none; }
+.editor-save-error:focus { outline: 2px solid #fca5a5; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .editor-submit { transition: none; }
+}

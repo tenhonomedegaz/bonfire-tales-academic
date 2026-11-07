@@ -1,0 +1,103 @@
+/* Old-page reading structure; scoped separately from the transactional catalog. */
+.market-reference-header { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px 25px; padding:20px 24px; margin-bottom:14px; border:1px solid #6b3028; border-top:2px solid #b31515; background:linear-gradient(110deg,#2b1010,#131011 73%); }
+.market-reference-kicker { color:#df8554; font:600 10px/1.5 'Open Sans',sans-serif; letter-spacing:.15em; text-transform:uppercase; }
+.market-reference-header h1 { color:#f2eee8; font:600 36px/1.1 'Frank Ruhl Libre',serif; margin:5px 0 0; }
+.market-reference-intro { flex:1 1 100%; color:#cbbfb7; font-size:13px; line-height:1.85; max-width:1040px; }
+.market-reference-cta { padding:11px 15px; border:1px solid #e27248; border-radius:3px; background:#8f241e; color:#fff1e6; font-size:12px; font-weight:600; }
+.market-reference-cta:hover { background:#ac3024; }
+.market-reference-cta span { margin-left:12px; }
+.market-reference-policy { padding:11px 15px; border-left:3px solid #cf6c39; background:#201711; color:#bdaea1; font-size:12px; line-height:1.8; margin-bottom:15px; }
+.market-reference-policy strong { color:#ead3bd; font-weight:600; }
+.market-checkout { margin:0 0 22px; border:1px solid #6c352a; border-radius:3px; background:#151111; }
+.market-checkout > summary { display:flex; justify-content:space-between; align-items:center; gap:20px; padding:13px 17px; list-style:none; cursor:pointer; background:linear-gradient(100deg,#381311,#1b1211); }
+.market-checkout > summary::-webkit-details-marker { display:none; }
+.market-checkout summary strong { font:600 21px/1.2 'Frank Ruhl Libre',serif; color:#f4dfcd; }
+.market-checkout summary small { display:block; font-size:11px; line-height:1.6; color:#bdaca0; margin-top:3px; }
+.market-checkout-action { font-size:11px; font-weight:600; color:#ffbd90; white-space:nowrap; padding:8px 10px; border:1px solid #a45136; background:#32160f; }
+.market-checkout[open] > summary { border-bottom:1px solid #613328; }
+.market-checkout-body { padding:16px; min-width:0; }
+.market-checkout-help { color:#b7a79a; font-size:11px; line-height:1.75; margin:0 0 13px; }
+.market-reference-layout { display:grid; grid-template-columns:225px minmax(0,1fr); gap:25px; align-items:start; }
+.market-reference-sidebar { position:sticky; top:calc(var(--bft-header-height) + 12px); border:1px solid #472a25; border-top:2px solid #a22d23; background:#141111; padding:15px 12px; min-width:0; }
+.market-reference-sidebar h2 { font:600 22px/1.2 'Frank Ruhl Libre',serif; color:#ead7c6; margin:0 0 12px; }
+.market-reference-tools { margin-bottom:12px; }
+.market-reference-tools[hidden] { display:none; }
+.market-reference-tools label { display:block; font-size:10px; color:#b4a397; margin:0 0 5px; }
+.market-reference-tools input { width:100%; background:#0b0a0a; border:1px solid #5b382b; border-radius:3px; color:#e9ded5; font-size:12px; padding:9px 10px; }
+.market-reference-tools > div { display:flex; gap:5px; align-items:center; font-size:10px; color:#ad9b8e; margin-top:7px; }
+.market-reference-tools button { border:0; margin-left:auto; color:#e1a67d; background:none; cursor:pointer; font-size:10px; padding:3px; }
+.market-reference-sidebar nav { max-height:calc(100dvh - var(--bft-header-height) - 235px); overflow-y:auto; scrollbar-width:thin; scrollbar-color:#65382a #141111; padding-right:4px; }
+.market-reference-sidebar nav a { display:block; font-size:11px; color:#bdaa9c; line-height:1.6; padding:5px 8px; border-left:2px solid transparent; }
+.market-reference-sidebar nav .market-reference-main-link { color:#ead2bd; font-weight:600; margin-top:8px; }
+.market-reference-sidebar nav .market-reference-sub-link { padding-left:15px; }
+.market-reference-sidebar nav a:hover,.market-reference-sidebar nav a[aria-current] { color:#fff0e3; background:#301810; border-color:#d85c36; }
+.market-reference-counter-link { display:block; color:#f1ac7a; font-size:11px; line-height:1.6; margin-top:14px; border-top:1px solid #4e2d24; padding-top:12px; }
+.market-reference-reading { min-width:0; color:#c9bab0; font-size:13px; line-height:1.8; }
+.market-reference-group { margin-bottom:35px; min-width:0; }
+.market-reference-group > header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding-bottom:10px; margin-bottom:14px; border-bottom:1px solid #713125; }
+.market-reference-group h2 { color:#eddfd3; font:600 28px/1.2 'Frank Ruhl Libre',serif; margin:0; }
+.market-reference-badge { font-size:9px; line-height:1.5; letter-spacing:.03em; color:#d29d77; padding:4px 8px; border:1px solid #5b3829; background:#20150f; }
+.market-reference-warning { border-left:2px solid #bd5c33; padding:9px 12px; background:#201611; color:#e6b697; font-size:11px; line-height:1.8; margin-bottom:13px; }
+.market-reference-paragraph { margin:0 0 12px; }
+.market-reference-section { margin:22px 0 30px; min-width:0; }
+.market-reference-section h3 { color:#e5b28c; font:600 23px/1.3 'Frank Ruhl Libre',serif; margin:0 0 12px; }
+.market-reference-table { width:100%; border-collapse:collapse; table-layout:fixed; margin-top:14px; font-size:12px; }
+.market-reference-table th,.market-reference-table td { vertical-align:top; border-bottom:1px solid #382923; padding:12px 11px; text-align:left; overflow-wrap:anywhere; }
+.market-reference-table thead th { background:#291410; color:#ddb697; font-size:10px; text-transform:uppercase; letter-spacing:.05em; border-bottom-color:#89442f; font-weight:600; }
+.market-reference-table thead th:first-child { width:26%; }
+.market-reference-table thead th:nth-child(2) { width:100px; }
+.market-reference-table thead th:last-child { width:82px; }
+.market-reference-table tbody th { color:#eddfd2; font-weight:600; line-height:1.7; }
+.market-reference-table tbody tr:nth-child(odd) { background:#151110; }
+.market-reference-table tbody tr:hover { background:#1c1411; }
+.market-reference-price strong { display:block; color:#e9b083; font:600 17px/1.4 'Frank Ruhl Libre',serif; }
+.market-reference-price small { color:#ab9786; font-size:9px; line-height:1.6; }
+.market-reference-description p { margin:0 0 9px; }
+.market-reference-description p:last-child { margin-bottom:0; }
+.market-reference-description strong { color:#e4ccb8; }
+.market-reference-description summary { cursor:pointer; color:#baaa9f; line-height:1.8; }
+.market-reference-description summary :is(.market-reference-read,.market-reference-hide) { display:block; color:#eba678; font-size:10px; margin-top:5px; }
+.market-reference-description details > div { margin-top:12px; border-left:2px solid #6a3325; padding-left:12px; color:#d5c5b7; }
+.market-reference-description details[open] summary :is(.market-reference-excerpt,.market-reference-read),.market-reference-description details:not([open]) .market-reference-hide { display:none; }
+.market-reference-old-price { color:#b7a08c; font-size:10px; line-height:1.8; border-top:1px solid #443024; padding-top:8px; margin-top:10px !important; }
+.market-reference-action a { display:inline-block; color:#f1bd93; border:1px solid #8e4b31; padding:6px 8px; background:#2a160f; border-radius:2px; font-size:10px; font-weight:600; white-space:nowrap; }
+.market-reference-action a:hover { color:#fff2e7; border-color:#ee9665; background:#4b2115; }
+.market-reference-action > span { color:#aa9685; font-size:10px; }
+.market-reference-noresult { color:#e1b696; border:1px solid #643b2a; padding:18px; background:#1a1210; }
+.bft-market-reference [hidden] { display:none !important; }
+.bft-market-reference :is(a,button,input,summary):focus-visible { outline:2px solid #f2a36b; outline-offset:3px; }
+@media(min-width:1024px) { .market-checkout .shop { grid-template-columns:minmax(300px,.9fr) minmax(0,1.25fr); } }
+@media(max-width:1099px) { .market-reference-layout { grid-template-columns:200px minmax(0,1fr); gap:18px; } .market-reference-table th,.market-reference-table td { padding:10px 8px; } }
+@media(max-width:899px) {
+  .market-reference-layout { display:block; }
+  .market-reference-sidebar { position:static; margin-bottom:22px; }
+  .market-reference-sidebar nav { display:flex; flex-wrap:wrap; gap:5px; max-height:none; overflow:visible; }
+  .market-reference-sidebar nav .market-reference-sub-link { display:none; }
+  .market-reference-sidebar nav .market-reference-main-link { border:1px solid #5b3529; background:#211410; margin:0; padding:7px 10px; font-size:10px; }
+  .market-reference-tools > div { justify-content:start; }
+  .market-reference-tools button { margin-left:10px; }
+}
+@media(max-width:599px) {
+  .market-reference-header { padding:16px; gap:13px; }
+  .market-reference-header h1 { font-size:30px; }
+  .market-reference-kicker { font-size:9px; }
+  .market-reference-intro { font-size:12px; line-height:1.85; }
+  .market-reference-cta { order:3; width:100%; text-align:center; }
+  .market-reference-policy { padding:10px 12px; font-size:11px; }
+  .market-checkout > summary { display:block; padding:13px; }
+  .market-checkout-action { display:inline-block; margin-top:10px; }
+  .market-checkout-body { padding:10px; }
+  .market-reference-sidebar { padding:13px; }
+  .market-reference-group h2 { font-size:25px; }
+  .market-reference-section h3 { font-size:22px; }
+  .market-reference-table { display:block; border:1px solid #4b2e24; }
+  .market-reference-table thead { position:absolute; width:1px; height:1px; clip-path:inset(50%); overflow:hidden; }
+  .market-reference-table tbody { display:block; }
+  .market-reference-table tr { display:grid; grid-template-columns:minmax(0,1fr) 95px; padding:13px; gap:9px 12px; border-bottom:1px solid #5b3326; }
+  .market-reference-table th,.market-reference-table td { border:0; padding:0; }
+  .market-reference-table tbody th { grid-column:1; font-size:13px; }
+  .market-reference-price { grid-column:2; text-align:right !important; }
+  .market-reference-description,.market-reference-action { grid-column:1 / -1; }
+  .market-reference-action a { min-height:38px; padding:9px 14px; }
+  .market-reference-action > span { font-size:10px; }
+}

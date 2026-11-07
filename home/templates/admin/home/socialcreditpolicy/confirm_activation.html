@@ -1,0 +1,29 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+  <p>Versão selecionada: <strong>{{ policy.version }}</strong>.</p>
+  {% if activate %}
+    <p>Ativar esta política permite novas concessões e resgates configurados. Os valores desta versão ficam bloqueados para edição enquanto ela estiver ativa ou tiver uso registrado.</p>
+  {% else %}
+    <p>Desativar esta política interrompe novas concessões e resgates. O histórico existente permanece preservado.</p>
+  {% endif %}
+  {% if error %}<p class="errornote">Digite exatamente a versão exibida para confirmar.</p>{% endif %}
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="{{ action_checkbox_name }}" value="{{ policy.pk }}">
+    <input type="hidden" name="action" value="{{ action_name }}">
+    <input type="hidden" name="select_across" value="0">
+    <fieldset class="module aligned">
+      <div class="form-row">
+        <label for="id_confirm_version">Confirme a versão</label>
+        <input id="id_confirm_version" name="confirm_version" type="text" required autocomplete="off">
+      </div>
+    </fieldset>
+    <div class="submit-row">
+      <input class="default" type="submit" value="{% if activate %}Ativar versão{% else %}Desativar versão{% endif %}">
+      <a class="button cancel-link" href="{% url 'admin:home_socialcreditpolicy_changelist' %}">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

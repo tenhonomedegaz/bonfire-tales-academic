@@ -1,0 +1,121 @@
+{% extends 'home/base.html' %}
+{% block content %}
+<section class="max-w-4xl mx-auto p-6 space-y-4">
+  <a href="{% url 'pathbuilder_laboratorio' %}">Voltar ao laboratório de builds</a>
+  <h1 class="text-2xl font-bold">Caçador: preparação de Segredos</h1>
+  {% if ruleset_checksum %}<p>Revisão publicada: <code>{{ ruleset_checksum }}</code>.</p>{% elif not error %}<p>Rascunho local: ainda não há revisão publicada configurada.</p>{% endif %}
+  <p>Experimente a progressão do rework. Esta prévia não altera fichas. A escolha de Inteligência ou Sabedoria será permanente na criação da ficha.</p>
+  {% if error %}<p role="alert">{{ error }}</p>{% endif %}
+  <form method="get" class="space-y-4">
+    <p><label>Nível de Caçador <input name="level" type="number" min="1" max="20" value="{{ inputs.level }}" required></label>
+    <label>Nível total (multiclasse) <input name="total_level" type="number" min="1" max="20" value="{{ inputs.total_level }}" required></label></p>
+    <p><label>Atributo de conjuração <select name="ability">
+      <option value="int" {% if inputs.ability == 'int' %}selected{% endif %}>Inteligência</option>
+      <option value="wis" {% if inputs.ability == 'wis' %}selected{% endif %}>Sabedoria</option>
+    </select></label></p>
+    <p><label>Ordem (a partir do nível 3) <select name="order">
+      <option value="">Sem Ordem</option>
+      {% for order in orders %}<option value="{{ order.id }}" {% if inputs.order == order.id %}selected{% endif %}>{{ order.name }}</option>{% endfor %}
+    </select></label></p>
+    <fieldset class="border rounded p-3">
+      <legend>Cálculos da classe contra uma criatura</legend>
+      <p><label>Inteligência <input name="intelligence" type="number" min="1" max="30" value="{{ combat_inputs.intelligence }}" required></label>
+      <label>Sabedoria <input name="wisdom" type="number" min="1" max="30" value="{{ combat_inputs.wisdom }}" required></label>
+      <label>Deslocamento base (pés) <input name="walking_speed" type="number" min="0" max="1000" value="{{ combat_inputs.walking_speed }}" required></label></p>
+      <p><label><input type="checkbox" name="marked" value="1" {% if combat_inputs.marked %}checked{% endif %}> Presa Marcada</label>
+      <label><input type="checkbox" name="favored" value="1" {% if combat_inputs.favored %}checked{% endif %}> Tipo de Inimigo Favorito escolhido</label>
+      <label><input type="checkbox" name="secret_affected" value="1" {% if combat_inputs.secret_affected %}checked{% endif %}> Afetada por um Segredo</label></p>
+      <p><label><input type="checkbox" name="first_attack" value="1" {% if combat_inputs.first_attack %}checked{% endif %}> Primeiro ataque contra a presa neste turno</label>
+      <label><input type="checkbox" name="third_used" value="1" {% if not combat_inputs.third_attack_available %}checked{% endif %}> Terceiro Golpe já usado neste turno</label></p>
+      <details><summary>Condições da Ordem dos Exterminadores</summary>
+        <p><label>Atributo de Contramedidas Protetivas <select name="protective_ability"><option value="int" {% if combat_inputs.protective_ability == 'int' %}selected{% endif %}>Inteligência</option><option value="wis" {% if combat_inputs.protective_ability == 'wis' %}selected{% endif %}>Sabedoria</option></select></label> Esta escolha é independente do atributo de conjuração.</p>
+        <p><label><input type="checkbox" name="injured" value="1" {% if combat_inputs.injured %}checked{% endif %}> Presa abaixo dos PV máximos</label>
+        <label><input type="checkbox" name="punishment_used" value="1" {% if not combat_inputs.punishment_available %}checked{% endif %}> Punição já usada neste turno</label></p>
+        <p><label><input type="checkbox" name="enemy_hit_this_turn" value="1" {% if combat_inputs.enemy_hit_this_turn %}checked{% endif %}> Esta criatura já acertou você neste turno</label>
+        <label><input type="checkbox" name="final_hunt" value="1" {% if combat_inputs.final_hunt %}checked{% endif %}> Caçada Final ativa nesta presa (nível 18)</label></p>
+      </details>
+      <details><summary>Condições da Ordem do Crepúsculo</summary>
+        <p><label><input type="checkbox" name="first_turn" value="1" {% if combat_inputs.first_turn %}checked{% endif %}> Primeiro turno deste combate</label>
+        <label><input type="checkbox" name="in_dim_light" value="1" {% if combat_inputs.in_dim_light %}checked{% endif %}> Em Penumbra ou Escuridão</label>
+        <label><input type="checkbox" name="using_attack_action" value="1" {% if combat_inputs.using_attack_action %}checked{% endif %}> Usou a ação Atacar</label></p>
+      </details>
+    </fieldset>
+    <details><summary>Comandos e Barreira Viva do Enxame</summary>
+      <p>Simulação do turno: não registra usos nem altera pontos de vida.</p>
+      <label><input type="checkbox" name="swarm_hit" value="1" {% if swarm_inputs.hit %}checked{% endif %}> Acertou uma jogada de ataque</label>
+      <label><input type="checkbox" name="swarm_own_turn" value="1" {% if swarm_inputs.own_turn %}checked{% endif %}> É o seu turno</label>
+      <label><input type="checkbox" name="swarm_command_used" value="1" {% if swarm_inputs.command_used %}checked{% endif %}> Enxame já comandado neste turno</label>
+      <p>{% for id, name in swarm_commands %}<label><input type="checkbox" name="swarm_command" value="{{ id }}" {% if id in swarm_inputs.commands %}checked{% endif %}> {{ name }}</label> {% endfor %}</p>
+      <label>Dano total recebido <input name="swarm_damage" type="number" min="0" value="{{ swarm_inputs.damage }}"></label>
+      <label>Atributo da Barreira Viva <select name="barrier_ability"><option value="int" {% if swarm_inputs.barrier_ability == 'int' %}selected{% endif %}>Inteligência</option><option value="wis" {% if swarm_inputs.barrier_ability == 'wis' %}selected{% endif %}>Sabedoria</option></select></label>
+      <label><input type="checkbox" name="swarm_barrier_used" value="1" {% if swarm_inputs.barrier_used %}checked{% endif %}> Barreira já usada neste turno</label>
+    </details>
+    <button type="submit">Atualizar preparação e cálculos</button>
+    {% if error %}<p>Ao corrigir os dados, selecione novamente os Segredos desejados.</p>{% endif %}
+    {% if result %}
+    {% if companion_examples %}<h2>Companheiro Primordial: comparação das formas</h2>
+    <p>Simulação sem dano e sem Evoluções Totêmicas; não invoca nem altera uma ficha.</p>
+    {% for companion in companion_examples %}{% include 'home/partials/hunter_companion_block.html' %}{% endfor %}{% endif %}
+    <h2 class="text-xl">Resultado contra a criatura informada</h2>
+    {% if swarm.enabled %}
+    <h3>Enxame: resolução das condições informadas</h3>
+    <p>Limite de comandos diferentes neste acerto: {{ swarm.command_limit }}. Disponível neste momento: {{ swarm.command_available|yesno:'sim,não' }}.</p>
+    {% if swarm.extra_damage %}<p>Dano adicional do Enxame: {{ swarm.extra_damage }} (uma única rolagem, mesmo com dois comandos).</p>{% endif %}
+    {% for effect in swarm.effects %}<p><strong>{{ effect.name }}:</strong> {{ effect.text }}</p>{% endfor %}
+    {% if swarm.barrier_threshold != None %}<p>Barreira Viva: anula dano total até {{ swarm.barrier_threshold }}, uma vez por turno. Dano após a Barreira: {{ swarm.damage_taken }}. Dano acima do limite é sofrido integralmente.</p>{% endif %}
+    {% endif %}
+    <p>Efeitos da classe base. Some os efeitos da Ordem, equipamentos e demais fontes separadamente. As condições informadas não registram uma Marca nem gastam ações.</p>
+    <p>CD de magia e Segredos: {{ combat.spell_dc }}. Modificador de ataque mágico: {{ combat.spell_attack }}.</p>
+    <p>Ataques na ação Atacar contra esta criatura: {{ combat.attacks }}.{% if combat.third_attack_once_per_turn %} O terceiro ataque é permitido uma vez por turno.{% endif %}</p>
+    <p>Dano adicional por ataque com arma: {{ combat.favored_damage }} de Inimigo Favorito{% if combat.mark_damage %} + {{ combat.mark_damage }} da Marca ({% if combat.mortuary_mark %}radiante ou frio, escolhido ao aplicar{% else %}mesmo tipo da arma{% endif %}){% endif %}.</p>
+    {% if combat.mortuary_mark %}<p>Marca Mortuária dos Exorcistas: o dano da Marca é radiante ou de frio, conforme escolha na aplicação; se a presa estiver Sangrando, acrescente +{{ combat.mortuary_bleeding_bonus }} ao dano da Marca. A presa marcada não pode ficar Invisível, atravessar incorporeamente ou entrar no Plano Etéreo. Mortos-Vivos não podem Desengajar nem recuperar PV por características sobrenaturais próprias.</p>{% endif %}
+    <p>Vantagem no ataque: {{ combat.attack_advantage|yesno:'sim,não' }}. Desvantagem nos ataques da criatura contra você: {{ combat.enemy_attack_disadvantage|yesno:'sim,não' }}. Vantagem em testes de habilidade e resistência forçados por ela: {{ combat.forced_check_save_advantage|yesno:'sim,não' }}.</p>
+    <p>Bônus adicional em resistências de Força, Destreza e Constituição: {{ combat.physical_save_bonus }}.</p>
+    {% if combat.exterminator %}
+    <h3>Exterminadores: efeitos contra esta criatura</h3>
+    <p>Conta como Inimigo Favorito: {{ combat.effective_favored|yesno:'sim,não' }}. Bônus de Contramedidas aos testes de resistência provocados por ela: {{ combat.favored_save_bonus }}. Redução de dano causado por ela: {{ combat.damage_reduction }}.</p>
+    <p>Punição neste acerto com a presa ferida: {{ combat.punishment_damage|default:'indisponível' }} (uma vez por turno). Guarda do Executor: +{{ combat.executor_ac_bonus }} CA contra os ataques subsequentes desta criatura até o fim deste turno.</p>
+    {% if combat.execution_area_die %}<p>Marca do Carrasco: uma vez em cada um dos seus turnos, ao acertar a presa, {{ combat.execution_area_die }} de dano do tipo do ataque a cada criatura hostil do mesmo tipo até 10 pés dela. Acrescente o bônus de Inimigo Favorito apenas às criaturas que também se qualificam.</p>{% endif %}
+    {% if combat.final_hunt %}<p>Caçada Final: o dano da Marca acima foi substituído por dois dados. Ignora Resistência a dano causado por você e impede cura da presa. Duração: 1 minuto ou até a morte, sem transferência. Custo: 4 Pontos de Segredo ao aplicar a Marca; esta simulação não desconta pontos.</p>{% endif %}
+    {% endif %}
+    {% if inputs.order == 'ordem-do-crepusculo' and result.level >= 3 %}
+    <h3>Crepúsculo: efeitos das condições informadas</h3>
+    <p>A presa marcada perde o benefício de visões especiais para enxergar você: {{ combat.twilight_mark_blocks_special_sight|yesno:'sim,não' }}. Invisível para ela nesta iluminação: {{ combat.twilight_marked_invisible|yesno:'sim,não' }}.</p>
+    <p>Ataque adicional da Ordem nesta ação: {{ combat.twilight_extra_attack|yesno:'sim,não' }}{% if combat.twilight_extra_attack %}; se acertar, +{{ combat.twilight_extra_damage }} de dano do tipo da arma{% endif %}. Uma vez por turno, ao errar com arma a partir do nível 10, pode somar {{ combat.twilight_miss_die|default:'—' }} à jogada. Consumo do turno é declarado na mesa.</p>
+    <p>Movimento das Sombras: {{ combat.twilight_shadow_step|yesno:'disponível,indisponível' }}. Requer Ação Bônus e destino visível, desocupado e em Penumbra ou Escuridão a até 30 pés; confirme essas condições na mesa.</p>
+    {% endif %}
+    <p>Caminhada: {{ combat.walking_speed }} pés.{% if combat.climbing_speed != None %} Escalada e natação: {{ combat.climbing_speed }} pés.{% endif %} Visão às Cegas: {{ combat.blindsight }} pés.</p>
+    <p>Disparar como ação bônus: {{ combat.bonus_dash|yesno:'sim,não' }}. Esconder-se como ação bônus: {{ combat.bonus_hide|yesno:'sim,não' }}. Marca durante a ação Atacar: {{ combat.mark_during_attack|yesno:'sim,não' }}.</p>
+    <p>Imunidade a Enfeitiçado, possessão e dominação: {{ combat.charmed_immune|yesno:'sim,não' }}. Vantagem contra Amedrontado: {{ combat.frightened_save_advantage|yesno:'sim,não' }}.</p>
+    <h2 class="text-xl">Progressão e recursos</h2>
+    <h3>Magias sempre preparadas</h3>
+    <ul>{% for spell in result.spell_grants %}<li>{{ spell.english }} — {{ spell.source }} (nível {{ spell.level }})</li>{% endfor %}</ul>
+    <p>Estas concessões não ocupam o limite de magias preparadas.</p>
+    <p>Dado de Caçador: {{ result.progression.hunter_die }}. Magias preparadas: {{ result.progression.prepared_spells }}, além da Marca do Caçador sempre preparada.</p>
+    <p>Espaços de magia por círculo (1–5): {{ result.progression.slots|join:", " }}. Recuperação em Descanso Longo.</p>
+    <p>Pontos de Segredo: {{ result.points }}. Recuperação completa em Descanso Longo. Aprimoramento custa 1 ponto adicional quando disponível.</p>
+    <p>Marcas simultâneas: {{ result.mark_limit }}. Círculo para dissipação: {{ result.mark_dispel_level }}.</p>
+    <p>Linha Mestra: {{ result.master|default:'disponível ao escolher uma Ordem no nível 3' }}. Limite de preparação das outras Linhas: {{ result.proficiency }}.</p>
+    <h2 class="text-xl">Habilidades da classe e da Ordem</h2>
+    <p>Referência completa das habilidades até o nível escolhido. Os efeitos destas descrições ainda não estão todos automatizados nesta prévia.</p>
+    {% for feature in features %}
+    <details class="border rounded p-3"><summary>Nível {{ feature.level }}: {{ feature.name }}{% if feature.order %} — {{ feature.order }}{% endif %}</summary><p>{{ feature.text }}</p></details>
+    {% endfor %}
+    <h2 class="text-xl">Segredos disponíveis</h2>
+    {% for secret in result.options %}
+    <article class="border rounded p-3">
+      <label>{% if not secret.automatic %}<input type="checkbox" name="secret" value="{{ secret.id }}" {% if secret.selected %}checked{% endif %}>{% endif %}
+      {{ secret.name }} — {{ secret.line }}, {{ secret.degree }}º grau</label>
+      <p>Custo: {{ secret.cost }} ponto(s). {% if secret.automatic %}Linha Mestra: sempre disponível.{% endif %}</p>
+      <details><summary>Regras do Segredo</summary><p>{{ secret.text }}</p></details>
+    </article>
+    {% empty %}<p>Segredos são desbloqueados no nível 2.</p>{% endfor %}
+    <button type="submit">Conferir Segredos preparados</button>
+    <p>{{ result.available|length }} Segredo(s) disponível(is) após esta preparação.</p>
+    {% endif %}
+  </form>
+</section>
+{% if result.exclusive %}<section><h2>Segredos exclusivos da Ordem</h2>
+{% for secret in result.exclusive %}<article><h3>{{ secret.name }}</h3><p>{{ secret.text }}</p><p>Custo: {{ secret.cost }} Pontos de Segredo. Não ocupa preparo das outras Linhas.</p></article>{% endfor %}
+</section>{% endif %}
+{% endblock %}

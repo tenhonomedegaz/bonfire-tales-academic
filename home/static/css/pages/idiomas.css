@@ -1,0 +1,128 @@
+/* Bonfire language reference. Scoped to this page. */
+body.bft-languages { --bg0: #0a0a0a; --bg1: #131112; --bg2: #201416; --stroke: #422326; --text: #f2eee8; --muted: #b9b3b3; background: #0a0a0a; color: var(--text); font-family: 'Open Sans', sans-serif; }
+.bft-languages .bft-header { border-bottom-color: #572023; }
+.bft-languages .bft-footer { border-top-color: #572023; }
+.bft-languages .bft-languages-main { max-width: 1400px; margin: 0 auto; padding: 22px 28px 48px; min-width: 0; }
+.bft-languages .language-shell, .bft-languages .language-reading, .bft-languages .language-grid, .bft-languages .language-workspace > div { min-width: 0; }
+.bft-languages .language-shell [hidden] { display: none !important; }
+.bft-languages .language-masthead { position: relative; overflow: hidden; border: 1px solid #693034; border-top: 2px solid #b31515; background: #161011; margin-bottom: 20px; }
+.bft-languages .language-masthead-copy { position: relative; z-index: 1; padding: 18px 24px 21px; }
+.bft-languages .language-breadcrumb { display: flex; align-items: center; gap: 9px; color: #c5b0ad; font-size: .78rem; letter-spacing: .07em; text-transform: uppercase; }
+.bft-languages .language-breadcrumb a:hover { color: #fff; }
+.bft-languages .language-masthead h1 { font-family: 'Frank Ruhl Libre', Georgia, serif; font-size: clamp(2.4rem, 3.5vw, 3rem); line-height: 1.08; font-weight: 600; letter-spacing: -.025em; margin: 9px 0 7px; }
+.bft-languages .language-masthead p { color: #e4d1c9; font-size: 1rem; line-height: 1.6; margin: 0; }
+.bft-languages .language-masthead p span { color: #bcb4b2; }
+.bft-languages .language-masthead-art { position: absolute; inset: 0 0 0 38%; opacity: .6; background: linear-gradient(90deg, #161011, #16101188 55%, #09060666), url('../../brand/facets.svg') right center / auto 270px no-repeat, url('../../brand/world.webp') center 45% / cover; }
+.bft-languages .language-grid { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 22px; align-items: start; }
+.bft-languages .language-sidebar { position: sticky; top: calc(var(--bft-header-height, 72px) + 12px); min-width: 0; background: #131112; border: 1px solid #422326; border-top: 2px solid #7c2228; padding: 15px 12px 8px; }
+.bft-languages .language-sidebar-heading { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 0 3px; }
+.bft-languages .language-sidebar-heading h2 { margin: 0 0 13px; font-family: 'Frank Ruhl Libre', Georgia, serif; font-size: 1.5rem; font-weight: 500; line-height: 1.2; }
+.bft-languages .language-tools, .bft-languages .language-transcriber, .bft-languages .language-mobile-button, .bft-languages .language-close, .bft-languages .language-backdrop { display: none; }
+.bft-languages.language-enhanced .language-tools, .bft-languages.language-enhanced .language-transcriber { display: block; }
+.bft-languages .language-tools label, .bft-languages .language-target-field label { display: block; font-size: .81rem; color: #c5b4b0; margin-bottom: 5px; }
+.bft-languages .language-tools input, .bft-languages .language-tools select, .bft-languages #languageTarget { width: 100%; min-width: 0; border: 1px solid #513035; background: #0d0b0c; color: #eee7e2; border-radius: 3px; padding: 9px 10px; min-height: 39px; font: inherit; font-size: .88rem; color-scheme: dark; }
+.bft-languages select { cursor: pointer; }
+.bft-languages .language-search-wrap { position: relative; margin-bottom: 11px; }
+.bft-languages .language-search-wrap svg { position: absolute; left: 10px; top: 12px; width: 16px; height: 16px; color: #b99b97; pointer-events: none; }
+.bft-languages .language-tools input { padding-left: 32px; }
+.bft-languages input::placeholder, .bft-languages textarea::placeholder { color: #a99a97; opacity: 1; }
+.bft-languages .language-index-status { display: flex; justify-content: space-between; align-items: center; min-height: 36px; padding: 7px 3px; font-size: .79rem; color: #b9aaa7; }
+.bft-languages .language-index-status button, .bft-languages .language-list-empty button { color: #efb19b; text-decoration: underline; text-underline-offset: 3px; padding: 4px 0 4px 8px; }
+.bft-languages .language-list { display: flex; flex-direction: column; gap: 3px; }
+.bft-languages.language-enhanced .language-list { max-height: calc(100dvh - 340px); min-height: 150px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #703038 #151112; padding-right: 4px; }
+.bft-languages .language-group-title { color: #e9a48b; font-size: .66rem; font-weight: 600; text-transform: uppercase; letter-spacing: .14em; padding: 12px 8px 7px; margin: 0; border-bottom: 1px solid #3c2529; }
+.bft-languages .language-group-title:first-child { padding-top: 2px; }
+.bft-languages .language-index-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 10px; border: 1px solid transparent; border-left: 2px solid transparent; border-radius: 2px; text-decoration: none; color: #d0c5bf; line-height: 1.35; overflow-wrap: anywhere; }
+.bft-languages .language-index-name { display: block; font-size: .94rem; font-weight: 600; }
+.bft-languages .language-index-meta { display: block; margin-top: 3px; font-size: .76rem; color: #b9a6a0; }
+.bft-languages .language-index-item svg { width: 14px; height: 14px; flex: 0 0 14px; color: #eda285; opacity: 0; }
+.bft-languages .language-index-item:hover { border-color: #47272c; background: #241619; color: #fff2ea; }
+.bft-languages .language-index-item[aria-current] { border-color: #6a292e; border-left-color: #ff6a00; background: linear-gradient(90deg, #4b0d0d, #281417); color: #fff2e8; }
+.bft-languages .language-index-item[aria-current] svg { opacity: 1; }
+.bft-languages .language-list-empty { padding: 22px 10px; line-height: 1.7; color: #c5b5ae; font-size: .88rem; }
+.bft-languages .language-list-empty button { padding-left: 0; }
+.bft-languages .language-detail { border: 1px solid #422326; background: #131112; margin-bottom: 16px; scroll-margin-top: 85px; }
+.bft-languages .language-detail-header { position: relative; display: flex; align-items: center; gap: 15px; padding: 17px 23px; min-height: 91px; border-bottom: 1px solid #60272d; background: linear-gradient(100deg, #4b0d0d, #251418 65%, #161112); overflow: hidden; }
+.bft-languages .language-detail-header::after { content: ''; position: absolute; inset: 0 0 0 60%; pointer-events: none; opacity: .2; background: url('../../brand/facets.svg') right center / 210px no-repeat; }
+.bft-languages .language-emblem { width: 39px; height: 39px; flex: 0 0 39px; color: #f0a579; }
+.bft-languages .language-emblem svg { width: 100%; height: 100%; }
+.bft-languages .language-eyebrow { color: #e9a48b; font-size: .68rem; line-height: 1.4; letter-spacing: .14em; text-transform: uppercase; margin: 0 0 4px; }
+.bft-languages .language-detail h2 { font-family: 'Frank Ruhl Libre', Georgia, serif; font-weight: 500; font-size: clamp(2rem, 2.6vw, 2.65rem); line-height: 1.08; margin: 0; scroll-margin-top: 90px; }
+.bft-languages .language-world-name { color: #d7b5a6; font-family: 'Frank Ruhl Libre', Georgia, serif; font-size: 1.12rem; margin: 5px 0 0; }
+.bft-languages .language-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; padding: 0 23px; }
+.bft-languages .language-meta > div { padding: 14px 0 15px; min-width: 0; }
+.bft-languages .language-meta > div + div { border-left: 1px solid #422326; padding-left: 21px; margin-left: 20px; }
+.bft-languages .language-meta dt { color: #d6a08d; font-size: .7rem; letter-spacing: .07em; text-transform: uppercase; margin-bottom: 5px; }
+.bft-languages .language-meta dd { color: #eee1d9; font-size: .94rem; line-height: 1.6; margin: 0; overflow-wrap: anywhere; }
+.bft-languages .language-transcriber { border: 1px solid #422326; border-top: 2px solid #8c292d; background: #131112; padding: 21px 23px 17px; }
+.bft-languages .language-transcriber-heading { margin-bottom: 16px; }
+.bft-languages .language-transcriber h2 { font-family: 'Frank Ruhl Libre', Georgia, serif; font-weight: 500; font-size: 1.65rem; line-height: 1.25; color: #f3e6dc; margin: 0 0 5px; }
+.bft-languages .language-transcriber-heading > div > p:last-child { color: #bcb0ab; font-size: .86rem; line-height: 1.6; margin: 0; }
+.bft-languages .language-target-field { max-width: 390px; margin-bottom: 21px; }
+.bft-languages .language-workspace { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.bft-languages .language-field-heading { display: flex; align-items: center; justify-content: space-between; gap: 9px; min-height: 22px; margin-bottom: 7px; }
+.bft-languages .language-field-heading label, .bft-languages #languageResultLabel { color: #e5d3c8; font-size: .86rem; font-weight: 600; }
+.bft-languages #languageCharacterCount { font-size: .7rem; color: #b9aaa3; white-space: nowrap; }
+.bft-languages .language-live-label { display: flex; align-items: center; gap: 5px; color: #d7a18b; font-size: .68rem; white-space: nowrap; }
+.bft-languages .language-live-label > span { width: 4px; height: 4px; border-radius: 50%; background: #ff6a00; }
+.bft-languages #languageSource, .bft-languages .language-output-wrap { width: 100%; min-width: 0; min-height: 220px; border: 1px solid #513035; border-radius: 3px; background: #0d0b0c; padding: 14px 15px; font: inherit; font-size: 16px; line-height: 1.75; color: #e9e0d9; overflow-wrap: anywhere; }
+.bft-languages #languageSource { display: block; height: 220px; resize: vertical; }
+.bft-languages .language-output-wrap { position: relative; border-color: #704034; background: linear-gradient(135deg, #201415, #121010); }
+.bft-languages #languageResult { display: block; white-space: pre-wrap; word-break: break-word; }
+.bft-languages #languageResultPlaceholder { margin: 0; color: #b6a19a; font-size: .95rem; line-height: 1.8; }
+.bft-languages .language-clear-text { color: #cbb0a5; font-size: .77rem; padding: 9px 0 5px; text-decoration: underline; text-underline-offset: 3px; }
+.bft-languages .language-output-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 8px; }
+.bft-languages #languageWriting { font-size: .72rem; color: #c2afa6; overflow-wrap: anywhere; }
+.bft-languages #copyTranslation { display: inline-flex; align-items: center; justify-content: center; gap: 7px; flex: 0 0 auto; padding: 7px 11px; min-height: 35px; border: 1px solid #bf492e; border-radius: 3px; background: #791b1e; color: #fff2e6; font: inherit; font-size: .8rem; font-weight: 600; }
+.bft-languages #copyTranslation svg { width: 15px; height: 15px; }
+.bft-languages #copyTranslation:hover:not(:disabled) { background: #9d2424; border-color: #e26745; }
+.bft-languages button:disabled { opacity: .5; cursor: not-allowed; }
+.bft-languages .language-copy-status { min-height: 20px; color: #eeb89b; font-size: .78rem; margin: 7px 0 2px; line-height: 1.6; }
+.bft-languages .language-transcription-hint { border-top: 1px solid #3c2529; color: #b2a5a0; font-size: .86rem; line-height: 1.8; padding-top: 11px; margin: 0; max-width: 95ch; }
+.bft-languages .language-notice { border: 1px solid #693034; background: #201416; padding: 15px 18px; line-height: 1.7; color: #d8c3b7; margin-bottom: 16px; }
+.bft-languages .language-shell :is(button, a, input, select, textarea, [tabindex]):focus-visible { outline: 2px solid #ff9b68; outline-offset: 3px; }
+.bft-languages #languageSource:focus-visible { border-color: #f17a4f; }
+.bft-languages.language-menu-open { overflow: hidden; }
+.bft-languages.language-menu-open #main-content { position: relative; z-index: 80; }
+@media (max-width: 1100px) {
+  .bft-languages .bft-languages-main { padding: 16px 20px 85px; }
+  .bft-languages .language-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .bft-languages.language-enhanced .language-mobile-button { display: inline-flex; align-items: center; gap: 9px; position: fixed; bottom: 18px; left: 20px; z-index: 96; min-height: 44px; max-width: calc(100vw - 40px); padding: 0 15px; color: #fff0e6; background: #65151b; border: 1px solid #c64b3a; border-radius: 4px; font-size: .88rem; box-shadow: 0 4px 22px #0008; }
+  .bft-languages .language-mobile-button svg { width: 18px; height: 18px; }
+  .bft-languages.language-enhanced .language-sidebar { position: fixed; top: 0; bottom: 0; left: 0; height: 100dvh; width: min(88vw, 350px); z-index: 95; padding: 20px 14px 78px; display: flex; flex-direction: column; transform: translateX(-105%); visibility: hidden; transition: transform .18s, visibility .18s; }
+  .bft-languages.language-menu-open .language-sidebar { transform: translateX(0); visibility: visible; }
+  .bft-languages.language-enhanced .language-list { min-height: 0; max-height: none; flex: 1; }
+  .bft-languages .language-tools, .bft-languages .language-index-status, .bft-languages .language-sidebar-heading { flex-shrink: 0; }
+  .bft-languages .language-sidebar-heading h2 { margin: 0; }
+  .bft-languages .language-sidebar-heading { margin-bottom: 16px; }
+  .bft-languages.language-enhanced .language-close { display: grid; place-items: center; width: 38px; height: 38px; flex-shrink: 0; border: 1px solid #593139; border-radius: 3px; color: #e3b6a3; }
+  .bft-languages .language-close svg { width: 20px; height: 20px; }
+  .bft-languages .language-backdrop { display: block; position: fixed; inset: 0; z-index: 92; background: #000a; backdrop-filter: blur(3px); }
+  .bft-languages:not(.language-enhanced) .language-sidebar { position: static; margin-bottom: 18px; }
+}
+@media (max-width: 650px) {
+  .bft-languages .bft-languages-main { padding: 12px 12px 85px; }
+  .bft-languages .language-masthead { margin-bottom: 14px; }
+  .bft-languages .language-masthead-copy { padding: 15px 17px 18px; }
+  .bft-languages .language-breadcrumb { font-size: .68rem; }
+  .bft-languages .language-masthead p { font-size: .89rem; }
+  .bft-languages .language-masthead p span { display: block; }
+  .bft-languages .language-masthead-art { left: 15%; opacity: .3; }
+  .bft-languages .language-detail-header { padding: 17px; gap: 12px; min-height: 88px; }
+  .bft-languages .language-emblem { width: 32px; height: 32px; flex-basis: 32px; }
+  .bft-languages .language-detail h2 { font-size: 2rem; }
+  .bft-languages .language-meta { padding: 0 17px; }
+  .bft-languages .language-meta > div + div { margin-left: 12px; padding-left: 12px; }
+  .bft-languages .language-meta dt { font-size: .62rem; }
+  .bft-languages .language-meta dd { font-size: .88rem; }
+  .bft-languages .language-transcriber { padding: 18px 17px 15px; }
+  .bft-languages .language-transcriber h2 { font-size: 1.5rem; }
+  .bft-languages .language-workspace { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .bft-languages #languageSource, .bft-languages .language-output-wrap { min-height: 165px; font-size: 16px; }
+  .bft-languages #languageSource { height: 180px; }
+  .bft-languages .language-target-field { max-width: none; margin-bottom: 17px; }
+  .bft-languages.language-enhanced .language-mobile-button { left: 12px; bottom: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bft-languages .language-shell *, .bft-languages .language-shell *::before, .bft-languages .language-shell *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+}

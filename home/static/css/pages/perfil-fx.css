@@ -1,0 +1,301 @@
+/* =====================================================================
+   perfil-fx.css — CAMADA ADITIVA de efeitos (partículas por tema + polish
+   estilo Steam/Discord). Carregada DEPOIS de perfil.css / ficha.css.
+
+   Regra de ouro: NÃO altera disposição/posição/tamanho de nenhum item.
+   Só usa pseudo-elementos decorativos (fora de fluxo), cor, borda, sombra,
+   animação e :hover. Cobre perfil público, cards de /jogadores e ficha.
+   Tudo desliga em prefers-reduced-motion.
+
+   CONTRATO data-fx-* (tema como dado — ver docs/agentes/arquitetura_temas_
+   dinamicos.md): o elemento temado raiz (.public-profile-page, .ficha,
+   .player-card) recebe dois atributos vindos de TbCosmetico.definicao_json:
+     - data-fx-particula="subir|cair|flutuar|nenhuma"  → direção/existência
+       da partícula (default "subir" = fx-rise, sem atributo nenhum, igual
+       ao comportamento legado).
+     - data-fx-vel="lenta|media|rapida"                → duração da animação
+       (lenta ~18s, media ~11s, rapida ~6s).
+   As classes de tema legadas (.theme-arcane/.theme-verdant/.theme-moonlit)
+   continuam funcionando como fallback para quem ainda não tem definicao_json
+   — tema novo (dado) não precisa de nenhuma classe/CSS novo, só emitir os
+   atributos. Cascade: 1) regra base (fx-rise) → 2) overrides por classe
+   legada → 3) overrides por atributo (mais específicos, vencem a classe).
+
+   NORTE (futuro, ainda sem implementar — deixar suporte): molduras/avatares
+   "cósmicos" ricos, com brilho de rim-light e dois elementos (fogo/gelo).
+   Cada moldura será um cosmético (TbCosmetico tipo=frame) + classe CSS
+   própria, animável individualmente — ver bloco 4 (scaffold .frame-*).
+   ===================================================================== */
+
+/* Unifica o "accent" dos dois namespaces (perfil usa --profile-*, ficha usa
+   --sheet-*). Sempre a versão SÓLIDA: no tema custom o accent pode ser um
+   linear-gradient, e gradiente dentro de color-mix() é inválido.
+   --fx-glow = versão clareada do accent, pra partícula brilhar mesmo sobre
+   superfícies tingidas na própria cor do tema (contraste). */
+.public-profile-page,
+.player-card {
+    --fx-accent: var(--profile-accent-solid, var(--profile-accent));
+    --fx-accent-2: var(--profile-accent-2);
+    --fx-glow: color-mix(in srgb, var(--profile-accent-solid, var(--profile-accent)) 42%, #ffffff);
+}
+.ficha {
+    --fx-accent: var(--sheet-accent-solid, var(--sheet-accent));
+    --fx-accent-2: var(--sheet-accent-2);
+    --fx-glow: color-mix(in srgb, var(--sheet-accent-solid, var(--sheet-accent)) 42%, #ffffff);
+}
+
+/* ---------------------------------------------------------------------
+   1) PARTÍCULAS AMBIENTES POR EFEITO (inativas por padrão)
+   Camada em ::before ACIMA do conteúdo (z-index:2) com mix-blend-mode:screen
+   — os pontos ADICIONAM luz, brilhando sobre o card escuro sem escurecer o
+   texto (dots minúsculos). pointer-events:none => não intercepta cliques.
+   isolation:isolate garante que o screen mistura só dentro do card.
+   --------------------------------------------------------------------- */
+.public-profile-card,
+.public-profile-section,
+.ficha-panel,
+.player-card {
+    isolation: isolate;
+}
+.ficha-panel { position: relative; }
+
+.public-profile-card::before,
+.public-profile-section::before,
+.ficha-panel::before,
+.player-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    border-radius: inherit;
+    mix-blend-mode: screen;
+    background-image:
+        radial-gradient(circle at 10% 106%, var(--fx-glow) 0 2px, transparent 3.6px),
+        radial-gradient(circle at 26% 106%, color-mix(in srgb, var(--fx-accent) 85%, transparent) 0 2.4px, transparent 4.2px),
+        radial-gradient(circle at 42% 106%, color-mix(in srgb, var(--fx-accent-2) 78%, transparent) 0 2px, transparent 3.8px),
+        radial-gradient(circle at 58% 106%, var(--fx-glow) 0 1.7px, transparent 3.2px),
+        radial-gradient(circle at 73% 106%, color-mix(in srgb, var(--fx-accent) 82%, transparent) 0 2.3px, transparent 4px),
+        radial-gradient(circle at 88% 106%, color-mix(in srgb, var(--fx-accent-2) 75%, transparent) 0 1.9px, transparent 3.6px),
+        radial-gradient(circle at 96% 106%, var(--fx-glow) 0 1.6px, transparent 3px);
+    background-size: 130px 250px, 190px 320px, 150px 280px, 210px 350px, 120px 230px, 240px 380px, 100px 210px;
+    background-repeat: repeat-x;
+    opacity: 0;
+    animation: none;
+}
+
+/* O tema fornece as cores; somente o EFEITO escolhido cria movimento. */
+.effect-embers .public-profile-card::before,
+.effect-embers .public-profile-section::before,
+.effect-embers .ficha-panel::before,
+.player-card.effect-embers::before {
+    opacity: 0.62;
+    animation: fx-rise 9s linear infinite;
+}
+.effect-aurora .public-profile-card::before,
+.effect-aurora .public-profile-section::before,
+.effect-aurora .ficha-panel::before,
+.player-card.effect-aurora::before {
+    opacity: 0.46;
+    animation: fx-rise 14s ease-in-out infinite;
+}
+.effect-starfall .public-profile-card::before,
+.effect-starfall .public-profile-section::before,
+.effect-starfall .ficha-panel::before,
+.player-card.effect-starfall::before {
+    opacity: 0.66;
+    animation: fx-fall 15s linear infinite;
+}
+
+/* Sobe (brasas) — padrão ember/bonfire/custom. */
+@keyframes fx-rise {
+    from { background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0; }
+    to   { background-position: 0 -250px, 0 -320px, 0 -280px, 0 -350px, 0 -230px, 0 -380px, 0 -210px; }
+}
+
+/* Arcano — motas frias flutuando devagar (bem visíveis, só mais lentas). */
+.theme-arcane .public-profile-card::before,
+.theme-arcane .public-profile-section::before,
+.theme-arcane .ficha-panel::before,
+.player-card.theme-arcane::before {
+    opacity: 0.6;
+    animation-duration: 15s;
+    animation-timing-function: ease-in-out;
+}
+
+/* Verdejante — esporos/pólen subindo devagar. */
+.theme-verdant .public-profile-card::before,
+.theme-verdant .public-profile-section::before,
+.theme-verdant .ficha-panel::before,
+.player-card.theme-verdant::before {
+    opacity: 0.58;
+    animation-duration: 18s;
+}
+
+/* Enluarada — poeira estelar CAINDO (dots descem como neve/estrelas). */
+.theme-moonlit .public-profile-card::before,
+.theme-moonlit .public-profile-section::before,
+.theme-moonlit .ficha-panel::before,
+.player-card.theme-moonlit::before {
+    opacity: 0.66;
+    animation-name: fx-fall;
+    animation-duration: 15s;
+}
+@keyframes fx-fall {
+    from { background-position: 0 -250px, 0 -320px, 0 -280px, 0 -350px, 0 -230px, 0 -380px, 0 -210px; }
+    to   { background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0; }
+}
+
+/* ---------------------------------------------------------------------
+   1b) PARTÍCULAS POR ATRIBUTO (data-fx-*) — tema como dado.
+   Mais específico que as classes legadas acima (mesmo elemento raiz +
+   descendente), então vence no cascade sem precisar de !important.
+   --------------------------------------------------------------------- */
+
+/* Direção: cair → fx-fall (reaproveita o keyframe da enluarada). */
+.public-profile-page[data-fx-particula="cair"] .public-profile-card::before,
+.public-profile-page[data-fx-particula="cair"] .public-profile-section::before,
+.ficha[data-fx-particula="cair"] .ficha-panel::before,
+.player-card[data-fx-particula="cair"]::before {
+    animation-name: fx-fall;
+}
+
+/* Direção: flutuar → reaproveita fx-rise, mas com deriva suave (ease-in-out). */
+.public-profile-page[data-fx-particula="flutuar"] .public-profile-card::before,
+.public-profile-page[data-fx-particula="flutuar"] .public-profile-section::before,
+.ficha[data-fx-particula="flutuar"] .ficha-panel::before,
+.player-card[data-fx-particula="flutuar"]::before {
+    animation-name: fx-rise;
+    animation-timing-function: ease-in-out;
+}
+
+/* Direção: nenhuma → desliga a partícula por completo. */
+.public-profile-page[data-fx-particula="nenhuma"] .public-profile-card::before,
+.public-profile-page[data-fx-particula="nenhuma"] .public-profile-section::before,
+.ficha[data-fx-particula="nenhuma"] .ficha-panel::before,
+.player-card[data-fx-particula="nenhuma"]::before {
+    animation: none;
+    opacity: 0;
+}
+
+/* Velocidade: lenta/media/rapida — sobrepõe a duration herdada da direção. */
+.public-profile-page[data-fx-vel="lenta"] .public-profile-card::before,
+.public-profile-page[data-fx-vel="lenta"] .public-profile-section::before,
+.ficha[data-fx-vel="lenta"] .ficha-panel::before,
+.player-card[data-fx-vel="lenta"]::before {
+    animation-duration: 18s;
+}
+.public-profile-page[data-fx-vel="media"] .public-profile-card::before,
+.public-profile-page[data-fx-vel="media"] .public-profile-section::before,
+.ficha[data-fx-vel="media"] .ficha-panel::before,
+.player-card[data-fx-vel="media"]::before {
+    animation-duration: 11s;
+}
+.public-profile-page[data-fx-vel="rapida"] .public-profile-card::before,
+.public-profile-page[data-fx-vel="rapida"] .public-profile-section::before,
+.ficha[data-fx-vel="rapida"] .ficha-panel::before,
+.player-card[data-fx-vel="rapida"]::before {
+    animation-duration: 6s;
+}
+
+/* Brilho, vidro e "sem efeito" nunca herdam partículas do tema dinâmico. */
+.public-profile-page:not(.effect-embers):not(.effect-aurora):not(.effect-starfall) .public-profile-card::before,
+.public-profile-page:not(.effect-embers):not(.effect-aurora):not(.effect-starfall) .public-profile-section::before,
+.ficha:not(.effect-embers):not(.effect-aurora):not(.effect-starfall) .ficha-panel::before,
+.player-card:not(.effect-embers):not(.effect-aurora):not(.effect-starfall)::before {
+    opacity: 0;
+    animation: none;
+}
+
+/* ---------------------------------------------------------------------
+   2) COR + DETALHE (pegada widget) — sem mover nada
+   --------------------------------------------------------------------- */
+
+/* Wash de cor radial atrás do conteúdo do card (dá profundidade colorida). */
+.public-profile-card,
+.player-card {
+    background-image:
+        radial-gradient(140% 80% at 18% -8%, color-mix(in srgb, var(--fx-accent) 16%, transparent), transparent 55%),
+        radial-gradient(120% 70% at 100% 0%, color-mix(in srgb, var(--fx-accent-2) 13%, transparent), transparent 55%);
+}
+
+/* Halo de acento sutil + brilho interno (elevação estilo Discord). */
+.public-profile-card,
+.public-profile-section,
+.ficha-panel,
+.player-card {
+    box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent),
+                0 1px 0 color-mix(in srgb, var(--fx-accent) 12%, transparent),
+                0 0 22px color-mix(in srgb, var(--fx-accent) 8%, transparent);
+}
+
+/* Títulos de seção com leve brilho do acento (sem deslocar texto). */
+.public-profile-section-head h2 {
+    text-shadow: 0 0 14px color-mix(in srgb, var(--fx-accent) 30%, transparent);
+}
+
+/* Cartões de personagem (perfil e jogadores) — micro-interação no hover. */
+.public-character-card,
+.player-card-characters a {
+    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.public-character-card:hover,
+.player-card-characters a:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--fx-accent) 60%, var(--stroke));
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35),
+                0 0 24px color-mix(in srgb, var(--fx-accent) 26%, transparent);
+}
+
+/* Conquistas OBTIDAS — glow discreto (mantém tamanho compacto; sem ícone grande). */
+.conquista-item.is-obtida {
+    box-shadow: 0 0 12px color-mix(in srgb, var(--fx-gold, var(--spark)) 18%, transparent);
+}
+
+/* Vidro fosco com brilho superior (realça o efeito-glass existente). */
+.effect-glass .public-profile-card,
+.effect-glass .public-profile-section,
+.effect-glass .ficha-panel,
+.effect-glass .ficha-header {
+    box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 9%, transparent),
+                0 0 22px color-mix(in srgb, var(--fx-accent) 12%, transparent);
+}
+
+/* ---------------------------------------------------------------------
+   4) SCAFFOLD de moldura rica (FUTURO — deixa suporte, não usado ainda)
+   Cada moldura personalizada entra como .frame-<slug> (cosmético frame) e
+   pode animar rim-light/dois elementos aqui. Placeholder inerte por ora.
+   --------------------------------------------------------------------- */
+/* .frame-cosmic { --frame-fire:#f97316; --frame-frost:#7dd3fc; } */
+
+/* ---------------------------------------------------------------------
+   5) Acessibilidade — silencia todo o movimento adicionado aqui.
+   --------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+    .public-profile-card::before,
+    .public-profile-section::before,
+    .ficha-panel::before,
+    .player-card::before,
+    .public-profile-page[data-fx-particula="cair"] .public-profile-card::before,
+    .public-profile-page[data-fx-particula="cair"] .public-profile-section::before,
+    .ficha[data-fx-particula="cair"] .ficha-panel::before,
+    .player-card[data-fx-particula="cair"]::before,
+    .public-profile-page[data-fx-particula="flutuar"] .public-profile-card::before,
+    .public-profile-page[data-fx-particula="flutuar"] .public-profile-section::before,
+    .ficha[data-fx-particula="flutuar"] .ficha-panel::before,
+    .player-card[data-fx-particula="flutuar"]::before,
+    .public-profile-page[data-fx-particula="nenhuma"] .public-profile-card::before,
+    .public-profile-page[data-fx-particula="nenhuma"] .public-profile-section::before,
+    .ficha[data-fx-particula="nenhuma"] .ficha-panel::before,
+    .player-card[data-fx-particula="nenhuma"]::before {
+        animation: none !important;
+    }
+    .public-character-card,
+    .player-card-characters a {
+        transition: none !important;
+    }
+    .public-character-card:hover,
+    .player-card-characters a:hover {
+        transform: none !important;
+    }
+}

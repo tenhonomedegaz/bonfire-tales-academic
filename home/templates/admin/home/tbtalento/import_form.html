@@ -1,0 +1,90 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+  <p>
+    Envie um arquivo <strong>.txt</strong> com blocos no formato:
+    Nome, Etiqueta, Tag, Pre Requisito e Descricao.
+  </p>
+
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    <fieldset class="module aligned">
+      {% for field in form %}
+        <div class="form-row">
+          <div>
+            {{ field.errors }}
+            {{ field.label_tag }}
+            {{ field }}
+            {% if field.help_text %}
+              <div class="help">{{ field.help_text }}</div>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </fieldset>
+    <div class="submit-row">
+      <input type="submit" class="default" value="Ler arquivo e revisar">
+      <a class="button cancel-link" href="{% url 'admin:home_tbtalento_changelist' %}">Cancelar</a>
+    </div>
+  </form>
+
+  {% if errors %}
+    <div class="module">
+      <h2>Problemas encontrados</h2>
+      <ul class="messagelist">
+        {% for error in errors %}
+          <li class="warning">{{ error }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  {% if preview %}
+    <div class="module">
+      <h2>Previa da importacao: {{ preview|length }} talentos</h2>
+      <div class="results">
+        <table>
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Tipo</th>
+              <th>Etiqueta</th>
+              <th>Tags adicionais</th>
+              <th>Tags JSON</th>
+              <th>Pre-requisito</th>
+              <th>Atributos</th>
+              <th>Descricao</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for talento in preview %}
+              <tr>
+                <td>{{ talento.nome }}</td>
+                <td>{{ talento.tipo }}</td>
+                <td>{{ talento.etiqueta_label }}</td>
+                <td>{{ talento.etiquetas_adicionais|default:"-" }}</td>
+                <td>{{ talento.tags_json|join:", "|default:"-" }}</td>
+                <td>{{ talento.pre_requisito|default:"Nenhum" }}</td>
+                <td>{{ talento.atributos_display|default:"Nenhum" }}</td>
+                <td>{{ talento.descricao|truncatechars:120 }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="confirmar" value="1">
+        <input type="hidden" name="payload" value="{{ payload|escape }}">
+        <input type="hidden" name="atualizar_existentes" value="{% if atualizar_existentes %}on{% endif %}">
+        <div class="submit-row">
+          <input type="submit" class="default" value="Confirmar importacao">
+          <a class="button cancel-link" href="{% url 'admin:home_tbtalento_changelist' %}">Cancelar</a>
+        </div>
+      </form>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

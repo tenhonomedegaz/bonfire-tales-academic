@@ -1,0 +1,145 @@
+/* Presentation layer only: original Leaflet geometry, panes and editor retained. */
+body.bft-atlas{--atlas-bar-height:60px;--atlas-sidebar-width:300px;--bg0:#0a0a0a;--bg1:#191115;--bg2:#27171e;--stroke:#643039;--muted:#c4afa4;--text:#f2e4d8;background:#0a0a0a;font-family:'Open Sans',sans-serif}
+.bft-atlas :is(.atlas-topbar,.map-shell) *{box-sizing:border-box}
+.bft-atlas :is(.atlas-topbar,.map-shell) [hidden]{display:none!important}
+.bft-atlas :is(button,a,input,select,textarea,summary):focus-visible{outline:2px solid #ffb578!important;outline-offset:3px}
+.bft-atlas :is(.atlas-topbar,.atlas-index-heading) :is(h1,h2,p){margin:0}
+.atlas-topbar{height:var(--atlas-bar-height);display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 22px;background:linear-gradient(100deg,#39141a,#1c1116 55%,#171014);border-bottom:1px solid #a0382c;position:relative;z-index:25}
+.atlas-heading{display:flex;align-items:center;gap:13px;min-width:0}
+.atlas-compass{width:32px;height:36px;color:#f0b27a;flex-shrink:0}
+.atlas-compass svg{width:100%;height:100%}
+.atlas-heading p,.atlas-index-heading>p{font-size:8px;line-height:1.8;text-transform:uppercase;letter-spacing:.14em;font-weight:700;color:#db9e78}
+.atlas-heading h1{font:500 25px/1.3 'Frank Ruhl Libre',Georgia,serif;color:#f9e5ce;white-space:nowrap}
+.atlas-topbar-actions{display:flex;align-items:center;gap:12px;min-width:0}
+.atlas-layer-status{font-size:10px;color:#e5c1a0;border-left:1px solid #8b4f3d;padding-left:12px;max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.atlas-local{font-size:9px;color:#c0a79a}
+.atlas-button,.atlas-help summary{border:1px solid #9b4d3c;background:#28151b;min-height:34px;padding:7px 11px;display:inline-flex;align-items:center;justify-content:center;gap:8px;color:#f9d7b2;font:600 10px/1.7 'Open Sans',sans-serif;cursor:pointer;border-radius:2px;white-space:nowrap}
+.atlas-button svg{width:17px;height:17px;flex-shrink:0}
+.atlas-button:hover,.atlas-help summary:hover,.atlas-help[open] summary{background:#4b1b23;border-color:#e58b57}
+.atlas-help{position:relative}
+.atlas-help summary{list-style:none}
+.atlas-help summary::-webkit-details-marker{display:none}
+.atlas-help summary>span:first-child{border:1px solid #b67b57;border-radius:50%;width:16px;height:16px;line-height:14px;text-align:center;font-size:10px}
+.atlas-help-panel{position:absolute;right:0;top:calc(100% + 10px);width:370px;max-width:calc(100vw - 24px);max-height:calc(100dvh - var(--bft-header-height) - 90px);overflow:auto;padding:21px 23px;background:#1c1318;border:1px solid #9b4d3c;box-shadow:0 15px 45px #0009;z-index:1800}
+.atlas-help-panel h2{font:500 27px/1.3 'Frank Ruhl Libre',Georgia,serif;color:#f0c8a5;margin:0 0 16px}
+.atlas-help-panel section+section{padding-top:13px;margin-top:13px;border-top:1px solid #59313a}
+.atlas-help-panel h3{font:500 20px/1.4 'Frank Ruhl Libre',Georgia,serif;color:#ecc39f;margin:0 0 6px}
+.atlas-help-panel p{font-size:11px;line-height:1.95;color:#d5bdb0;margin:0}
+.bft-atlas .map-shell{height:calc(100vh - var(--bft-header-height,72px) - var(--atlas-bar-height));height:calc(100dvh - var(--bft-header-height,72px) - var(--atlas-bar-height));min-height:0;grid-template-columns:var(--atlas-sidebar-width) minmax(0,1fr);--territory-color:#e4a26d;background:#111014;border:0}
+.bft-atlas .map-shell.has-detail{grid-template-columns:var(--atlas-sidebar-width) minmax(0,1fr) 340px}
+.bft-atlas .map-sidebar{background:#171014;border-right:1px solid #8c3c36;box-shadow:7px 0 22px #0005;min-height:0}
+.atlas-index-heading{padding:18px 18px 14px;border-bottom:1px solid #67303a;background:linear-gradient(120deg,#391820,#20131b);position:relative;flex-shrink:0}
+.atlas-index-heading::after{content:'';position:absolute;inset:0;background:url('../../brand/facets.svg') right center/190px;opacity:.11;pointer-events:none}
+.atlas-index-heading h2{font:500 27px/1.3 'Frank Ruhl Libre',Georgia,serif;color:#f3d9be;margin:4px 0 5px!important}
+.atlas-index-heading>span{font-size:10px;line-height:1.8;color:#d0ac93}
+.bft-atlas .map-sidebar-tools{padding:15px 14px 0;gap:10px;background:#1c1218;border-bottom:1px solid #61313a}
+.bft-atlas .map-search-new{padding:9px 10px;min-height:38px;border:1px solid #78414a;border-radius:2px;background:#100c10;align-items:center}
+.bft-atlas .map-search-new input{font:400 12px/1.7 'Open Sans',sans-serif;min-width:0;color:#f1dfd1}
+.bft-atlas .map-search-new input::placeholder{color:#c0a297}
+.bft-atlas .map-search-new svg{color:#e4a16b}
+.bft-atlas .map-search-new:focus-within{border-color:#ffad6c}
+.bft-atlas .map-category-button{border:1px solid #78414a;border-radius:2px;background:#100c10;color:#eed6c4;min-height:38px;padding:7px 10px;font-size:11px;font-weight:600;grid-template-columns:22px minmax(0,1fr) 14px}
+.bft-atlas .map-category-filter.is-open .map-category-button{border-color:#e49c64}
+.bft-atlas .map-category-menu{border-color:#98513f;background:#20131b;padding:5px;border-radius:2px;max-height:min(300px,45dvh)}
+.bft-atlas .map-category-option{font-size:11px;font-weight:500;min-height:37px;padding:7px;border-radius:2px;text-transform:none}
+.bft-atlas .map-category-option:hover,.bft-atlas .map-category-option.is-active{background:#4a1f28;color:#ffe0b4}
+.bft-atlas .map-category-current-label{text-transform:none}
+.bft-atlas :is(.map-category-current-label,.map-category-option-label)::first-letter{text-transform:uppercase}
+.atlas-filter-state{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:31px;color:#c6aa99;font-size:9px;line-height:1.8;padding-bottom:4px}
+.atlas-filter-state button{color:#efba89;background:none;border:0;padding:4px;cursor:pointer;font-size:10px;text-decoration:underline;text-underline-offset:3px}
+.bft-atlas .map-index{padding:10px;scrollbar-width:thin;scrollbar-color:#91503c #151013}
+.bft-atlas .territory-group+.territory-group{margin-top:3px}
+.bft-atlas .territory-button{font:500 16px/1.4 'Frank Ruhl Libre',Georgia,serif;text-transform:none;letter-spacing:0;color:#dcc5b3;padding:12px 10px;border:1px solid transparent;border-left:2px solid var(--item-color,#e3a36e);border-radius:1px;min-height:43px}
+.bft-atlas .territory-button:hover,.bft-atlas .territory-button.is-active{background:#301b24;border-color:#71404a;border-left-color:var(--item-color,#e3a36e);color:#ffe4c3}
+.bft-atlas .territory-button::after{width:6px;height:6px;flex-shrink:0;color:#d6a37c}
+.bft-atlas .territory-regions{padding-left:10px;border-left:1px solid #62313b;margin-left:11px;gap:2px}
+.bft-atlas .territory-group.is-open .territory-regions{max-height:none;padding-top:4px;padding-bottom:7px}
+.bft-atlas .index-item{padding:9px 9px;min-height:40px;gap:9px;border-radius:1px;color:#d7bfb0}
+.bft-atlas .index-item-title{font-size:11px;font-weight:500;line-height:1.7;overflow-wrap:anywhere}
+.bft-atlas .index-item:hover,.bft-atlas .index-item.is-active{background:linear-gradient(100deg,#48212b,#27161e);border-left-color:var(--item-color,#efb283);color:#ffe1ba}
+.bft-atlas .index-item-icon-png img{width:24px!important;height:24px!important;opacity:.9}
+.bft-atlas .map-sidebar-footer{padding:13px 12px;border-top:1px solid #74363b;background:#27151d;text-align:left}
+.bft-atlas .map-sidebar-footer a{font:600 10px/1.8 'Open Sans',sans-serif;letter-spacing:0;text-transform:none;color:#f2ba8f;display:flex;justify-content:space-between}
+.bft-atlas #map{background:#100d10;outline:none}
+.bft-atlas .leaflet-top.leaflet-right{top:14px!important;right:14px!important}
+.bft-atlas .leaflet-control-zoom{border:1px solid #9b5740!important;border-radius:2px!important;width:36px!important;box-shadow:0 6px 20px #0007!important}
+.bft-atlas .leaflet-control-zoom a{background:#24151bf5!important;border-color:#70403b!important;color:#ffe1b9!important;width:36px!important;height:36px!important;font-size:22px!important}
+.bft-atlas .leaflet-control-zoom a:hover{background:#4b2027!important;color:#ffb777!important}
+.bft-atlas .leaflet-control-zoom a.leaflet-disabled{color:#a79083!important;background:#1a1116!important;opacity:.8}
+.bft-atlas .map-layer-selector{top:14px;left:14px;max-width:calc(100% - 80px);flex-wrap:wrap;gap:3px;padding:4px!important;border:1px solid #9b5740!important;background:#1c1217f5!important;border-radius:2px!important;box-shadow:0 6px 20px #0007!important;max-height:35%;overflow:auto;scrollbar-width:thin}
+.bft-atlas .layer-selector-btn{min-height:32px;font:600 10px/1.7 'Open Sans',sans-serif;text-transform:none;letter-spacing:0;gap:8px;padding:7px 11px;border-radius:1px;min-width:0;color:#d9bcaa}
+.bft-atlas .layer-selector-btn span{white-space:normal;text-align:left;overflow-wrap:anywhere}
+.bft-atlas .layer-selector-btn svg{flex-shrink:0}
+.bft-atlas .layer-selector-btn.active{background:#82252b!important;color:#ffe7c6!important;box-shadow:inset 0 -2px #f49657!important}
+.bft-atlas .layer-selector-btn:hover{background:#3f1d25;color:#ffdbac}
+.bft-atlas .map-pin{border:1px solid #e8d6b4;box-shadow:0 4px 12px #000b,inset 0 0 0 3px #130c0c55}
+.bft-atlas .custom-map-icon.is-active .map-pin{border-color:#ffe2a8;box-shadow:0 0 0 3px #fff1cd66,0 6px 20px #0009}
+.atlas-map-hint{position:absolute;bottom:14px;left:calc(var(--atlas-sidebar-width) + 18px);z-index:600;max-width:calc(100% - var(--atlas-sidebar-width) - 40px);padding:8px 12px;border:1px solid #8a4e38;background:#1a1015e8;color:#ecd0b2;font-size:10px;line-height:1.7;pointer-events:none;box-shadow:0 4px 15px #0006;margin:0}
+.atlas-hint-diamond{color:#efa562;margin-right:8px}
+.bft-atlas .map-shell.has-detail .atlas-map-hint{max-width:calc(100% - var(--atlas-sidebar-width) - 375px)}
+.atlas-no-results{position:absolute;bottom:60px;left:calc(var(--atlas-sidebar-width) + 18px);width:min(340px,calc(100% - var(--atlas-sidebar-width) - 42px));padding:16px 18px;border:1px solid #9c593d;background:#23141bef;color:#edd7bf;z-index:650;box-shadow:0 8px 25px #0007}
+.atlas-no-results strong{font:500 22px/1.4 'Frank Ruhl Libre',Georgia,serif}
+.atlas-no-results p{font-size:11px;line-height:1.9;color:#d1b3a0;margin:7px 0 11px}
+.atlas-no-results button{border:1px solid #ad6140;background:#542129;color:#ffe1b4;font:600 10px/1.8 'Open Sans',sans-serif;padding:6px 12px;cursor:pointer}
+.bft-atlas .map-detail-panel{background:#1c1218;border-left:1px solid #8f4140;padding:14px;scrollbar-width:thin;scrollbar-color:#9a5d43 #171015;box-shadow:-7px 0 22px #0005}
+.bft-atlas .map-detail-close{background:#4b1d26;color:#f5c9a0;border:1px solid #b46a4c;border-radius:2px;width:32px;height:32px;font-size:24px;float:right;margin:0 0 8px 8px;position:relative;top:auto}
+.bft-atlas :is(.map-place-card,.territory-card){clear:both;background:#21141b;border:1px solid #864640;border-top:2px solid var(--territory-color,#e9a469);border-radius:2px;box-shadow:0 5px 22px #0005}
+.bft-atlas :is(.map-place-hero,.territory-hero){padding:19px 18px;background-image:linear-gradient(100deg,#471a24e8,#26131bd9),var(--place-image);min-height:110px!important}
+.bft-atlas :is(.map-place-hero,.territory-hero)::after{backdrop-filter:none;background:url('../../brand/facets.svg') right/190px;height:100%;opacity:.13}
+.bft-atlas .map-place-kicker{font:700 9px/1.8 'Open Sans',sans-serif;letter-spacing:.1em;color:#f3c59c}
+.bft-atlas :is(.map-place-title,.territory-title){font:500 29px/1.25 'Frank Ruhl Libre',Georgia,serif;text-transform:none;letter-spacing:0;color:#ffe8ce;margin:12px 0 0;overflow-wrap:anywhere}
+.bft-atlas .territory-title{margin-top:6px}
+.bft-atlas .territory-hero{min-height:80px!important;background-image:linear-gradient(110deg,#4b1b26,#2d1720);border-bottom:1px solid #78403e}
+.bft-atlas :is(.map-place-body,.territory-body){padding:18px}
+.bft-atlas .map-place-grid{grid-template-columns:1fr;border-top:0;padding-top:0}
+.bft-atlas .map-place-field span{font:600 9px/1.8 'Open Sans',sans-serif;color:#dcac8a;letter-spacing:.08em}
+.bft-atlas .map-place-field strong{font:500 18px/1.5 'Frank Ruhl Libre',Georgia,serif;color:#f3d9bd;margin-top:4px}
+.bft-atlas :is(.map-place-desc,.territory-desc){font-size:12px;line-height:1.95;color:#d5bcae;overflow-wrap:anywhere}
+.bft-atlas .map-place-stats{gap:17px 14px;margin-top:20px;padding-top:18px;border-color:#70403e}
+.bft-atlas .map-place-stat{gap:7px;min-width:0}
+.bft-atlas .map-place-stat span{font-size:9px;line-height:1.7;font-weight:600;letter-spacing:.02em;text-transform:none;color:#d5b9a4}
+.bft-atlas .map-place-dots{gap:5px}
+.bft-atlas .map-place-dot{width:7px;height:7px;border-radius:1px;transform:rotate(45deg);background:#57313b}
+.bft-atlas .map-place-dot.filled{background:#ebb77e;box-shadow:0 0 4px #e7974250}
+.bft-atlas :is(.map-place-action,.territory-action){min-height:39px;background:#8d292b;border:1px solid #cc7248;border-radius:2px;font:600 10px/1.8 'Open Sans',sans-serif;letter-spacing:0;text-transform:none;color:#ffe9cc!important;margin-top:22px;padding:9px 12px}
+.bft-atlas :is(.map-place-action,.territory-action):hover{background:#b2382b;border-color:#ffb078}
+.bft-atlas .admin-toolbar{background:#2c1720;border-color:#8a3d3d;padding:10px;gap:5px;max-height:32dvh;scrollbar-width:thin}
+.bft-atlas .admin-btn{background:#25151c;border-color:#844743;color:#edd1b7;border-radius:2px;padding:8px 9px;min-height:34px;font:600 9px/1.5 'Open Sans',sans-serif;text-transform:none}
+.bft-atlas .admin-btn:hover{background:#4b2029;border-color:#d68051}
+.bft-atlas .admin-btn.primary-active,.bft-atlas .admin-btn.primary{background:#92292d;border-color:#e08255;color:#ffe8cc}
+.bft-atlas .admin-btn.disabled-btn{background:#21151a;color:#b79b8c;border-color:#60363b;opacity:.65;pointer-events:none}
+.bft-atlas .map-admin-edit{border-color:#78413f!important}
+.bft-atlas .map-admin-edit :is(input,select){min-height:35px;line-height:1.7}
+.bft-atlas .map-modal{background:#21141b;border:1px solid #a65d45;border-top:2px solid #c84931;border-radius:2px;padding:21px;gap:14px;max-height:calc(100dvh - 36px);overflow:auto;scrollbar-width:thin}
+.bft-atlas .map-modal h2{font:500 27px/1.3 'Frank Ruhl Libre',Georgia,serif;text-transform:none;color:#f3d2b2}
+.bft-atlas .map-modal p{font-size:11px;line-height:1.9;color:#cdb1a2}
+.bft-atlas .map-modal label{font-size:10px;line-height:1.8;letter-spacing:0;text-transform:none;font-weight:500;color:#e2b99c}
+.bft-atlas .map-modal :is(input,select){color-scheme:dark;min-width:0}
+.bft-atlas :is(.map-modal-primary,.map-modal-secondary){font:600 10px/1.7 'Open Sans',sans-serif;text-transform:none;letter-spacing:0;min-height:35px;border-radius:2px}
+.bft-atlas .map-modal-primary{background:#92292c!important;color:#ffe5c5;border:1px solid #d4784e!important}
+.bft-atlas .map-modal-secondary{background:#2c1921;color:#edc3a1;border-color:#95513e}
+.bft-atlas .desenho-style-panel{background:#26161e;border:1px solid #9c5943;border-top:2px solid #c74a34;border-radius:2px;width:280px;padding:15px;gap:12px;max-height:calc(100% - 110px);overflow:auto;scrollbar-width:thin;top:78px;right:14px}
+.bft-atlas .desenho-style-head{font:500 23px/1.3 'Frank Ruhl Libre',Georgia,serif;text-transform:none;color:#f3c79f}
+.bft-atlas .desenho-style-close{font-size:24px;padding:3px;color:#f5c7a1}
+.bft-atlas :is(.desenho-style-field,.desenho-style-row){font-size:10px;line-height:1.8;font-weight:500;text-transform:none;color:#dab99f}
+.bft-atlas .desenho-style-field :is(input,textarea){min-width:0;font-size:11px;line-height:1.8;border-radius:2px;padding:8px;color:#f1dccc;background:#140e13;border-color:#8f4f48}
+.bft-atlas .desenho-style-field input{min-height:35px}
+.bft-atlas .desenho-style-hint,.bft-atlas .desenho-style-anchor{font-size:10px;line-height:1.9;color:#d0b1a0}
+.bft-atlas .desenho-style-actions{flex-wrap:wrap}
+.bft-atlas .desenho-list-panel{width:330px}
+.bft-atlas .desenho-list-body{max-height:400px;min-height:0}
+.bft-atlas .desenho-list-item{padding:8px 5px;border-radius:2px;gap:8px}
+.bft-atlas .desenho-list-name{font-size:11px}
+.bft-atlas .desenho-list-act{min-width:29px;min-height:29px;border-radius:2px;border-color:#88513e}
+.bft-atlas .bonfire-toast{border-radius:2px;border-color:#a16344;background:#29191f;min-width:0;width:min(360px,calc(100vw - 32px));padding:14px 16px}
+.bft-atlas #toast-container{right:16px;bottom:16px}
+.bft-atlas .toast-content{font-size:12px;line-height:1.8}
+.bft-atlas .mobile-leaflet-popup{translate:0 var(--atlas-popup-shift-y,0px)}
+.bft-atlas .mobile-popup-wrapper{width:min(320px,calc(100vw - 54px));max-height:var(--atlas-popup-max-height,calc(100dvh - var(--bft-header-height) - var(--atlas-bar-height) - 114px));border-radius:2px;scrollbar-width:thin;scrollbar-color:#a15d40 #25141c}
+.bft-atlas .mobile-leaflet-popup .leaflet-popup-close-button{background:#4b1d26!important;border:1px solid #c17b52!important;border-radius:2px;width:29px!important;height:29px!important;color:#ffddb8!important;top:8px!important;right:8px!important}
+.bft-atlas .mobile-leaflet-popup :is(.map-place-hero,.territory-hero){padding-right:38px}
+.bft-atlas .desenho-popup-wrap .leaflet-popup-content-wrapper{background:#25151d;border-color:#a26845;border-radius:2px}
+.bft-atlas .desenho-popup{font-size:11px;line-height:1.9}
+@media(max-width:1100px){body.bft-atlas{--atlas-sidebar-width:min(330px,calc(100vw - 60px))}.atlas-topbar{padding:0 15px;gap:10px}.atlas-layer-status{display:none}.atlas-local{display:none}.bft-atlas .map-shell,.bft-atlas .map-shell.has-detail{grid-template-columns:1fr;min-height:0}.bft-atlas .map-sidebar{top:calc(var(--bft-header-height,72px) + var(--atlas-bar-height));width:var(--atlas-sidebar-width);z-index:1000}.bft-atlas .map-sidebar-mobile-toggle{top:calc(var(--bft-header-height,72px) + var(--atlas-bar-height) + 14px);left:14px;transform:none;z-index:1002;display:flex;align-items:center;justify-content:center;gap:7px;background:#3e1922f5;border:1px solid #c47b4d;border-radius:2px;min-height:38px;padding:9px;color:#ffdbb2;box-shadow:0 5px 15px #0008}.bft-atlas .toggle-icon{width:17px;height:17px}.bft-atlas .toggle-icon svg{width:17px;height:17px}.atlas-toggle-label{font:600 10px/1.5 'Open Sans',sans-serif}.bft-atlas .map-shell.is-sidebar-open .map-sidebar-mobile-toggle{left:calc(var(--atlas-sidebar-width) + 10px);width:38px;min-width:0}.bft-atlas .map-shell.is-sidebar-open .atlas-toggle-label{display:none}.bft-atlas .map-layer-selector{left:103px;right:64px;max-width:calc(100% - 167px);gap:2px;align-items:stretch}.bft-atlas .layer-selector-btn{min-height:28px;font-size:10px;padding:5px 8px;gap:6px}.bft-atlas .map-shell.is-sidebar-open .map-layer-selector{visibility:hidden}.atlas-map-hint{left:14px;max-width:calc(100% - 28px);font-size:9px;padding:7px 10px;bottom:12px}.bft-atlas .map-shell.has-detail .atlas-map-hint{max-width:calc(100% - 28px)}.atlas-no-results{left:14px;width:min(340px,calc(100% - 28px));bottom:57px}.bft-atlas .map-shell.is-focused .atlas-map-hint,.bft-atlas .map-shell.is-sidebar-open :is(.atlas-map-hint,.atlas-no-results){display:none}.bft-atlas .desenho-style-panel{top:auto;bottom:20px;left:12px;right:12px;width:auto;max-height:65%;z-index:1200}.bft-atlas .map-detail-panel{width:100%;max-height:55dvh}}
+@media(max-width:600px){.atlas-heading{gap:8px}.atlas-compass{width:25px;height:30px}.atlas-heading p{font-size:7px;letter-spacing:.08em}.atlas-heading h1{font-size:22px}.atlas-topbar{padding:0 12px}.atlas-topbar-actions{gap:6px}.atlas-button{padding:7px;min-width:34px}.atlas-button>span{display:none}.atlas-help summary{padding:7px;min-width:34px}.atlas-help summary>span:last-child{display:none}.atlas-help-panel{right:-1px;width:320px;padding:20px;max-height:calc(100dvh - var(--bft-header-height) - 90px)}.atlas-index-heading{padding:14px 15px 12px}.atlas-index-heading h2{font-size:25px}.bft-atlas .map-sidebar-tools{padding:12px 12px 0}.bft-atlas .map-index{padding:8px}.bft-atlas .map-layer-selector{left:100px;right:61px;max-width:calc(100% - 161px);max-height:140px}.bft-atlas .layer-selector-btn{font-size:9px;line-height:1.6;min-height:30px;gap:6px;padding:6px}.bft-atlas .layer-selector-btn svg{width:12px;height:12px}.bft-atlas :is(.map-place-title,.territory-title){font-size:27px}.bft-atlas .map-place-stats{gap:15px 13px}.bft-atlas .map-place-stat span{font-size:9px}.bft-atlas .map-modal{padding:18px}.bft-atlas .map-modal h2{font-size:24px}.bft-atlas .map-modal-actions{flex-wrap:wrap}.atlas-map-hint{font-size:8px;line-height:1.8}.bft-atlas .map-shell.is-sidebar-open .leaflet-control-zoom{visibility:hidden}}
+@media(prefers-reduced-motion:reduce){.bft-atlas :is(.map-sidebar,.map-overlay-layer,.map-pin,.territory-polygon,.territory-regions,.map-sidebar-mobile-toggle){transition:none!important;animation:none!important}}

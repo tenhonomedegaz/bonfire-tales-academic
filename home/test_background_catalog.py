@@ -1,0 +1,235 @@
+from django.test import TestCase
+from django.urls import reverse
+from django.contrib.staticfiles.testing import StaticLiveServerTestCase
+
+from .models import TbAntecedente
+
+
+class BackgroundCatalogTests(TestCase):
+    def test_rule_summary_is_collapsed_and_repeated_quote_is_shown_once(self):
+        quote = 'Uma longa citação que acompanha a história deste antecedente.'
+        TbAntecedente.objects.create(
+            nome='Viajante', slug='viajante', resumo=quote,
+            descricao=f'*"{quote}"*\n\nUma habilidade própria para viajar.',
+        )
+
+        response = self.client.get(reverse('jogador_antecedente'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '<details class="catalog-intro-box">')
+        self.assertNotContains(response, '<details class="catalog-intro-box" open')
+        markup = response.content.decode('utf-8')
+        self.assertLess(markup.index('</details>'), markup.index('</header>'))
+        self.assertLess(markup.index('</details>'), markup.index('class="catalog-grid background-grid"'))
+        self.assertContains(response, 'Regras básicas dos antecedentes')
+        self.assertContains(response, 'class="background-shell"')
+        self.assertContains(response, 'data-background="viajante"')
+        self.assertContains(response, 'id="background-data"')
+        self.assertEqual(response.context['items'][0]['resumo'], '')
+        self.assertContains(response, 'Uma habilidade própria para viajar.')
+
+    def test_distinct_summary_is_preserved(self):
+        TbAntecedente.objects.create(
+            nome='Artesão', slug='artesao',
+            resumo='Conhece as tradições de sua guilda.',
+            descricao='Seu ofício abre portas na cidade.',
+        )
+
+        response = self.client.get(reverse('jogador_antecedente'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['items'][0]['resumo'], 'Conhece as tradições de sua guilda.')
+        self.assertContains(response, 'Conhece as tradições de sua guilda.')
+
+
+    def test_other_catalog_keeps_generic_layout(self):
+        response = self.client.get(reverse('magias_escolas'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'class="catalog-shell"')
+        self.assertNotContains(response, 'class="background-shell"')
+
+
+class BackgroundCatalogBrowserTests(StaticLiveServerTestCase):
+    def test_direct_link_selection_search_and_history_on_mobile(self):
+        import json
+        import math
+        import shutil
+        import subprocess
+        import tempfile
+        import time
+        from pathlib import Path
+        from urllib.request import urlopen
+        from django.db import connection
+
+        if connection.vendor != 'postgresql' or not connection.settings_dict['NAME'].startswith('test_'):
+            self.skipTest('Requer PostgreSQL de teste isolado.')
+        try:
+            import websocket
+        except ImportError:
+            self.skipTest('websocket-client indisponível.')
+        chrome = shutil.which('chrome') or next((str(path) for path in (
+            Path(r'C:\Program Files\Google\Chrome\Application\chrome.exe'),
+            Path(r'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe'),
+        ) if path.exists()), None)
+        if not chrome:
+            self.skipTest('Chrome ou Edge indisponível.')
+
+        for name, slug, kind in [('Artesão', 'artesao', 'Ofício'), ('Eremita', 'eremita', 'Retiro'), ('Viajante', 'viajante', 'Ofício')]:
+            TbAntecedente.objects.create(nome=name, slug=slug, tipo=kind, descricao=f'História de {name}.')
+
+        with tempfile.TemporaryDirectory(prefix='bonfire-backgrounds-', ignore_cleanup_errors=True) as scratch:
+            profile = Path(scratch) / 'profile'
+            prefs = profile / 'Default' / 'Preferences'
+            prefs.parent.mkdir(parents=True)
+            prefs.write_text(json.dumps({
+                'partition': {'default_zoom_level': {'x': math.log(2) / math.log(1.2)}}
+            }), encoding='utf-8')
+            process = subprocess.Popen([
+                chrome, '--headless=new', '--no-sandbox', '--disable-gpu',
+                '--remote-debugging-port=0', '--remote-allow-origins=*',
+                f'--user-data-dir={profile}', '--window-size=800,900', 'about:blank',
+            ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            ws = None
+            try:
+                port_file = Path(profile) / 'DevToolsActivePort'
+                for _ in range(80):
+                    if port_file.exists():
+                        break
+                    time.sleep(.1)
+                self.assertTrue(port_file.exists())
+                port = port_file.read_text(encoding='utf-8').splitlines()[0]
+                with urlopen(f'http://127.0.0.1:{port}/json', timeout=5) as response:
+                    target = next(item for item in json.load(response) if item['type'] == 'page')
+                ws = websocket.create_connection(target['webSocketDebuggerUrl'], timeout=10)
+                sequence = 0
+
+                def js(expression):
+                    nonlocal sequence
+                    sequence += 1
+                    ws.send(json.dumps({'id': sequence, 'method': 'Runtime.evaluate', 'params': {
+                        'expression': expression, 'returnByValue': True,
+                    }}))
+                    while True:
+                        result = json.loads(ws.recv())
+                        if result.get('id') == sequence:
+                            self.assertNotIn('exceptionDetails', result['result'], expression)
+                            return result['result']['result'].get('value')
+
+                def cdp(method, params):
+                    nonlocal sequence
+                    sequence += 1
+                    ws.send(json.dumps({'id': sequence, 'method': method, 'params': params}))
+                    while True:
+                        result = json.loads(ws.recv())
+                        if result.get('id') == sequence:
+                            self.assertNotIn('error', result, method)
+                            return
+
+                def key(name, virtual_key, text=None):
+                    for event_type in ('keyDown', 'keyUp'):
+                        params = {'type': event_type, 'key': name, 'code': name,
+                                  'windowsVirtualKeyCode': virtual_key}
+                        if text and event_type == 'keyDown':
+                            params['text'] = text
+                        cdp('Input.dispatchKeyEvent', params)
+
+                def wait_for(expression):
+                    for _ in range(80):
+                        if js(expression):
+                            return
+                        time.sleep(.2)
+                    self.fail(f'Tempo esgotado: {expression}')
+
+                sequence += 1
+                ws.send(json.dumps({'id': sequence, 'method': 'Emulation.setDeviceMetricsOverride', 'params': {
+                    'width': 360, 'height': 800, 'deviceScaleFactor': 1, 'mobile': True,
+                }}))
+                while json.loads(ws.recv()).get('id') != sequence:
+                    pass
+                sequence += 1
+                ws.send(json.dumps({'id': sequence, 'method': 'Page.navigate', 'params': {
+                    'url': self.live_server_url + reverse('jogador_antecedente') + '#artesao',
+                }}))
+                while json.loads(ws.recv()).get('id') != sequence:
+                    pass
+                wait_for('document.querySelector(".background-detail:not([hidden]) .detail-title")?.textContent === "Artesão"')
+                self.assertFalse(js('!!document.querySelector(".background-index-item[data-slug=artesao] img")'))
+                self.assertTrue(js('!!document.querySelector(".background-index-item[data-slug=artesao] svg")'))
+                self.assertEqual(js('document.querySelectorAll(".background-index-item[aria-current=true]").length'), 1)
+                self.assertTrue(js('document.querySelector("#catalogSidebar").inert'))
+                self.assertEqual(js('document.querySelector("#catalogSidebar").getAttribute("aria-hidden")'), 'true')
+                js('document.querySelector("#catalogMobileMenuButton").focus()')
+                key('Enter', 13, '\r')
+                self.assertTrue(js('document.body.classList.contains("background-menu-open")'))
+                self.assertEqual(js('document.activeElement?.id'), 'catalogSearch')
+                self.assertFalse(js('document.querySelector("#catalogSidebar").inert'))
+                key('Escape', 27)
+                self.assertFalse(js('document.body.classList.contains("background-menu-open")'))
+                self.assertEqual(js('document.activeElement?.id'), 'catalogMobileMenuButton')
+                self.assertTrue(js('document.querySelector("#catalogSidebar").inert'))
+                js('document.querySelector("#catalogMobileMenuButton").click()')
+                self.assertTrue(js('document.body.classList.contains("background-menu-open")'))
+                js('document.querySelector(".background-index-item[data-slug=viajante]").click()')
+                wait_for('location.hash === "#viajante" && document.querySelector(".background-detail:not([hidden]) .detail-title")?.textContent === "Viajante"')
+                wait_for('document.querySelector(".background-index-item[data-slug=viajante] img")?.naturalWidth > 0')
+                wait_for('document.querySelector(".background-detail:not([hidden]) .background-detail-emblem img")?.naturalWidth > 0')
+                self.assertIn('/icons/antecedentes/24/viajante.png',
+                              js('document.querySelector(".background-index-item[data-slug=viajante] img").src'))
+                self.assertFalse(js('document.body.classList.contains("background-menu-open")'))
+                self.assertTrue(js('document.activeElement.classList.contains("detail-title")'))
+                js('document.querySelector("#catalogSearch").value = "Eremita"; document.querySelector("#catalogSearch").dispatchEvent(new Event("input", {bubbles:true}))')
+                wait_for('document.querySelectorAll(".background-index-item:not([hidden])").length === 1 && document.querySelector(".background-detail:not([hidden]) .detail-title")?.textContent === "Eremita"')
+                self.assertFalse(js('!!document.querySelector(".background-index-item[data-slug=eremita] img")'))
+                self.assertTrue(js('!!document.querySelector(".background-index-item[data-slug=eremita] svg")'))
+                self.assertTrue(js('location.search.includes("q=Eremita") && location.hash === "#eremita"'))
+                js('history.back()')
+                wait_for('location.hash === "#artesao" && document.querySelector(".background-detail:not([hidden]) .detail-title")?.textContent === "Artesão"')
+                self.assertEqual(js('document.querySelector("#catalogSearch").value'), '')
+                self.assertEqual(js('location.search'), '')
+                js('document.querySelector("#catalogType").value = "Retiro"; document.querySelector("#catalogType").dispatchEvent(new Event("change", {bubbles:true}))')
+                wait_for('location.search.includes("tipo=Retiro") && location.hash === "#eremita" && document.querySelector(".background-detail:not([hidden]) .detail-title")?.textContent === "Eremita"')
+                js('history.back()')
+                wait_for('location.hash === "#artesao" && document.querySelector(".background-detail:not([hidden]) .detail-title")?.textContent === "Artesão"')
+                self.assertEqual(js('document.querySelector("#catalogType").value'), '')
+                self.assertLessEqual(js('document.documentElement.scrollWidth'), js('innerWidth'))
+                js('location.assign("?tipo=Retiro#eremita")')
+                wait_for('document.querySelector("#catalogType")?.value === "Retiro" && document.querySelector(".background-detail:not([hidden]) .detail-title")?.textContent === "Eremita"')
+                sequence += 1
+                ws.send(json.dumps({'id': sequence, 'method': 'Emulation.clearDeviceMetricsOverride'}))
+                while json.loads(ws.recv()).get('id') != sequence:
+                    pass
+                js('location.assign("' + reverse('jogador_antecedente') + '#artesao")')
+                wait_for('document.querySelector(".background-detail:not([hidden]) .detail-title")?.textContent === "Artesão"')
+                self.assertAlmostEqual(js('devicePixelRatio'), 2, delta=.05)
+                self.assertEqual(js('visualViewport.scale'), 1)
+                self.assertFalse(js('document.querySelector(".catalog-intro-box").open'))
+                js('document.querySelector(".background-grid").scrollIntoView({behavior: "instant"})')
+                self.assertLess(js('document.querySelector(".background-grid").getBoundingClientRect().top'), js('innerHeight'))
+                self.assertLessEqual(js('document.documentElement.scrollWidth'), js('document.documentElement.clientWidth'))
+                cdp('Emulation.setEmulatedMedia', {
+                    'features': [{'name': 'prefers-reduced-motion', 'value': 'reduce'}],
+                })
+                self.assertTrue(js('matchMedia("(prefers-reduced-motion: reduce)").matches'))
+                self.assertEqual(js('getComputedStyle(document.querySelector(".background-index-item")).transitionDuration'), '0s')
+                self.assertEqual(js('getComputedStyle(document.querySelector(".background-index-item[aria-current=true]")).transform'), 'none')
+                cdp('Emulation.setDeviceMetricsOverride', {
+                    'width': 2560, 'height': 900, 'deviceScaleFactor': 1, 'mobile': False,
+                })
+                wait_for('!document.querySelector("#catalogSidebar").inert')
+                self.assertIsNone(js('document.querySelector("#catalogSidebar").getAttribute("aria-hidden")'))
+                cdp('Emulation.clearDeviceMetricsOverride', {})
+                wait_for('document.querySelector("#catalogSidebar").inert')
+                js('document.querySelector(".catalog-intro-box summary").click()')
+                self.assertTrue(js('document.querySelector(".catalog-intro-box").open'))
+                self.assertTrue(js('document.querySelector(".background-rules-content").getBoundingClientRect().height > 0'))
+                js('document.querySelector(".catalog-intro-box summary").click()')
+                self.assertFalse(js('document.querySelector(".catalog-intro-box").open'))
+            finally:
+                if ws:
+                    ws.close()
+                process.terminate()
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait(timeout=5)

@@ -1,0 +1,101 @@
+/* Progressive storefront filters and review. All prices/permissions remain server-side. */
+(() => {
+  'use strict';
+  for (const image of document.querySelectorAll('img[data-payer-avatar]')) {
+    const fallback = () => { image.hidden = true; };
+    image.addEventListener('error', fallback, { once: true });
+    if (image.complete && !image.naturalWidth) fallback();
+  }
+  const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR').trim();
+  const store = document.querySelector('[data-co-store]');
+  if (store) {
+    const search = store.querySelector('[data-co-search]');
+    const kind = store.querySelector('[data-co-kind]');
+    const items = [...store.querySelectorAll('[data-co-item]')];
+    const count = store.querySelector('[data-co-count]');
+    const empty = store.querySelector('[data-co-empty]');
+    function filter() {
+      let visible = 0;
+      for (const item of items) {
+        const matches = normalize(item.dataset.name).includes(normalize(search.value)) && (!kind.value || kind.value === item.dataset.kind);
+        item.hidden = !matches;
+        if (matches) visible++;
+      }
+      count.textContent = visible + (visible === 1 ? ' oferta' : ' ofertas');
+      empty.hidden = visible !== 0 || items.length === 0;
+    }
+    search.addEventListener('input', filter);
+    kind.addEventListener('change', filter);
+    for (const button of store.querySelectorAll('[data-co-reset]')) button.addEventListener('click', () => { search.value = ''; kind.value = ''; filter(); search.focus(); });
+    filter();
+  }
+  const dialog = document.getElementById('co-review');
+  for (const form of document.querySelectorAll('[data-subscription-plan]')) {
+    const plan = form.querySelector('[data-co-plan]');
+    const recurring = form.querySelector('input[value="recurring"]');
+    function syncPlan() {
+      const option = plan.selectedOptions[0];
+      const supportsRecurring = option.dataset.recurring === 'true';
+      recurring.disabled = !supportsRecurring;
+      form.querySelector('[data-co-recurring]').hidden = !supportsRecurring;
+      if (!supportsRecurring && recurring.checked) form.querySelector('input[value="single"]').checked = true;
+      const renews = recurring.checked && supportsRecurring;
+      form.dataset.product = form.dataset.tier + ' · ' + option.dataset.period;
+      form.dataset.amount = 'R$ ' + option.dataset.price + (renews ? '/mês' : '');
+      form.dataset.mode = renews ? 'Assinatura mensal recorrente' : 'Pagamento único · ' + option.dataset.period;
+      form.querySelector('[data-co-total]').textContent = form.dataset.amount + ' · ' + (renews ? 'renovação mensal' : 'total do período, sem renovação');
+    }
+    form.addEventListener('change', syncPlan);
+    syncPlan();
+  }
+  if (!dialog || typeof dialog.showModal !== 'function') return;
+  let pending = null;
+  let opener = null;
+  let approved = null;
+  const proceed = dialog.querySelector('[data-co-proceed]');
+  const accountTarget = dialog.querySelector('[data-co-account-target]');
+  const defaultAccount = accountTarget.querySelector('[data-co-account]').textContent.trim();
+  function review(form, button) {
+    if (!form.reportValidity()) return;
+    pending = form; opener = button;
+    dialog.querySelector('[data-co-product]').textContent = form.dataset.product || '';
+    dialog.querySelector('[data-co-amount]').textContent = form.dataset.amount || '';
+    dialog.querySelector('[data-co-mode]').textContent = form.dataset.mode || '';
+    const account = form.dataset.account || defaultAccount;
+    accountTarget.hidden = !account;
+    accountTarget.querySelector('[data-co-account-label]').textContent = form.dataset.accountLabel || 'Conta Bonfire que receberá o benefício:';
+    accountTarget.querySelector('[data-co-account]').textContent = account;
+    const character = form.querySelector('select[name="character"]');
+    const selected = character ? character.options[character.selectedIndex] : null;
+    const payer = form.querySelector('input[type="radio"][name="character"]:checked:not(:disabled)');
+    const payerLabel = payer ? payer.dataset.payerLabel : selected?.textContent;
+    dialog.querySelector('[data-co-note]').textContent = (form.dataset.note || '') + (payerLabel ? ' Personagem: ' + payerLabel + '.' : '');
+    const demo = form.hasAttribute('data-co-readonly');
+    dialog.querySelector('[data-co-demo]').hidden = !demo;
+    proceed.disabled = demo;
+    proceed.textContent = demo ? 'Desativado na prévia' : character || payer || form.dataset.mode === 'Resgate de evento' ? 'Confirmar resgate' : 'Continuar para o Asaas';
+    dialog.showModal();
+  }
+  for (const form of document.querySelectorAll('form[data-purchase-review]')) {
+    form.addEventListener('submit', event => {
+      if (approved === form && !form.hasAttribute('data-co-readonly')) { approved = null; return; }
+      event.preventDefault(); review(form, event.submitter);
+    });
+    const demoButton = form.querySelector('[data-co-review-demo]');
+    if (demoButton) demoButton.addEventListener('click', () => review(form, demoButton));
+  }
+  for (const close of dialog.querySelectorAll('[data-co-close]')) close.addEventListener('click', () => dialog.close());
+  dialog.addEventListener('close', () => {
+    // A close event from the previous review may arrive after this one opens.
+    if (dialog.open) return;
+    pending = null; approved = null;
+    if (opener) opener.focus();
+  });
+  proceed.addEventListener('click', () => {
+    const form = pending;
+    if (!form || form.hasAttribute('data-co-readonly') || !form.reportValidity()) return;
+    // Preserve the native method, action, target, CSRF and hidden fields.
+    pending = null; dialog.close(); approved = form;
+    form.requestSubmit();
+  });
+})();

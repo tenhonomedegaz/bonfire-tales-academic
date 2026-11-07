@@ -1,0 +1,25 @@
+{% extends 'home/gestao/shell.html' %}
+{% block gestao_content %}
+<header class="gestao-heading"><h1>Pessoas</h1></header>
+<form class="gestao-filters" method="get">
+  <div class="gestao-field gestao-grow"><label for="{{ search_form.q.id_for_label }}">{% if can_view_email %}Usuário, nome, Discord ou e-mail{% else %}Usuário, nome ou Discord{% endif %}</label>{{ search_form.q }}{{ search_form.q.errors }}</div>
+  <button class="gestao-button gestao-primary" type="submit">Buscar</button>
+  {% if request.GET.q %}<a class="gestao-button" href="{% url 'gestao:people' %}">Limpar busca</a>{% endif %}
+</form>
+<section class="gestao-section" id="results" aria-labelledby="results-title">
+  <div class="gestao-section-heading"><h2 id="results-title">{{ page_obj.paginator.count }} pessoa{{ page_obj.paginator.count|pluralize:'s' }}</h2></div>
+  {% if people_rows %}
+  <div class="gestao-table-wrap"><table class="gestao-table gestao-people-table">
+    <thead><tr><th scope="col">Pessoa</th><th scope="col">Discord</th><th scope="col">Cargos</th><th scope="col">Conta</th></tr></thead>
+    <tbody>{% for row in people_rows %}{% with person=row.person %}
+    <tr>
+      <td data-label="Pessoa"><a class="gestao-person-link" href="{{ row.url }}">{{ person.get_full_name|default:person.username }}</a><span class="gestao-subline">@{{ person.username }}</span>{% if can_view_email and person.email %}<span class="gestao-subline">{{ person.email }}</span>{% endif %}</td>
+      <td data-label="Discord">{% if person.profile.discord_username %}{{ person.profile.discord_username }}{% else %}<span class="gestao-muted">Não vinculado</span>{% endif %}{% if person.profile.discord_user_id %}<span class="gestao-subline">{{ person.profile.discord_user_id }}</span>{% endif %}</td>
+      <td data-label="Cargos"><div class="gestao-tags">{% if person.is_superuser %}<span class="gestao-status admin">Administrador</span>{% endif %}{% for group in person.groups.all %}<span class="gestao-status muted">{{ group.name }}</span>{% empty %}{% if not person.is_superuser %}<span class="gestao-muted">Sem cargo de equipe</span>{% endif %}{% endfor %}</div></td>
+      <td data-label="Conta"><span class="gestao-status {% if person.is_active %}success{% else %}warning{% endif %}">{% if person.is_active %}Ativa{% else %}Inativa{% endif %}</span></td>
+    </tr>
+    {% endwith %}{% endfor %}</tbody>
+  </table></div>
+  {% else %}<p class="gestao-empty">Nenhuma pessoa encontrada.</p>{% endif %}
+</section>
+{% endblock %}

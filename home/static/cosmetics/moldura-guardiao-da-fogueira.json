@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "slug": "moldura-guardiao-da-fogueira",
+  "type": "moldura",
+  "scope": "ambos",
+  "layers": [
+    {
+      "slot": "avatar",
+      "file": "community-frame-guardiao-da-fogueira-v1.webp",
+      "fallback": "community-frame-guardiao-da-fogueira-v1.png",
+      "width": 512,
+      "height": 512,
+      "motion": "none",
+      "aperture": {
+        "cx": 49.219,
+        "cy": 51.66,
+        "diameter": 61.144
+      }
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{% if mutagens %}
+<section aria-label="Fórmulas Mutagênicas" class="border rounded p-4 space-y-3">
+  <h2>Fórmulas Mutagênicas</h2>
+  {% for formula, transfer in mutagens.stigma_transfers.items %}<p>Estigma: {{ formula }} → {{ transfer.target }}. {% if transfer.active %}Alvo sofre o Efeito Colateral; você o ignora até o fim do turno {{ transfer.next_turn }}.{% else %}Transferência encerrada.{% endif %}</p>{% endfor %}
+  {% if mutagens.last_stigma_shape %}<p>Estigma: {{ mutagens.last_stigma_shape.target }} · Sabedoria {{ mutagens.last_stigma_shape.total }} contra CD {{ mutagens.last_stigma_shape.dc }}: mudança de forma {% if mutagens.last_stigma_shape.allowed %}permitida{% else %}impedida{% endif %}.</p>{% endif %}
+  {% if mutagens.level >= 6 %}<p>Supressão Alquímica: imunidade a dano de veneno. Uso {% if mutagens.suppression_used %}gasto{% else %}disponível{% endif %}; recupera no Descanso Longo ou por 2 Segredos.</p>{% endif %}
+  {% for formula, seconds in mutagens.suppressed.items %}<p>Efeito Colateral de {{ formula }} suprimido por {{ seconds }} segundos; benefício e toxicidade mantidos.</p>{% endfor %}
+  {% if mutagens.last_transfusion_hit %}<p>Último acerto da Transfusão: {{ mutagens.last_transfusion_hit.target }} · {{ mutagens.last_transfusion_hit.dice }} de dano {{ mutagens.last_transfusion_hit.damage_type }} · turno {{ mutagens.last_transfusion_hit.turn }}. Role e aplique esse dano adicional na mesa.</p>{% endif %}
+  {% if 'lagartixa-cicatrizante' in mutagens.active %}<p>Lagartixa-Cicatrizante: regeneração {% if mutagens.chimera_seconds %}durante a Forma Quimérica{% else %}por mais {{ mutagens.lizard_seconds }} segundos{% endif %}. Registre cada início de turno com identificação única da sessão, combate e turno. {% if mutagens.lizard_penalty %}Cura de outra criatura reduzida à metade; informe o valor antes da redução.{% endif %}</p>{% endif %}
+  {% if mutagens.last_healing %}<p>Última cura registrada: {{ mutagens.last_healing.amount }} PV; total {{ mutagens.last_healing.current }} PV.</p>{% endif %}
+  {% if mutagens.harpy_seconds and not mutagens.chimera_seconds %}<p>Harpia das Montanhas: {{ mutagens.harpy_seconds }} segundos de voo{% if mutagens.harpy_penalty %} e Desvantagem em ataques com armas{% endif %}.</p>{% endif %}
+  <p>Conhecidas: {{ mutagens.known|length }}/{{ mutagens.known_max }}. Limite de frascos preparados e de efeitos simultâneos: {{ mutagens.limit }}.</p>
+  {% if mutagens.chimera_seconds %}<p>Forma Quimérica: {{ mutagens.chimera_seconds }} segundos; apenas efeitos benéficos. Deslocamento de {{ mutagens.movement }} igual à caminhada; resistências: {{ mutagens.resistances|join:', ' }}.</p>{% endif %}
+  {% if mutagens.cooldown_seconds %}<p>Mutagênicos inativos por mais {{ mutagens.cooldown_seconds }} segundos; Forma Quimérica indisponível.</p>{% endif %}
+  {% for formula in mutagens.options %}{% if formula.id in mutagens.known %}
+  <details><summary>{{ formula.name }}{% if formula.id in mutagens.active %} — ativo{% elif formula.id in mutagens.prepared %} — preparado{% endif %}</summary><p>{{ formula.text }}</p></details>
+  {% endif %}{% endfor %}
+  <p>Consumo: Ação Bônus, com benefício e efeito colateral até iniciar descanso, salvo duração própria da fórmula. Purgação: Ação, encerrando todos os efeitos. Os efeitos condicionais são resolvidos na mesa.</p>
+  {% if mutagens_operation_id %}
+  <form method="post">
+    {% csrf_token %}<input type="hidden" name="action" value="mutagens">
+    <input type="hidden" name="version" value="{{ mutagens.version }}">
+    <input type="hidden" name="operation_id" value="{{ mutagens_operation_id }}">
+    <label>Evento <select name="mutagen_event">
+      <option value="learn">Aprender fórmulas</option><option value="prepare">Preparar após descanso</option>
+      <option value="consume">Consumir frasco</option><option value="purge">Purgar efeitos</option>
+      {% if mutagens.level >= 10 %}<option value="stigma_transfer">Estigma: transferir após crítico</option><option value="stigma_end">Estigma: fim do próximo turno</option><option value="stigma_shape">Estigma: resistência à mudança de forma</option>{% endif %}
+      {% if mutagens.level >= 6 %}<option value="suppress">Suprimir Efeito Colateral (Ação Bônus)</option><option value="recover_suppression">Recuperar Supressão (2 Segredos)</option>{% endif %}
+      {% if mutagens.level >= 14 %}<option value="transfuse">Transfusão Mutagênica (Ação Bônus)</option>{% endif %}
+      {% if mutagens.level >= 14 %}<option value="transfusion_hit">Transfusão: acerto na Presa Marcada (uma vez por turno)</option>{% endif %}
+      {% if 'lagartixa-cicatrizante' in mutagens.active %}<option value="regenerate">Lagartixa: início de turno</option><option value="external_heal">Lagartixa: receber cura de outra criatura</option>{% endif %}
+      <option value="elapsed">Avançar tempo</option>{% if mutagens.chimera_eligible %}<option value="chimera">Forma Quimérica (4 Segredos)</option>{% endif %}
+    </select></label>
+    <fieldset><legend>Seleção para aprender ou preparar</legend>{% for formula in mutagens.options %}
+      <label><input type="checkbox" name="formula_choice" value="{{ formula.id }}"> {{ formula.name }}</label>
+    {% endfor %}</fieldset>
+    <label>Frasco a consumir ou efeito ativo a suprimir <select name="formula"><option value="">Selecione</option>{% for formula in mutagens.options %}{% if formula.id in mutagens.prepared or formula.id in mutagens.active or formula.id in mutagens.stigma_transfers %}<option value="{{ formula.id }}">{{ formula.name }}</option>{% endif %}{% endfor %}</select></label>
+    {% if mutagens.level >= 14 %}<p>Transfusão: {{ mutagens.transfusion_used|default:0 }} usos gastos. Limite: modificador de INT ou SAB, mínimo 1; recupera no Descanso Longo.</p><label>Efeito a encerrar na Transfusão <select name="replaced_formula"><option value="">Selecione</option>{% for formula in mutagens.options %}{% if formula.id in mutagens.active %}<option value="{{ formula.id }}">{{ formula.name }}</option>{% endif %}{% endfor %}</select></label>{% endif %}
+    <label>Tempo decorrido em segundos <input type="number" name="seconds" min="0" max="86400" value="0"></label>
+    <label>Sessão, combate e turno <input name="mutagen_turn" maxlength="120"></label>
+    {% if mutagens.level >= 10 %}<p>Para transferir, identifique acima o próximo turno, cujo fim encerrará o efeito.</p><label><input type="checkbox" name="mutagen_critical" value="1"> Acerto crítico confirmado</label><label><input type="checkbox" name="mutagen_favored" value="1"> Alvo é Inimigo Favorito</label><label>Ataque <select name="mutagen_attack_kind"><option value="weapon">Arma</option><option value="unarmed">Golpe Desarmado</option></select></label><label>Total do teste de resistência de Sabedoria <input type="number" name="mutagen_save_total" value="0" min="-100" max="1000"></label>{% endif %}
+    {% if mutagens.level >= 10 %}<label>Presa Marcada atingida <input name="mutagen_target" maxlength="160"></label><label>Tipo do dano adicional <select name="mutagen_damage_type"><option value="concussivo">Concussivo</option><option value="cortante">Cortante</option><option value="perfurante">Perfurante</option><option value="necrotico">Necrótico</option><option value="veneno">Veneno</option></select></label>{% endif %}
+    {% if 'lagartixa-cicatrizante' in mutagens.active %}<label>Cura de outra criatura antes da redução <input type="number" name="healing_amount" min="0" max="100000" value="0"></label>{% endif %}
+    {% if mutagens.chimera_eligible %}<label>Movimento da Forma <select name="movement"><option value="voo">Voo</option><option value="natacao">Natação</option><option value="escalada">Escalada</option></select></label>
+    <fieldset><legend>Duas resistências da Forma</legend>{% for damage in mutagens.damage_types %}<label><input type="checkbox" name="resistance" value="{{ damage }}"> {{ damage }}</label>{% endfor %}</fieldset>{% endif %}
+    <label><input type="checkbox" name="confirmed" value="1" required> Confirmo a ação e as condições da mesa, incluindo Suprimentos de Alquimista para preparar.</label>
+    <button>Registrar mutagênicos</button>
+  </form>
+  {% endif %}
+</section>
+{% endif %}

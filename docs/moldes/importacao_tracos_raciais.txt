@@ -1,0 +1,36 @@
+[TRACOS]
+
+Nome: Nome do Traço Base da Raça
+Raca: slug-da-raca
+Nivel: 0
+Talento Racial: nao
+Descricao:
+Texto do traço em Markdown.
+
+---
+
+Nome: Nome do Traço da Linhagem
+Linhagem: slug-da-linhagem
+Nivel: 0
+Talento Racial: nao
+Descricao:
+Texto do traço em Markdown.
+
+---
+
+Nome: Nome do Talento Racial Opcional
+Raca: slug-da-raca
+Nivel: 4
+Talento Racial: sim
+Pre Requisito: Anão, nível 4
+Descricao:
+Texto do talento racial opcional em Markdown.
+
+---
+
+Nome: Nome do Traço de Essência
+Essencia: slug-da-essencia
+Nivel: 0
+Talento Racial: nao
+Descricao:
+Texto do traço em Markdown.

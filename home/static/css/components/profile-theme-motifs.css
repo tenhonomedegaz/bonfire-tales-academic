@@ -1,0 +1,325 @@
+/* Theme data only: patterns never change layout or intercept form actions. */
+:is([data-theme-motif], [data-motif]) {
+  --theme-motif-pattern: none;
+  --theme-motif-accent: var(--profile-accent-solid, var(--sheet-accent-solid, var(--pf-accent, #ccccd4)));
+  --theme-motif-surface: var(--profile-surface, var(--sheet-surface, #141418));
+  --theme-motif-deep: var(--profile-deep, var(--sheet-deep, #09090c));
+}
+
+:is([data-theme-motif="facets"], [data-motif="facets"]) {
+  --theme-motif-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='112' height='112' fill='none' stroke='%23fff' stroke-opacity='.10'%3E%3Cpath d='M0 0L56 24L112 0M0 56L56 24L80 80L112 56M0 112L24 80L56 112L80 80L112 112M0 56L24 80L56 24M80 80L56 112'/%3E%3C/svg%3E");
+}
+:is([data-theme-motif="runes"], [data-motif="runes"]) {
+  --theme-motif-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='112' height='112' fill='none' stroke='%23fff' stroke-opacity='.12' stroke-width='1.5'%3E%3Cpath d='M24 16V46M24 18L39 29L24 38M72 68V98M60 78L72 68L84 78M66 89H78M76 18L88 30L76 42L64 30Z'/%3E%3C/svg%3E");
+}
+:is([data-theme-motif="sun"], [data-motif="sun"]) {
+  --theme-motif-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='112' height='112' fill='none' stroke='%23fff' stroke-opacity='.12'%3E%3Ccircle cx='56' cy='56' r='17'/%3E%3Cpath d='M56 24V12M56 88V100M24 56H12M88 56H100M33 33L24 24M79 79L88 88M33 79L24 88M79 33L88 24'/%3E%3C/svg%3E");
+}
+:is([data-theme-motif="leaves"], [data-motif="leaves"]) {
+  --theme-motif-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='112' height='112' fill='none' stroke='%23fff' stroke-opacity='.11'%3E%3Cpath d='M12 100Q56 64 98 12M29 80Q8 47 55 43Q57 67 29 80ZM63 45Q60 11 98 12Q101 41 63 45ZM47 64Q83 57 91 80Q60 94 47 64Z'/%3E%3C/svg%3E");
+}
+:is([data-theme-motif="flames"], [data-motif="flames"]) {
+  --theme-motif-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='112' height='112' fill='none' stroke='%23fff' stroke-opacity='.12'%3E%3Cpath d='M32 92C5 76 46 57 31 28C66 48 44 59 59 68C67 57 64 42 73 35C66 66 106 80 81 97M38 99C27 86 47 78 49 68C55 84 75 87 65 100'/%3E%3C/svg%3E");
+}
+:is([data-theme-motif="thorns"], [data-motif="thorns"]) {
+  --theme-motif-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='112' height='112' fill='none' stroke='%23fff' stroke-opacity='.12'%3E%3Cpath d='M0 88L112 24M22 76L24 54L37 67M49 61L51 39L63 52M76 45L79 23L91 37M37 68L50 82L50 60M65 51L79 65L78 43'/%3E%3C/svg%3E");
+}
+:is([data-theme-motif="crystal"], [data-motif="crystal"]) {
+  --theme-motif-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='112' height='112' fill='none' stroke='%23fff' stroke-opacity='.13'%3E%3Cpath d='M56 10L79 32L72 82L56 103L40 82L33 32ZM33 32L56 43L79 32M56 10V103M40 82L56 72L72 82M8 53L17 42L25 55L19 77L10 70Z'/%3E%3C/svg%3E");
+}
+:is([data-theme-motif="moon"], [data-motif="moon"]) {
+  --theme-motif-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='112' height='112' fill='none' stroke='%23fff' stroke-opacity='.13'%3E%3Cpath d='M70 18A35 35 0 1 0 92 76A31 31 0 0 1 70 18Z'/%3E%3Cpath d='M23 19V27M19 23H27M91 18V30M85 24H97'/%3E%3C/svg%3E");
+}
+:is([data-theme-motif="eclipse"], [data-motif="eclipse"]) {
+  --theme-motif-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='112' height='112' fill='none' stroke='%23fff' stroke-opacity='.12'%3E%3Ccircle cx='56' cy='56' r='24'/%3E%3Cpath d='M36 26A36 36 0 0 1 86 76M56 17V8M95 56H104M56 95V104M17 56H8M83 29L92 20M29 83L20 92'/%3E%3C/svg%3E");
+}
+:is([data-theme-motif="bats"], [data-motif="bats"]) {
+  --theme-motif-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='112' height='112' fill='none' stroke='%23fff' stroke-opacity='.14'%3E%3Cpath d='M10 39Q31 45 47 58L51 47L56 53L61 47L65 58Q81 45 102 39Q90 54 94 69Q81 61 74 77Q64 69 56 86Q48 69 38 77Q31 61 18 69Q22 54 10 39Z'/%3E%3C/svg%3E");
+}
+
+:is(.profile-page, .public-profile-page, .ficha)[data-theme-motif]:not([data-theme-motif="none"]) :is(.profile-header, .public-profile-banner, .ficha-header) {
+  background-image: var(--theme-motif-pattern);
+  background-size: 112px 112px;
+  background-repeat: repeat;
+}
+.tema-swatch[data-motif][data-accent] .tema-swatch-bar {
+  background-image: var(--theme-motif-pattern), linear-gradient(100deg, var(--tsw-accent), var(--tsw-accent2));
+  background-size: 56px 56px, cover;
+}
+.tema-swatch[data-motif][data-accent] .tema-swatch-mini {
+  background-image: var(--theme-motif-pattern);
+  background-size: 56px 56px;
+}
+
+/* Override the private editor's fixed red without changing public site chrome. */
+.bft-profile #profile-root:not(.theme-bonfire)[data-theme-motif] {
+  --pf-accent: var(--profile-accent-solid, var(--profile-accent));
+  --pf-accent-2: var(--profile-accent-2);
+}
+.bft-profile #profile-root:not(.theme-bonfire)[data-theme-motif] > .profile-header.profile-hero {
+  background-color: var(--theme-motif-surface);
+  background-image: var(--theme-motif-pattern), linear-gradient(110deg,
+    color-mix(in srgb, var(--theme-motif-accent) 16%, var(--theme-motif-deep)), var(--theme-motif-surface) 80%);
+  background-size: 112px 112px, cover;
+  border-color: color-mix(in srgb, var(--theme-motif-accent) 48%, var(--theme-motif-surface));
+}
+.bft-profile #profile-root:not(.theme-bonfire)[data-theme-motif] > .profile-header::before {
+  background: var(--theme-motif-accent);
+}
+.bft-profile #profile-root:not(.theme-bonfire)[data-theme-motif] :is(.profile-nav, .profile-save-bar) {
+  background: color-mix(in srgb, var(--theme-motif-surface) 96%, transparent);
+  border-color: color-mix(in srgb, var(--theme-motif-accent) 45%, var(--theme-motif-surface));
+}
+.bft-profile #profile-root:not(.theme-bonfire)[data-theme-motif] :is(.profile-nav a, .profile-save-bar > span) {
+  color: color-mix(in srgb, var(--theme-motif-accent) 35%, #f3f3f5);
+}
+.bft-profile #profile-root:not(.theme-bonfire)[data-theme-motif] .profile-nav a:is(:hover, :focus-visible) {
+  background: color-mix(in srgb, var(--theme-motif-accent) 15%, var(--theme-motif-deep));
+  border-color: var(--theme-motif-accent);
+  color: #f3f3f5;
+}
+.bft-profile #profile-root:not(.theme-bonfire)[data-theme-motif] .profile-btn {
+  background: color-mix(in srgb, var(--theme-motif-accent) 28%, var(--theme-motif-surface));
+  border-color: color-mix(in srgb, var(--theme-motif-accent) 65%, var(--theme-motif-surface));
+  color: #f3f3f5;
+}
+.bft-profile #profile-root:not(.theme-bonfire)[data-theme-motif] .profile-btn:hover {
+  background: color-mix(in srgb, var(--theme-motif-accent) 38%, var(--theme-motif-surface));
+}
+.bft-profile #profile-root:not(.theme-bonfire)[data-theme-motif] :is(.profile-kicker, .profile-public-link) {
+  color: var(--theme-motif-accent);
+}
+.bft-profile #profile-root:not(.theme-bonfire) :is(.profile-input, .profile-file-drop, .profile-checkbox-group, .perfil-preview-pane, .perfil-preview-head, .perfil-preview-stage, .profile-account-grid>.profile-section, .profile-social-list, .mh-profile-tabs) {
+  border-color: color-mix(in srgb, var(--theme-motif-accent) 38%, var(--theme-motif-surface));
+}
+.bft-profile #profile-root:not(.theme-bonfire) :is(.perfil-preview-pane, .profile-account-grid>.profile-section) {
+  background: var(--theme-motif-surface);
+}
+.bft-profile #profile-root:not(.theme-bonfire) .mh-profile-tabs a[aria-current=page] {
+  background: color-mix(in srgb, var(--theme-motif-accent) 14%, var(--theme-motif-deep));
+  border-color: var(--theme-motif-accent);
+  color: #f3f3f5;
+}
+.bft-profile #profile-root:not(.theme-bonfire) :is(.perfil-preview-toggle, .avatar-preview-hint a) {
+  color: var(--theme-motif-accent);
+}
+.bft-profile #profile-root:not(.theme-bonfire) :is(a,button,summary):focus-visible {
+  outline-color: var(--theme-motif-accent);
+}
+
+/* Large authored compositions, independent of the chosen effect or rank artwork. */
+[data-profile-motif="facets"] { --theme-scene-art: url("../../cosmetics/theme-scene-facets.svg"); }
+[data-profile-motif="runes"] { --theme-scene-art: url("../../cosmetics/theme-scene-runes.svg"); }
+[data-profile-motif="sun"] { --theme-scene-art: url("../../cosmetics/theme-scene-sun.svg"); }
+[data-profile-motif="leaves"] { --theme-scene-art: url("../../cosmetics/theme-scene-leaves.svg"); }
+[data-profile-motif="flames"] { --theme-scene-art: url("../../cosmetics/theme-scene-flames.svg"); }
+[data-profile-motif="thorns"] { --theme-scene-art: url("../../cosmetics/theme-scene-thorns.svg"); }
+[data-profile-motif="crystal"] { --theme-scene-art: url("../../cosmetics/theme-scene-crystal.svg"); }
+[data-profile-motif="moon"] { --theme-scene-art: url("../../cosmetics/theme-scene-moon.svg"); }
+[data-profile-motif="eclipse"] { --theme-scene-art: url("../../cosmetics/theme-scene-eclipse.svg"); }
+[data-profile-motif="bats"] { --theme-scene-art: url("../../cosmetics/theme-scene-bats.svg"); }
+
+.profile-theme-scene,
+.profile-theme-scene * { pointer-events: none !important; user-select: none; }
+.profile-theme-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  contain: layout paint;
+  container-type: size;
+  --scene-accent: var(--profile-accent-solid, var(--profile-accent, var(--sheet-accent-solid, var(--sheet-accent, #b5a6d7))));
+  --scene-secondary: var(--profile-accent-2, var(--sheet-accent-2, var(--scene-accent)));
+  /* The center remains transparent, even when the title is not positioned. */
+  -webkit-mask-image: linear-gradient(90deg, transparent calc(100% - 180px), #000 calc(100% - 110px)),
+    linear-gradient(#000 0 18px, transparent 32px calc(100% - 32px), #000 calc(100% - 18px));
+  mask-image: linear-gradient(90deg, transparent calc(100% - 180px), #000 calc(100% - 110px)),
+    linear-gradient(#000 0 18px, transparent 32px calc(100% - 32px), #000 calc(100% - 18px));
+}
+.profile-theme-emblem {
+  display: block;
+  position: absolute;
+  top: 50%;
+  right: -22px;
+  width: 210px;
+  height: 210px;
+  margin-top: -105px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--scene-accent) 55%, #fff), var(--scene-accent) 60%, transparent);
+  -webkit-mask: var(--theme-scene-art) center / contain no-repeat;
+  mask: var(--theme-scene-art) center / contain no-repeat;
+  opacity: .65;
+  transform-origin: 70% 50%;
+  animation: motif-inscription 14s ease-in-out infinite alternate;
+}
+.profile-theme-fringe {
+  display: block;
+  position: absolute;
+  inset: auto 0 0;
+  height: 22px;
+  border-bottom: 1px solid color-mix(in srgb, var(--scene-accent) 65%, transparent);
+  background: var(--scene-accent);
+  -webkit-mask: var(--theme-scene-art) right -12px bottom -108px / 280px 280px no-repeat;
+  mask: var(--theme-scene-art) right -12px bottom -108px / 280px 280px no-repeat;
+  opacity: .55;
+}
+[data-profile-motif="runes"] .profile-theme-emblem { animation-name: motif-astrolabe; right: -44px; }
+[data-profile-motif="sun"] .profile-theme-emblem { right: -50px; width: 240px; height: 240px; margin-top: -120px; }
+[data-profile-motif="leaves"] .profile-theme-emblem,
+[data-profile-motif="thorns"] .profile-theme-emblem { top: 0; margin-top: 0; height: 100%; right: -6px; animation-name: motif-branches; }
+[data-profile-motif="flames"] .profile-theme-emblem { top: auto; bottom: -18px; margin: 0; right: -12px; animation-name: motif-forge; }
+[data-profile-motif="crystal"] .profile-theme-emblem { top: auto; bottom: -14px; margin: 0; right: -14px; animation-name: motif-forge; }
+[data-profile-motif="moon"] .profile-theme-emblem { right: -46px; transform: rotate(-12deg); }
+[data-profile-motif="bats"] .profile-theme-emblem { top: -12px; margin: 0; right: -20px; animation-name: motif-branches; }
+.cosmetic-has-banner > .profile-theme-scene { opacity: .22; }
+
+/* Three bounded, filled figures per motif; their SVG inscription stays shared. */
+.profile-theme-mote {
+  position: absolute;
+  display: block;
+  top: -7px;
+  left: calc(6% + var(--motif-index) * 34%);
+  width: 34px;
+  height: 34px;
+  opacity: .95;
+  --motif-fill: polygon(50% 0, 88% 36%, 72% 100%, 28% 100%, 12% 36%);
+  animation: motif-sigil-drift 9s ease-in-out infinite alternate;
+  animation-delay: calc(var(--motif-index) * -2.8s);
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--scene-accent) 60%, transparent));
+}
+.profile-theme-mote::before,
+.profile-theme-mote::after { content: ""; position: absolute; inset: 0; }
+.profile-theme-mote::before {
+  background: linear-gradient(130deg, color-mix(in srgb, var(--scene-accent) 75%, #fff), var(--scene-accent) 55%, var(--scene-secondary));
+  clip-path: var(--motif-fill);
+}
+.profile-theme-mote::after {
+  background: color-mix(in srgb, var(--scene-secondary) 45%, #fff);
+  -webkit-mask: var(--theme-scene-art) center / contain no-repeat;
+  mask: var(--theme-scene-art) center / contain no-repeat;
+  opacity: .8;
+}
+[data-profile-motif="runes"] .profile-theme-mote {
+  --motif-fill: polygon(50% 0, 86% 25%, 86% 75%, 50% 100%, 14% 75%, 14% 25%);
+  animation-name: motif-sigil-turn;
+}
+[data-profile-motif="leaves"] .profile-theme-mote {
+  top: -40px;
+  left: auto;
+  right: calc(4px + var(--motif-index) * 12px);
+  width: 25px;
+  height: 38px;
+  --motif-fill: polygon(88% 0, 96% 28%, 84% 60%, 58% 84%, 10% 100%, 4% 70%, 17% 34%, 45% 12%);
+  animation: motif-leaf-fall 7s linear infinite;
+  animation-delay: calc(var(--motif-index) * -2.33s);
+}
+[data-profile-motif="flames"] .profile-theme-mote {
+  top: auto;
+  bottom: -7px;
+  width: 30px;
+  height: 52px;
+  transform-origin: 50% 100%;
+  --motif-fill: polygon(52% 0, 62% 29%, 52% 48%, 72% 36%, 92% 62%, 94% 82%, 76% 100%, 23% 100%, 5% 80%, 13% 56%, 29% 38%, 30% 68%, 43% 47%);
+  animation: motif-flame-flicker 2.1s ease-in-out infinite alternate;
+  animation-delay: calc(var(--motif-index) * -.7s);
+}
+[data-profile-motif="crystal"] .profile-theme-mote,
+[data-profile-motif="facets"] .profile-theme-mote {
+  top: auto;
+  bottom: -8px;
+  width: 28px;
+  height: 48px;
+  animation-name: motif-prism-glint;
+  animation-duration: 4.5s;
+}
+[data-profile-motif="crystal"] .profile-theme-mote::after,
+[data-profile-motif="facets"] .profile-theme-mote::after {
+  background: linear-gradient(110deg, transparent 25%, #fff 48%, transparent 72%) 160% 0 / 300% 100%;
+  animation: motif-prism-sweep 4.5s ease-in-out infinite;
+  animation-delay: calc(var(--motif-index) * -1.5s);
+}
+[data-profile-motif="sun"] .profile-theme-mote {
+  top: -17px;
+  width: 62px;
+  height: 62px;
+  animation: motif-solar-turn 28s linear infinite;
+  animation-delay: calc(var(--motif-index) * -9s);
+}
+[data-profile-motif="sun"] .profile-theme-mote::before {
+  clip-path: none;
+  -webkit-mask: var(--theme-scene-art) center / contain no-repeat;
+  mask: var(--theme-scene-art) center / contain no-repeat;
+}
+[data-profile-motif="bats"] .profile-theme-mote {
+  top: 2px;
+  left: auto;
+  right: -54px;
+  width: 46px;
+  height: 26px;
+  --motif-fill: polygon(0 5%, 35% 32%, 41% 10%, 50% 25%, 59% 10%, 65% 32%, 100% 5%, 88% 60%, 73% 52%, 66% 84%, 50% 70%, 34% 84%, 27% 52%, 12% 60%);
+  animation: motif-bat-flight 10s linear infinite;
+  animation-delay: calc(var(--motif-index) * -3.33s);
+}
+[data-profile-motif="bats"] .profile-theme-mote::before { animation: motif-wingbeat .7s ease-in-out infinite alternate; }
+[data-profile-motif="moon"] .profile-theme-mote,
+[data-profile-motif="eclipse"] .profile-theme-mote {
+  top: 0;
+  left: auto;
+  right: calc(12px + var(--motif-index) * 17px);
+  width: 36px;
+  height: 36px;
+  --motif-fill: polygon(72% 0, 50% 5%, 28% 17%, 14% 37%, 10% 58%, 20% 80%, 41% 96%, 65% 100%, 87% 88%, 98% 68%, 81% 75%, 62% 71%, 47% 58%, 42% 38%, 51% 17%);
+  animation: motif-lunar-orbit 12s ease-in-out infinite;
+  animation-delay: calc(var(--motif-index) * -4s);
+}
+[data-profile-motif="moon"] .profile-theme-mote::before,
+[data-profile-motif="eclipse"] .profile-theme-mote::before { animation: motif-lunar-phase 12s ease-in-out infinite; animation-delay: inherit; }
+[data-profile-motif="eclipse"] .profile-theme-mote::before {
+  clip-path: none;
+  -webkit-mask: var(--theme-scene-art) center / contain no-repeat;
+  mask: var(--theme-scene-art) center / contain no-repeat;
+}
+[data-profile-motif="thorns"] .profile-theme-mote {
+  top: auto;
+  bottom: -5px;
+  --motif-fill: polygon(0 10%, 42% 38%, 82% 0, 62% 45%, 100% 86%, 51% 65%, 13% 100%, 33% 52%);
+  animation-name: motif-thorn-grow;
+}
+@keyframes motif-sigil-drift { from { transform: translate(-12px, 0) rotate(-12deg); } to { transform: translate(12px, 8px) rotate(12deg); } }
+@keyframes motif-sigil-turn { from { transform: rotate(0deg) scale(.75); } to { transform: rotate(90deg) scale(1); } }
+@keyframes motif-leaf-fall { from { transform: translate(0, -12px) rotate(-25deg); } to { transform: translate(-8px, calc(100cqh + 56px)) rotate(95deg); } }
+@keyframes motif-flame-flicker { 0%, 100% { transform: scale(.8, .7) skewX(-7deg); } 45% { transform: scale(1, 1.1) skewX(5deg); } 72% { transform: scale(.9, .85) skewX(-3deg); } }
+@keyframes motif-prism-glint { 0%, 100% { transform: translateY(3px); filter: brightness(.9); } 50% { transform: translateY(-5px); filter: brightness(1.5); } }
+@keyframes motif-prism-sweep { 0%, 45% { background-position: 160% 0; } 85%, 100% { background-position: -60% 0; } }
+@keyframes motif-solar-turn { to { transform: rotate(360deg); } }
+@keyframes motif-bat-flight { from { transform: translateX(0); } to { transform: translateX(calc(-100cqw - 60px)); } }
+@keyframes motif-wingbeat { from { transform: scaleY(.55); } to { transform: scaleY(1); } }
+@keyframes motif-lunar-orbit { 0%, 100% { transform: translate(0, 0) rotate(-15deg); } 50% { transform: translate(-4px, calc(100cqh - 38px)) rotate(30deg); } }
+@keyframes motif-lunar-phase { 0%, 100% { opacity: 1; filter: brightness(1.2); } 50% { opacity: .35; filter: brightness(.6); } }
+@keyframes motif-thorn-grow { from { transform: scale(.65) rotate(-12deg); } to { transform: scale(1.1) rotate(15deg); } }
+[data-profile-effects-paused] .profile-theme-mote,
+[data-profile-effects-paused] .profile-theme-mote::before,
+[data-profile-effects-paused] .profile-theme-mote::after { animation-play-state: paused !important; }
+@media (prefers-reduced-motion: reduce) {
+  .profile-theme-mote { animation: none !important; transform: none !important; top: 2px !important; bottom: auto !important; }
+  .profile-theme-mote::before,
+  .profile-theme-mote::after { animation: none !important; transform: none !important; }
+}
+
+@keyframes motif-inscription { from { opacity: .4; } to { opacity: .75; } }
+@keyframes motif-astrolabe { from { transform: rotate(-6deg); opacity: .5; } to { transform: rotate(6deg); opacity: .8; } }
+@keyframes motif-branches { from { transform: skewX(-2deg); } to { transform: skewX(2deg); } }
+@keyframes motif-forge { from { transform: translateY(4px); opacity: .45; } to { transform: translateY(-3px); opacity: .8; } }
+[data-profile-effects-paused] .profile-theme-emblem { animation-play-state: paused !important; }
+@media (max-width: 600px) {
+  .profile-theme-scene {
+    -webkit-mask-image: linear-gradient(90deg, transparent calc(100% - 64px), #000 calc(100% - 20px)),
+      linear-gradient(#000 0 18px, transparent 32px calc(100% - 32px), #000 calc(100% - 18px));
+    mask-image: linear-gradient(90deg, transparent calc(100% - 64px), #000 calc(100% - 20px)),
+      linear-gradient(#000 0 18px, transparent 32px calc(100% - 32px), #000 calc(100% - 18px));
+  }
+  .profile-theme-emblem { width: 160px; height: 160px; margin-top: -80px; right: -24px; }
+  [data-profile-motif="sun"] .profile-theme-emblem { width: 180px; height: 180px; margin-top: -90px; }
+}
+@media (prefers-reduced-motion: reduce) { .profile-theme-emblem { animation: none !important; transform: none !important; } }
+@media (forced-colors: active), print { .profile-theme-scene { display: none; } }

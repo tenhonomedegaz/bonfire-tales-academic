@@ -1,0 +1,19 @@
+{% extends 'home/base.html' %}
+{% load static %}
+{% block body_class %}bft-classes{% endblock %}
+{% block main_class %}flex-1 w-full bft-classes-main{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/classe_detail.css' %}?v=12"><script src="{% static 'js/classes.js' %}?v=5" defer></script>{% endblock %}
+{% block content %}
+<div class="class-shell">
+{% if class_preview %}<p class="class-preview-notice">Prévia local · Conteúdo do acervo de testes do projeto, não sincronizado com a publicação atual. Sem conexão ao banco oficial.</p>{% endif %}
+<button type="button" class="class-mobile-menu-toggle" data-class-menu-toggle aria-controls="classSidebar" aria-expanded="false" aria-label="Abrir lista de classes"><span class="open-icon" aria-hidden="true">☰</span><span class="close-icon" aria-hidden="true">×</span><span>Classes</span></button>
+<div class="class-mobile-backdrop" data-class-menu-close></div>
+<div class="class-detail-layout">
+  <aside id="classSidebar" class="class-sidebar">
+    <div class="class-sidebar-heading"><h2>Classes</h2><a href="{% url 'classes' %}" data-class-route>Ver catálogo <span aria-hidden="true">↗</span></a></div>
+    <div class="class-sidebar-search"><label for="classSearch">Buscar classe</label><div><input id="classSearch" type="search" placeholder="Nome ou atributo" aria-controls="classNav" aria-describedby="classSearchStatus"></div><span id="classSearchStatus" role="status" aria-live="polite"></span><button type="button" id="classSearchClear" class="hidden">Limpar busca</button></div>
+    <nav id="classNav" aria-label="Lista de classes">{% for item in all_classes %}<a href="{% url 'classe_detail' slug=item.slug %}" data-search="{{ item.nome }} {{ item.tagline }} {{ item.atributo_principal }}" data-attribute="{{ item.atributo_principal }}"{% if item.id_classe == classe.id_classe %} aria-current="page"{% endif %} class="class-nav-item"><span class="class-nav-emblem">{% include 'home/components/class_emblem.html' with slug=item.slug variant='nav' %}</span><span>{{ item.nome }}</span><span class="class-nav-arrow" aria-hidden="true">↗</span></a>{% endfor %}</nav>
+  </aside>
+  <section class="min-w-0 class-main" data-class-main aria-label="Catálogo e detalhes de classe"><div id="ajax-content-inner">{% include 'home/partials/class_main.html' %}</div></section>
+</div></div>
+{% endblock %}

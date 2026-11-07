@@ -1,0 +1,38 @@
+<div id="ficha-concessoes-dinamico" style="flex:1 1 100%">
+  {% if concessao_msg == 'ok' %}<p class="lvl-note-ok">Item concedido ao inventário (sem custo de ouro).</p>{% endif %}
+  {% if concessao_msg == 'revertido' %}<p class="lvl-note-ok">Concessão revertida: item removido do inventário.</p>{% endif %}
+  {% if concessao_msg == 'invalido' %}<p class="lvl-note-cap">Item não encontrado no catálogo.</p>{% endif %}
+  {% if concessao_msg == 'base_item' %}<p class="lvl-note-cap">Escolha o item-base exigido por esta variante mágica.</p>{% endif %}
+  {% if concessao_msg == 'rev_invalido' %}<p class="lvl-note-cap">Essa linha não é uma concessão reversível.</p>{% endif %}
+  {% if concessao_msg == 'rev_em_uso' %}<p class="lvl-note-cap">Desequipe/dessintonize o item antes de reverter a concessão.</p>{% endif %}
+  {% if concessoes %}
+    <div class="lvl-ledger">
+      <table class="lvl-ledger__table">
+        <thead>
+          <tr><th>Item</th><th>Qtd</th><th>Origem</th><th>Quando</th><th>Por</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for c in concessoes %}
+            <tr>
+              <td>{{ c.nome }}{% if c.id_item_magico_id %} <span class="lvl-revtag">(mágico)</span>{% endif %}</td>
+              <td>{{ c.qtd }}</td>
+              <td>{{ c.origem_nota|default:"—" }}</td>
+              <td>{{ c.concedido_em|date:"d/m/y H:i" }}</td>
+              <td>{{ c.concedido_por.username|default:"—" }}</td>
+              <td>
+                {% if c.equipado or c.sintonizado %}
+                  <span class="lvl-revtag" title="Desequipe/dessintonize antes de reverter">em uso</span>
+                {% else %}
+                  <form method="post" action="{% url 'personagem_reverter_concessao' p.id_personagem c.id %}" style="display:inline" data-concessao-reverter onsubmit="return confirm('Reverter a concessão de {{ c.qtd }}× “{{ c.nome|escapejs }}”? O item sai do inventário do personagem.');">
+                    {% csrf_token %}
+                    <button type="submit" class="lvl-revbtn">Reverter</button>
+                  </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>

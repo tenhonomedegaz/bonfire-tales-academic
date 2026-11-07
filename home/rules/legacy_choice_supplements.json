@@ -1,0 +1,89 @@
+{
+  "schema": 1,
+  "pages": [
+    {
+      "page_sha256": "e7b3537066b3b3028d162f0e65bb35b24c5fd0c2a2b4960c9babe9005a0edd6b",
+      "choice_kind": "caracteristica_totemica",
+      "reference_path": "ref/Classes/Caçador in Bonfire Tales RPG _ World Anvil.html",
+      "options": [
+        {
+          "slug": "alcance_estendido",
+          "name": "Alcance Estendido",
+          "description": "O alcance dos ataques corpo a corpo do espírito aumenta em 1,5 metro [5 pés] .",
+          "min_class_level": 6
+        },
+        {
+          "slug": "ecolocalizacao",
+          "name": "Ecolocalização",
+          "description": "O espírito ganha Visão às Cegas com alcance de 9 metros [30 pés] . Ele perde esse benefício se estiver Surdo .",
+          "min_class_level": 6
+        },
+        {
+          "slug": "forma_aumentada",
+          "name": "Forma Aumentada",
+          "description": "O tamanho do espírito torna-se Grande . Ele ganha Vantagem em testes de Força feitos para empurrar, agarrar ou escapar de um agarrão.",
+          "min_class_level": 6
+        },
+        {
+          "slug": "investida",
+          "name": "Investida",
+          "description": "Se o espírito se mover pelo menos 6 metros [20 pés] em linha reta em direção a um alvo e acertá-lo com um ataque corpo a corpo no mesmo turno, o alvo sofre 1d8 de dano extra do mesmo tipo da arma. Se o alvo for uma criatura, ela deve realizar um Teste de Resistência de Força contra a sua CD de Segredos de Caçador . Em uma falha, o alvo fica Caído .",
+          "min_class_level": 6
+        },
+        {
+          "slug": "robustez_espiritual",
+          "name": "Robustez Espiritual",
+          "description": "O máximo de Pontos de Vida do espírito aumenta em um valor igual a 2 x seu Nível de Caçador . Este bônus é retroativo e aumenta conforme você sobe de nível.",
+          "min_class_level": 6
+        },
+        {
+          "slug": "sopro_elemental",
+          "name": "Sopro Elemental",
+          "description": "Quando você comandar o espírito a atacar, você pode substituir o ataque pelo uso de um sopro. O espírito exala energia em um Cone de 18 metros [30 pés] . Cada criatura na área deve realizar um Teste de Resistência de Destreza contra sua CD de Segredos de Caçador . Em uma falha, sofre dano igual a um número de Dados de Caçador igual ao seu modificador de Sabedoria ou Inteligência (mínimo de 1 dado ). Em um sucesso, sofre metade do dano. O tipo de dano é Ácido , Elétrico , Fogo , Frio ou Trovão (escolhido no momento do uso). Uma vez usada, essa característica não pode ser usada novamente até você terminar um Descanso Curto ou Descanso Longo .",
+          "min_class_level": 6
+        }
+      ]
+    }
+  ],
+  "tag_supplements": [
+    {
+      "feature_pk": 1469,
+      "subclass_pk": 139,
+      "old_tag": "instant{ resist:pick:1(reset:short_rest|long_rest) }",
+      "new_tags": [
+        "pick:resistencia_infera:1(={acido|concussivo|cortante|perfurante|frio|energia|eletrico|necrotico|veneno|psiquico|radiante|trovejante},swap:short_or_long)",
+        "always_active{ resist:pick:resistencia_infera }"
+      ],
+      "source": "PO 2026-10-14: qualquer tipo exceto fogo, inclusive f?sicos"
+    }
+  ],
+  "description_supplements": [
+    {
+      "feature_pk": 1200,
+      "subclass_pk": 132,
+      "source": "PO 2026-10-14: Grasping Vine 4, Wall of Thorns 6, Erupting Earth 3",
+      "replacements": [
+        [
+          "| 5º | 3º | Onda de Maré [Tidal Wave] TCM | Muralha de Areia [Wall of Sand] TCM | Videira Apreensora [Grasping Vine] | Aceleração [Haste] |",
+          "| 5º | 3º | Onda de Maré [Tidal Wave] TCM | Muralha de Areia [Wall of Sand] TCM | - | Aceleração [Haste] |"
+        ],
+        [
+          "| 7º | 4º | [Esfera Aquosa](tbMagia, esfera-aquosa) [Watery Sphere] TCM | Terreno Alucinatório [Hallucinatory Terrain] | [Muralha de Espinhos](tbMagia, muralha-de-espinhos) [Wall of Thorns] | Liberdade de Movimento [Freedom of Movement] |",
+          "| 7º | 4º | [Esfera Aquosa](tbMagia, esfera-aquosa) [Watery Sphere] TCM | Terreno Alucinatório [Hallucinatory Terrain] | [Vinha Restritiva](tbMagia, vinha-restritiva) [Grasping Vine] | Liberdade de Movimento [Freedom of Movement] |"
+        ],
+        [
+          "| 9º | 5º | [Voragem](tbMagia, voragem) [Maelstrom] TCM | [Voragem](tbMagia, voragem) [Maelstrom] | [Passo Arbóreo](tbMagia, passo-arboreo) [Tree Stride] | Passo Longínquo [Far Step] TCM |",
+          "| 9º | 5º | [Voragem](tbMagia, voragem) [Maelstrom] TCM | [Voragem](tbMagia, voragem) [Maelstrom] | [Passo Arbóreo](tbMagia, passo-arboreo) [Tree Stride] | Passo Longínquo [Far Step] TCM |\n| 11º | 6º | - | - | [Muralha de Espinhos](tbMagia, muralha-de-espinhos) [Wall of Thorns] | - |"
+        ],
+        [
+          "| 5º | 3º | Invocar Relâmpagos [Call Lightning] | [Nuvem Fétida](tbMagia, nuvem-fetida) [Stinking Cloud] | Lentidão [Slow] | Inimigos por Toda Parte [Enemies Abound] TCM |",
+          "| 5º | 3º | Invocar Relâmpagos [Call Lightning] | [Nuvem Fétida](tbMagia, nuvem-fetida) [Stinking Cloud] | Lentidão [Slow] | Inimigos por Toda Parte [Enemies Abound] TCM |\n| 5º | 3º | [Terra Eruptiva](tbMagia, terra-eruptiva) [Erupting Earth] TCM | - | - | - |"
+        ],
+        [
+          "| 7º | 4º | Pilares de Terra [Erupting Earth] TCM | [Inseto Gigante](tbMagia, inseto-gigante) [Giant Insect] | [Tempestade de Gelo](tbMagia, tempestade-de-gelo) [Ice Storm] | Moldar Rochas [Stone Shape] |",
+          "| 7º | 4º | - | [Inseto Gigante](tbMagia, inseto-gigante) [Giant Insect] | [Tempestade de Gelo](tbMagia, tempestade-de-gelo) [Ice Storm] | Moldar Rochas [Stone Shape] |"
+        ]
+      ]
+    }
+  ]
+}

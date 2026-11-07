@@ -1,0 +1,221 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/admin/tag_library.css' %}">
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Início</a> &rsaquo; Biblioteca de Tags</div>
+{% endblock %}
+
+{% block content %}
+<main class="taglib-shell">
+  <header class="taglib-titlebar">
+    <div>
+      <p class="taglib-eyebrow">DSL mecânico</p>
+      <h1>Biblioteca de Tags</h1>
+      <p>Vocabulário, operações e contratos efetivamente lidos pelo motor.</p>
+    </div>
+    <div class="taglib-title-actions">
+      <a class="button" href="{% url 'admin:tag_library_download' %}">Baixar JSON ativo</a>
+      <a class="button" href="#editor-json">Editor completo</a>
+    </div>
+  </header>
+
+  <section class="taglib-status" aria-label="Estado da biblioteca">
+    <div><span>Fonte do motor</span><strong>{% if library_source == 'database' %}Banco de dados{% else %}Arquivo do projeto{% endif %}</strong></div>
+    <div><span>Revisão ativa</span><strong>{% if active_revision %}#{{ active_revision.pk }} · {{ active_revision.nome }}{% else %}Fallback versionado{% endif %}</strong></div>
+    <div><span>Verbos</span><strong>{{ primitive_rows|length }}</strong></div>
+    <div><span>Operações genéricas</span><strong>{{ operations|length }}</strong></div>
+    <div><span>Catálogos</span><strong>{{ catalogs|length }}</strong></div>
+  </section>
+
+  {% if selected_revision and not selected_revision.ativa %}
+  <div class="taglib-notice is-history">
+    Visualizando a revisão histórica #{{ selected_revision.pk }}. A consulta abaixo não representa a versão atualmente executada.
+    <a href="{% url 'admin:tag_library' %}">Voltar para a ativa</a>
+  </div>
+  {% endif %}
+
+  {% if report %}
+  <section class="taglib-report {% if report.valid %}is-valid{% else %}is-invalid{% endif %}">
+    <div>
+      <strong>{% if report.valid %}Validação aprovada{% else %}Validação recusada{% endif %}</strong>
+      <span>Checksum {{ report.checksum|slice:':12' }}</span>
+    </div>
+    <dl>
+      <div><dt>Linhas verificadas</dt><dd>{{ report.usage.tag_lines }}</dd></div>
+      <div><dt>Erros existentes</dt><dd>{{ report.usage.errors }}</dd></div>
+      <div><dt>Novos erros</dt><dd>{{ report.usage.new_errors }}</dd></div>
+      <div><dt>Avisos</dt><dd>{{ report.usage.warnings }}</dd></div>
+    </dl>
+    {% if report.lint %}
+    <details><summary>Diagnósticos da biblioteca</summary><ul>{% for item in report.lint %}<li class="is-{{ item.level|lower }}">{{ item.level }} · {{ item.message }}</li>{% endfor %}</ul></details>
+    {% endif %}
+    {% if report.usage.new_error_examples %}
+    <details open><summary>Regressões encontradas</summary><ul>{% for item in report.usage.new_error_examples %}<li><code>{{ item.model }}#{{ item.pk }}</code> · {{ item.code }} · {{ item.message }} <code>{{ item.fragment }}</code></li>{% endfor %}</ul></details>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  <div class="taglib-workspace">
+    <section class="taglib-browser">
+      <div class="taglib-section-head">
+        <div><h2>Primitivas</h2><p>Cada verbo aponta para uma operação e um destino genéricos.</p></div>
+        <div class="taglib-search"><label for="taglib-search">Buscar</label><input id="taglib-search" type="search" placeholder="verbo, operação, destino ou descrição"></div>
+      </div>
+      <div class="taglib-table-wrap">
+        <table class="taglib-table">
+          <thead><tr><th>Verbo</th><th>Forma</th><th>Operação</th><th>Destino</th><th>Contrato</th><th></th></tr></thead>
+          <tbody id="taglib-primitive-list">
+          {% for row in primitive_rows %}
+            <tr data-search="{{ row.name }} {{ row.category }} {{ row.form }} {{ row.op }} {{ row.target }} {{ row.doc }}">
+              <td><code>{{ row.name }}</code><small>{{ row.category }}</small></td>
+              <td>{{ row.form|default:'—' }}</td>
+              <td><code>{{ row.op|default:'validação' }}</code></td>
+              <td><code>{{ row.target|default:'automático' }}</code></td>
+              <td><p>{{ row.doc|default:'Sem documentação.' }}</p>{% for example in row.examples %}<code class="taglib-example">{{ example }}</code>{% endfor %}</td>
+              <td><button type="button" class="button taglib-edit-primitive" data-name="{{ row.name }}">Editar</button></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="6">Nenhuma primitiva cadastrada.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <aside class="taglib-editor" id="primitive-editor">
+      <div class="taglib-section-head">
+        <div><h2 id="primitive-editor-title">Nova primitiva</h2><p>Mapeia um verbo para uma operação existente.</p></div>
+        <button type="button" class="button" id="primitive-new">Limpar</button>
+      </div>
+      <form method="post" id="primitive-form">
+        {% csrf_token %}
+        <input type="hidden" name="primitive_original" id="primitive-original">
+        <label>Verbo<input required name="primitive_name" id="primitive-name" pattern="[a-z][a-z0-9_]*" placeholder="bonus_pericia"></label>
+        <div class="taglib-form-grid">
+          <label>Categoria<input name="primitive_category" id="primitive-category" placeholder="A4"></label>
+          <label>Forma<select name="primitive_form" id="primitive-form-kind"><option value="">Selecione</option>{% for row in token_forms %}<option value="{{ row.name }}">{{ row.name }}</option>{% endfor %}</select></label>
+          <label>Operação<select name="primitive_op" id="primitive-op"><option value="">Somente validação</option>{% for row in operations %}<option value="{{ row.name }}">{{ row.name }}</option>{% endfor %}</select></label>
+          <label>Destino<input name="primitive_target" id="primitive-target" placeholder="pericia.bonus"></label>
+          <label>Tipo do valor<input name="primitive_value_type" id="primitive-value-type" placeholder="formula, enum, ref"></label>
+          <label>Catálogo<input name="primitive_catalog" id="primitive-catalog" list="taglib-catalogs" placeholder="skill"></label>
+        </div>
+        <datalist id="taglib-catalogs">{% for name in catalogs %}<option value="{{ name }}">{% endfor %}</datalist>
+        <label>Documentação<textarea required name="primitive_doc" id="primitive-doc" rows="7"></textarea></label>
+        <label>Exemplos, um por linha<textarea name="primitive_examples" id="primitive-examples" rows="4"></textarea></label>
+        <label>Motivo da alteração<textarea required minlength="5" name="reason" rows="3" placeholder="O que mudou e por quê"></textarea></label>
+        <label>Nome da revisão<input name="revision_name" placeholder="Ajustar interpretação de ..."></label>
+        <div class="taglib-form-actions">
+          <button type="submit" class="button default" name="action" value="save_primitive">Validar e ativar</button>
+          <button type="submit" class="button deletelink" name="action" value="delete_primitive" id="primitive-delete" disabled>Remover verbo</button>
+        </div>
+      </form>
+    </aside>
+  </div>
+
+  <section class="taglib-sandbox">
+    <div class="taglib-section-head"><div><h2>Testar interpretação</h2><p>Mostra exatamente quais operações e destinos o motor produz.</p></div></div>
+    <form method="post" class="taglib-sandbox-form">
+      {% csrf_token %}
+      <label>Tags, uma por linha<textarea name="test_tags" rows="5" placeholder="always_active&#10;resist:fogo">{% if test_result %}{{ test_result.tags_text }}{% endif %}</textarea></label>
+      <button class="button" name="action" value="test_tags">Interpretar</button>
+    </form>
+    {% if test_result %}
+    <div class="taglib-sandbox-result">
+      <div><h3>Operações</h3>{% for row in test_result.operations %}<p><code>{{ row.verb }}</code> → <code>{{ row.op }}</code> em <code>{{ row.target }}</code> · valor <code>{{ row.value }}</code>{% if not row.active %} · runtime{% endif %}</p>{% empty %}<p>Nenhuma operação foi produzida.</p>{% endfor %}</div>
+      <div><h3>Estado resultante</h3><pre>{{ test_result.state_json }}</pre></div>
+    </div>
+    {% if test_result.diagnostics %}<ul class="taglib-sandbox-diags">{% for item in test_result.diagnostics %}<li>{{ item.level }} · {{ item.code }} · {{ item.message }}</li>{% endfor %}</ul>{% endif %}
+    {% endif %}
+  </section>
+
+  <section class="taglib-operations">
+    <details>
+      <summary>Operações disponíveis no motor</summary>
+      <div class="taglib-operation-grid">{% for row in operations %}<article><code>{{ row.name }}</code><strong>{{ row.signature }}</strong><p>{{ row.doc }}</p></article>{% endfor %}</div>
+    </details>
+  </section>
+
+  <section class="taglib-json-editor" id="editor-json">
+    <div class="taglib-section-head"><div><h2>Editor JSON completo</h2><p>Edita catálogos, operações, eventos, seletores e demais contratos.</p></div><code>{{ editor_checksum|slice:':12' }}</code></div>
+    <form method="post">
+      {% csrf_token %}
+      <textarea name="library_json" aria-label="Biblioteca de tags em JSON" spellcheck="false" rows="32">{{ editor_json }}</textarea>
+      <div class="taglib-json-meta">
+        <label>Nome da revisão<input name="revision_name" placeholder="Revisão do vocabulário"></label>
+        <label>Motivo da alteração<textarea name="reason" minlength="5" rows="3" placeholder="Obrigatório para ativar"></textarea></label>
+      </div>
+      <div class="taglib-form-actions">
+        <button class="button" name="action" value="validate_json">Somente validar</button>
+        <button class="button default" name="action" value="activate_json">Validar e ativar</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="taglib-history">
+    <div class="taglib-section-head"><div><h2>Histórico</h2><p>Cada ativação preserva autor, justificativa, validação e conteúdo integral.</p></div></div>
+    <div class="taglib-table-wrap">
+      <table class="taglib-table">
+        <thead><tr><th>Revisão</th><th>Autor</th><th>Data</th><th>Validação</th><th>Motivo</th><th></th></tr></thead>
+        <tbody>{% for revision in revisions %}<tr>
+          <td><strong>#{{ revision.pk }} · {{ revision.nome }}</strong>{% if revision.ativa %}<span class="taglib-active-badge">Ativa</span>{% endif %}<small>{{ revision.checksum|slice:':12' }}</small></td>
+          <td>{{ revision.criada_por|default:'Sistema' }}</td>
+          <td>{{ revision.criada_em|date:'d/m/Y H:i' }}</td>
+          <td>{% if revision.validacao_json.valid %}Aprovada{% else %}Legada{% endif %}</td>
+          <td>{{ revision.motivo|default:'—' }}</td>
+          <td><a class="button" href="?revision={{ revision.pk }}">Consultar</a>{% if not revision.ativa %}<form method="post" class="taglib-reactivate">{% csrf_token %}<input type="hidden" name="revision_id" value="{{ revision.pk }}"><input required minlength="5" name="reason" aria-label="Motivo da reativação" placeholder="Motivo do rollback"><button class="button" name="action" value="activate_revision">Reativar</button></form>{% endif %}</td>
+        </tr>{% empty %}<tr><td colspan="6">Nenhuma revisão salva. O motor usa o arquivo do projeto.</td></tr>{% endfor %}</tbody>
+      </table>
+    </div>
+    <form method="post" class="taglib-file-restore">{% csrf_token %}<input required minlength="5" name="reason" aria-label="Motivo para restaurar o arquivo do projeto" placeholder="Motivo para restaurar o arquivo do projeto"><button class="button" name="action" value="activate_file">Validar e restaurar fallback</button></form>
+  </section>
+</main>
+
+{{ primitive_rows_json|json_script:"taglib-primitives-data" }}
+<script>
+(function () {
+  const rows = JSON.parse(document.getElementById('taglib-primitives-data').textContent || '[]');
+  const byName = Object.fromEntries(rows.map(row => [row.name, row]));
+  const fields = {
+    original: document.getElementById('primitive-original'),
+    name: document.getElementById('primitive-name'),
+    category: document.getElementById('primitive-category'),
+    form: document.getElementById('primitive-form-kind'),
+    op: document.getElementById('primitive-op'),
+    target: document.getElementById('primitive-target'),
+    value_type: document.getElementById('primitive-value-type'),
+    catalog: document.getElementById('primitive-catalog'),
+    doc: document.getElementById('primitive-doc'),
+    examples: document.getElementById('primitive-examples')
+  };
+  const title = document.getElementById('primitive-editor-title');
+  const remove = document.getElementById('primitive-delete');
+  function reset() {
+    Object.values(fields).forEach(field => field.value = '');
+    title.textContent = 'Nova primitiva';
+    remove.disabled = true;
+  }
+  function edit(name) {
+    const row = byName[name]; if (!row) return;
+    Object.keys(fields).forEach(key => {
+      fields[key].value = key === 'original' ? row.name : (key === 'examples' ? (row.examples || []).join('\n') : (row[key] || ''));
+    });
+    title.textContent = 'Editar ' + row.name;
+    remove.disabled = false;
+    document.getElementById('primitive-editor').scrollIntoView({behavior: 'smooth', block: 'start'});
+  }
+  document.querySelectorAll('.taglib-edit-primitive').forEach(button => button.addEventListener('click', () => edit(button.dataset.name)));
+  document.getElementById('primitive-new').addEventListener('click', reset);
+  document.getElementById('taglib-search').addEventListener('input', event => {
+    const query = event.target.value.trim().toLocaleLowerCase('pt-BR');
+    document.querySelectorAll('#taglib-primitive-list tr[data-search]').forEach(row => {
+      row.hidden = query && !row.dataset.search.toLocaleLowerCase('pt-BR').includes(query);
+    });
+  });
+})();
+</script>
+{% endblock %}

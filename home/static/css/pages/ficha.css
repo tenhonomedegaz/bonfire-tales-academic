@@ -1,0 +1,2271 @@
+/* ============================================================
+   Ficha de Personagem — layout estilo planilha clássica D&D 5e
+   Tema escuro premium (ember/flame/Cinzel). Apenas disposição;
+   as fórmulas de exibição vêm prontas do contexto Django.
+   ============================================================ */
+
+.ficha {
+  --sheet-accent: var(--ember);
+  --sheet-accent-2: var(--flame);
+  --sheet-surface: var(--bg1);
+  --sheet-deep: var(--bg0);
+  /* Cor SÓLIDA do acento: --sheet-accent pode chegar como linear-gradient (tema com
+     gradiente) e aí não serve em `color`/`border-color`. Todo filete, selo e foco novo
+     usa esta var — assim tema-dado/custom continuam mandando sem CSS extra. */
+  --ficha-accent: var(--sheet-accent-solid, var(--sheet-accent));
+  /* Acento SECUNDÁRIO. O builder de tema (`_theme_vars_style`) sempre emite
+     --sheet-accent-2 como cor chapada, então serve em qualquer contexto de cor. */
+  --ficha-accent-2: var(--sheet-accent-2);
+  /* Tinta de VALOR (números grandes, selos, moedas, badges de destaque). Ancorada no
+     ouro da marca por padrão — é a "tinta dourada" da folha, não o acento. Um tema
+     pode reescrevê-la sozinho declarando --sheet-gold (css_file do cosmético), sem
+     precisar de CSS novo aqui. */
+  --ficha-gold: var(--sheet-gold, var(--spark));
+  --gold: var(--ficha-gold);
+
+  /* ---- Escala NEUTRA da folha, agora DERIVADA da superfície do tema ----
+     Antes eram zinc chapados espalhados pelo arquivo (#18181b, #27272a, #52525b,
+     #09090b): não mudavam com o tema e deixavam spellbook, mochila, opções e
+     contadores "presos" no cinza do ember (era exatamente a queixa de "alguns
+     campos mudam de cor e outros não"). As porcentagens abaixo REPRODUZEM o zinc
+     antigo quando a superfície é a do tema basal bonfire (#101012), ou seja: no
+     padrão o pixel é o mesmo; em qualquer outro tema a folha inteira acompanha. */
+  --ficha-raise: color-mix(in srgb, var(--sheet-surface) 82%, #3f3f46);  /* ~ #18181b */
+  --ficha-line:  color-mix(in srgb, var(--sheet-surface) 51%, #3f3f46);  /* ~ #27272a */
+  --ficha-edge:  color-mix(in srgb, var(--sheet-surface) 12%, #5a5a64);  /* ~ #52525b */
+
+  /* ---- Cores SEMÂNTICAS ----
+     Dizem ESTADO, não estilo: sucesso, erro, magia inata, ponto místico. Ficam fora
+     do tema de propósito (verde tem que continuar verde), mas centralizadas aqui em
+     vez de repetidas em 20 seletores. */
+  --ficha-ok: #34d399;
+  --ficha-danger: #dc2626;
+  --ficha-innate: #ff4057;
+  --ficha-innate-fg: #ffb3bd;
+  --ficha-innate-soft: #ffe1e6;
+  --ficha-mystic: #39d0c8;
+  --ficha-mystic-fg: #9adbd7;
+  width: 100%;
+}
+
+/* A folha de mesa precisa de três colunas de verdade: esta página abre mão do teto
+   `max-w-5xl` do site (ver {% block main_class %} em ficha_detail.html). */
+.ficha-main { max-width: 1180px; }
+
+.ficha.theme-ember { --sheet-accent: #f59e0b; --sheet-accent-2: #7c2d12; --sheet-surface: #1b120f; --sheet-deep: #0e0a08; }
+.ficha.theme-arcane { --sheet-accent: #a78bfa; --sheet-accent-2: #06b6d4; --sheet-surface: #151223; --sheet-deep: #090914; }
+.ficha.theme-verdant { --sheet-accent: #34d399; --sheet-accent-2: #84cc16; --sheet-surface: #0e1a14; --sheet-deep: #07110c; }
+.ficha.theme-moonlit { --sheet-accent: #cbd5e1; --sheet-accent-2: #60a5fa; --sheet-surface: #10151f; --sheet-deep: #080b10; }
+/* Tema Personalizado: vars vêm de style inline VALIDADO server-side (só #rrggbb). */
+.ficha.theme-custom { --sheet-accent-solid: var(--sheet-accent); }
+
+/* Imagem de fundo da ficha (ficha_background_url) — cover fixo + overlay do tema. */
+.ficha-bg-media {
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    background-position: center;
+    background-size: cover;
+    background-attachment: fixed;
+}
+.ficha-bg-media::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+        radial-gradient(120% 90% at 50% -10%, color-mix(in srgb, var(--ficha-accent) 20%, transparent), transparent 60%),
+        linear-gradient(180deg, color-mix(in srgb, var(--sheet-deep) 76%, transparent), color-mix(in srgb, var(--sheet-deep) 93%, transparent));
+}
+
+/* ===== Folha central com DESFOQUE do fundo ==============================
+   Pedido do PO: "a div principal (parte mais ao centro) precisa de um blur
+   desfocando a imagem de fundo, pra não desviar atenção".
+
+   `ficha-has-bg` é classe CONDICIONAL no template (só com ficha_background_url):
+   sem imagem de fundo a folha continua exatamente sólida como hoje.
+
+   O backdrop-filter vive na FOLHA inteira (o container central), não em cada
+   painel — assim as frestas entre os painéis também saem desfocadas; com o
+   blur por painel, os vãos mostrariam a imagem nítida, que é justamente o que
+   desvia a atenção. Os painéis ficam translúcidos só o bastante pra o desfoque
+   atravessar sem lavar o texto.
+
+   Vars continuam mandando: tudo deriva de --sheet-deep/--sheet-surface, que o
+   tema-dado/custom reescrevem inline. As partículas (::before dos painéis,
+   z-index 2) seguem por cima, intactas. */
+.ficha.ficha-has-bg {
+    -webkit-backdrop-filter: blur(12px) saturate(115%);
+    backdrop-filter: blur(12px) saturate(115%);
+    background-color: color-mix(in srgb, var(--sheet-deep) 34%, transparent);
+    border-radius: 14px;
+    padding: 0.55rem;
+}
+
+.ficha.ficha-has-bg .ficha-panel {
+    /* background-COLOR (e não o atalho): preserva as camadas de
+       background-image que o perfil-fx.css põe nesses mesmos painéis. */
+    background-color: color-mix(in srgb, var(--sheet-surface) 86%, transparent);
+}
+
+.ficha.ficha-has-bg .ficha-header {
+    background:
+        radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--ficha-accent-2) 14%, transparent), transparent 55%),
+        linear-gradient(180deg, color-mix(in srgb, var(--sheet-surface) 86%, transparent), color-mix(in srgb, var(--sheet-deep) 88%, transparent));
+}
+
+/* Fallback: navegador sem backdrop-filter recebe superfície mais opaca — o
+   fundo continua nítido atrás, então quem garante legibilidade é a opacidade. */
+@supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
+    .ficha.ficha-has-bg { background-color: color-mix(in srgb, var(--sheet-deep) 80%, transparent); }
+    .ficha.ficha-has-bg .ficha-panel { background-color: color-mix(in srgb, var(--sheet-surface) 97%, transparent); }
+}
+
+/* O desligamento na IMPRESSÃO mora no bloco de impressão do fim do arquivo.
+   Este CSS tem um único bloco de impressão, e ele é o último de propósito: os
+   testes de layout fatiam o arquivo nesse ponto para separar tela de papel —
+   um segundo bloco (ou até esta menção literal) cortaria a folha no lugar
+   errado e sumiria com metade das regras de tela. */
+
+/* ---------- Cabeçalho ---------- */
+.ficha-header {
+  position: relative;
+  border: 1px solid var(--stroke);
+  border-radius: 12px;
+  background:
+    radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--ficha-accent-2) 14%, transparent), transparent 55%),
+    linear-gradient(180deg, var(--sheet-surface, var(--bg1)), var(--sheet-deep, var(--bg0)));
+  padding: 0.7rem 0.75rem;
+  overflow: hidden;
+}
+.ficha-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--sheet-accent-2), var(--ficha-accent));
+  height: 3px;
+  z-index: 2;
+}
+
+.ficha-banner-media {
+  position: absolute;
+  inset: 0;
+  background-position: center;
+  background-size: cover;
+  opacity: 0.42;
+  z-index: 0;
+}
+
+.ficha-banner-media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--sheet-deep), color-mix(in srgb, var(--sheet-surface) 78%, transparent));
+}
+
+.effect-soft-glow .ficha-header {
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34), 0 0 36px color-mix(in srgb, var(--ficha-accent) 22%, transparent);
+}
+
+.effect-glass .ficha-header,
+.effect-glass .ficha-panel {
+  background: color-mix(in srgb, var(--sheet-surface) 84%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.effect-embers .ficha-header::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 15% 100%, color-mix(in srgb, var(--ficha-accent) 60%, transparent) 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at 42% 100%, color-mix(in srgb, var(--sheet-accent-2) 55%, transparent) 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at 68% 100%, color-mix(in srgb, var(--ficha-accent) 55%, transparent) 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at 88% 100%, color-mix(in srgb, var(--sheet-accent-2) 55%, transparent) 0 1.5px, transparent 2.5px);
+  background-size: 90px 160px, 130px 200px, 110px 180px, 150px 220px;
+  background-repeat: repeat-x;
+  opacity: 0.5;
+  animation: effect-embers-rise 6s linear infinite;
+}
+@keyframes effect-embers-rise {
+  from { background-position: 0 0, 0 0, 0 0, 0 0; }
+  to   { background-position: 0 -160px, 0 -200px, 0 -180px, 0 -220px; }
+}
+
+/* Aurora (novo) */
+.effect-aurora .ficha-header { position: relative; }
+.effect-aurora .ficha-header::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 10%,
+    color-mix(in srgb, var(--ficha-accent) 24%, transparent) 30%, transparent 45%,
+    color-mix(in srgb, var(--sheet-accent-2) 24%, transparent) 65%, transparent 85%);
+  background-size: 260% 260%;
+  mix-blend-mode: screen;
+  opacity: 0.5;
+  animation: effect-aurora-flow 12s ease-in-out infinite;
+}
+@keyframes effect-aurora-flow {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+
+/* Chuva de estrelas (novo) */
+.effect-starfall .ficha-header { position: relative; }
+.effect-starfall .ficha-header::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 20% 30%, #fff 0 1px, transparent 1.5px),
+    radial-gradient(circle at 70% 20%, color-mix(in srgb, var(--ficha-accent) 80%, #fff) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 45% 70%, #fff 0 1px, transparent 1.5px),
+    radial-gradient(circle at 85% 60%, color-mix(in srgb, var(--sheet-accent-2) 80%, #fff) 0 1px, transparent 1.5px);
+  background-size: 200px 200px, 240px 240px, 180px 180px, 220px 220px;
+  opacity: 0.55;
+  animation: effect-starfall-twinkle 3.5s ease-in-out infinite;
+}
+@keyframes effect-starfall-twinkle {
+  0%, 100% { opacity: 0.22; }
+  50%      { opacity: 0.7; }
+}
+
+/* Accent em degradê animado no tema custom da ficha. */
+.ficha.theme-custom .banner-btn.primary,
+.ficha.theme-custom .ficha-header::before {
+  background-size: 200% 200%;
+  animation: sheet-accent-shift 8s ease infinite;
+}
+@keyframes sheet-accent-shift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .frame-ember-ring, .frame-arcane-pulse, .frame-gold-trim, .frame-frost, .frame-verdant,
+  .frame-ember-ring::before, .frame-arcane-pulse::before, .frame-gold-trim::before,
+  .frame-frost::before, .frame-verdant::before,
+  .effect-embers .ficha-header::after,
+  .effect-aurora .ficha-header::after,
+  .effect-starfall .ficha-header::after,
+  .ficha.theme-custom .banner-btn.primary,
+  .ficha.theme-custom .ficha-header::before {
+    animation: none !important;
+  }
+}
+.ficha-name {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+  color: var(--text);
+  font-size: clamp(1.7rem, 1rem + 2.4vw, 2.6rem);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--ficha-accent-2) 35%, transparent);
+}
+
+/* ---------- Banner (cabeçalho estilo planilha) ---------- */
+.ficha-banner {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.55rem;
+  align-items: stretch;
+}
+@media (min-width: 900px) {
+  .ficha-banner { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.35fr); }
+}
+
+/* pergaminho à esquerda */
+.banner-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  background:
+    radial-gradient(140% 160% at 0% 0%, color-mix(in srgb, var(--ficha-accent) 12%, transparent), transparent 60%),
+    linear-gradient(180deg, var(--sheet-deep, var(--bg0)), var(--sheet-surface, var(--bg1)));
+  overflow: hidden;
+}
+
+.banner-scroll > :not(.ficha-banner-media) { position: relative; z-index: 1; }
+.ficha-title-line { display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap; }
+.banner-level-inline {
+  flex: none;
+  border: 1px solid color-mix(in srgb, var(--ficha-accent) 55%, var(--stroke));
+  border-radius: 999px;
+  padding: 0.2rem 0.5rem;
+  background: color-mix(in srgb, var(--sheet-deep) 82%, transparent);
+  color: var(--ficha-gold);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.banner-character-avatar {
+  display: grid;
+  place-items: center;
+  width: 74px;
+  height: 74px;
+  border: 2px solid var(--stroke);
+  border-radius: 50%;
+  background: var(--sheet-deep);
+  overflow: hidden;
+  color: var(--ficha-accent);
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 1.8rem;
+  font-weight: 800;
+}
+
+.banner-character-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.frame-ember-ring,
+.frame-arcane-pulse,
+.frame-gold-trim,
+.frame-frost,
+.frame-verdant { position: relative; }
+
+.frame-ember-ring::before,
+.frame-arcane-pulse::before,
+.frame-gold-trim::before,
+.frame-frost::before,
+.frame-verdant::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.frame-ember-ring {
+  border-color: #f97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.14), 0 0 22px rgba(249, 115, 22, 0.34);
+  animation: frame-ember-pulse 2.4s ease-in-out infinite;
+}
+.frame-ember-ring::before {
+  background: conic-gradient(from 0deg, transparent, #f97316, #fbbf24, transparent, #f97316, transparent);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+  animation: frame-spin 5s linear infinite;
+  opacity: 0.85;
+}
+@keyframes frame-ember-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.14), 0 0 18px rgba(249, 115, 22, 0.28); }
+  50%      { box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.28), 0 0 32px rgba(249, 115, 22, 0.52); }
+}
+
+.frame-arcane-pulse {
+  border-color: #a78bfa;
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.12), 0 0 24px rgba(167, 139, 250, 0.38);
+  animation: frame-arcane-breathe 3.2s ease-in-out infinite;
+}
+.frame-arcane-pulse::before {
+  background: conic-gradient(from 90deg, transparent, #06b6d4, #a78bfa, transparent, #a78bfa, transparent);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+  animation: frame-spin 7s linear infinite reverse;
+  opacity: 0.8;
+}
+@keyframes frame-arcane-breathe {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.12), 0 0 20px rgba(167, 139, 250, 0.32); }
+  50%      { box-shadow: 0 0 0 4px rgba(167, 139, 250, 0.24), 0 0 38px rgba(6, 182, 212, 0.48); }
+}
+
+.frame-gold-trim {
+  border-color: #facc15;
+  box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.2), inset 0 0 0 2px rgba(250, 204, 21, 0.15);
+}
+.frame-gold-trim::before {
+  background: conic-gradient(from 0deg, transparent 0deg, transparent 300deg, #fde68a 340deg, #fff 350deg, #facc15 360deg);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+  animation: frame-spin 3.5s linear infinite;
+}
+
+.frame-frost {
+  border-color: #7dd3fc;
+  box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.16), 0 0 24px rgba(224, 242, 254, 0.42);
+  animation: frame-arcane-breathe 4s ease-in-out infinite;
+}
+.frame-frost::before {
+  background: conic-gradient(from 45deg, transparent, #e0f2fe, #7dd3fc, transparent, #bae6fd, transparent);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+  animation: frame-spin 9s linear infinite;
+  opacity: 0.85;
+}
+
+.frame-verdant {
+  border-color: #4ade80;
+  box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.14), 0 0 22px rgba(132, 204, 22, 0.38);
+  animation: frame-ember-pulse 3s ease-in-out infinite;
+}
+.frame-verdant::before {
+  background: conic-gradient(from 210deg, transparent, #84cc16, #4ade80, transparent, #22c55e, transparent);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+  animation: frame-spin 6s linear infinite;
+  opacity: 0.82;
+}
+
+@keyframes frame-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.banner-classes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.55rem;
+  font-family: 'Frank Ruhl Libre', serif;
+}
+.banner-class {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ficha-accent);
+  letter-spacing: 0.02em;
+}
+.banner-class em { font-style: normal; color: var(--muted); font-weight: 600; }
+.banner-sep { color: var(--muted); }
+.banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+.banner-btn {
+  border: 1px solid var(--stroke);
+  border-radius: 7px;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+  white-space: nowrap;
+  transition: color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+.banner-btn:hover { color: var(--text); border-color: var(--ficha-accent); }
+.banner-btn.primary {
+  background: linear-gradient(135deg, var(--sheet-accent-2), var(--ficha-accent));
+  color: #fff;
+  font-weight: 700;
+  border-color: transparent;
+}
+.banner-btn.primary:hover { color: #fff; opacity: 0.92; }
+/* Subir de Nível — botão destacado com brilho pulsante quando elegível */
+.banner-btn-levelup {
+  background: linear-gradient(135deg, var(--ficha-accent-2), var(--ficha-accent));
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--ficha-accent-2) 55%, transparent);
+  animation: banner-lvl-pulse 2.2s ease-in-out infinite;
+}
+@keyframes banner-lvl-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ficha-accent-2) 45%, transparent); }
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--ficha-accent-2) 0%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) { .banner-btn-levelup { animation: none; } }
+.banner-nextlvl {
+  font-size: 0.78rem;
+  color: var(--muted);
+  border: 1px dashed var(--stroke);
+  border-radius: 7px;
+  padding: 0.35rem 0.7rem;
+  white-space: nowrap;
+  align-self: center;
+}
+
+/* bloco de identidade à direita */
+.banner-identity {
+  display: block;
+  gap: 0.5rem;
+  align-items: stretch;
+  position: relative;
+  z-index: 1;
+}
+.banner-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+  min-width: 0;
+}
+.banner-field {
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  background: var(--sheet-deep, var(--bg0));
+  padding: 0.4rem 0.6rem;
+  min-width: 0;
+}
+.banner-field.wide { grid-column: 1 / -1; }
+.banner-field .lbl {
+  display: block;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  font-weight: 700;
+}
+.banner-field .val {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.25;
+  word-break: break-word;
+}
+.banner-field .val-muted { color: var(--muted); font-weight: 600; }
+
+.banner-rank-field,
+.banner-progress-field { display: flex; align-items: center; gap: 0.55rem; }
+.banner-rank-field > span,
+.banner-progress-field > span { min-width: 0; flex: 1; }
+.banner-rank-icon {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  object-fit: contain;
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--ficha-accent) 40%, transparent));
+}
+.banner-progress-field > span + span {
+  border-left: 1px solid var(--stroke);
+  padding-left: 0.55rem;
+}
+
+@media (max-width: 520px) {
+  .banner-fields { grid-template-columns: 1fr; }
+}
+
+/* ---------- Cartões genéricos / molduras ---------- */
+.ficha-panel {
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  background: var(--sheet-surface, var(--bg1));
+  padding: 0.85rem 0.9rem;
+}
+.ficha-section-title {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.72rem;
+  color: var(--ficha-accent);
+  border-bottom: 1px solid var(--stroke);
+  padding-bottom: 0.35rem;
+  margin-bottom: 0.6rem;
+}
+
+/* ---------- COLUNA DOS ATRIBUTOS (onda F, densidade restaurada) ----------
+   A folha clássica tem UMA coluna estreita à esquerda: os atributos no alto e, logo
+   abaixo, salvaguardas e perícias. As CAIXAS mantêm o tamanho da ficha antiga (~150px,
+   min-height 76px): numa coluna de ~310px isso dá DUAS por linha — três fileiras curtas
+   em vez de uma tira de seis caixas esticadas (feedback do PO: tudo compacto). */
+.attr-skills {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.55rem;
+  align-items: start;
+}
+
+.attr-stack {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* row-gap é o MÍNIMO que acomoda o selo do modificador: ele vaza ~8px abaixo da caixa,
+     então abaixo de ~0.8rem a pílula encosta na fileira seguinte (medido: 1px de folga). */
+  gap: 0.85rem 0.45rem;
+}
+@media (min-width: 520px) and (max-width: 1023px) { .attr-stack { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+.attr-side { display: grid; grid-template-columns: 1fr; gap: 0.55rem; }
+@media (min-width: 680px) and (max-width: 1023px) {
+  .attr-side { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+  .attr-side .attr-stat-row { grid-column: 1 / -1; }
+}
+
+.attr-box {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  background: linear-gradient(180deg, var(--sheet-surface, var(--bg1)), var(--sheet-deep, var(--bg0)));
+  text-align: center;
+  padding: 0.5rem 0.4rem 0.95rem;
+  min-height: 76px;
+}
+/* filete de acento no topo da caixa — mesma assinatura do cabeçalho da ficha */
+.attr-box::before {
+  content: "";
+  position: absolute;
+  inset: 0 26% auto;
+  height: 2px;
+  border-radius: 0 0 3px 3px;
+  background: linear-gradient(90deg, transparent, var(--ficha-accent), transparent);
+  opacity: 0.8;
+}
+.attr-box .attr-sig {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+/* VALOR grande no miolo (como no PDF); o modificador é o selo oval da base */
+.attr-box .attr-score {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.05;
+}
+.attr-box .attr-mod {
+  position: absolute;
+  bottom: -0.7rem;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 2.3rem;
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  background: var(--sheet-deep, var(--bg0));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--ficha-gold);
+  padding: 0.1rem 0.45rem;
+}
+
+/* mini stats (prof / percepção passiva) acima das listas */
+.attr-stat-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+.attr-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  background: var(--sheet-deep, var(--bg0));
+  padding: 0.4rem 0.55rem;
+  text-align: center;
+}
+.attr-stat .lbl {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-weight: 700;
+}
+.attr-stat .v {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.1;
+}
+.attr-stat .v.spark { color: var(--ficha-gold); }
+
+/* ---------- Listas de salvaguardas / perícias ---------- */
+.line-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.15rem 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--ficha-line) 60%, transparent);
+  font-size: 0.85rem;
+}
+.line-row:last-child { border-bottom: 0; }
+.line-row .name { color: var(--muted); min-width: 0; }
+.line-row .val { font-weight: 700; color: var(--text); white-space: nowrap; }
+
+.prof-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  margin-right: 0.35rem;
+  border: 1px solid var(--muted);
+  vertical-align: middle;
+}
+.prof-dot.on { background: var(--ficha-accent); border-color: var(--ficha-accent); box-shadow: 0 0 6px color-mix(in srgb, var(--ficha-accent) 60%, transparent); }
+.prof-dot.exp { background: var(--ficha-gold); border-color: var(--ficha-gold); box-shadow: 0 0 6px color-mix(in srgb, var(--ficha-gold) 70%, transparent); }
+
+/* ---------- SELOS DE COMBATE (onda F): CA, iniciativa e deslocamento ----------
+   Topo central da folha. Não são "cards": são selos recortados — escudo para a CA e
+   octógono lacrado para iniciativa/deslocamento. A borda é o próprio acento do tema
+   (o elemento externo pinta, o interno recorta 2px menor), então tema-dado e tema
+   Personalizado passam a valer aqui sem uma linha de CSS nova. */
+.vitals-panel { padding-top: 0.7rem; }
+/* Os selos NÃO esticam para preencher a coluna: a linha tem a altura do conteúdo (o
+   min-height é o piso da ficha antiga, ~4.1rem), como as caixas CA/Inic/Vel de antes. */
+.vital-seals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+  align-items: stretch;
+}
+.seal {
+  --seal-cut: 9px;
+  padding: 2px;
+  min-height: 4.15rem;
+  background: linear-gradient(165deg,
+              var(--ficha-accent),
+              color-mix(in srgb, var(--ficha-accent) 28%, var(--stroke)));
+}
+.seal-face {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  height: 100%;
+  padding: 0.34rem 0.3rem 0.38rem;
+  background: linear-gradient(180deg, var(--sheet-surface, var(--bg1)), var(--sheet-deep, var(--bg0)));
+  text-align: center;
+}
+.seal-lbl {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.seal-num {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 1.45rem;
+  font-weight: 800;
+  line-height: 1.05;
+  color: var(--text);
+  margin-top: auto;
+  margin-bottom: auto;
+}
+/* deslocamento vem com unidade ("9 m / 30 ft") — quebra em vez de estourar o selo */
+.seal-num.is-unit {
+  font-size: 0.86rem;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  overflow-wrap: anywhere;
+}
+/* escudo (CA): ponta pra baixo, número acima da ponta */
+.seal-ca, .seal-ca .seal-face {
+  clip-path: polygon(0 0, 100% 0, 100% 62%, 50% 100%, 0 62%);
+}
+.seal-ca .seal-face { padding-bottom: 1rem; }
+.seal-ca .seal-num { color: var(--ficha-gold); font-size: 1.55rem; margin-bottom: 0; }
+/* lacre octogonal (iniciativa / deslocamento) */
+.seal-init, .seal-init .seal-face,
+.seal-vel, .seal-vel .seal-face {
+  clip-path: polygon(var(--seal-cut) 0, calc(100% - var(--seal-cut)) 0,
+                     100% var(--seal-cut), 100% calc(100% - var(--seal-cut)),
+                     calc(100% - var(--seal-cut)) 100%, var(--seal-cut) 100%,
+                     0 calc(100% - var(--seal-cut)), 0 var(--seal-cut));
+}
+.vital-note {
+  margin-top: 0.3rem;
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* PV — só o MÁXIMO (display estático do derive; PV atual/temporário é assunto do VTT) */
+.hp-track {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin-top: 0.5rem;
+}
+.hp-track.single { grid-template-columns: 1fr; }
+.hp-cell {
+  position: relative;
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  background:
+    radial-gradient(120% 140% at 50% 0%, color-mix(in srgb, var(--ficha-accent-2) 12%, transparent), transparent 70%),
+    var(--sheet-deep, var(--bg0));
+  text-align: center;
+  padding: 0.4rem 0.2rem;
+}
+.hp-cell .lbl {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 0.54rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  font-weight: 700;
+}
+.hp-cell .v { font-family: 'Frank Ruhl Libre', serif; font-size: 1.05rem; font-weight: 800; color: var(--text); }
+.hp-cell.max .v { color: var(--ficha-accent-2); font-size: 1.45rem; line-height: 1.1; }
+.hp-track.single .hp-cell.max { padding: 0.42rem 0.4rem 0.48rem; }
+
+/* ---------- CARDS DE HABILIDADE (acordeão) ---------- */
+.feat-group + .feat-group { margin-top: 0.6rem; }
+.feat-group-title {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.72rem;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.3rem;
+}
+.feat-group-title::before {
+  content: "";
+  width: 11px; height: 11px;
+  border-radius: 3px;
+  background: linear-gradient(135deg, var(--ficha-accent-2), var(--ficha-accent));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--ficha-accent) 50%, transparent);
+}
+.feat-group-title .count {
+  margin-left: auto;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* Habilidades em BLOCOS DENSOS de largura cheia da coluna (título forte + texto corrido),
+   como na ficha antiga: cartão estreito sobra ar e quebra o nome em três linhas. A segunda
+   coluna só existe onde o painel abre a largura INTEIRA da folha (tablet e impressão), e lá
+   cada bloco ainda tem ~420px. NÃO existe caixa rolável aqui: nada de max-height/overflow —
+   quem rola é a página. */
+.feat-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.3rem;
+  align-items: start;
+}
+@media (min-width: 680px) and (max-width: 1023px) {
+  .feat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.feat-card {
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--sheet-surface, var(--bg1)), var(--sheet-deep, var(--bg0)));
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+.feat-card.open {
+  border-color: var(--ficha-accent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ficha-accent) 25%, transparent), 0 14px 30px rgba(0, 0, 0, 0.45);
+}
+.feat-card:hover { border-color: color-mix(in srgb, var(--ficha-accent) 55%, transparent); }
+
+.feat-head {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  text-align: left;
+  padding: 0.42rem 0.6rem;
+  background: transparent;
+  cursor: pointer;
+  border: 0;
+  color: inherit;
+}
+.feat-head:focus-visible { outline: 2px solid var(--ficha-accent); outline-offset: -2px; }
+.feat-head .feat-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.feat-head .feat-name {
+  display: block;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text);
+  line-height: 1.2;
+}
+/* FONTE/ORIGEM da habilidade — sempre numa linha ABAIXO do nome */
+.feat-head .feat-meta {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ficha-accent);
+  opacity: 0.85;
+}
+.feat-badge {
+  flex-shrink: 0;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ficha-gold);
+  border: 1px solid var(--stroke);
+  background: var(--sheet-deep, var(--bg0));
+  border-radius: 999px;
+  padding: 0.12rem 0.5rem;
+  white-space: nowrap;
+}
+.feat-chevron {
+  flex-shrink: 0;
+  width: 18px; height: 18px;
+  color: var(--muted);
+  transition: transform 0.25s ease, color 0.2s ease;
+  margin-top: 0.1rem;
+}
+.feat-card.open .feat-chevron { transform: rotate(180deg); color: var(--ficha-accent); }
+
+.feat-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.28s ease;
+}
+.feat-card.open .feat-body { grid-template-rows: 1fr; }
+.feat-body-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+.feat-card.open .feat-body-inner {
+  border-top: 1px solid var(--stroke);
+}
+.feat-desc {
+  padding: 0.45rem 0.6rem 0.55rem;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+.feat-desc.empty { color: var(--muted); font-style: italic; opacity: 0.7; }
+
+/* ---------- Tags / pílulas auxiliares ---------- */
+.pill {
+  display: inline-block;
+  font-size: 0.72rem;
+  border: 1px solid var(--stroke);
+  background: var(--sheet-deep, var(--bg0));
+  border-radius: 6px;
+  padding: 0.1rem 0.5rem;
+  color: var(--ficha-gold);
+}
+.pill.muted { color: var(--muted); }
+.pill.attuned { color: var(--ficha-accent-2); border-color: color-mix(in srgb, var(--ficha-accent) 45%, transparent); background: color-mix(in srgb, var(--ficha-accent) 8%, transparent); }
+
+/* ---------- Grid principal da folha (onda F) ----------
+   Três colunas de verdade e UMA linha só: atributos (estreita) · centro · características
+   (larga). Nada de bloco atravessando linhas — item que ocupa duas faixas de um grid de
+   altura automática empurra a faixa vizinha e abre buraco no meio da folha.
+   A coluna do centro é um empilhamento próprio (selos+PV, depois ataques/recursos). */
+.ficha-columns {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.55rem;
+}
+.ficha-col-center { display: flex; flex-direction: column; gap: 0.55rem; min-width: 0; }
+
+/* CELULAR: a coluna do centro se dissolve e os quatro blocos viram itens diretos do grid,
+   na ordem de consulta em sessão — PV, atributos, ataques/recursos, características. */
+@media (max-width: 679px) {
+  .ficha-col-center { display: contents; }
+  .ficha-col-vitals { order: 1; }
+  .ficha-col-attrs  { order: 2; }
+  .ficha-col-body   { order: 3; }   /* o espaçamento interno já vem do space-y do markup */
+  .ficha-col-feats  { order: 4; }
+}
+
+/* TABLET: atributos ao lado do centro; características abrem a largura inteira embaixo. */
+@media (min-width: 680px) and (max-width: 1023px) {
+  .ficha-columns {
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    align-items: start;
+  }
+  .ficha-col-feats { grid-column: 1 / -1; }
+}
+
+/* DESKTOP: a folha clássica — atributos, centro de combate e a coluna das características.
+   Proporção FLUIDA (minmax(0, fr)) como sempre foi: nenhuma coluna tem piso em rem, então
+   ninguém estica para preencher e a folha não engorda de ar. */
+@media (min-width: 1024px) {
+  .ficha-columns {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 0.9fr) minmax(0, 1.2fr);
+    align-items: start;
+  }
+}
+
+/* defesas/sentidos definição */
+.def-row { display: flex; gap: 0.45rem; padding: 0.25rem 0; font-size: 0.85rem; }
+.def-row dt { width: 7.5rem; flex-shrink: 0; color: var(--muted); }
+.def-row dd { color: var(--text); min-width: 0; }
+
+/* ============================================================
+   ABAS (multi-página da ficha)
+   ============================================================ */
+.ficha-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  border-bottom: 1px solid var(--stroke);
+  padding-bottom: 0.1rem;
+}
+.ficha-tab {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  font-size: 0.85rem;
+  color: var(--muted);
+  background: linear-gradient(180deg, var(--sheet-surface, var(--bg1)), var(--sheet-deep, var(--bg0)));
+  border: 1px solid var(--stroke);
+  border-bottom: none;
+  border-radius: 9px 9px 0 0;
+  padding: 0.4rem 0.75rem;
+  position: relative;
+  bottom: -1px;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+.ficha-tab:hover { color: var(--text); border-color: color-mix(in srgb, var(--ficha-accent) 55%, transparent); }
+.ficha-tab:focus-visible { outline: 2px solid var(--ficha-accent); outline-offset: 2px; }
+.ficha-tab.is-active {
+  color: var(--ficha-gold);
+  border-color: var(--ficha-accent);
+  border-bottom: 1px solid var(--sheet-deep, var(--bg0));
+  background:
+    radial-gradient(120% 160% at 50% 0%, color-mix(in srgb, var(--ficha-accent) 18%, transparent), transparent 65%),
+    linear-gradient(180deg, var(--sheet-surface, var(--bg1)), var(--sheet-deep, var(--bg0)));
+}
+.ficha-tab.is-active::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  border-radius: 9px 9px 0 0;
+  background: linear-gradient(90deg, var(--ficha-accent-2), var(--ficha-accent));
+}
+
+.ficha-tabpanel { animation: fade-in 0.25s ease-out; }
+.ficha-tabpanel[hidden] { display: none; }
+
+/* ============================================================
+   ABA INFORMAÇÕES
+   ============================================================ */
+.info-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.55rem;
+  align-items: start;
+}
+@media (min-width: 860px) {
+  .info-layout { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem 0.5rem;
+}
+@media (min-width: 520px) {
+  .info-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.info-field { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
+.info-field.full { grid-column: 1 / -1; }
+.info-field .lbl {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  font-weight: 700;
+}
+.info-field .hint {
+  text-transform: none;
+  letter-spacing: 0.02em;
+  color: var(--ficha-accent);
+  font-weight: 600;
+  opacity: 0.85;
+  margin-left: 0.3rem;
+}
+.info-field input,
+.info-field textarea {
+  width: 100%;
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  background: var(--sheet-deep, var(--bg0));
+  color: var(--text);
+  font-size: 0.85rem;
+  padding: 0.45rem 0.6rem;
+  font-family: inherit;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.info-field textarea { resize: vertical; line-height: 1.45; }
+.info-field input:focus,
+.info-field textarea:focus {
+  outline: none;
+  border-color: var(--ficha-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ficha-accent) 18%, transparent);
+}
+.info-field input::placeholder,
+.info-field textarea::placeholder { color: var(--muted); opacity: 0.6; }
+
+.info-portraits {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+.info-portrait { margin: 0; text-align: center; min-width: 0; }
+.info-portrait img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--stroke);
+  background: var(--sheet-deep, var(--bg0));
+}
+.info-portrait.token img { border-radius: 999px; }
+.info-portrait-ph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border: 1px dashed var(--stroke);
+  border-radius: 10px;
+  background: var(--sheet-deep, var(--bg0));
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.info-portrait.token .info-portrait-ph { border-radius: 999px; }
+.info-portrait figcaption {
+  margin-top: 0.35rem;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.info-actions { display: flex; justify-content: flex-end; }
+.info-actions .banner-btn { font-size: 0.9rem; padding: 0.4rem 1rem; }
+
+.info-lore {
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--text);
+}
+.info-lore .bonfire-markdown { color: var(--text); }
+.info-empty { color: var(--muted); font-style: italic; font-size: 0.85rem; }
+
+/* ============================================================
+   CONTADORES DE RECURSO (estilo ficha D&D clássica)
+   Contador pequeno: número grande, rótulo miúdo, +/- discretos. Fica ACIMA de
+   "Características & Habilidades"; o descanso (canônico) mora na mesma faixa.
+   ============================================================ */
+.res-panel { padding-bottom: 0.7rem; }
+.res-strip { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0.4rem; }
+.res-strip-main { margin-bottom: 0.55rem; }
+.res-items {
+  border-top: 1px solid color-mix(in srgb, var(--ficha-accent) 24%, var(--stroke));
+  padding-top: 0.45rem;
+}
+.res-items summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 2rem;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  list-style: none;
+  text-transform: uppercase;
+}
+.res-items summary::-webkit-details-marker { display: none; }
+.res-items summary::before { content: "+"; margin-right: 0.4rem; color: var(--ficha-accent); }
+.res-items[open] summary::before { content: "−"; }
+.res-items summary span { flex: 1; }
+.res-items summary strong {
+  min-width: 1.55rem;
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  padding: 0.1rem 0.4rem;
+  color: var(--text);
+  text-align: center;
+}
+.res-items .res-strip { padding-top: 0.45rem; }
+.res-panel > .res-rest { justify-content: flex-end; margin-top: 0.55rem; }
+.res-counter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.08rem;
+  min-width: 4.4rem;
+  max-width: 7.5rem;
+  border: 1px solid color-mix(in srgb, var(--ficha-edge) 78%, transparent);
+  border-radius: 6px;
+  background: linear-gradient(180deg, var(--sheet-surface, var(--bg1)), var(--sheet-deep, var(--bg0)));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  padding: 0.3rem 0.4rem 0.32rem;
+  text-align: center;
+}
+.res-counter.is-empty { border-color: color-mix(in srgb, var(--ficha-danger) 45%, transparent); }
+.res-counter.is-empty .res-counter-value { color: var(--ficha-accent-2); }
+.res-counter-value {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--ficha-gold);
+}
+.res-counter-max { font-size: 0.7rem; font-weight: 700; color: var(--muted); }
+.res-counter-name {
+  max-width: 100%;
+  color: var(--muted);
+  font-size: 0.54rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+.res-counter-actions { display: flex; gap: 0.18rem; margin-top: 0.15rem; }
+.res-counter-actions button, .spell-slot-actions button {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.2rem; height: 1.05rem; border: 1px solid var(--stroke); border-radius: 3px;
+  background: var(--sheet-deep, var(--bg0)); color: var(--muted); font-size: 0.72rem; font-weight: 900; line-height: 1;
+  cursor: pointer;
+}
+.res-counter-actions button:hover, .spell-slot-actions button:hover { border-color: var(--ficha-accent); color: var(--ficha-accent); }
+.res-counter-actions button:disabled, .spell-slot-actions button:disabled { cursor: not-allowed; opacity: 0.3; }
+.spell-slot-actions { display: flex; justify-content: center; gap: 0.25rem; margin-top: 0.45rem; }
+.spell-slot-actions button { width: 1.35rem; height: 1.25rem; border-radius: 4px; color: var(--text); font-size: 0.8rem; }
+
+/* descanso: mesma faixa dos contadores, em botão-pílula discreto */
+.res-rest { display: flex; align-items: center; gap: 0.3rem; margin-left: auto; }
+.res-rest button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.7rem;
+  padding: 0 0.6rem;
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  background: var(--sheet-deep, var(--bg0));
+  color: var(--muted);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.res-rest button:hover { border-color: var(--ficha-accent); color: var(--ficha-accent); }
+.res-rest button.primary { border-color: color-mix(in srgb, var(--ficha-accent) 55%, transparent); color: var(--ficha-accent); background: color-mix(in srgb, var(--ficha-accent) 8%, transparent); }
+.res-rest button.primary:hover { background: color-mix(in srgb, var(--ficha-accent) 16%, transparent); }
+
+.res-empty { color: var(--muted); font-size: 0.76rem; font-style: italic; }
+
+/* ============================================================
+   ATALHO DE ABA (chip discreto no fim da aba Ficha)
+   ============================================================ */
+.ficha-jump { display: flex; justify-content: center; }
+.ficha-jump-chip {
+  border: 1px dashed var(--stroke);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  padding: 0.28rem 0.9rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+.ficha-jump-chip strong { color: var(--ficha-accent); font-weight: 800; }
+.ficha-jump-chip:hover { border-color: var(--ficha-accent); color: var(--text); }
+
+/* ============================================================
+   PERSONALIDADE / IDEAIS / VÍNCULOS / DEFEITOS (4 caixinhas do PDF)
+   ============================================================ */
+.pers-grid { display: grid; grid-template-columns: 1fr; gap: 0.5rem; }
+@media (min-width: 640px) { .pers-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1100px) { .pers-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.pers-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  min-width: 0;
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  background: var(--sheet-deep, var(--bg0));
+  padding: 0.5rem 0.6rem 0.55rem;
+}
+.pers-lbl {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ficha-accent);
+}
+.pers-box textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.84rem;
+  line-height: 1.4;
+  padding: 0.15rem 0.2rem;
+}
+.pers-box textarea:focus { outline: none; border-color: var(--ficha-accent); background: var(--sheet-surface, var(--bg1)); }
+.pers-box textarea::placeholder { color: var(--muted); opacity: 0.6; }
+.pers-text { color: var(--text); font-size: 0.84rem; line-height: 1.4; overflow-wrap: anywhere; }
+.pers-text.is-empty { color: var(--muted); font-style: italic; }
+.pers-actions { display: flex; justify-content: flex-end; margin-top: 0.55rem; }
+.pers-actions .banner-btn { font-size: 0.78rem; padding: 0.3rem 0.9rem; }
+
+/* ============================================================
+   NOTAS DO JOGADOR (onda F) — o campo livre da folha
+   Papel pautado: as linhas do fundo acompanham o texto (background-attachment: local),
+   como o verso da ficha impressa. Salva no blur; sem botão na tela.
+   ============================================================ */
+.notas-box { display: block; }
+.notas-box textarea {
+  width: 100%;
+  min-height: 8.4rem;
+  resize: vertical;
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  background-color: var(--sheet-deep, var(--bg0));
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(1.5rem - 1px),
+    color-mix(in srgb, var(--stroke) 70%, transparent) calc(1.5rem - 1px),
+    color-mix(in srgb, var(--stroke) 70%, transparent) 1.5rem);
+  background-position: 0 0.62rem;
+  background-attachment: local;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.88rem;
+  line-height: 1.5rem;
+  padding: 0.62rem 0.75rem;
+}
+.notas-box textarea:focus {
+  outline: none;
+  border-color: var(--ficha-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ficha-accent) 18%, transparent);
+}
+.notas-box textarea::placeholder { color: var(--muted); opacity: 0.6; }
+.notas-text { color: var(--text); font-size: 0.86rem; line-height: 1.5; overflow-wrap: anywhere; }
+.notas-text.is-empty { color: var(--muted); font-style: italic; }
+
+/* ============================================================
+   SPELLBOOK
+   ============================================================ */
+.spellbook-head { display: flex; align-items: stretch; justify-content: space-between; gap: 0.55rem; border: 1px solid var(--stroke); border-radius: 8px; background: color-mix(in srgb, var(--ficha-raise) 92%, transparent); padding: 0.55rem; }
+.spell-title { display: flex; min-width: 12rem; flex-direction: column; justify-content: center; gap: 0.1rem; }
+.spell-title span, .spell-stat span, .mystic-points span, .spell-slot-numbers span { color: var(--muted); font-size: 0.62rem; font-weight: 800; text-transform: uppercase; }
+.spell-title strong { color: var(--text); font-family: 'Frank Ruhl Libre', serif; font-size: 1.35rem; }
+.spell-stats { display: grid; grid-template-columns: repeat(5, minmax(84px, 1fr)); gap: 0.55rem; flex: 1; }
+.spell-stat, .mystic-points { display: flex; min-height: 58px; flex-direction: column; align-items: center; justify-content: center; border: 1px solid color-mix(in srgb, var(--ficha-edge) 75%, transparent); border-radius: 6px; background: var(--sheet-deep, var(--bg0)); text-align: center; }
+.spell-stat strong, .mystic-points strong { color: var(--text); font-family: 'Frank Ruhl Libre', serif; font-size: 1.35rem; line-height: 1; }
+.spell-stat.alt strong { color: var(--ficha-mystic); }
+.spell-alert {
+  border: 1px solid color-mix(in srgb, var(--ficha-gold) 42%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--ficha-gold) 8%, transparent);
+  color: var(--ficha-gold);
+  padding: 0.45rem 0.7rem;
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.mystic-casting, .spell-slots-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 0.55rem; }
+.mystic-points { min-height: 76px; border-color: color-mix(in srgb, var(--ficha-mystic) 45%, transparent); }
+.mystic-points strong { color: var(--ficha-mystic); font-size: 1.75rem; }
+.mystic-points.subtle { border-color: color-mix(in srgb, var(--ficha-gold) 40%, transparent); }
+.mystic-points.subtle strong { color: var(--ficha-gold); }
+.spell-slot-card { display: grid; grid-template-columns: 2rem 1fr auto; align-items: center; gap: 0.5rem; min-height: 58px; border: 1px solid color-mix(in srgb, var(--ficha-edge) 72%, transparent); border-radius: 6px; background: linear-gradient(180deg, color-mix(in srgb, var(--ficha-line) 98%, transparent), color-mix(in srgb, var(--ficha-raise) 98%, transparent)); padding: 0.45rem; }
+.spell-slot-card.is-zero { opacity: 0.45; }
+.spell-slot-level { display: flex; align-items: center; justify-content: center; width: 1.8rem; height: 2rem; border-radius: 4px; background: var(--sheet-surface, var(--bg1)); color: var(--text); font-family: 'Frank Ruhl Libre', serif; font-weight: 900; }
+.spell-slot-numbers { display: grid; grid-template-columns: auto 1fr; gap: 0.1rem 0.35rem; align-items: baseline; }
+.spell-slot-numbers strong { color: var(--text); font-size: 0.95rem; line-height: 1; }
+/* Controles e confirmação cabem no cartão estreito em todas as larguras. */
+.spell-slot-card[data-spell-slot-card] { grid-template-columns: 2rem minmax(0, 1fr); min-width: 0; }
+[data-spell-slot-card] .spell-slot-actions { grid-column: 1 / -1; margin-top: 0; }
+[data-spell-slot-card] .spell-slot-actions button { width: 2rem; height: 2rem; }
+[data-spell-slot-card]:focus-visible { outline: 2px solid var(--ficha-accent, var(--ember)); outline-offset: 2px; }
+[data-spell-slot-feedback] { grid-column: 1 / -1; min-width: 0; overflow-wrap: anywhere; text-transform: none; padding: 0.35rem; }
+.spell-level-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(236px, 1fr)); gap: 0.5rem; }
+.spell-level-card { overflow: hidden; border: 1px solid var(--stroke); border-radius: 7px; background: color-mix(in srgb, var(--ficha-raise) 96%, transparent); }
+.spell-level-card.is-empty { opacity: 0.62; }
+.spell-level-head { display: grid; grid-template-columns: 2rem 1fr auto; align-items: center; gap: 0.55rem; min-height: 2.35rem; border-bottom: 1px solid color-mix(in srgb, var(--ficha-edge) 55%, transparent); background: color-mix(in srgb, var(--ficha-line) 92%, transparent); padding: 0.35rem 0.55rem; }
+.spell-level-head strong { color: var(--text); font-family: 'Frank Ruhl Libre', serif; font-size: 0.85rem; }
+.spell-level-head > span:last-child { color: var(--ficha-gold); font-size: 0.72rem; font-weight: 800; }
+.spell-level-num { display: inline-flex; align-items: center; justify-content: center; width: 1.55rem; height: 1.55rem; border-radius: 4px; background: var(--sheet-deep, var(--bg0)); color: var(--ficha-accent); font-weight: 900; }
+.spell-list { display: flex; flex-direction: column; padding: 0.25rem 0.5rem 0.45rem; }
+.spell-row { display: grid; grid-template-columns: 1rem minmax(0, 1fr); gap: 0.45rem; align-items: start; padding: 0.34rem 0; border-bottom: 1px solid color-mix(in srgb, var(--ficha-edge) 35%, transparent); }
+.spell-row:last-child { border-bottom: 0; }
+.spell-row.is-unprepared { opacity: 0.55; }
+.spell-marker { width: 0.72rem; height: 0.72rem; margin-top: 0.18rem; border: 1.5px solid var(--muted); border-radius: 999px; background: transparent; }
+.spell-marker.prepared, .spell-marker.toggle.prepared { border-color: var(--ficha-accent); background: var(--ficha-accent); }
+.spell-marker.always { border-color: var(--ficha-gold); background: var(--ficha-gold); }
+.spell-marker.innate { border-color: var(--ficha-innate); background: var(--ficha-innate); }
+.spell-marker.toggle:hover { border-color: var(--ficha-accent); }
+.spell-name { min-width: 0; color: var(--text); font-size: 0.86rem; font-weight: 700; line-height: 1.15; }
+.spell-tags { grid-column: 2; display: flex; flex-wrap: wrap; gap: 0.25rem; min-width: 0; }
+.spell-tag { border: 1px solid var(--stroke); border-radius: 999px; padding: 0.05rem 0.4rem; color: var(--muted); font-size: 0.56rem; font-weight: 800; line-height: 1.45; text-transform: uppercase; }
+.spell-tag.prepared { color: var(--ficha-accent); border-color: color-mix(in srgb, var(--ficha-accent) 45%, transparent); }
+.spell-tag.always { color: var(--ficha-gold); border-color: color-mix(in srgb, var(--ficha-gold) 45%, transparent); }
+.spell-tag.innate { color: var(--ficha-innate-fg); border-color: color-mix(in srgb, var(--ficha-innate) 55%, transparent); background: color-mix(in srgb, var(--ficha-innate) 8%, transparent); }
+.spell-tag.source { color: var(--ficha-mystic-fg); border-color: color-mix(in srgb, var(--ficha-mystic) 35%, transparent); }
+.spell-innate-counter {
+  display: inline-flex;
+  min-width: 2.05rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--ficha-innate) 42%, transparent);
+  border-radius: 999px;
+  color: var(--ficha-innate-soft);
+  font-size: 0.58rem;
+  font-weight: 900;
+  line-height: 1.45;
+}
+.spell-inline-actions { display: inline-flex; align-items: center; gap: 0.18rem; }
+.spell-inline-actions form { display: inline-flex; }
+.spell-inline-actions button {
+  display: inline-flex;
+  width: 1.1rem;
+  height: 1.05rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--stroke);
+  border-radius: 4px;
+  background: var(--sheet-deep, var(--bg0));
+  color: var(--text);
+  font-size: 0.68rem;
+  font-weight: 900;
+  line-height: 1;
+}
+.spell-inline-actions button:hover { border-color: var(--ficha-innate); color: var(--ficha-innate-fg); }
+.spell-inline-actions button:disabled { cursor: not-allowed; opacity: 0.35; }
+.spell-empty { color: var(--muted); font-size: 0.85rem; padding: 0.35rem 0; }
+/* Nome como toggle de descrição (card expansível na aba Magias) */
+button.spell-name-toggle {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+button.spell-name-toggle:hover { color: var(--ficha-accent); }
+.spell-caret { flex: none; align-self: center; width: 0; height: 0; border-left: 4px solid currentColor; border-top: 3.5px solid transparent; border-bottom: 3.5px solid transparent; opacity: 0.55; transition: transform 0.15s ease; }
+button.spell-name-toggle.open .spell-caret { transform: rotate(90deg); opacity: 0.9; }
+.spell-desc { grid-column: 2; margin-top: 0.35rem; padding: 0.4rem 0.55rem; border: 1px solid var(--stroke); border-radius: 6px; background: color-mix(in srgb, var(--sheet-deep) 55%, transparent); color: var(--text); font-size: 0.78rem; line-height: 1.45; }
+.spell-desc-meta { display: flex; flex-wrap: wrap; gap: 0.25rem 0.8rem; margin-bottom: 0.4rem; color: var(--muted); font-size: 0.66rem; }
+.spell-desc-meta b { color: var(--text); font-weight: 800; }
+.spell-desc-up { margin-top: 0.4rem; padding-top: 0.35rem; border-top: 1px dashed color-mix(in srgb, var(--ficha-edge) 50%, transparent); }
+.spell-desc .bonfire-markdown p { margin: 0 0 0.4rem; }
+.spell-desc .bonfire-markdown p:last-child { margin-bottom: 0; }
+
+@media (max-width: 760px) {
+  .spellbook-head { flex-direction: column; }
+  .spell-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .spell-slot-card { grid-template-columns: 2rem 1fr; }
+  .spell-slot-actions { grid-column: 1 / -1; }
+}
+
+/* ============================================================
+   ABA MAGIAS
+   ============================================================ */
+.magias-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.45rem;
+}
+.magia-count {
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  background: var(--sheet-deep, var(--bg0));
+  padding: 0.3rem 0.6rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.magia-count strong { color: var(--ficha-accent); font-family: 'Frank Ruhl Libre', serif; font-size: 1.05rem; }
+.magia-count.alt strong { color: var(--ficha-gold); }
+.magias-help { font-size: 0.85rem; color: var(--muted); line-height: 1.4; }
+.magias-help em { color: var(--ficha-gold); font-style: normal; font-weight: 600; }
+
+.magias-list { display: flex; flex-direction: column; }
+.magia-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--ficha-line) 60%, transparent);
+}
+.magia-row:last-child { border-bottom: 0; }
+.magia-row.is-unprepared { opacity: 0.5; }
+.magia-name { font-size: 0.9rem; font-weight: 600; color: var(--text); min-width: 0; }
+.magia-badges { display: flex; flex-wrap: wrap; gap: 0.35rem; justify-content: flex-end; }
+.magia-badge {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  padding: 0.1rem 0.55rem;
+  white-space: nowrap;
+}
+.magia-badge.prep { color: var(--ficha-accent); border-color: color-mix(in srgb, var(--ficha-accent) 50%, transparent); background: color-mix(in srgb, var(--ficha-accent) 8%, transparent); }
+.magia-badge.sempre { color: var(--ficha-gold); border-color: color-mix(in srgb, var(--ficha-gold) 50%, transparent); background: color-mix(in srgb, var(--ficha-gold) 8%, transparent); }
+.magia-badge.origem { color: var(--muted); background: var(--sheet-deep, var(--bg0)); }
+
+/* ============================================================
+   ABA HISTÓRICO
+   ============================================================ */
+.hist-scroll { overflow-x: auto; }
+.hist-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.hist-table th {
+  text-align: left;
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ficha-accent);
+  font-weight: 700;
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid var(--stroke);
+  white-space: nowrap;
+}
+.hist-table th.num { text-align: right; }
+.hist-table td {
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--ficha-line) 60%, transparent);
+  color: var(--text);
+  vertical-align: top;
+}
+.hist-table td.num { text-align: right; white-space: nowrap; font-weight: 700; }
+.hist-table tbody tr:last-child td { border-bottom: 0; }
+.hist-table tbody tr:hover { background: color-mix(in srgb, var(--ficha-accent) 5%, transparent); }
+.hist-date { color: var(--muted); white-space: nowrap; }
+.hist-desc { color: var(--muted); min-width: 12rem; }
+.hist-val { color: var(--text); }
+.hist-table tr.is-debit .hist-val { color: var(--ficha-accent-2); }
+.hist-table tr.is-credit .hist-val { color: var(--ficha-gold); }
+.hist-saldo { color: var(--text); }
+.hist-table .cur { font-size: 0.7em; font-weight: 600; color: var(--muted); }
+.hist-note { margin-top: 0.5rem; font-size: 0.85rem; color: var(--muted); }
+/* Onda E: missões sem dado da era pré-cadastro (data/mestre) e linha estornada. */
+.hist-legado { color: var(--muted); font-style: italic; }
+.hist-table tr.is-reverted td { opacity: 0.55; }
+
+/* ---------- Aparencia customizavel ----------
+   theme-data = qualquer tema-como-dado (5 legados + novos, via definicao_json,
+   ver home/views.py:_appearance_context); theme-custom = tema Personalizado.
+   Ambos emitem as mesmas --sheet-* vars inline, entao um unico bloco de
+   seletores cobre todo tema presente/futuro sem CSS novo (arquitetura normativa). */
+.ficha.theme-ember .ficha-panel,
+.ficha.theme-arcane .ficha-panel,
+.ficha.theme-verdant .ficha-panel,
+.ficha.theme-moonlit .ficha-panel,
+.ficha.theme-data .ficha-panel,
+.ficha.theme-custom .ficha-panel {
+  background: var(--sheet-surface);
+}
+
+.ficha.theme-ember .ficha-header,
+.ficha.theme-arcane .ficha-header,
+.ficha.theme-verdant .ficha-header,
+.ficha.theme-moonlit .ficha-header,
+.ficha.theme-data .ficha-header,
+.ficha.theme-custom .ficha-header {
+  background:
+    radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--ficha-accent) 20%, transparent), transparent 55%),
+    linear-gradient(180deg, var(--sheet-surface), var(--sheet-deep));
+}
+
+.ficha.theme-ember .banner-scroll,
+.ficha.theme-arcane .banner-scroll,
+.ficha.theme-verdant .banner-scroll,
+.ficha.theme-moonlit .banner-scroll,
+.ficha.theme-data .banner-scroll,
+.ficha.theme-custom .banner-scroll {
+  background:
+    radial-gradient(140% 160% at 0% 0%, color-mix(in srgb, var(--ficha-accent) 16%, transparent), transparent 60%),
+    linear-gradient(180deg, var(--sheet-deep), var(--sheet-surface));
+}
+
+.ficha.theme-ember .ficha-section-title,
+.ficha.theme-arcane .ficha-section-title,
+.ficha.theme-verdant .ficha-section-title,
+.ficha.theme-moonlit .ficha-section-title,
+.ficha.theme-data .ficha-section-title,
+.ficha.theme-custom .ficha-section-title,
+.ficha.theme-ember .hist-table th,
+.ficha.theme-arcane .hist-table th,
+.ficha.theme-verdant .hist-table th,
+.ficha.theme-moonlit .hist-table th,
+.ficha.theme-data .hist-table th,
+.ficha.theme-custom .hist-table th {
+  color: var(--ficha-accent);
+}
+
+.info-field select {
+  width: 100%;
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  background: var(--sheet-deep, var(--bg0));
+  color: var(--text);
+  font-size: 0.85rem;
+  padding: 0.45rem 0.6rem;
+  font-family: inherit;
+}
+
+.info-field select:focus {
+  outline: none;
+  border-color: var(--ficha-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ficha-accent) 18%, transparent);
+}
+
+.appearance-controls {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 640px) {
+  .appearance-controls {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
+   ABA MOCHILA (Ficha v2, onda B)
+   Grade de slots no espírito da coluna de equipamento da ficha de mesa: cartõezinhos
+   emoldurados, rótulo em Cinzel, vaga livre em traço pontilhado. Os slots vêm do
+   catálogo (home/slots.py) — o CSS não conhece nome de slot nenhum.
+   ============================================================ */
+.ficha {
+  /* A mochila fala a mesma língua do resto da folha: --bag-accent é só um apelido
+     histórico de --ficha-accent (mantido pra não quebrar seletor nenhum). */
+  --bag-accent: var(--ficha-accent);
+}
+.bag-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0.45rem;
+}
+.bag-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 6.5rem;
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--sheet-surface, var(--bg1)), var(--sheet-deep, var(--bg0)));
+  padding: 0.4rem 0.75rem 0.45rem;
+}
+.bag-stat .lbl {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.bag-stat .v { font-size: 1.05rem; font-weight: 800; line-height: 1.1; color: var(--text); }
+.bag-stat .v.spark { color: var(--ficha-gold); }
+.bag-stat .v.flame { color: var(--ficha-accent-2); }
+.bag-market { margin-left: auto; align-self: center; }
+
+/* ---------- carteira: três caixinhas PO | PP | PC (ficha clássica) ---------- */
+.bag-coins .coin-row { display: flex; gap: 0.3rem; margin-top: 0.1rem; }
+.bag-coins .coin-box {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.18rem;
+  min-width: 3rem;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--bag-accent) 35%, var(--stroke));
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--bag-accent) 7%, transparent);
+  padding: 0.12rem 0.35rem;
+}
+.bag-coins .coin-val { font-size: 1.02rem; font-weight: 800; line-height: 1.1; color: var(--ficha-gold); }
+.bag-coins .coin-sig {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+.bag-coins .coin-neg { color: var(--ficha-accent-2); letter-spacing: 0; }
+
+.bag-alert {
+  border: 1px solid color-mix(in srgb, var(--bag-accent) 45%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bag-accent) 8%, transparent);
+  color: var(--text);
+  font-size: 0.8rem;
+  padding: 0.45rem 0.7rem;
+}
+.bag-alert.is-ok { border-color: color-mix(in srgb, var(--ficha-ok) 45%, transparent); background: color-mix(in srgb, var(--ficha-ok) 8%, transparent); }
+.bag-alert a { color: var(--bag-accent); text-decoration: underline; }
+.bag-hint { margin-bottom: 0.6rem; color: var(--muted); font-size: 0.76rem; line-height: 1.45; }
+.bag-hint strong { color: var(--bag-accent); font-weight: 700; }
+
+/* ---------- grade de slots ---------- */
+.slot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.6rem, 1fr));
+  gap: 0.4rem;
+}
+.slot-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-height: 4.1rem;
+  border: 1px solid var(--stroke);
+  border-radius: 7px;
+  background: linear-gradient(180deg, var(--sheet-surface, var(--bg1)), var(--sheet-deep, var(--bg0)));
+  padding: 0.38rem 0.5rem 0.42rem;
+}
+.slot-name {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding-right: 1.7rem;
+}
+.slot-items { display: flex; flex-direction: column; gap: 0.1rem; margin: 0; }
+.slot-item {
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.slot-attuned { color: var(--ficha-accent-2); font-size: 0.62rem; }
+.slot-empty { color: var(--muted); font-size: 0.72rem; font-style: italic; opacity: 0.75; }
+.slot-cap {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.42rem;
+  color: var(--muted);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+/* vaga livre: moldura vazada; vaga ocupada: barra de destaque do tema */
+.slot-cell.is-free { border-style: dashed; border-color: color-mix(in srgb, var(--stroke) 80%, transparent); }
+.slot-cell.is-filled {
+  border-color: color-mix(in srgb, var(--bag-accent) 50%, var(--stroke));
+  box-shadow: inset 2px 0 0 var(--bag-accent);
+}
+.slot-cell.is-filled .slot-name { color: var(--bag-accent); }
+.slot-cell.is-filled .slot-cap { color: var(--bag-accent); }
+/* acessório: lista aberta — não consome vaga (regra do PO) */
+.slot-cell.is-open { grid-column: span 2; border-style: dotted; }
+@media (max-width: 480px) { .slot-cell.is-open { grid-column: span 1; } }
+.slot-cell.is-open .slot-cap { color: var(--ficha-gold); }
+
+/* ---------- lista da mochila ---------- */
+.bag-feedback {
+  margin-bottom: 0.5rem;
+  border: 1px solid var(--stroke);
+  border-radius: 6px;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.bag-feedback.is-ok { border-color: color-mix(in srgb, var(--ficha-ok) 45%, transparent); color: var(--ficha-gold); }
+.bag-feedback.is-err { border-color: color-mix(in srgb, var(--ficha-danger) 50%, transparent); color: var(--ficha-accent-2); }
+
+.bag-list { display: flex; flex-direction: column; }
+.bag-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.6rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--stroke) 45%, transparent);
+  padding: 0.42rem 0.3rem 0.42rem 0.45rem;
+}
+.bag-row:last-child { border-bottom: 0; }
+.bag-row:hover { background: color-mix(in srgb, var(--bag-accent) 5%, transparent); }
+.bag-row.is-equipped { box-shadow: inset 2px 0 0 var(--bag-accent); }
+.bag-main { display: flex; min-width: 12rem; flex: 1 1 16rem; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.45rem; }
+.bag-name { color: var(--text); font-size: 0.87rem; font-weight: 600; overflow-wrap: anywhere; }
+.bag-qtd { color: var(--ficha-gold); font-weight: 800; }
+.bag-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem; }
+.bag-slot {
+  border: 1px solid color-mix(in srgb, var(--bag-accent) 35%, var(--stroke));
+  border-radius: 6px;
+  padding: 0.05rem 0.42rem;
+  color: var(--bag-accent);
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.bag-meta { display: flex; gap: 0.7rem; color: var(--muted); font-size: 0.74rem; }
+.bag-price { color: var(--ficha-gold); font-weight: 700; }
+.bag-actions { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-left: auto; }
+.bag-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.65rem;
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  background: var(--sheet-deep, var(--bg0));
+  color: var(--muted);
+  padding: 0 0.7rem;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.bag-btn:hover { border-color: var(--bag-accent); color: var(--bag-accent); }
+.bag-btn:disabled { cursor: not-allowed; opacity: 0.4; }
+.bag-btn.on { border-color: color-mix(in srgb, var(--bag-accent) 55%, transparent); color: var(--bag-accent); background: color-mix(in srgb, var(--bag-accent) 10%, transparent); }
+.bag-btn.attune:hover, .bag-btn.attune.on { border-color: color-mix(in srgb, var(--ficha-accent) 55%, transparent); color: var(--ficha-accent-2); }
+.bag-btn.use:hover { border-color: color-mix(in srgb, var(--ficha-ok) 55%, transparent); color: var(--ficha-gold); }
+.bag-empty { color: var(--muted); font-size: 0.82rem; font-style: italic; }
+/* Rodapé da mochila apontando o Mercado (a venda migrou pra lá na onda C). */
+.bag-note { color: var(--muted); font-size: 0.74rem; margin-top: 0.5rem; }
+.bag-note a { color: var(--ficha-gold); text-decoration: underline; }
+
+/* chip "gerenciar na Mochila" no cabeçalho do painel Equipados */
+.ficha-link-chip {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.ficha-link-chip:hover { color: var(--bag-accent); text-decoration: underline; }
+
+/* =====================================================================
+   OPÇÕES DE CLASSE (Ficha v2, onda D) — aba "Magias & Opções"
+   Cartões pequenos, no mesmo vocabulário visual das magias (borda ember,
+   Cinzel nos rótulos, corpo em Inter). Um cartão por grupo do registry.
+   ===================================================================== */
+.opt-hint { margin-bottom: 0.5rem; color: var(--muted); font-size: 0.76rem; line-height: 1.45; }
+.opt-hint strong { color: var(--ficha-accent); font-weight: 800; }
+.opt-feedback {
+  margin-bottom: 0.5rem;
+  border: 1px solid var(--stroke);
+  border-radius: 6px;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.opt-feedback.is-ok { border-color: color-mix(in srgb, var(--ficha-ok) 45%, transparent); color: var(--ficha-gold); }
+.opt-feedback.is-err { border-color: color-mix(in srgb, var(--ficha-danger) 50%, transparent); color: var(--ficha-accent-2); }
+
+.opt-grid { display: grid; gap: 0.55rem; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); }
+.opt-card {
+  overflow: hidden;
+  border: 1px solid var(--stroke);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--ficha-raise) 96%, transparent);
+}
+.opt-card.is-pendente { border-color: color-mix(in srgb, var(--ficha-accent-2) 55%, var(--stroke)); }
+
+.opt-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 0.5rem;
+  border-bottom: 1px solid var(--stroke);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ficha-accent) 8%, transparent), transparent);
+  padding: 0.4rem 0.6rem;
+}
+.opt-title { display: flex; min-width: 0; flex-direction: column; gap: 0.1rem; }
+.opt-title strong {
+  color: var(--ficha-accent);
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+.opt-source { color: var(--muted); font-size: 0.66rem; overflow-wrap: anywhere; }
+.opt-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; }
+.opt-count { color: var(--text); font-size: 0.72rem; font-weight: 800; }
+.opt-swap-tag {
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  padding: 0.02rem 0.45rem;
+  color: var(--muted);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.opt-swap-tag.is-on { border-color: color-mix(in srgb, var(--ficha-ok) 50%, transparent); color: var(--ficha-gold); }
+
+.opt-list { list-style: none; margin: 0; padding: 0.15rem 0.6rem 0.35rem; }
+.opt-row { border-bottom: 1px solid color-mix(in srgb, var(--ficha-edge) 35%, transparent); padding: 0.35rem 0; }
+.opt-row:last-child { border-bottom: 0; }
+.opt-row.is-incompleta .opt-name { color: var(--ficha-accent-2); }
+.opt-row.is-vazia .opt-name { color: var(--muted); font-style: italic; font-weight: 500; }
+.opt-row-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.5rem; }
+.opt-name {
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: left;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.opt-name.is-plain { cursor: default; }
+button.opt-name:hover { color: var(--ficha-accent); }
+.opt-caret {
+  display: inline-block;
+  margin-left: 0.3rem;
+  color: var(--muted);
+  font-size: 0.6rem;
+  transition: transform 0.15s ease;
+}
+.opt-caret::before { content: '▸'; }
+button.opt-name.open .opt-caret { transform: rotate(90deg); }
+
+.opt-action {
+  margin-left: auto;
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  background: var(--sheet-deep, var(--bg0));
+  color: var(--muted);
+  padding: 0.05rem 0.6rem;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  list-style: none;
+}
+.opt-action::-webkit-details-marker { display: none; }
+.opt-action:hover { border-color: var(--ficha-accent); color: var(--ficha-accent); }
+.opt-swapbox { margin-left: auto; }
+.opt-swapform {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.35rem;
+  border: 1px solid var(--stroke);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--sheet-deep) 55%, transparent);
+  padding: 0.4rem 0.5rem;
+}
+.opt-swap-lbl { color: var(--muted); font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.opt-select {
+  flex: 1 1 9rem;
+  min-width: 0;
+  border: 1px solid var(--stroke);
+  border-radius: 5px;
+  background: var(--sheet-deep, var(--bg0));
+  color: var(--text);
+  padding: 0.2rem 0.35rem;
+  font-size: 0.78rem;
+}
+.opt-confirm {
+  border: 1px solid color-mix(in srgb, var(--ficha-accent) 55%, var(--stroke));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ficha-accent) 12%, transparent);
+  color: var(--ficha-accent);
+  padding: 0.12rem 0.7rem;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.opt-confirm:hover { background: color-mix(in srgb, var(--ficha-accent) 22%, transparent); }
+.opt-confirm:disabled { cursor: not-allowed; opacity: 0.45; }
+
+.opt-pre { margin-top: 0.15rem; color: var(--muted); font-size: 0.68rem; }
+.opt-desc {
+  margin-top: 0.35rem;
+  border: 1px solid var(--stroke);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--sheet-deep) 55%, transparent);
+  padding: 0.4rem 0.55rem;
+  color: var(--text);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  white-space: pre-line;
+}
+.opt-desc .bonfire-markdown { white-space: normal; }
+.opt-desc .bonfire-markdown p { margin: 0 0 0.4rem; }
+.opt-desc .bonfire-markdown p:last-child { margin-bottom: 0; }
+
+.opt-pendencia {
+  border-top: 1px solid color-mix(in srgb, var(--ficha-edge) 35%, transparent);
+  padding: 0.35rem 0.6rem;
+  color: var(--ficha-accent-2);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.opt-pendencia a { color: var(--ficha-accent); text-decoration: underline; }
+.opt-nota {
+  border-top: 1px solid color-mix(in srgb, var(--ficha-edge) 35%, transparent);
+  padding: 0.3rem 0.6rem;
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+/* =====================================================================
+   ACENTO DO TEMA NAS SUPERFÍCIES DE DESTAQUE
+   Bloco ADITIVO e puramente cromático: só `color`, `border-color`,
+   `background`/`background-image` e `box-shadow` INSET. Nenhuma métrica —
+   nada de padding, margin, width, gap, border-width ou display (regra dura
+   do PO: a disposição da folha não se mexe).
+
+   Por que existe: fora do cabeçalho, a folha era quase toda cinza neutro —
+   trocar de tema mudava meia dúzia de títulos e mais nada. Aqui o acento
+   encosta nas bordas e nos filetes dos blocos que o jogador olha o tempo
+   todo (selo, contador, grimório, mochila, opções, histórico). Como tudo sai
+   de var(--ficha-accent), no tema basal continua ember; em qualquer outro
+   tema a folha inteira vira daquela cor, que é o ponto.
+
+   Mora aqui, perto do fim, para vencer as regras base por ORDEM (sem
+   `!important`) e ainda assim ficar ANTES do @media print, que zera as vars.
+   ===================================================================== */
+
+/* --- filetes de seção: a régua embaixo do título deixa de ser cinza morto --- */
+.ficha .ficha-section-title {
+  border-bottom-color: color-mix(in srgb, var(--ficha-accent) 34%, var(--stroke));
+}
+.ficha .ficha-tabs {
+  border-bottom-color: color-mix(in srgb, var(--ficha-accent) 26%, var(--stroke));
+}
+.ficha .hist-table th {
+  border-bottom-color: color-mix(in srgb, var(--ficha-accent) 34%, var(--stroke));
+}
+.ficha .feat-group-title .count {
+  color: color-mix(in srgb, var(--ficha-accent) 55%, var(--muted));
+}
+
+/* --- caixas de leitura rápida: marca de acento discreta na base/na lateral --- */
+.ficha .attr-stat {
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--ficha-accent) 22%, transparent);
+}
+.ficha .banner-field {
+  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--ficha-accent) 24%, transparent);
+}
+.ficha .hp-cell {
+  border-color: color-mix(in srgb, var(--ficha-accent-2) 24%, var(--stroke));
+}
+.ficha .res-counter {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04),
+              inset 0 -2px 0 color-mix(in srgb, var(--ficha-accent) 20%, transparent);
+}
+
+/* --- cartões (grimório, opções, mochila): borda tingida em vez de cinza --- */
+.ficha .spellbook-head,
+.ficha .spell-level-card,
+.ficha .opt-card,
+.ficha .bag-stat,
+.ficha .magia-count,
+.ficha .pers-box {
+  border-color: color-mix(in srgb, var(--ficha-accent) 22%, var(--stroke));
+}
+.ficha .spell-level-head {
+  background-image: linear-gradient(180deg,
+                    color-mix(in srgb, var(--ficha-accent) 10%, transparent), transparent);
+}
+.ficha .pill,
+.ficha .feat-badge {
+  border-color: color-mix(in srgb, var(--ficha-accent) 20%, var(--stroke));
+}
+
+/* --- estados vivos: linha sob o dedo, aba/opção em foco --- */
+.ficha .line-row:hover {
+  background: color-mix(in srgb, var(--ficha-accent) 6%, transparent);
+}
+.ficha .slot-cell:hover {
+  border-color: color-mix(in srgb, var(--ficha-accent) 40%, var(--stroke));
+}
+.ficha .opt-row:hover > .opt-row-head .opt-name {
+  color: color-mix(in srgb, var(--ficha-accent) 45%, var(--text));
+}
+.ficha .feat-head:focus-visible,
+.ficha .ficha-tab:focus-visible,
+.ficha .bag-btn:focus-visible,
+.ficha .opt-name:focus-visible {
+  outline-color: var(--ficha-accent);
+}
+
+/* =====================================================================
+   CELULAR — ALVOS DE TOQUE (Ficha v2, onda F)
+   A folha é consultada com o dedo, em mesa. Os controles da aba Ficha (abas, contadores
+   de recurso, descanso, chip de atalho) crescem para a faixa confortável sem engordar
+   nada no desktop. Fica no FIM do arquivo de propósito: precisa vir depois das
+   definições base para vencer por ordem, sem `!important`.
+   ===================================================================== */
+@media (max-width: 679px) {
+  .ficha-tab { padding: 0.62rem 0.95rem; font-size: 0.9rem; }
+  .res-counter { min-width: 5.2rem; }
+  .res-counter-actions { gap: 0.35rem; margin-top: 0.3rem; }
+  .res-counter-actions button { flex: none; width: 2.3rem; height: 2.1rem; font-size: 1rem; border-radius: 5px; }
+  .res-rest { width: 100%; margin-left: 0; }
+  .res-rest button { flex: 1; justify-content: center; min-height: 2.6rem; }
+  .ficha-jump-chip { padding: 0.5rem 1.1rem; font-size: 0.78rem; }
+  .banner-btn { padding: 0.55rem 0.9rem; }
+}
+
+/* =====================================================================
+   VERSÃO IMPRIMÍVEL (Ficha v2, onda F) — @media print
+   A ficha vira folha de papel: preto no branco, sem cromo do site, sem controle
+   interativo, e com a paginação da ficha clássica — atributos + combate + ataques na
+   primeira página, características a seguir. Só a aba ATIVA vai ao papel (as outras
+   trazem o atributo `hidden`), então imprimir a Ficha não despeja mochila e histórico.
+   Truque central: em vez de repintar cada regra, o bloco reescreve as VARIÁVEIS do tema
+   — como todo o arquivo desenha com var(--…), uma linha de override zera as cores do
+   tema (inclusive as inline do tema-dado/Personalizado, que `!important` supera).
+   ===================================================================== */
+@media print {
+  @page { size: A4 portrait; margin: 11mm; }
+
+  /* --- fora do papel: cromo do site, anúncios, navegação e controles --- */
+  header, footer,
+  .support-sidebar-left, .support-sidebar-right,
+  .ficha-noprint,
+  .ficha-tabs,
+  .banner-actions, .banner-nextlvl,
+  .ficha-jump,
+  .res-counter-actions, .res-rest,
+  .pers-actions, .notas-form noscript,
+  .ficha-link-chip, .spell-slot-actions, .spell-inline-actions,
+  .feat-chevron,
+  .ficha-bg-media, .ficha-banner-media,
+  [data-pers-feedback], [data-notas-feedback],
+  [vw] { display: none !important; }
+
+  /* o site inteiro é uma coluna de papel: sem sticky, sem altura de viewport */
+  #root > div { padding-top: 0 !important; min-height: 0 !important; }
+  .ficha-main { max-width: none !important; margin: 0 !important; padding: 0 !important; }
+
+  /* --- preto no branco (as vars mandam em todo o arquivo, inclusive nos temas) --- */
+  .ficha {
+    --text: #000 !important; --muted: #333 !important;
+    --bg0: #fff !important; --bg1: #fff !important; --bg2: #fff !important;
+    --stroke: #000 !important; --line: #000 !important;
+    --ember: #000 !important; --flame: #000 !important; --spark: #000 !important;
+    --gold: #000 !important;
+    --sheet-accent: #000 !important; --sheet-accent-solid: #000 !important;
+    --sheet-accent-2: #000 !important;
+    --sheet-surface: #fff !important; --sheet-deep: #fff !important;
+    --ficha-accent: #000 !important; --bag-accent: #000 !important;
+    --ficha-accent-2: #000 !important; --ficha-gold: #000 !important;
+    /* A escala neutra e as semânticas também viram tinta preta sobre papel branco.
+       Antes disso, os blocos que ainda usavam zinc/verde/vermelho chapados (cabeçalho
+       do grimório, contadores, cartões de opção) saíam CINZA-ESCUROS na impressão,
+       porque `background-image: none` não apaga background-COLOR. */
+    --ficha-raise: #fff !important; --ficha-line: #000 !important; --ficha-edge: #000 !important;
+    --ficha-ok: #000 !important; --ficha-danger: #000 !important;
+    --ficha-innate: #000 !important; --ficha-innate-fg: #000 !important;
+    --ficha-innate-soft: #000 !important;
+    --ficha-mystic: #000 !important; --ficha-mystic-fg: #000 !important;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  /* fundos decorativos (gradiente/imagem/pauta) somem — no papel eles só sujam */
+  .ficha *, .ficha *::before, .ficha *::after {
+    background-image: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    animation: none !important;
+    transition: none !important;
+    color: #000 !important;
+  }
+  .ficha-header::before { background: #000 !important; }
+  /* no papel não existe fundo: o desfoque/translucidez da folha (.ficha-has-bg)
+     só sujariam a tinta */
+  .ficha.ficha-has-bg {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    background-color: transparent !important;
+    padding: 0 !important;
+  }
+  .ficha.ficha-has-bg .ficha-panel { background-color: transparent !important; }
+  /* proficiência sobrevive mesmo com "imprimir imagens de fundo" DESLIGADO: o ponto
+     cheio é feito de BORDA grossa, não de preenchimento */
+  .prof-dot { border-color: #000 !important; }
+  .prof-dot.on, .prof-dot.exp { border-width: 3px !important; background: #000 !important; }
+  /* pela mesma razão os selos trocam o recorte pintado por moldura de verdade */
+  .seal { background: none !important; padding: 0 !important; }
+  .seal, .seal .seal-face { clip-path: none !important; }
+  .seal-face {
+    background: #fff !important;
+    border: 1px solid #000 !important;
+    border-radius: 6px;
+    padding-bottom: 0.5rem !important;
+  }
+
+  /* --- paginação: página 1 = identidade + atributos + combate + ataques --- */
+  .ficha-columns {
+    display: grid !important;
+    grid-template-columns: 32% minmax(0, 1fr) !important;
+    gap: 4mm !important;
+    align-items: start !important;
+  }
+  .ficha-col-center { display: flex !important; flex-direction: column; gap: 4mm; }
+  /* características abrem a página seguinte, em duas colunas, como o verso da ficha */
+  .ficha-col-feats {
+    grid-column: 1 / -1 !important;
+    break-before: page;
+  }
+  .feat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  /* no papel os atributos seguem em duas colunas, como na tela — caixa larga é desperdício */
+  .attr-stack { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+
+  .ficha-panel, .feat-card, .attr-box, .seal, .res-counter, .hp-cell,
+  .pers-box, .notas-panel { break-inside: avoid; }
+  .feat-group { break-inside: auto; }
+  /* descrição já aberta na tela vai junto; a fechada continua fechada (nada de despejar
+     o compêndio inteiro no papel) */
+  .feat-card.open .feat-body { grid-template-rows: 1fr !important; }
+
+  /* campos de texto viram linhas escritas, não caixas de formulário */
+  .ficha textarea, .ficha input {
+    border: 1px solid #000 !important;
+    background: #fff !important;
+    resize: none !important;
+    overflow: visible !important;
+  }
+  .notas-box textarea { min-height: 26mm !important; }
+  .pers-box textarea { min-height: 14mm !important; }
+
+  a { text-decoration: none !important; }
+}

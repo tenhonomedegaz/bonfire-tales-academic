@@ -1,0 +1,970 @@
+{% extends 'home/base.html' %}
+
+{% block body_class %}bft-talents{% endblock %}
+{% block main_class %}flex-1 w-full bft-talents-main{% endblock %}
+{% load static %}
+
+{% block title %}Talentos - Bonfire Tales RPG{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/talentos.css' %}?v=5">
+<link rel="stylesheet" href="{% static 'css/pages/talentos_redesign.css' %}?v=3">
+
+{% endblock %}
+
+{% block content %}
+<section class="talent-page" aria-labelledby="talentsTitle">
+    <header class="talent-masthead">
+        <div class="talent-masthead-copy">
+            <nav class="talent-breadcrumb" aria-label="Localização"><a href="{% url 'home' %}">Bonfire Tales</a><span aria-hidden="true">/</span><span>Personagens</span></nav>
+            <h1 id="talentsTitle">Talentos</h1>
+            <p>O que torna seu aventureiro único? <span>Explore habilidades, marcas e dons para a sua jornada.</span></p>
+        </div>
+        <div class="talent-masthead-art" aria-hidden="true"></div>
+    </header>
+        <div id="filterModal" class="hidden fixed inset-0 z-[80] items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="talentFiltersTitle" aria-describedby="talentFiltersHint" tabindex="-1">
+            <button id="filterBackdrop" type="button" class="filter-backdrop absolute inset-0 bg-black/80 backdrop-blur-sm" aria-label="Fechar filtros" aria-hidden="true" tabindex="-1"></button>
+            <div class="filter-panel relative w-full max-w-xl overflow-hidden rounded-lg border border-bonfire-stroke bg-bonfire-bg1 shadow-2xl">
+                <div class="flex items-center justify-between border-b border-bonfire-stroke px-4 py-2.5">
+                    <h2 id="talentFiltersTitle" class="font-cinzel text-lg font-bold uppercase text-bonfire-text flex items-center gap-2">
+                        <svg class="h-4 w-4 text-bonfire-flame" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                        </svg>
+                        Filtros
+                    </h2>
+                    <button id="filterClose" type="button" class="rounded p-2 text-bonfire-muted transition-colors hover:bg-bonfire-bg2 hover:text-bonfire-text" aria-label="Fechar filtros">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="max-h-[65vh] space-y-4 overflow-y-auto p-4 custom-scrollbar">
+                    <section>
+                        <h3 class="border-b border-bonfire-stroke pb-2 text-xs font-bold uppercase tracking-widest text-bonfire-muted">Categoria</h3>
+                        <div id="typeFilterOptions" class="mt-3 flex flex-wrap gap-2"></div>
+                    </section>
+
+                    <section>
+                        <h3 class="border-b border-bonfire-stroke pb-2 text-xs font-bold uppercase tracking-widest text-bonfire-muted">Etiquetas Principais</h3>
+                        <div id="mainTagFilterOptions" class="mt-3 flex flex-wrap gap-2"></div>
+                    </section>
+
+                    <section>
+                        <h3 class="border-b border-bonfire-stroke pb-2 text-xs font-bold uppercase tracking-widest text-bonfire-muted">Aumento de Atributo</h3>
+                        <div id="attributeFilterOptions" class="mt-3 flex flex-wrap gap-2"></div>
+                    </section>
+
+                    <section>
+                        <h3 class="border-b border-bonfire-stroke pb-2 text-xs font-bold uppercase tracking-widest text-bonfire-muted">Tags Adicionais</h3>
+                        <div id="tagFilterOptions" class="mt-3 flex flex-wrap gap-2"></div>
+                    </section>
+
+                    <p id="talentFiltersHint" class="text-xs text-bonfire-muted">Combine uma opção de cada grupo. Para procurar um pré-requisito específico, use a busca do catálogo.</p>
+                </div>
+
+                <div class="flex flex-col gap-2 border-t border-bonfire-stroke p-4 sm:flex-row">
+                    <button id="clearFilters" type="button" class="rounded-md border border-bonfire-stroke px-3 py-2 text-sm font-bold text-bonfire-muted transition-colors hover:border-bonfire-flame hover:text-bonfire-text sm:w-32">
+                        Limpar Tudo
+                    </button>
+                    <button id="applyFilterModal" type="button" class="rounded-md bg-bonfire-flame px-3 py-2 text-sm font-bold text-white transition-colors hover:bg-bonfire-ember sm:flex-1">
+                        Aplicar Filtros
+                    </button>
+                </div>
+            </div>
+        </div>
+    <div class="talent-main-grid">
+        <button type="button" class="talent-mobile-menu-button" id="talentMobileMenuButton" aria-label="Abrir lista de talentos" aria-controls="talentosList" aria-expanded="false">
+            <svg xmlns="http://www.w3.org/2000/svg" class="open-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 5 7 7-7 7"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" class="close-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 19-7-7 7-7"/></svg>
+            <span>Escolher talento</span>
+        </button>
+        <button type="button" class="talent-mobile-backdrop" id="talentMobileBackdrop" aria-label="Fechar lista" tabindex="-1" aria-hidden="true"></button>
+
+        <aside class="talent-list-panel" id="talentosList" aria-labelledby="talentIndexTitle">
+            <div class="talent-index-heading"><h2 id="talentIndexTitle">Encontre seu talento</h2><button type="button" id="talentCloseMenu" aria-label="Fechar lista de talentos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div>
+            <div id="talentSearchBar" class="talent-tools">
+                <label for="searchInput">Buscar talento</label>
+                <div class="talent-search-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg><input type="search" id="searchInput" placeholder="Nome, etiqueta ou requisito…" autocomplete="off"></div>
+                <div class="talent-tool-buttons">
+                    <button id="filterToggle" type="button" aria-haspopup="dialog" aria-controls="filterModal" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Filtros<span id="filterCount" class="hidden">0</span></button>
+                    <button type="button" id="talentSort" onclick="toggleSort()" aria-label="Ordem alfabética: A a Z. Inverter ordem."><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 5v14m-4-4 4 4 4-4M16 5h4m-4 7h3m-3 7h2"/></svg><span id="talentSortLabel">A–Z</span></button>
+                </div>
+                <div class="talent-quick-types" role="group" aria-label="Categoria do talento"><button type="button" data-talent-type="" aria-pressed="true">Todos</button>{% for key,label in talent_catalog_tipo_choices|default:talent_tipo_choices %}<button type="button" data-talent-type="{{ label }}" aria-pressed="false">{% if key == 'epico' %}Épicos{% else %}{{ label }}{% endif %}</button>{% endfor %}</div>
+                <div class="talent-index-status"><span id="talentResultCount" role="status" aria-live="polite">{{ json_talentos|length }} talentos</span><button type="button" id="talentReset" hidden>Limpar</button></div>
+                <p id="talentActiveFilters" class="talent-active-filters" hidden></p>
+            </div>
+            <nav id="talentosListItems" class="custom-scrollbar" aria-label="Lista de talentos">
+            {% for talento in json_talentos %}
+            <a href="#talento-{{ talento.slug }}" data-talent-slug="{{ talento.slug }}" class="block rounded border border-transparent p-2.5 transition-colors hover:border-bonfire-stroke hover:bg-bonfire-bg1">
+                <h3 class="text-[13px] font-bold text-bonfire-muted">{{ talento.nome }}</h3>
+                <p class="mt-0.5 text-xs uppercase tracking-wider text-bonfire-muted">{{ talento.etiqueta }}</p>
+            </a>
+            {% endfor %}
+            </nav>
+        </aside>
+
+        <article class="talent-detail-panel" id="talentoDetail" aria-label="Talento selecionado">
+            {% if not json_talentos %}
+            <p class="text-bonfire-muted">Nenhum talento cadastrado.</p>
+            {% endif %}
+            <noscript><p>Ative o JavaScript para usar a busca e os filtros. Consulte os talentos abaixo.</p>{% if talent_epic_rules %}<details class="talent-epic-guide"><summary>Regras dos talentos épicos</summary><div>{% for paragraph in talent_epic_rules %}<p>{{ paragraph }}</p>{% endfor %}</div></details>{% endif %}{% for talento in json_talentos %}<section><h2 id="talento-{{ talento.slug }}">{{ talento.nome }}</h2><p>{{ talento.tipo }} · {{ talento.etiqueta }}</p><p>Pré-requisitos: {{ talento.pre_requisito }}</p><p>Aumento de atributo: {{ talento.aumento_atributo|default:talento.atributos_str }}</p><div>{{ talento.descricao|linebreaks }}</div></section>{% endfor %}</noscript>
+        </article>
+    </div>
+</section>
+
+{{ json_talentos|json_script:'talentos-data' }}
+{{ talent_tipo_choices|json_script:'talent-tipo-choices' }}
+{{ talent_catalog_tipo_choices|default:talent_tipo_choices|json_script:'talent-catalog-tipo-choices' }}
+{{ talent_etiqueta_choices|json_script:'talent-etiqueta-choices' }}
+{{ talent_epic_rules|default:''|json_script:'epic-talent-rules' }}
+<script>
+    // Carregar dados enviados pelo Django
+    const talentosData = JSON.parse(document.getElementById('talentos-data').textContent);
+    const talentTipoChoices = JSON.parse(document.getElementById('talent-tipo-choices').textContent);
+    const talentCatalogTipoChoices = JSON.parse(document.getElementById('talent-catalog-tipo-choices').textContent);
+    const epicTalentRules = JSON.parse(document.getElementById('epic-talent-rules').textContent);
+    const talentEtiquetaChoices = JSON.parse(document.getElementById('talent-etiqueta-choices').textContent);
+    const canEditWiki = {{ can_edit_wiki|yesno:"true,false" }};
+    let filteredTalentos = [...talentosData];
+    let selectedTalentoId = null;
+    let isAscending = true;
+
+    const listContainer = document.getElementById('talentosList');
+    const listItemsContainer = document.getElementById('talentosListItems');
+    const detailContainer = document.getElementById('talentoDetail');
+    const searchInput = document.getElementById('searchInput');
+    const filterToggle = document.getElementById('filterToggle');
+    const filterModal = document.getElementById('filterModal');
+    const filterBackdrop = document.getElementById('filterBackdrop');
+    const filterClose = document.getElementById('filterClose');
+    const filterCount = document.getElementById('filterCount');
+    const typeFilterOptions = document.getElementById('typeFilterOptions');
+    const mainTagFilterOptions = document.getElementById('mainTagFilterOptions');
+    const tagFilterOptions = document.getElementById('tagFilterOptions');
+    const attributeFilterOptions = document.getElementById('attributeFilterOptions');
+    const clearFilters = document.getElementById('clearFilters');
+    const applyFilterModal = document.getElementById('applyFilterModal');
+    const talentMobileMenuButton = document.getElementById('talentMobileMenuButton');
+    const talentMobileBackdrop = document.getElementById('talentMobileBackdrop');
+    const talentMobileLayout = window.matchMedia('(max-width: 1100px)');
+    const filterOptions = {
+        type: [],
+        mainTag: [],
+        tag: [],
+        attribute: []
+    };
+    let filterCloseTimer = null;
+    let activeFilters = {
+        type: '',
+        mainTag: '',
+        tag: '',
+        attribute: ''
+    };
+    const requestedType = new URL(window.location.href).searchParams.get('tipo');
+    searchInput.value = new URL(window.location.href).searchParams.get('q') || '';
+    activeFilters.type = talentCatalogTipoChoices.find(([key]) => key === requestedType)?.[1] || '';
+    let draftFilters = { ...activeFilters };
+    let listAnimationTimer = null;
+
+    const overlayInertState = new Map();
+    function syncTalentOverlays() {
+        const filtersOpen = !filterModal.classList.contains('hidden');
+        const menuOpen = talentMobileLayout.matches && document.body.classList.contains('talent-menu-open');
+        const overlayOpen = filtersOpen || menuOpen;
+        document.body.classList.toggle('talent-modal-open', overlayOpen);
+        document.body.classList.toggle('overflow-hidden', overlayOpen);
+        document.querySelectorAll('.bft-header, .bft-footer, a[href="#main-content"], .talent-masthead, #talentoDetail, #talentMobileMenuButton').forEach(element => {
+            const shouldInert = overlayOpen && (element !== talentMobileMenuButton || filtersOpen);
+            if (shouldInert && !overlayInertState.has(element)) overlayInertState.set(element, element.inert);
+            if (shouldInert) element.inert = true;
+            else if (overlayInertState.has(element)) {
+                element.inert = overlayInertState.get(element);
+                overlayInertState.delete(element);
+            }
+        });
+        listContainer.inert = filtersOpen || (talentMobileLayout.matches && !menuOpen);
+        if (listContainer.inert) listContainer.setAttribute('aria-hidden', 'true');
+        else listContainer.removeAttribute('aria-hidden');
+        if (menuOpen) { listContainer.setAttribute('role', 'dialog'); listContainer.setAttribute('aria-modal', 'true'); }
+        else { listContainer.removeAttribute('role'); listContainer.removeAttribute('aria-modal'); }
+    }
+
+    function setTalentMenuOpen(requested) {
+        const open = talentMobileLayout.matches && requested;
+        const returnFocus = !open && talentMobileLayout.matches && listContainer.contains(document.activeElement);
+        document.body.classList.toggle('talent-menu-open', open);
+        talentMobileMenuButton.setAttribute('aria-expanded', open ? 'true' : 'false');
+        talentMobileMenuButton.setAttribute('aria-label', open ? 'Fechar lista de talentos' : 'Abrir lista de talentos');
+        if (returnFocus) talentMobileMenuButton.focus();
+        syncTalentOverlays();
+        if (open) searchInput.focus();
+    }
+    function closeTalentMenu() { setTalentMenuOpen(false); }
+
+    function isTableSeparator(line) {
+        return /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line);
+    }
+
+    function parseTable(lines) {
+        const rows = lines
+            .filter(line => line.includes('|') && !isTableSeparator(line))
+            .map(line => line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(cell => cell.trim()));
+
+        if (rows.length < 2) return null;
+
+        const header = rows[0].map(cell => `<th>${parseInlineMarkdown(cell)}</th>`).join('');
+        const body = rows.slice(1).map(row => {
+            const cells = row.map(cell => `<td>${parseInlineMarkdown(cell)}</td>`).join('');
+            return `<tr>${cells}</tr>`;
+        }).join('');
+
+        return `<table><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table>`;
+    }
+
+    function renderListBlock(lines) {
+        let html = '<ul>';
+        let nestedOpen = false;
+        let topItemOpen = false;
+
+        lines.forEach(line => {
+            const isNested = /^\s{2,}-\s+/.test(line);
+            const text = line.replace(/^\s*-\s+/, '');
+
+            if (isNested) {
+                if (!topItemOpen) {
+                    html += '<li>';
+                    topItemOpen = true;
+                }
+                if (!nestedOpen) {
+                    html += '<ul>';
+                    nestedOpen = true;
+                }
+                html += `<li>${parseInlineMarkdown(text)}</li>`;
+                return;
+            }
+
+            if (nestedOpen) {
+                html += '</ul>';
+                nestedOpen = false;
+            }
+            if (topItemOpen) {
+                html += '</li>';
+            }
+
+            html += `<li>${parseInlineMarkdown(text)}`;
+            topItemOpen = true;
+        });
+
+        if (nestedOpen) html += '</ul>';
+        if (topItemOpen) html += '</li>';
+        return `${html}</ul>`;
+    }
+
+    function renderFallbackMarkdown(value) {
+        const source = normalizeMarkdown(value);
+        const blocks = source.split(/\n{2,}/);
+
+        return blocks.map(block => {
+            const lines = block.split('\n').filter(line => line.trim() !== '');
+
+            if (lines.length >= 3 && lines[0].includes('|') && isTableSeparator(lines[1])) {
+                const table = parseTable(lines);
+                if (table) return table;
+            }
+
+            if (lines.every(line => /^\s*-\s+/.test(line))) {
+                return renderListBlock(lines);
+            }
+
+            const headingMatch = block.match(/^(#{1,4})\s+(.+)$/);
+            if (headingMatch) {
+                const level = headingMatch[1].length + 2;
+                return `<h${level}>${parseInlineMarkdown(headingMatch[2])}</h${level}>`;
+            }
+
+            return `<p>${lines.map(parseInlineMarkdown).join('<br>')}</p>`;
+        }).join('');
+    }
+
+    function renderMarkdown(value) {
+        const cleanValue = String(value || '').trim();
+        if (typeof renderBonfireMarkdown === 'function') return sanitizeBonfireMarkdownHtml(renderBonfireMarkdown(cleanValue));
+        const normalizedValue = normalizeMarkdown(cleanValue);
+        const withToggles = normalizedValue.replace(/::(?:click|toggle)\s+([^\n]+)\n([\s\S]*?)\n::end(?:click|toggle)/gi, (_match, title, content) => {
+            const innerSource = normalizeMarkdown(content);
+            const innerHtml = window.marked && typeof window.marked.parse === 'function'
+                ? applyMarkdownColorsToHtml(window.marked.parse(innerSource, { breaks: true, gfm: true }))
+                : renderFallbackMarkdown(innerSource);
+            return `<details class="bonfire-toggle"><summary>${parseInlineMarkdown(title.trim())}</summary><div class="bonfire-toggle-content">${innerHtml}</div></details>`;
+        });
+
+        if (window.marked && typeof window.marked.parse === 'function') {
+            return sanitizeBonfireMarkdownHtml(applyMarkdownColorsToHtml(window.marked.parse(withToggles, { breaks: true, gfm: true })));
+        }
+
+        return sanitizeBonfireMarkdownHtml(renderFallbackMarkdown(withToggles));
+    }
+
+    function canonicalTag(value) {
+        return normalizeSearch(value).replace(/[.;:!?]+$/g, '').replace(/\s+/g, ' ').trim();
+    }
+
+    function getExtraTags(talento) {
+        const seen = new Set([canonicalTag(talento.etiqueta)]);
+        return String(talento.etiquetas_adicionais || '')
+            .split(',')
+            .map(tag => tag.trim().replace(/[.;:!?]+$/g, '').trim())
+            .filter(tag => {
+                const key = canonicalTag(tag);
+                if (!key || seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+    }
+
+    function capitalizeLabel(value) {
+        return String(value || '')
+            .toLocaleLowerCase('pt-BR')
+            .replace(/(^|\s)(\S)/g, match => match.toLocaleUpperCase('pt-BR'));
+    }
+
+    function createFilterChip(value, filterType) {
+        const button = document.createElement('button');
+        const isActive = draftFilters[filterType] === value;
+
+        button.type = 'button';
+        button.textContent = filterType === 'mainTag' ? capitalizeLabel(value) : displayTalentLabel(value);
+        button.setAttribute('aria-pressed', String(isActive));
+        button.dataset.filterType = filterType;
+        button.dataset.filterValue = value;
+        button.className = [
+            'filter-chip-pop rounded border px-3 py-2 text-xs font-bold transition-all duration-200 hover:-translate-y-0.5',
+            isActive
+                ? 'border-bonfire-flame bg-bonfire-bg2 text-bonfire-text shadow-[inset_0_0_0_1px_var(--flame)]'
+                : 'border-bonfire-stroke bg-bonfire-bg0 text-bonfire-muted hover:border-bonfire-flame hover:text-bonfire-text'
+        ].join(' ');
+        button.addEventListener('click', () => {
+            draftFilters[filterType] = isActive ? '' : value;
+            renderFilterChips();
+            Array.from(filterModal.querySelectorAll('[data-filter-type]')).find(element => element.dataset.filterType === filterType && element.dataset.filterValue === value)?.focus();
+        });
+
+        return button;
+    }
+
+    function renderChipGroup(container, values, filterType, emptyLabel) {
+        container.innerHTML = '';
+
+        if (!values.length) {
+            container.innerHTML = `<p class="text-sm text-bonfire-muted">${emptyLabel}</p>`;
+            return;
+        }
+
+        values.forEach(value => {
+            container.appendChild(createFilterChip(value, filterType));
+        });
+    }
+
+    function renderFilterChips() {
+        renderChipGroup(typeFilterOptions, filterOptions.type, 'type', 'Nenhuma categoria cadastrada.');
+        renderChipGroup(mainTagFilterOptions, filterOptions.mainTag, 'mainTag', 'Nenhuma etiqueta principal cadastrada.');
+        renderChipGroup(attributeFilterOptions, filterOptions.attribute, 'attribute', 'Nenhum aumento de atributo cadastrado.');
+        renderChipGroup(tagFilterOptions, filterOptions.tag, 'tag', 'Nenhuma tag adicional cadastrada.');
+    }
+
+    function populateFilters() {
+        filterOptions.type = [...new Set(talentosData.map(t => t.tipo).filter(Boolean))].sort();
+        filterOptions.mainTag = [...new Set(talentosData.map(t => t.etiqueta).filter(Boolean))].sort();
+        const tags = new Map();
+        talentosData.flatMap(t => getExtraTags(t)).forEach(tag => {
+            const key = canonicalTag(tag);
+            if (!tags.has(key)) tags.set(key, tag);
+        });
+        filterOptions.tag = [...tags.values()].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+        filterOptions.attribute = [...new Set(talentosData.flatMap(getTalentAttributes).filter(a => a && a !== 'Nenhum'))].sort();
+        
+        renderFilterChips();
+    }
+
+    function normalizeSearch(value) {
+        return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
+    }
+
+    function getTalentAttributes(talent) {
+        return Array.isArray(talent.atributos_opcoes) ? talent.atributos_opcoes : (talent.atributos_str || '').split(',').map(value => value.trim());
+    }
+
+    function syncTalentCategoryUrl() {
+        const url = new URL(window.location.href);
+        const typeKey = talentCatalogTipoChoices.find(([, label]) => label === activeFilters.type)?.[0];
+        if (typeKey) url.searchParams.set('tipo', typeKey);
+        else url.searchParams.delete('tipo');
+        const query = searchInput.value.trim();
+        if (query) url.searchParams.set('q', query);
+        else url.searchParams.delete('q');
+        if (url.href !== window.location.href) window.history.replaceState(null, '', url);
+    }
+
+    function setTalentHash(slug, mode) {
+        const url = new URL(window.location.href);
+        url.hash = slug ? `talento-${encodeURIComponent(slug)}` : '';
+        if (mode !== 'none' && url.href !== window.location.href) {
+            window.history[mode === 'replace' ? 'replaceState' : 'pushState'](null, '', url);
+        }
+    }
+
+    function applyFilters(animateList = true, syncSelection = true) {
+        const query = normalizeSearch(searchInput.value.trim());
+        const typeValue = activeFilters.type;
+        const mainTagValue = activeFilters.mainTag;
+        const tagValue = activeFilters.tag;
+        const attrValue = activeFilters.attribute;
+
+        filteredTalentos = talentosData.filter(t => {
+            const extraTags = getExtraTags(t);
+            const haystack = [
+                t.nome,
+                t.etiqueta,
+                t.etiquetas_adicionais,
+                t.pre_requisito,
+                t.tipo,
+                t.atributos_str,
+                t.aumento_atributo,
+                ...getTalentAttributes(t)
+            ].join(' ');
+
+            const matchesSearch = !query || normalizeSearch(haystack).includes(query);
+            const matchesType = !typeValue || t.tipo === typeValue;
+            const matchesMainTag = !mainTagValue || t.etiqueta === mainTagValue;
+            const matchesTag = !tagValue || extraTags.some(tag => canonicalTag(tag) === canonicalTag(tagValue));
+            const matchesAttr = !attrValue || getTalentAttributes(t).includes(attrValue);
+            return matchesSearch && matchesType && matchesMainTag && matchesTag && matchesAttr;
+        });
+
+        filteredTalentos.sort((a, b) => {
+            return a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }) * (isAscending ? 1 : -1);
+        });
+
+        const activeFilterCount = [typeValue, mainTagValue, tagValue, attrValue].filter(Boolean).length;
+        filterCount.textContent = activeFilterCount;
+        filterCount.classList.toggle('hidden', activeFilterCount === 0);
+        if (syncSelection && !filteredTalentos.some(t => t.id === selectedTalentoId)) {
+            const first = filteredTalentos[0];
+            if (first) {
+                selectTalento(first.id, { historyMode: 'replace', closeMenu: false });
+            } else {
+                selectedTalentoId = null;
+                detailContainer.classList.remove('hidden');
+                detailContainer.innerHTML = '<div class="talent-empty"><h2>Nenhum talento encontrado</h2><p>Tente outro termo ou remova alguns filtros para ampliar sua busca.</p><button type="button" onclick="resetTalentFilters()">Limpar busca e filtros</button></div>';
+                setTalentHash('', 'replace');
+            }
+        }
+        const resultCount = document.getElementById('talentResultCount');
+        resultCount.textContent = `${filteredTalentos.length} de ${talentosData.length} talentos`;
+        document.getElementById('talentReset').hidden = !query && !activeFilterCount;
+        const activeSummary = document.getElementById('talentActiveFilters');
+        activeSummary.hidden = !activeFilterCount;
+        activeSummary.textContent = Object.values(activeFilters).filter(Boolean).map(displayTalentLabel).join(' · ');
+        document.querySelectorAll('.talent-quick-types button[data-talent-type]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.talentType === typeValue)));
+        syncTalentCategoryUrl();
+        // Filtering a long catalogue should update immediately, without collapsing every row.
+        renderList(false);
+    }
+
+    function renderList(animateList = false) {
+        if (animateList && listItemsContainer.children.length) {
+            if (listAnimationTimer) clearTimeout(listAnimationTimer);
+            listItemsContainer.classList.remove('talent-list-expanding');
+            listItemsContainer.classList.add('talent-list-collapsing');
+            listAnimationTimer = setTimeout(() => {
+                listItemsContainer.classList.remove('talent-list-collapsing');
+                renderList(false);
+                Array.from(listItemsContainer.children).forEach((child, index) => {
+                    child.style.animationDelay = `${Math.min(index * 18, 160)}ms`;
+                });
+                listItemsContainer.classList.add('talent-list-expanding');
+                listAnimationTimer = setTimeout(() => {
+                    listItemsContainer.classList.remove('talent-list-expanding');
+                    Array.from(listItemsContainer.children).forEach(child => {
+                        child.style.animationDelay = '';
+                    });
+                    listAnimationTimer = null;
+                }, 620);
+            }, 270);
+            return;
+        }
+
+        if (listAnimationTimer) clearTimeout(listAnimationTimer);
+        listAnimationTimer = null;
+        listItemsContainer.classList.remove('talent-list-collapsing', 'talent-list-expanding');
+        listItemsContainer.innerHTML = '';
+        
+        if (filteredTalentos.length === 0) {
+            listItemsContainer.innerHTML = '<p class="text-bonfire-muted text-sm p-3 text-center">Nenhum talento encontrado.</p>';
+            return;
+        }
+
+        filteredTalentos.forEach(talento => {
+            const isSelected = talento.id === selectedTalentoId;
+            
+            // Classes condicionais
+            const borderClass = isSelected ? 'border-bonfire-ember' : 'border-transparent';
+            const bgClass = isSelected ? 'bg-bonfire-bg1' : 'hover:bg-bonfire-bg1';
+            const textClass = isSelected ? 'text-bonfire-text' : 'text-bonfire-muted';
+            const tipoStr = (talento.tipo || '').toLowerCase();
+            const etiquetaStr = (talento.etiqueta || '').toUpperCase();
+            const typeBadgeColor = tipoStr === 'origem' ? 'border-bonfire-flame text-bonfire-flame' : 'border-bonfire-stroke text-bonfire-muted';
+
+            const item = document.createElement('a');
+            item.href = `#talento-${encodeURIComponent(talento.slug)}`;
+            item.dataset.talentSlug = talento.slug;
+            item.dataset.talentType = talento.tipo_key || '';
+            if (isSelected) item.setAttribute('aria-current', 'true');
+            item.className = `w-full text-left p-2.5 cursor-pointer rounded-md border transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-bonfire-flame ${borderClass} ${bgClass} flex justify-between items-start`;
+            item.onclick = event => {
+                if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0) return;
+                event.preventDefault();
+                selectTalento(talento.id, { focusDetail: true });
+            };
+
+            item.innerHTML = `
+                <div class="talent-index-copy">
+                    <h3 class="font-bold text-[13px] ${textClass} transition-colors">${escapeHtml(talento.nome)}</h3>
+                    <p class="text-xs text-bonfire-muted mt-0.5 uppercase tracking-wider">${escapeHtml(etiquetaStr)}</p>
+                    <div class="talent-index-tags">${getExtraTags(talento).map(tag => `<span>${escapeHtml(tag)}</span>`).join('')}</div>
+                </div>
+                <div class="talent-index-type">
+                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wide ${typeBadgeColor}">
+                        ${escapeHtml(talento.tipo || '')}
+                    </span>
+                </div>
+            `;
+            listItemsContainer.appendChild(item);
+        });
+    }
+
+    function displayTalentLabel(value) {
+        return String(value || '').replace(/\bForca\b/g, 'Força').replace(/\bConstituicao\b/g, 'Constituição').replace(/\bInteligencia\b/g, 'Inteligência');
+    }
+
+    function formatTalentBenefits(html) {
+        const content = document.createElement('div');
+        content.innerHTML = html; // Already sanitized by renderMarkdown.
+        content.querySelectorAll(':scope > ul > li > strong:first-child, :scope > ul > li > p:first-child > strong:first-child').forEach(label => {
+            const siblings = Array.from(label.parentNode.childNodes);
+            if (siblings.slice(0, siblings.indexOf(label)).some(node => node.textContent.trim())) return;
+            label.classList.add('talent-benefit-label');
+            const text = label.nextSibling;
+            const punctuation = text?.nodeType === Node.TEXT_NODE && text.textContent.match(/^\s*[:：]\s*/);
+            if (punctuation) {
+                label.appendChild(document.createTextNode(punctuation[0].trimEnd()));
+                text.textContent = ' ' + text.textContent.slice(punctuation[0].length);
+            }
+        });
+        return content.innerHTML;
+    }
+
+    function selectTalento(id, { historyMode = 'push', focusDetail = false, closeMenu = true } = {}) {
+        const talento = talentosData.find(t => t.id === id);
+        if (!talento) return;
+        selectedTalentoId = id;
+        renderList();
+        setTalentHash(talento.slug, historyMode);
+        if (closeMenu) closeTalentMenu();
+
+        // Renderizar detalhes
+        // Mostrar em telas pequenas também
+        detailContainer.classList.remove('hidden');
+        detailContainer.classList.add('flex', 'flex-col');
+        detailContainer.classList.toggle('talent-is-epic', talento.tipo_key === 'epico');
+
+        // Converter markdown. Usa marked.js quando disponível e fallback local se o CDN falhar.
+        const renderedHtml = formatTalentBenefits(renderMarkdown(talento.descricao));
+
+        detailContainer.innerHTML = `
+            <header class="talent-detail-header">
+                <div class="talent-detail-emblem" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.1"><path d="m16 2 12 7v14l-12 7L4 23V9Z"/><path d="m16 8 3 6 6 2-6 2-3 6-3-6-6-2 6-2Z"/><path d="M16 2v6m0 16v6M4 9l7 4m10 6 7 4M4 23l7-4m10-6 7-4"/></svg></div>
+                <div class="talent-detail-heading"><p class="talent-eyebrow">${escapeHtml(talento.tipo === 'Origem' ? 'Talento de origem' : talento.tipo_key === 'epico' ? 'Talento épico' : 'Talento geral')} <span aria-hidden="true">/</span> ${escapeHtml(talento.etiqueta)}</p><h2 id="talento-${escapeHtml(talento.slug)}" data-talent-title tabindex="-1">${escapeHtml(talento.nome)}</h2></div>
+                ${canEditWiki && !talento.catalogo_editorial ? `<button type="button" class="wiki-edit-button" aria-expanded="false" aria-controls="talento-editor" onclick="openTalentEditor(${talento.id})">Editar wiki</button>` : ''}
+            </header>
+            <div class="talent-detail-body">
+            ${getExtraTags(talento).length ? `<div class="talent-detail-tags" aria-label="Etiquetas adicionais">${getExtraTags(talento).map(tag => `<span>${escapeHtml(tag)}</span>`).join('')}</div>` : ''}
+            <div id="talento-editor" data-talent-editor></div>
+            <dl class="talent-meta">
+                <div><dt>Pré-requisitos</dt><dd>${escapeHtml(talento.pre_requisito || 'Nenhum')}</dd></div>
+                <div><dt>Aumento de atributo</dt><dd>${escapeHtml(talento.aumento_atributo || displayTalentLabel(talento.atributos_str) || 'Nenhum')}</dd></div>
+            </dl>
+            ${talento.tipo_key === 'epico' && Array.isArray(epicTalentRules) ? `<details class="talent-epic-guide"><summary><span>Regras dos talentos épicos</span><span class="talent-epic-guide-action" aria-hidden="true">+</span></summary><div>${epicTalentRules.map(paragraph => `<p>${escapeHtml(paragraph)}</p>`).join('')}</div></details>` : ''}
+            <div data-talent-preview class="bonfire-markdown talent-copy">
+                ${renderedHtml}
+            </div>
+            </div>
+        `;
+        detailContainer.classList.remove('talent-detail-enter');
+        void detailContainer.offsetWidth;
+        detailContainer.classList.add('talent-detail-enter');
+        if (focusDetail) {
+            const heading = detailContainer.querySelector('[data-talent-title]');
+            heading.focus({ preventScroll: true });
+            heading.scrollIntoView({ block: 'start' });
+        }
+        const currentLink = listItemsContainer.querySelector('[aria-current]');
+        if (currentLink) {
+            const row = currentLink.getBoundingClientRect();
+            const viewport = listItemsContainer.getBoundingClientRect();
+            if (row.top < viewport.top) listItemsContainer.scrollTop -= viewport.top - row.top;
+            else if (row.bottom > viewport.bottom) listItemsContainer.scrollTop += row.bottom - viewport.bottom;
+        }
+    }
+
+    function choiceOptions(choices, selected) {
+        return choices.map(([value, label]) => `
+            <option value="${escapeHtml(value)}" ${value === selected ? 'selected' : ''}>${escapeHtml(label)}</option>
+        `).join('');
+    }
+
+    function openTalentEditor(id) {
+        const talento = talentosData.find(t => t.id === id);
+        const mount = detailContainer.querySelector('[data-talent-editor]');
+        const preview = detailContainer.querySelector('[data-talent-preview]');
+        if (!talento || !canEditWiki || talento.catalogo_editorial || !mount || !preview) return;
+        if (mount.querySelector('form')) {
+            mount.querySelector('input[name="nome"]')?.focus();
+            return;
+        }
+
+        mount.innerHTML = `
+            <form class="wiki-editor" data-talent-edit-form>
+                <div class="wiki-editor-grid">
+                    <label>Nome
+                        <input name="nome" value="${escapeHtml(talento.nome)}">
+                    </label>
+                    <label>Tipo
+                        <select name="tipo">${choiceOptions(talentTipoChoices, talento.tipo_key)}</select>
+                    </label>
+                    <label>Etiqueta principal
+                        <select name="etiqueta">${choiceOptions(talentEtiquetaChoices, talento.etiqueta_key)}</select>
+                    </label>
+                    <label>Etiquetas adicionais
+                        <input name="etiquetas_adicionais" value="${escapeHtml(talento.etiquetas_adicionais || '')}">
+                    </label>
+                    <label class="wide">Pré-requisito
+                        <input name="pre_requisito" value="${escapeHtml(talento.pre_requisito === 'Nenhum' ? '' : talento.pre_requisito)}">
+                    </label>
+                    <label class="wide">Atributos
+                        <div class="wiki-attr-grid">
+                            ${[
+                                ['atrib_forca', 'Força'],
+                                ['atrib_destreza', 'Destreza'],
+                                ['atrib_constituicao', 'Constituição'],
+                                ['atrib_inteligencia', 'Inteligência'],
+                                ['atrib_sabedoria', 'Sabedoria'],
+                                ['atrib_carisma', 'Carisma']
+                            ].map(([field, label]) => `
+                                <label><input type="checkbox" name="${field}" ${talento[field] ? 'checked' : ''}> ${label}</label>
+                            `).join('')}
+                        </div>
+                    </label>
+                    <label class="wide">Texto real
+                        <textarea name="descricao">${escapeHtml(talento.descricao || '')}</textarea>
+                    </label>
+                </div>
+                <p class="wiki-save-error" role="alert" tabindex="-1" hidden></p>
+                <div class="wiki-editor-actions">
+                    <button type="button" class="wiki-cancel" onclick="closeTalentEditor()">Cancelar</button>
+                    <button type="submit" class="wiki-save">Salvar</button>
+                </div>
+            </form>
+        `;
+
+        const form = mount.querySelector('[data-talent-edit-form]');
+        detailContainer.querySelector('.wiki-edit-button')?.setAttribute('aria-expanded', 'true');
+        const textarea = form.elements.descricao;
+        textarea.addEventListener('input', () => {
+            preview.innerHTML = formatTalentBenefits(renderMarkdown(textarea.value));
+        });
+        form.addEventListener('submit', event => saveTalentEditor(event, talento.id));
+        form.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && form.getAttribute('aria-busy') !== 'true') {
+                event.preventDefault();
+                closeTalentEditor();
+            }
+        });
+        form.elements.nome.focus();
+    }
+
+    function closeTalentEditor() {
+        const mount = detailContainer.querySelector('[data-talent-editor]');
+        const form = mount?.querySelector('form');
+        if (!form || form.getAttribute('aria-busy') === 'true') return;
+        const talento = talentosData.find(item => item.id === selectedTalentoId);
+        const preview = detailContainer.querySelector('[data-talent-preview]');
+        if (talento && preview) preview.innerHTML = formatTalentBenefits(renderMarkdown(talento.descricao));
+        mount.innerHTML = '';
+        const trigger = detailContainer.querySelector('.wiki-edit-button');
+        trigger?.setAttribute('aria-expanded', 'false');
+        trigger?.focus();
+    }
+
+    async function saveTalentEditor(event, id) {
+        event.preventDefault();
+        const talent = talentosData.find(item => item.id === id);
+        if (!canEditWiki || !talent || talent.catalogo_editorial) return;
+        const form = event.currentTarget;
+        if (form.getAttribute('aria-busy') === 'true') return;
+        const data = Object.fromEntries(new FormData(form).entries());
+        ['atrib_forca', 'atrib_destreza', 'atrib_constituicao', 'atrib_inteligencia', 'atrib_sabedoria', 'atrib_carisma'].forEach(attr => {
+            data[attr] = form.elements[attr]?.checked || false;
+        });
+
+        const error = form.querySelector('.wiki-save-error');
+        const save = form.querySelector('.wiki-save');
+        const cancel = form.querySelector('.wiki-cancel');
+        error.hidden = true;
+        form.setAttribute('aria-busy', 'true');
+        save.disabled = true;
+        cancel.disabled = true;
+        try {
+            const response = await fetch(`/wiki/talentos/${id}/editar/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': decodeURIComponent(getCookie('csrftoken'))
+                },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok || !result.ok || !result.talent) {
+                throw new Error(result.error || 'Não foi possível salvar este talento.');
+            }
+            const index = talentosData.findIndex(t => t.id === id);
+            if (index >= 0) talentosData[index] = result.talent;
+            selectedTalentoId = id;
+            applyFilters(false);
+            selectTalento(id);
+            detailContainer.querySelector('.wiki-edit-button')?.focus();
+        } catch (failure) {
+            error.textContent = failure.message || 'Não foi possível salvar este talento.';
+            error.hidden = false;
+            error.focus();
+        } finally {
+            form.removeAttribute('aria-busy');
+            save.disabled = false;
+            cancel.disabled = false;
+        }
+    }
+
+    function toggleAnimatedDetails(details) {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            details.open = !details.open;
+            return;
+        }
+        const content = details.querySelector('.bonfire-toggle-content');
+        if (!content || details.dataset.animating === 'true') return;
+
+        details.dataset.animating = 'true';
+        if (!details.open) {
+            details.open = true;
+            content.style.maxHeight = '0px';
+            content.style.opacity = '0';
+            content.style.transform = 'translateY(-12px)';
+            requestAnimationFrame(() => {
+                content.style.maxHeight = `${content.scrollHeight}px`;
+                content.style.opacity = '1';
+                content.style.transform = 'translateY(0)';
+            });
+            setTimeout(() => {
+                content.style.maxHeight = 'none';
+                content.style.opacity = '';
+                content.style.transform = '';
+                details.dataset.animating = 'false';
+            }, 560);
+            return;
+        }
+
+        content.style.maxHeight = `${content.scrollHeight}px`;
+        content.style.opacity = '1';
+        content.style.transform = 'translateY(0)';
+        requestAnimationFrame(() => {
+            content.style.maxHeight = '0px';
+            content.style.opacity = '0';
+            content.style.transform = 'translateY(-12px)';
+        });
+        setTimeout(() => {
+            details.open = false;
+            content.style.maxHeight = '';
+            content.style.opacity = '';
+            content.style.transform = '';
+            details.dataset.animating = 'false';
+        }, 560);
+    }
+
+    document.addEventListener('click', event => {
+        const summary = event.target.closest('.bonfire-toggle > summary');
+        if (!summary) return;
+        const details = summary.parentElement;
+        if (!details || !details.classList.contains('bonfire-toggle')) return;
+        event.preventDefault();
+        toggleAnimatedDetails(details);
+    });
+
+    function closeTalentoDetail() {
+        detailContainer.classList.add('hidden');
+        detailContainer.classList.remove('flex');
+    }
+
+    function openFilterModal() {
+        if (filterCloseTimer) {
+            clearTimeout(filterCloseTimer);
+            filterCloseTimer = null;
+        }
+        draftFilters = { ...activeFilters };
+        renderFilterChips();
+        filterModal.classList.remove('is-closing');
+        filterModal.classList.remove('hidden');
+        filterModal.classList.add('flex');
+        filterToggle.setAttribute('aria-expanded', 'true');
+        filterClose.focus();
+        syncTalentOverlays();
+    }
+
+    function closeFilterModal() {
+        if (filterModal.classList.contains('hidden')) return;
+        filterModal.classList.add('hidden');
+        filterModal.classList.remove('flex', 'is-closing');
+        filterToggle.setAttribute('aria-expanded', 'false');
+        syncTalentOverlays();
+        (listContainer.inert ? talentMobileMenuButton : filterToggle).focus();
+    }
+
+    // Busca Dinâmica
+    searchInput.addEventListener('input', () => {
+        applyFilters();
+    });
+
+    filterToggle.addEventListener('click', () => {
+        openFilterModal();
+    });
+    talentMobileMenuButton?.addEventListener('click', () => setTalentMenuOpen(!document.body.classList.contains('talent-menu-open')));
+    talentMobileBackdrop?.addEventListener('click', closeTalentMenu);
+    document.getElementById('talentCloseMenu').addEventListener('click', closeTalentMenu);
+    document.getElementById('talentReset').addEventListener('click', () => resetTalentFilters());
+    document.querySelectorAll('.talent-quick-types button[data-talent-type]').forEach(button => button.addEventListener('click', () => {
+        activeFilters.type = button.dataset.talentType;
+        applyFilters(false);
+    }));
+
+    [filterBackdrop, filterClose].forEach(element => {
+        element.addEventListener('click', closeFilterModal);
+    });
+
+    applyFilterModal.addEventListener('click', () => {
+        activeFilters = { ...draftFilters };
+        applyFilters();
+        closeFilterModal();
+    });
+
+    function resetTalentFilters() {
+        searchInput.value = '';
+        activeFilters = {
+            type: '',
+            mainTag: '',
+            tag: '',
+            attribute: ''
+        };
+        draftFilters = { ...activeFilters };
+        renderFilterChips();
+        applyFilters();
+    }
+    clearFilters.addEventListener('click', resetTalentFilters);
+
+    document.addEventListener('keydown', event => {
+        const filtersOpen = !filterModal.classList.contains('hidden');
+        const drawerOpen = talentMobileLayout.matches && document.body.classList.contains('talent-menu-open');
+        if (event.key === 'Escape') {
+            if (filtersOpen) closeFilterModal();
+            else if (drawerOpen) closeTalentMenu();
+        }
+        if (event.key === 'Tab' && (filtersOpen || drawerOpen)) {
+            const root = filtersOpen ? filterModal : listContainer;
+            const focusable = Array.from(root.querySelectorAll('button:not([disabled]), input:not([disabled]), select, textarea, a[href], [tabindex="0"]')).filter(element => element.tabIndex >= 0 && element.getClientRects().length && !element.closest('[inert]'));
+            if (!filtersOpen) focusable.push(talentMobileMenuButton);
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && (document.activeElement === first || !focusable.includes(document.activeElement))) { event.preventDefault(); last?.focus(); }
+            else if (!event.shiftKey && (document.activeElement === last || !focusable.includes(document.activeElement))) { event.preventDefault(); first?.focus(); }
+        }
+    });
+
+    // Ordenação Simples A-Z / Z-A
+    function toggleSort() {
+        isAscending = !isAscending;
+        document.getElementById('talentSortLabel').textContent = isAscending ? 'A–Z' : 'Z–A';
+        document.getElementById('talentSort').setAttribute('aria-label', `Ordem alfabética: ${isAscending ? 'A a Z' : 'Z a A'}. Inverter ordem.`);
+        applyFilters();
+    }
+
+    // Inicialização
+    populateFilters();
+    applyFilters(false, false);
+    function restoreTalentFromHash() {
+        const url = new URL(window.location.href);
+        const typeKey = url.searchParams.get('tipo');
+        const restoredType = talentCatalogTipoChoices.find(([key]) => key === typeKey)?.[1] || '';
+        const restoredQuery = url.searchParams.get('q') || '';
+        if (activeFilters.type !== restoredType || searchInput.value !== restoredQuery) {
+            activeFilters.type = restoredType;
+            searchInput.value = restoredQuery;
+            applyFilters(false, false);
+        }
+        let slug = '';
+        try {
+            slug = decodeURIComponent(window.location.hash.replace(/^#(?:talento-)?/, ''));
+        } catch (error) {
+            // Um fragmento inválido não deve interromper o catálogo.
+        }
+        const talent = talentosData.find(item => item.slug === slug);
+        if (talent && !filteredTalentos.some(item => item.id === talent.id)) {
+            searchInput.value = '';
+            activeFilters = { type: '', mainTag: '', tag: '', attribute: '' };
+            applyFilters(false, false);
+        }
+        const exactMatch = restoredQuery.trim() && filteredTalentos.find(item => normalizeSearch(item.nome) === normalizeSearch(restoredQuery.trim()));
+        const selected = talent || exactMatch || filteredTalentos[0];
+        if (selected) selectTalento(selected.id, {
+            historyMode: talent ? 'none' : 'replace',
+            focusDetail: Boolean(talent || exactMatch),
+        });
+    }
+    restoreTalentFromHash();
+    window.addEventListener('popstate', restoreTalentFromHash);
+    window.addEventListener('hashchange', restoreTalentFromHash);
+
+    // The same catalogue controls are available in the mobile drawer.
+    (function() {
+        const mq = talentMobileLayout;
+        function handleLayout(e) {
+            closeTalentMenu();
+        }
+        mq.addEventListener('change', handleLayout);
+        handleLayout(mq);
+    })();
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+</script>
+{% endblock %}

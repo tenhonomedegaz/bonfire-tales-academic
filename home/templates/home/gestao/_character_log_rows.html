@@ -1,0 +1,13 @@
+<table class="gestao-table character-log-rows">
+  <caption class="character-log-sr-only">Registros da planilha e correspondencias com o bot</caption>
+  <thead><tr><th scope="col">Registro da planilha</th><th scope="col">Estado</th><th scope="col">Evidencia e pendencias</th></tr></thead>
+  <tbody>
+    {% for row in rows %}
+    <tr>
+      <td data-label="Registro da planilha"><strong>{{ row.title }}</strong><span class="gestao-subline">{{ row.key }}{% if row.date %} &middot; {{ row.date }}{% endif %}</span>{% if row.master %}<span class="gestao-subline">Mestre: {{ row.master }}</span>{% endif %}<span class="gestao-subline">Aventuras declaradas: {{ row.adventures|default_if_none:'Nao informadas' }}</span>{% if row.summary %}<details class="character-log-summary"><summary>Relato</summary><p>{{ row.summary }}</p></details>{% endif %}</td>
+      <td data-label="Estado"><span class="gestao-status {{ row.tone }}">{{ row.state_label }}</span>{% if row.state == 'matched' %}<span class="gestao-subline">Missao do bot #{{ row.quest_id }}</span>{% endif %}</td>
+      <td data-label="Evidencia e pendencias"><p>{{ row.reason }}</p>{% for warning in row.warnings %}<p class="character-log-warning">{{ warning }}</p>{% endfor %}{% if row.candidates %}<details class="character-log-summary"><summary>Candidatas ({{ row.candidates|length }})</summary><ul>{% for candidate in row.candidates %}<li>{{ candidate.title }} <span class="gestao-muted">#{{ candidate.id }} &middot; {{ candidate.date }}</span></li>{% endfor %}</ul></details>{% endif %}</td>
+    </tr>
+    {% empty %}<tr><td colspan="3">Nenhum registro legivel nesta planilha.</td></tr>{% endfor %}
+  </tbody>
+</table>

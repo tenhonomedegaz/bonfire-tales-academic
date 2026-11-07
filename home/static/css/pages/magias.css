@@ -1,0 +1,258 @@
+/* Code-built Bonfire spell cards with supplied school icons; no fixed-height rules. */
+body.bft-spells {
+  --bg0:#0a0a0a; --bg1:#131112; --bg2:#201416; --stroke:#422326;
+  --text:#f2eee8; --muted:#b9b3b3; --ember:#ff6a00; --flame:#b31515;
+  color:var(--text); background:#0a0a0a; font-family:'Open Sans',sans-serif;
+}
+.bft-spells .bft-header { border-bottom-color:#572023; }
+.bft-spells .bft-spells-main { max-width:1440px; margin:0 auto; padding:22px 28px 48px; min-width:0; }
+.bft-spells .spell-page [hidden] { display:none !important; }
+.bft-spells .spell-symbol-definitions { position:absolute; overflow:hidden; pointer-events:none; }
+.bft-spells .spell-masthead { position:relative; overflow:hidden; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:14px 22px 16px; margin-bottom:18px; border:1px solid #693034; border-top:2px solid #b31515; background:linear-gradient(110deg,#231012,#121011 80%); }
+.bft-spells .spell-masthead > div:first-child { position:relative; z-index:1; }
+.bft-spells .spell-breadcrumb { display:flex; flex-wrap:wrap; gap:9px; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#c5b0ad; }
+.bft-spells .spell-masthead h1 { font-family:'Frank Ruhl Libre',Georgia,serif; font-size:36px; font-weight:500; line-height:1.1; letter-spacing:-.02em; margin:7px 0; }
+.bft-spells .spell-masthead p { font-size:14px; line-height:1.65; color:#e3c9bd; margin:0; }
+.bft-spells .spell-masthead p span { color:#b9b3b3; }
+.bft-spells .spell-masthead-sigil { position:absolute; width:230px; height:230px; right:40px; top:-48px; color:#b34c35; opacity:.28; transform:rotate(12deg); }
+.bft-spells .spell-masthead-sigil svg { width:100%; height:100%; stroke:currentColor; stroke-width:.8; }
+.bft-spells .spell-workspace { display:grid; grid-template-columns:280px minmax(0,1fr); gap:22px; align-items:start; min-width:0; }
+.bft-spells .spell-sidebar { position:sticky; top:calc(var(--bft-header-height,72px) + 12px); display:flex; flex-direction:column; height:calc(100dvh - var(--bft-header-height,72px) - 24px); max-height:850px; min-height:370px; padding:12px; border:1px solid #422326; border-top:2px solid #7c2228; background:#131112; min-width:0; overflow:hidden; }
+.bft-spells .spell-sidebar-heading { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
+.bft-spells .spell-sidebar-heading h2 { font:500 22px/1.15 'Frank Ruhl Libre',Georgia,serif; color:#f2e5dc; margin:0; }
+.bft-spells #mgCloseFilters { display:none; }
+.bft-spells .spell-filter-fields > label, .bft-spells .spell-filter-pair label { display:block; font-size:12px; color:#c2b3b0; margin:0 0 6px; }
+.bft-spells .spell-filter-fields > select, .bft-spells .spell-search-wrap { margin-bottom:10px; }
+.bft-spells .spell-filter-fields select { width:100%; min-width:0; min-height:36px; padding:7px 8px; border:1px solid #513035; border-radius:3px; background:#0d0b0c; color:#eee7e2; font:400 13px/1.4 'Open Sans',sans-serif; color-scheme:dark; }
+.bft-spells .spell-search-wrap { position:relative; }
+.bft-spells .spell-search-wrap svg { position:absolute; width:16px; height:16px; top:10px; left:10px; color:#b99b97; pointer-events:none; }
+.bft-spells #mg-busca { width:100%; min-width:0; height:36px; padding:7px 8px 7px 32px; border:1px solid #513035; border-radius:3px; background:#0d0b0c; color:#eee7e2; font:400 13px/1.4 'Open Sans',sans-serif; color-scheme:dark; }
+.bft-spells #mg-busca::placeholder { color:#a59492; font-size:11px; }
+.bft-spells .spell-filter-pair { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); margin-bottom:10px; gap:8px; }
+.bft-spells .spell-filter-checks { display:flex; flex-wrap:wrap; gap:8px 14px; margin:10px 0; }
+.bft-spells .spell-filter-checks label { display:flex; align-items:center; gap:9px; min-height:28px; font-size:11px; color:#ded1cb; cursor:pointer; }
+.bft-spells .spell-filter-checks input { width:16px; height:16px; accent-color:#b31515; }
+.bft-spells #mg-clear-filters { padding:7px 0; font-size:10px; color:#efb19b; text-decoration:underline; text-underline-offset:3px; }
+.bft-spells .spell-school-choices { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:6px; }
+.bft-spells .spell-school-choices button { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; min-width:0; min-height:58px; padding:5px 3px; border:1px solid transparent; text-align:center; white-space:normal; font-size:10px; color:#c7bcb7; }
+.bft-spells .spell-school-icon { display:block; width:40px; height:40px; object-fit:contain; flex-shrink:0; }
+.bft-spells .spell-school-choices .spell-school-icon { width:32px; height:32px; }
+.bft-spells .spell-school-choices button[aria-pressed=true] { color:#f7e9df; border-color:var(--school); background:var(--school-dark); }
+.bft-spells .spell-library { min-width:0; }
+.bft-spells .spell-library-heading { display:flex; justify-content:space-between; align-items:center; gap:15px; margin:0 0 8px; }
+.bft-spells .spell-eyebrow { font-size:10px; letter-spacing:.13em; text-transform:uppercase; color:#d8957e; margin:0 0 4px; }
+.bft-spells #mgDeckTitle { font:600 12px/1.5 'Open Sans',sans-serif; margin:0; color:#c6aba2; letter-spacing:.06em; text-transform:uppercase; scroll-margin-top:90px; }
+.bft-spells .spell-result-count { font-size:12px; color:#b7a5a0; white-space:nowrap; }
+.bft-spells .spell-result-count strong { font-weight:600; color:#e6c4b5; }
+.bft-spells .spell-active-filters, .bft-spells .spell-link-notice { color:#d0a89b; font-size:12px; line-height:1.7; margin:-4px 0 16px; overflow-wrap:anywhere; }
+.bft-spells .spell-link-notice { padding:12px 15px; border:1px solid #75402f; background:#251713; }
+.bft-spells [data-school] { --school:#c39b78; --school-dark:#2d211d; --school-line:#685045; }
+.bft-spells [data-school=abjuracao] { --school:#82bdd9; --school-dark:#16252c; --school-line:#36596b; }
+.bft-spells [data-school=adivinhacao] { --school:#d8b76e; --school-dark:#2b2416; --school-line:#72613b; }
+.bft-spells [data-school=conjuracao] { --school:#75c3b8; --school-dark:#142925; --school-line:#35675e; }
+.bft-spells [data-school=encantamento] { --school:#d19bbd; --school-dark:#2c1b28; --school-line:#71445f; }
+.bft-spells [data-school=evocacao] { --school:#ed8b78; --school-dark:#341719; --school-line:#8e3b36; }
+.bft-spells [data-school=ilusao] { --school:#a9a4e9; --school-dark:#221e36; --school-line:#534e86; }
+.bft-spells [data-school=necromancia] { --school:#a7bb83; --school-dark:#22291a; --school-line:#52613c; }
+.bft-spells [data-school=transmutacao] { --school:#e1ae79; --school-dark:#302117; --school-line:#795337; }
+.bft-spells .spell-card { position:relative; min-width:0; border:1px solid var(--school-line); border-top:3px solid var(--school); border-radius:8px 8px 3px 3px; background:#141112; box-shadow:0 5px 20px #0004; color:#e9dfd5; overflow-wrap:anywhere; }
+.bonfire-preview-card { max-height:calc(100dvh - 100px); overflow:auto; overscroll-behavior:contain; }
+.bonfire-preview-card-spell { padding:7px!important; background:#100c10!important; border-color:#754034!important; font-family:'Open Sans',sans-serif!important; }
+.bonfire-preview-card-spell .bonfire-preview-card-body { max-height:none; overflow:visible; }
+.bonfire-preview-card-spell .bonfire-preview-card-close { top:11px; right:14px; width:27px; height:27px; border:1px solid #bc8460; border-radius:2px; color:#ffe1bf; background:#1b1118; z-index:5; font-size:21px; }
+.bonfire-preview-card-spell.bft-spells .spell-card-full .spell-card-header { padding:17px 18px; }
+.bonfire-preview-card-spell.bft-spells .spell-card-full .spell-circle { right:18px; top:47px; width:42px; min-height:45px; }
+.bonfire-preview-card-spell.bft-spells .spell-card-full .spell-circle > span { font-size:25px; }
+.bonfire-preview-card-spell.bft-spells .spell-card-full h2 { font-size:27px; padding-right:49px; }
+.bonfire-preview-card-spell.bft-spells .spell-card-full .spell-card-body { padding:16px 18px; }
+.bonfire-preview-card-spell.bft-spells .spell-meta { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.bonfire-preview-card-spell.bft-spells .spell-meta > div { padding:8px; }
+.bonfire-preview-card-spell.bft-spells .spell-meta-area { grid-column:auto; }
+.bonfire-preview-card-spell.bft-spells .spell-meta dd,.bonfire-preview-card-spell.bft-spells .spell-copy,.bonfire-preview-card-spell.bft-spells .spell-copy :is(p,li) { font-size:12px; line-height:1.8; }
+.bonfire-preview-card-spell.bft-spells .spell-effect > h3,.bonfire-preview-card-spell.bft-spells .spell-upcast > h3 { font-size:20px; margin-bottom:10px; }
+.bonfire-preview-card-spell :is(button,a):focus-visible { outline:2px solid #ffbd7c; outline-offset:3px; }
+.bft-spells .spell-card::before { content:''; position:absolute; inset:5px; border:1px solid var(--school-line); border-radius:3px; opacity:.35; pointer-events:none; z-index:1; }
+.bft-spells .spell-card-header { position:relative; padding:17px 19px 15px; border-bottom:1px solid var(--school-line); background:linear-gradient(125deg,var(--school-dark),#171214 90%); border-radius:5px 5px 0 0; }
+.bft-spells .spell-card-school { display:flex; align-items:center; gap:9px; padding-right:47px; color:var(--school); font-size:10px; letter-spacing:.09em; text-transform:uppercase; line-height:1.6; margin-bottom:12px; }
+.bft-spells .spell-card-school svg { display:block; width:29px; height:29px; fill:none; stroke:currentColor; stroke-width:1.2; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
+.bft-spells .spell-circle { position:absolute; top:14px; right:16px; display:flex; flex-direction:column; align-items:center; justify-content:center; width:43px; min-height:45px; border:1px solid var(--school-line); border-radius:3px; color:var(--school); background:#0a09094d; }
+.bft-spells .spell-circle > span { font:500 25px/1 'Frank Ruhl Libre',Georgia,serif; }
+.bft-spells .spell-circle > small { font-size:7px; letter-spacing:.1em; text-transform:uppercase; padding-top:3px; }
+.bft-spells .spell-card h3, .bft-spells .spell-card h2 { font-family:'Frank Ruhl Libre',Georgia,serif; font-size:25px; font-weight:500; color:#f4e9df; line-height:1.13; margin:0; letter-spacing:-.015em; text-transform:none; }
+.bft-spells .spell-english { color:#b5aaa6; font-size:11px; margin:6px 0 0; line-height:1.5; }
+.bft-spells .spell-card-body { padding:17px 19px 21px; min-width:0; }
+.bft-spells .spell-traits { display:flex; flex-wrap:wrap; gap:5px; }
+.bft-spells .spell-traits span { padding:3px 6px; border:1px solid var(--school-line); background:var(--school-dark); color:var(--school); font-size:9px; line-height:1.4; border-radius:2px; }
+.bft-spells .spell-traits:empty { display:none; }
+.bft-spells .spell-card-footer { display:flex; justify-content:space-between; gap:10px; align-items:center; padding:10px 18px; border-top:1px solid var(--school-line); background:linear-gradient(90deg,var(--school-dark),#151112); font-size:9px; color:var(--school); letter-spacing:.03em; border-radius:0 0 2px 2px; }
+.bft-spells .spell-card-footer > span:first-child { font:500 13px 'Frank Ruhl Libre',Georgia,serif; color:#e6d5c8; }
+.bft-spells .spell-card-footer small { color:var(--school); font:400 7px 'Open Sans',sans-serif; margin-left:3px; }
+.bft-spells .spell-reader-nav { display:flex; align-items:center; justify-content:space-between; gap:14px; margin:0 0 10px; }
+.bft-spells .spell-reader-nav > a { font-size:12px; color:#e6b199; text-decoration:none; padding:8px 0; }
+.bft-spells .spell-reader-nav > div { display:flex; gap:7px; }
+.bft-spells .spell-reader-nav button { width:34px; height:32px; border:1px solid #693034; color:#e6b199; border-radius:3px; background:#241416; }
+.bft-spells .spell-reader-nav button:disabled { opacity:.35; cursor:default; }
+.bft-spells .spell-card-full { max-width:950px; margin:0 auto; height:auto; max-height:none; overflow:visible; }
+.bft-spells .spell-card-full .spell-card-header { padding:18px 25px 17px; }
+.bft-spells .spell-card-full .spell-card-school { font-size:11px; margin-bottom:10px; }
+.bft-spells .spell-card-full .spell-card-school svg { width:36px; height:36px; }
+.bft-spells .spell-card-full .spell-circle { top:20px; right:27px; width:51px; min-height:55px; }
+.bft-spells .spell-card-full .spell-circle > span { font-size:32px; }
+.bft-spells .spell-card-full h2 { font-size:36px; line-height:1.15; scroll-margin-top:90px; }
+.bft-spells .spell-card-full .spell-english { font-size:13px; }
+.bft-spells .spell-card-full .spell-traits { margin-top:14px; }
+.bft-spells .spell-card-full .spell-traits span { font-size:10px; }
+.bft-spells .spell-card-full .spell-card-body { padding:20px 25px 26px; }
+.bft-spells .spell-meta { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); border:1px solid var(--school-line); margin:0 0 18px; background:var(--school-dark); }
+.bft-spells .spell-meta > div { min-width:0; padding:10px 12px; border-bottom:1px solid var(--school-line); }
+.bft-spells .spell-meta > div:nth-child(2), .bft-spells .spell-meta > div:nth-child(3), .bft-spells .spell-meta > div:nth-child(5) { border-left:1px solid var(--school-line); }
+.bft-spells .spell-meta-area { grid-column:span 2; }
+.bft-spells .spell-meta-components { grid-column:1 / -1; }
+.bft-spells .spell-meta > div:last-child { border-bottom:0; }
+.bft-spells .spell-meta dt { color:var(--school); font-size:10px; line-height:1.5; letter-spacing:.07em; text-transform:uppercase; margin-bottom:4px; }
+.bft-spells .spell-meta dd { font-size:14px; line-height:1.75; color:#e8dace; margin:0; }
+.bft-spells .spell-classes { font-size:12px; color:#c4b6ad; line-height:1.8; margin:0 0 22px; }
+.bft-spells .spell-classes > span { color:var(--school); font-size:10px; letter-spacing:.07em; text-transform:uppercase; margin-right:12px; }
+.bft-spells .spell-effect > h3, .bft-spells .spell-upcast > h3 { font-size:23px; font-weight:500; margin:0 0 14px; color:#ecd8c7; }
+.bft-spells .spell-copy { font-size:16px; line-height:1.85; color:#d7cbc2; max-width:82ch; overflow-wrap:anywhere; height:auto; max-height:none; overflow:visible; }
+.bft-spells .spell-copy p { margin:0 0 1.1em; }
+.bft-spells .spell-copy p:last-child { margin-bottom:0; }
+.bft-spells .spell-copy strong { color:#f2dfce; }
+.bft-spells .spell-copy em { display:inline; color:inherit; }
+.bft-spells .spell-copy :is(h1,h2,h3,h4,h5,h6) { font:500 23px/1.35 'Frank Ruhl Libre',Georgia,serif; color:var(--school); margin:25px 0 12px; text-transform:none; background:none; border:0; padding:0; }
+.bft-spells .spell-copy .spell-rule-label { display:block; color:#efcdb5; font-size:16px; margin:13px 0 4px; }
+.bft-spells .spell-copy ul, .bft-spells .spell-copy ol { padding-left:23px; margin:15px 0 22px; }
+.bft-spells .spell-copy li { margin:9px 0; }
+.bft-spells .spell-copy li::marker { color:var(--school); }
+.bft-spells .spell-copy a { color:var(--school); text-decoration:underline; text-underline-offset:3px; }
+.bft-spells .spell-copy table { display:table; width:100%; max-width:100%; table-layout:fixed; overflow:visible; border-collapse:collapse; margin:22px 0; font-size:14px; line-height:1.7; }
+.bft-spells .spell-copy :is(th,td) { padding:10px 12px; border:1px solid var(--school-line); white-space:normal; overflow-wrap:anywhere; text-align:left; }
+.bft-spells .spell-copy th { background:var(--school-dark); color:var(--school); }
+.bft-spells .spell-copy blockquote { margin:20px 0; padding:14px 17px; background:var(--school-dark); border-left:2px solid var(--school); color:#e1c8b5; }
+.bft-spells .spell-copy .bonfire-toggle { margin:18px 0; border:1px solid var(--school-line); background:var(--school-dark); border-radius:3px; }
+.bft-spells .spell-copy .bonfire-toggle > summary { padding:12px 14px; color:var(--school); cursor:pointer; font-size:14px; }
+.bft-spells .spell-copy .bonfire-toggle-content { padding:14px 16px; }
+.bft-spells .spell-upcast { border-top:1px solid var(--school-line); background:var(--school-dark); margin:27px 0 0; padding:18px 20px; border-left:2px solid var(--school); }
+.bft-spells .spell-upcast > h3 { color:var(--school); font-size:22px; }
+.bft-spells .spell-card-full .spell-card-footer { padding:13px 29px; }
+.bft-spells .spell-empty { grid-column:1 / -1; padding:35px 25px; border:1px solid #693034; background:#171112; }
+.bft-spells .spell-empty h3 { font:500 26px 'Frank Ruhl Libre',Georgia,serif; color:#ead6c5; margin:0 0 12px; }
+.bft-spells .spell-empty p, .bft-spells .spell-noscript { font-size:14px; color:#b9b3b3; line-height:1.8; }
+.bft-spells .spell-noscript { margin-bottom:18px; padding:14px; border:1px solid #693034; }
+.bft-spells [data-spell-editor-container] { margin-top:28px; padding-top:18px; border-top:1px solid var(--school-line); }
+.bft-spells [data-spell-editor-container] > summary { font-size:13px; color:var(--school); cursor:pointer; }
+.bft-spells [data-spell-editor] { margin-top:15px; padding:16px; background:#0e0c0d; border:1px solid #513035; }
+.bft-spells [data-spell-editor] label { font-size:12px; line-height:1.6; color:#d6b4a2; }
+.bft-spells [data-spell-editor] :is(input,select,textarea) { min-width:0; font-size:14px; color:#ece2d8; }
+.bft-spells [data-spell-editor] button { min-height:40px; }
+.bft-spells [data-editor-status][role=alert] { color:#ffb7a0; }
+.bft-spells [data-spell-editor][aria-busy=true] { opacity:.8; }
+.bft-spells .spell-technical { margin-top:22px; border:1px solid #513035; padding:12px 14px; font-size:12px; color:#b9a69a; }
+.bft-spells .spell-technical summary { cursor:pointer; }
+.bft-spells .spell-technical code { display:block; padding-top:10px; font-size:11px; overflow-wrap:anywhere; white-space:pre-wrap; }
+.bft-spells :is(a,button,input,select,textarea,summary):focus-visible { outline:2px solid #ff9c66; outline-offset:3px; }
+.bft-spells :is(#mgDeckTitle,.spell-card-full h2):focus { outline:2px solid #ff9c66; outline-offset:4px; }
+.bft-spells button { cursor:pointer; }
+.bft-spells button:disabled { cursor:default; }
+.bft-spells.spell-menu-open #main-content { z-index:80; }
+.bft-spells.spell-menu-open { overflow:hidden; }
+@media (min-width:1101px) and (max-width:1280px) {
+  .bft-spells .spell-workspace { grid-template-columns:260px minmax(0,1fr); gap:22px; }
+}
+@media (min-width:1101px) {
+  .bft-spells .spell-mobile-button, .bft-spells .spell-backdrop { display:none; }
+}
+@media (max-width:1100px) {
+  .bft-spells .bft-spells-main { padding:16px 20px 85px; }
+  .bft-spells .spell-workspace { grid-template-columns:minmax(0,1fr); }
+  .bft-spells .spell-workspace > .spell-sidebar { position:static; margin-bottom:0; height:480px; max-height:none; }
+  .bft-spells.spells-enhanced .spell-workspace > .spell-sidebar { position:fixed; top:0; bottom:0; left:0; z-index:95; width:min(88vw,350px); height:100dvh; max-height:none; min-height:0; padding:20px 17px 16px; display:flex; flex-direction:column; transform:translateX(-105%); visibility:hidden; overflow:hidden; }
+  .bft-spells.spell-menu-open .spell-workspace > .spell-sidebar { transform:none; visibility:visible; }
+  .bft-spells #mgCloseFilters { display:grid; place-items:center; height:40px; width:40px; border:1px solid #693034; border-radius:3px; font-size:27px; color:#e6b5a0; flex-shrink:0; }
+  .bft-spells .spell-mobile-button { display:inline-flex; align-items:center; gap:8px; position:fixed; bottom:18px; left:20px; z-index:96; min-height:44px; padding:0 15px; border:1px solid #c64b3a; border-radius:4px; background:#65151b; color:#fff0e6; font-size:14px; box-shadow:0 4px 22px #0008; }
+  .bft-spells .spell-mobile-button svg { width:18px; height:18px; }
+  .bft-spells .spell-mobile-button span { background:#b31515; padding:2px 6px; border-radius:3px; font-size:11px; }
+  .bft-spells.spell-menu-open .spell-mobile-button { visibility:hidden; }
+  .bft-spells .spell-backdrop { position:fixed; inset:0; z-index:92; background:#000b; backdrop-filter:blur(3px); }
+  .bft-spells .spell-apply-mobile { display:block; margin-top:16px; width:100%; min-height:43px; padding:10px 15px; background:#b31515; color:#fff0e7; border:1px solid #cb4032; border-radius:3px; font-size:14px; flex-shrink:0; }
+}
+@media (max-width:600px) {
+  .bft-spells .bft-spells-main { padding:12px 12px 85px; }
+  .bft-spells .spell-masthead { padding:16px 17px 18px; margin-bottom:20px; }
+  .bft-spells .spell-masthead h1 { font-size:38px; }
+  .bft-spells .spell-masthead p { font-size:13px; }
+  .bft-spells .spell-masthead p span { display:block; }
+  .bft-spells .spell-masthead-sigil { right:-55px; opacity:.15; }
+  .bft-spells .spell-card-full .spell-card-header { padding:19px 20px 18px; }
+  .bft-spells .spell-card-full .spell-card-school { font-size:10px; }
+  .bft-spells .spell-card-full .spell-circle { right:19px; top:18px; width:43px; min-height:47px; }
+  .bft-spells .spell-card-full h2 { font-size:30px; }
+  .bft-spells .spell-card-full .spell-card-body { padding:19px 20px 24px; }
+  .bft-spells .spell-meta { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+  .bft-spells .spell-meta > div { padding:10px 11px; }
+  .bft-spells .spell-meta dt { font-size:9px; }
+  .bft-spells .spell-meta dd { font-size:13px; }
+  .bft-spells .spell-copy { font-size:16px; line-height:1.85; }
+  .bft-spells .spell-copy :is(th,td) { padding:7px; font-size:12px; }
+  .bft-spells .spell-copy table[data-stacked-on-mobile] { display:block; border:0; }
+  .bft-spells .spell-copy table[data-stacked-on-mobile] thead { display:block; position:absolute; width:1px; height:1px; padding:0; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+  .bft-spells .spell-copy table[data-stacked-on-mobile] tbody { display:block; }
+  .bft-spells .spell-copy table[data-stacked-on-mobile] tr { display:block; margin:0 0 14px; border:1px solid var(--school-line); }
+  .bft-spells .spell-copy table[data-stacked-on-mobile] td { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.25fr); gap:12px; padding:10px 12px; border:0; border-bottom:1px solid var(--school-line); font-size:14px; background:var(--school-dark); }
+  .bft-spells .spell-copy table[data-stacked-on-mobile] td:last-child { border-bottom:0; }
+  .bft-spells .spell-copy table[data-stacked-on-mobile] td::before { content:attr(data-column-label); color:var(--school); font-size:11px; line-height:1.7; }
+  .bft-spells .spell-upcast { padding:15px; margin-top:23px; }
+  .bft-spells .spell-card-full .spell-card-footer { padding:13px 20px; }
+  .bft-spells .spell-library-heading { gap:10px; }
+  .bft-spells .spell-mobile-button { left:12px; bottom:12px; }
+  .bft-spells #mg-busca, .bft-spells .spell-filter-fields select, .bft-spells [data-spell-editor] :is(input,select,textarea) { font-size:16px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .bft-spells .spell-page *, .bft-spells .spell-page *::before, .bft-spells .spell-page *::after { animation:none !important; transition:none !important; scroll-behavior:auto !important; }
+}
+/* Compact consultation rail, separate from the card's unrestricted reading area. */
+.bft-spells .spell-sidebar-heading #mgSidebarCount { margin-left:auto; color:#c5aaa0; font-size:11px; }
+.bft-spells .spell-search-wrap, .bft-spells .spell-filter-disclosure, .bft-spells .spell-list-status, .bft-spells .spell-sidebar-heading { flex-shrink:0; }
+.bft-spells .spell-filter-disclosure { border:1px solid #683038; background:#211317; border-radius:3px; }
+.bft-spells .spell-filter-disclosure > summary { display:flex; align-items:center; justify-content:space-between; min-height:36px; padding:7px 10px; cursor:pointer; list-style:none; color:#efd1c1; font-size:12px; font-weight:600; }
+.bft-spells .spell-filter-disclosure > summary::-webkit-details-marker { display:none; }
+.bft-spells .spell-filter-disclosure > summary > span:first-child { display:flex; align-items:center; gap:8px; }
+.bft-spells .spell-filter-disclosure summary svg { width:17px; height:17px; color:#ee997b; }
+.bft-spells #mgFilterCount { background:#8c242b; padding:1px 5px; font-size:10px; border-radius:2px; color:#fff0e6; }
+.bft-spells .spell-filter-chevron { color:#e69b82; font-size:18px; line-height:1; }
+.bft-spells .spell-filter-disclosure[open] .spell-filter-chevron { transform:rotate(180deg); }
+.bft-spells .spell-filter-fields { max-height:min(310px,36dvh); overflow-y:auto; overscroll-behavior:contain; padding:10px; border-top:1px solid #683038; }
+.bft-spells .spell-list-status { min-height:35px; display:flex; align-items:center; justify-content:space-between; gap:6px; color:#bfa8a0; font-size:10px; }
+.bft-spells .spell-name-list { display:flex; flex-direction:column; flex:1; min-height:80px; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:#71323b #131112; border-top:1px solid #422326; }
+.bft-spells .spell-name-list > a { display:flex; align-items:center; gap:9px; min-height:35px; padding:8px 7px; border-bottom:1px solid #302025; border-left:2px solid transparent; color:#d8cbc4; font-size:12px; line-height:1.5; text-decoration:none; flex-shrink:0; }
+.bft-spells .spell-name-list > a:hover { background:#27171c; color:#fff0e6; }
+.bft-spells .spell-name-list > a[aria-current=true] { background:linear-gradient(90deg,#4b1b23,#29171b); border-left-color:var(--school); color:#fff0e6; }
+.bft-spells .spell-name-marker { width:5px; height:5px; flex-shrink:0; background:var(--school); transform:rotate(45deg); }
+.bft-spells .spell-name-copy { flex:1; min-width:0; overflow-wrap:anywhere; }
+.bft-spells .spell-name-list small { min-width:18px; text-align:center; color:var(--school); font-size:10px; border:1px solid var(--school-line); border-radius:2px; background:var(--school-dark); }
+.bft-spells .spell-list-empty { padding:18px 8px; font-size:13px; line-height:1.8; color:#bfa8a0; }
+.bft-spells .spell-guide-start { display:inline-flex; align-items:center; gap:20px; min-height:40px; padding:9px 15px; margin-top:22px; border:1px solid #ad4938; border-radius:3px; background:#641c23; color:#fff0e6; font-size:13px; font-weight:600; }
+.bft-spells .spell-guide-start:hover { background:#82232c; border-color:#e08a68; }
+.bft-spells .spell-card-guide .spell-circle { width:55px; }
+.bft-spells .spell-card-guide .spell-circle > span { font-size:26px; }
+@media (max-width:1100px) {
+  .bft-spells .spell-name-list > a { min-height:42px; font-size:13px; padding:9px 7px; }
+  .bft-spells .spell-filter-fields { max-height:32dvh; }
+  .bft-spells #mg-busca { font-size:16px; }
+  .bft-spells .spell-apply-mobile { flex-shrink:0; margin-top:10px; min-height:40px; border:1px solid #b4483a; border-radius:3px; background:#641c23; color:#fff0e6; font-size:13px; }
+}
+@media (max-width:600px) {
+  .bft-spells .spell-meta > div { order:0; }
+  .bft-spells .spell-meta > div:nth-child(3) { border-left:0; }
+  .bft-spells .spell-meta > div:nth-child(2), .bft-spells .spell-meta > div:nth-child(5) { border-left:1px solid var(--school-line); }
+  .bft-spells .spell-meta > div:nth-child(5) { order:1; }
+  .bft-spells .spell-meta > .spell-meta-area { order:2; grid-column:1 / -1; }
+  .bft-spells .spell-meta > .spell-meta-components { order:3; }
+  .bft-spells .spell-meta > div:last-child { border-bottom:0; }
+  .bft-spells .spell-library-heading { margin-bottom:4px; }
+  .bft-spells #mgDeckTitle { font-size:11px; }
+  .bft-spells .spell-result-count { font-size:10px; }
+  .bft-spells .spell-masthead h1 { font-size:32px; }
+  .bft-spells .spell-masthead p { font-size:12px; }
+  .bft-spells .spell-masthead { margin-bottom:14px; }
+}

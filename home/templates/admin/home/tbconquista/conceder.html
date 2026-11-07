@@ -1,0 +1,53 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+  <p>
+    Concedendo <strong>{{ conquistas|length }}</strong> conquista(s) selecionada(s)
+    aos usuários escolhidos abaixo. A operação é <strong>idempotente</strong>: quem já
+    tiver a conquista não recebe duplicata, e a recompensa (se houver) é adicionada ao
+    inventário de cosméticos.
+  </p>
+
+  <div class="module">
+    <h2>Conquistas selecionadas</h2>
+    <ul class="messagelist">
+      {% for c in conquistas %}
+      <li class="info">
+        {{ c.nome }} <code>({{ c.slug }})</code>
+        {% if c.recompensa %} — recompensa: {{ c.recompensa.nome }}{% endif %}
+        {% if c.secreta %} · <em>secreta</em>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+    {% for cid in selected_ids %}
+    <input type="hidden" name="{{ action_checkbox_name }}" value="{{ cid }}">
+    {% endfor %}
+    <input type="hidden" name="action" value="conceder_a_usuarios">
+    <input type="hidden" name="confirmar" value="1">
+    <input type="hidden" name="select_across" value="0">
+
+    <fieldset class="module aligned">
+      {% for field in form %}
+      <div class="form-row">
+        <div>
+          {{ field.errors }}
+          {{ field.label_tag }}
+          {{ field }}
+          {% if field.help_text %}<div class="help">{{ field.help_text }}</div>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </fieldset>
+
+    <div class="submit-row">
+      <input type="submit" class="default" value="Conceder conquistas">
+      <a class="button cancel-link" href="{% url 'admin:home_tbconquista_changelist' %}">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

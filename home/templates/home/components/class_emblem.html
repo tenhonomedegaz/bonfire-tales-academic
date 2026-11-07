@@ -1,0 +1,8 @@
+{% load static %}
+{% if slug == 'artifice' or slug == 'barbaro' or slug == 'bardo' or slug == 'cacador' or slug == 'clerigo' or slug == 'druida' or slug == 'feiticeiro' or slug == 'guerreiro' or slug == 'ladino' or slug == 'mago' or slug == 'mistico' or slug == 'monge' or slug == 'paladino' %}
+{% with icon_path='brand/class-icons/'|add:slug %}
+<img class="class-emblem" src="{% if variant == 'nav' %}{% static icon_path|add:'-20.png' %}{% else %}{% static icon_path|add:'-24.png' %}{% endif %}" srcset="{% static icon_path|add:'-20.png' %} 20w, {% static icon_path|add:'-24.png' %} 24w, {% static icon_path|add:'-32.png' %} 32w" sizes="{% if variant == 'nav' %}20px{% else %}(max-width: 600px) 20px, 24px{% endif %}" width="{% if variant == 'nav' %}20{% else %}24{% endif %}" height="{% if variant == 'nav' %}20{% else %}24{% endif %}" alt="" aria-hidden="true" decoding="async">
+{% endwith %}
+{% else %}
+<svg xmlns="http://www.w3.org/2000/svg" class="class-emblem" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="m15 9-2 4-4 2 2-4 4-2Z"/></svg>
+{% endif %}

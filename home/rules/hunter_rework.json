@@ -1,0 +1,1494 @@
+{
+  "schema": 1,
+  "spellcasting_progression": {
+    "version": 1
+  },
+  "swarm_passives": {
+    "version": 1,
+    "order": "ordem-do-enxame",
+    "symbiosis_level": 3,
+    "flight_level": 10
+  },
+  "spellcasting_ability_choices": [
+    "int",
+    "wis"
+  ],
+  "base_passives": {
+    "version": 1,
+    "replaces": [
+      "Ataque Extra",
+      "Caçador Implacável",
+      "Instinto Afiado",
+      "Vontade Inabalável",
+      "Instinto Predatório"
+    ]
+  },
+  "source_file": "Caçador in Bonfire Tales RPG _ World Anvil.html",
+  "source_sha256": "b4a6d5cbc0376f121f4349f49c10faa84c08c7990a761dd551a279bc03373967",
+  "progression": [
+    {
+      "level": 1,
+      "proficiency": 2,
+      "features": "Marca do Caçador, Conjuração",
+      "prepared_spells": 2,
+      "favored_enemies": 0,
+      "hunter_die": "d6",
+      "slots": [
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "level": 2,
+      "proficiency": 2,
+      "features": "Preparos de Caçada, Segredos do Caçador, Inimigo Favorito",
+      "prepared_spells": 3,
+      "favored_enemies": 1,
+      "hunter_die": "d6",
+      "slots": [
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "level": 3,
+      "proficiency": 2,
+      "features": "Ordem do Caçador, Instinto de Caçador",
+      "prepared_spells": 4,
+      "favored_enemies": 1,
+      "hunter_die": "d6",
+      "slots": [
+        3,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "level": 4,
+      "proficiency": 2,
+      "features": "Aprimoramento de Atributo ou Talento",
+      "prepared_spells": 5,
+      "favored_enemies": 1,
+      "hunter_die": "d6",
+      "slots": [
+        3,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "level": 5,
+      "proficiency": 3,
+      "features": "Ataque Extra, Território de Caça",
+      "prepared_spells": 6,
+      "favored_enemies": 1,
+      "hunter_die": "d8",
+      "slots": [
+        4,
+        2,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "level": 6,
+      "proficiency": 3,
+      "features": "Habilidade da Ordem",
+      "prepared_spells": 6,
+      "favored_enemies": 1,
+      "hunter_die": "d8",
+      "slots": [
+        4,
+        2,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "level": 7,
+      "proficiency": 3,
+      "features": "Caçador Implacável",
+      "prepared_spells": 7,
+      "favored_enemies": 1,
+      "hunter_die": "d8",
+      "slots": [
+        4,
+        3,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "level": 8,
+      "proficiency": 3,
+      "features": "Aprimoramento de Atributo ou Talento",
+      "prepared_spells": 7,
+      "favored_enemies": 2,
+      "hunter_die": "d8",
+      "slots": [
+        4,
+        3,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "level": 9,
+      "proficiency": 4,
+      "features": "Instinto Afiado",
+      "prepared_spells": 9,
+      "favored_enemies": 2,
+      "hunter_die": "d8",
+      "slots": [
+        4,
+        3,
+        2,
+        0,
+        0
+      ]
+    },
+    {
+      "level": 10,
+      "proficiency": 4,
+      "features": "Habilidade da Ordem",
+      "prepared_spells": 9,
+      "favored_enemies": 2,
+      "hunter_die": "d8",
+      "slots": [
+        4,
+        3,
+        2,
+        0,
+        0
+      ]
+    },
+    {
+      "level": 11,
+      "proficiency": 4,
+      "features": "Predador Astuto",
+      "prepared_spells": 10,
+      "favored_enemies": 2,
+      "hunter_die": "d10",
+      "slots": [
+        4,
+        3,
+        3,
+        0,
+        0
+      ]
+    },
+    {
+      "level": 12,
+      "proficiency": 4,
+      "features": "Aprimoramento de Atributo ou Talento",
+      "prepared_spells": 10,
+      "favored_enemies": 2,
+      "hunter_die": "d10",
+      "slots": [
+        4,
+        3,
+        3,
+        0,
+        0
+      ]
+    },
+    {
+      "level": 13,
+      "proficiency": 5,
+      "features": "Passos Invisíveis",
+      "prepared_spells": 11,
+      "favored_enemies": 2,
+      "hunter_die": "d10",
+      "slots": [
+        4,
+        3,
+        3,
+        1,
+        0
+      ]
+    },
+    {
+      "level": 14,
+      "proficiency": 5,
+      "features": "Habilidade da Ordem",
+      "prepared_spells": 11,
+      "favored_enemies": 3,
+      "hunter_die": "d10",
+      "slots": [
+        4,
+        3,
+        3,
+        1,
+        0
+      ]
+    },
+    {
+      "level": 15,
+      "proficiency": 5,
+      "features": "Vontade Inabalável",
+      "prepared_spells": 12,
+      "favored_enemies": 3,
+      "hunter_die": "d10",
+      "slots": [
+        4,
+        3,
+        3,
+        2,
+        0
+      ]
+    },
+    {
+      "level": 16,
+      "proficiency": 5,
+      "features": "Aprimoramento de Atributo ou Talento",
+      "prepared_spells": 12,
+      "favored_enemies": 3,
+      "hunter_die": "d10",
+      "slots": [
+        4,
+        3,
+        3,
+        2,
+        0
+      ]
+    },
+    {
+      "level": 17,
+      "proficiency": 6,
+      "features": "Instinto Predatório",
+      "prepared_spells": 14,
+      "favored_enemies": 3,
+      "hunter_die": "d12",
+      "slots": [
+        4,
+        3,
+        3,
+        3,
+        1
+      ]
+    },
+    {
+      "level": 18,
+      "proficiency": 6,
+      "features": "Habilidade da Ordem",
+      "prepared_spells": 14,
+      "favored_enemies": 3,
+      "hunter_die": "d12",
+      "slots": [
+        4,
+        3,
+        3,
+        3,
+        1
+      ]
+    },
+    {
+      "level": 19,
+      "proficiency": 6,
+      "features": "Aprimoramento de Atributo ou Talento",
+      "prepared_spells": 15,
+      "favored_enemies": 3,
+      "hunter_die": "d12",
+      "slots": [
+        4,
+        3,
+        3,
+        3,
+        2
+      ]
+    },
+    {
+      "level": 20,
+      "proficiency": 6,
+      "features": "Domínio da Caçada",
+      "prepared_spells": 15,
+      "favored_enemies": 3,
+      "hunter_die": "d12",
+      "slots": [
+        4,
+        3,
+        3,
+        3,
+        2
+      ]
+    }
+  ],
+  "orders": [
+    {
+      "id": "ordem-da-alianca-selvagem",
+      "name": "Ordem da Aliança Selvagem",
+      "line": "Armadilhas e Emboscadas"
+    },
+    {
+      "id": "ordem-do-crepusculo",
+      "name": "Ordem do Crepúsculo",
+      "line": "Armadilhas e Emboscadas"
+    },
+    {
+      "id": "ordem-do-despertar",
+      "name": "Ordem do Despertar",
+      "line": "Alquimia e Poções"
+    },
+    {
+      "id": "ordem-do-enxame",
+      "name": "Ordem do Enxame",
+      "line": "Alquimia e Poções"
+    },
+    {
+      "id": "ordem-dos-exorcistas",
+      "name": "Ordem dos Exorcistas",
+      "line": "Conhecimentos Ancestrais (Sinais)"
+    },
+    {
+      "id": "ordem-dos-exterminadores",
+      "name": "Ordem dos Exterminadores",
+      "line": "Armadilhas e Emboscadas"
+    },
+    {
+      "id": "ordem-dos-mutantes",
+      "name": "Ordem dos Mutantes",
+      "line": "Alquimia e Poções"
+    },
+    {
+      "id": "ordem-dos-viajantes-primordiais",
+      "name": "Ordem dos Viajantes Primordiais",
+      "line": "Conhecimentos Ancestrais (Sinais)"
+    }
+  ],
+  "secrets": [
+    {
+      "id": "granada-de-luz",
+      "name": "Granada de Luz",
+      "line": "Alquimia e Poções",
+      "degree": 1,
+      "level": 2,
+      "cost": 1,
+      "enhancement": true,
+      "text": "Custo: 1 Ponto de Segredo. Como uma Ação Bônus , ou substituindo um dos seus ataques ao usar a ação Atacar (Attack), você arremessa uma granada a até 18 metros [60 pés] . Cada criatura em uma esfera de 3 metros [10 pés] de raio centrada no ponto de impacto faz um teste de resistência de Constituição contra a sua CD de Magia , ficando Cega e Surda até o início do seu próximo turno em uma falha. Aprimoramento: o raio aumenta para 6 metros [20 pés] .",
+      "source_id": "029-granada-de-luz"
+    },
+    {
+      "id": "extrato-de-raiz-amarga",
+      "name": "Extrato de Raiz Amarga",
+      "line": "Alquimia e Poções",
+      "degree": 1,
+      "level": 2,
+      "cost": 1,
+      "enhancement": true,
+      "text": "Custo: 1 Ponto de Segredo. Como uma Ação , você toca uma criatura disposta, que pode refazer imediatamente, com Vantagem, um teste de resistência contra estar Envenenada . Aprimoramento: por 1 hora, a criatura também ganha resistência a dano de veneno e imunidade à condição Envenenado .",
+      "source_id": "030-extrato-de-raiz-amarga"
+    },
+    {
+      "id": "balsamo-elemental",
+      "name": "Bálsamo Elemental",
+      "line": "Alquimia e Poções",
+      "degree": 1,
+      "level": 2,
+      "cost": 1,
+      "enhancement": true,
+      "text": "Custo: 1 Ponto de Segredo. Como uma Reação , quando você sofreria dano elemental — ácido, fogo, frio, elétrico ou trovejante —, você esfrega um bálsamo no membro afetado e ganha resistência a todos esses tipos de dano contra o ataque ou efeito que o desencadeou. Aprimoramento: essa resistência dura até o início do seu próximo turno, em vez de proteger apenas aquele golpe.",
+      "source_id": "031-balsamo-elemental"
+    },
+    {
+      "id": "bomba-de-fumaca-de-ocultacao",
+      "name": "Bomba de Fumaça de Ocultação",
+      "line": "Alquimia e Poções",
+      "degree": 2,
+      "level": 5,
+      "cost": 2,
+      "enhancement": true,
+      "text": "Custo: 2 Pontos de Segredo. Como uma Ação , você arremessa uma bomba a até 18 metros [60 pés] , criando uma esfera de 3 metros [10 pés] de raio fortemente obscurecida por 1 minuto, até que se disperse por vento forte ou seja dissipada. Aprimoramento: o raio da fumaça aumenta para 6 metros [20 pés] .",
+      "source_id": "033-bomba-de-fumaca-de-ocultacao"
+    },
+    {
+      "id": "elixir-dos-sentidos-felinos",
+      "name": "Elixir dos Sentidos Felinos",
+      "line": "Alquimia e Poções",
+      "degree": 2,
+      "level": 5,
+      "cost": 2,
+      "enhancement": true,
+      "text": "Custo: 2 Pontos de Segredo. Como uma Ação Bônus , você bebe um elixir e, por 1 hora, ganha visão no escuro com alcance de 18 metros [60 pés] (ou +9 metros se já a tiver), podendo distinguir cores no escuro. Aprimoramento: você também ganha visão às cegas de 3 metros [10 pés] enquanto durar o efeito.",
+      "source_id": "034-elixir-dos-sentidos-felinos"
+    },
+    {
+      "id": "tonico-de-sangue-forte",
+      "name": "Tônico de Sangue-Forte",
+      "line": "Alquimia e Poções",
+      "degree": 2,
+      "level": 5,
+      "cost": 2,
+      "enhancement": true,
+      "text": "Custo: 2 Pontos de Segredo. Como uma Ação Bônus , você toca uma criatura (incluindo você mesmo), que ganha 1 rolagem do seu Dado de Caçador mais metade do seu nível de Caçador, arredondada para baixo, em Pontos de Vida temporários. Aprimoramento: os Pontos de Vida temporários passam a ser 2 rolagens do seu Dado de Caçador mais o seu nível de Caçador completo.",
+      "source_id": "035-tonico-de-sangue-forte"
+    },
+    {
+      "id": "oleo-de-caca",
+      "name": "Óleo de Caça",
+      "line": "Alquimia e Poções",
+      "degree": 2,
+      "level": 5,
+      "cost": 2,
+      "enhancement": true,
+      "text": "Custo: 2 Pontos de Segredo. Ao preparar este Segredo durante o Descanso Longo, você escolhe um tipo de dano dentre ácido, fogo, frio, veneno, trovejante, radiante, necrótico ou psíquico. Como uma Ação Bônus , você aplica um óleo de caça em uma arma, em seus punhos, ou em até duas armas que esteja empunhando; até o início do seu próximo turno, todos os ataques que acertarem com aquela arma ou punhos causam dano adicional do tipo escolhido igual ao seu Bônus de Proficiência . Você pode escolher este Segredo mais de uma vez, cada vez para um tipo de dano diferente. Se a Linha Mestra da sua Ordem for Alquimia e Poções, você é considerado ter preparado dois tipos de dano para o Óleo de Caça, e pode gastar escolhas de Segredo adicionais para preparar ainda mais tipos. Aprimoramento: o efeito passa a durar 1 minuto, em vez de terminar no início do seu próximo turno.",
+      "source_id": "036-oleo-de-caca"
+    },
+    {
+      "id": "elixir-de-celeridade",
+      "name": "Elixir de Celeridade",
+      "line": "Alquimia e Poções",
+      "degree": 3,
+      "level": 9,
+      "cost": 3,
+      "enhancement": true,
+      "text": "Custo: 3 Pontos de Segredo. Como uma Ação Bônus , você bebe um elixir e, pelo próximo 1 minuto, pode usar a ação Desengajar (Disengage) como uma Ação Bônus em cada um dos seus turnos, e seu deslocamento aumenta em 3 metros [10 pés] . Aprimoramento: sempre que você usa a ação Desengajar (Disengage) enquanto o elixir dura, o seu deslocamento aumenta em mais 3 metros [10 pés] naquele turno.",
+      "source_id": "038-elixir-de-celeridade"
+    },
+    {
+      "id": "granada-de-fragmentos",
+      "name": "Granada de Fragmentos",
+      "line": "Alquimia e Poções",
+      "degree": 3,
+      "level": 9,
+      "cost": 3,
+      "enhancement": true,
+      "text": "Custo: 3 Pontos de Segredo. Uma vez por turno, substituindo um dos seus ataques ao usar a ação Atacar (Attack), você arremessa uma granada a até 18 metros [60 pés] . Cada criatura em uma esfera de 3 metros [10 pés] de raio centrada no ponto de impacto faz um teste de resistência de Destreza contra a sua CD de Magia , sofrendo 3 rolagens do seu Dado de Caçador de dano perfurante em uma falha, ou metade em um sucesso. Aprimoramento: os estilhaços cobrem o chão: a área vira terreno difícil por 1 minuto e, a cada turno, a primeira criatura que entrar nela ou começar o turno ali sofre 1 rolagem do seu Dado de Caçador de dano perfurante.",
+      "source_id": "039-granada-de-fragmentos"
+    },
+    {
+      "id": "catalisador-da-cacada",
+      "name": "Catalisador da Caçada",
+      "line": "Alquimia e Poções",
+      "degree": 4,
+      "level": 13,
+      "cost": 4,
+      "enhancement": false,
+      "text": "Custo: 4 Pontos de Segredo. Como uma Ação Bônus , você consome um catalisador alquímico que superexcita o seu arsenal. Pelo próximo 1 minuto, sempre que uma poção, elixir, óleo, granada ou qualquer Segredo desta Linha que você use rolar Dados de Caçador para dano ou cura, você rola o dobro de dados — um efeito que normalmente causaria 3 Dados de Caçador passa a rolar 6. Os efeitos de um mesmo Segredo não se acumulam com uma segunda dose do Catalisador da Caçada.",
+      "source_id": "041-catalisador-da-cacada"
+    },
+    {
+      "id": "efluvio-toxico",
+      "name": "Eflúvio Tóxico",
+      "line": "Alquimia e Poções",
+      "degree": 4,
+      "level": 13,
+      "cost": 4,
+      "enhancement": false,
+      "text": "Custo: 4 Pontos de Segredo. Como uma Ação , você libera uma nuvem tóxica densa a partir de você num raio de 6 metros [20 pés] , que se espalha por cantos e permanece por 1 minuto ou até se dispersar por vento forte; a área fica fortemente obscurecida. Toda criatura que começar o turno na nuvem, ou entrar nela pela primeira vez no turno dela, faz um teste de resistência de Constituição contra a sua CD de Magia ; em uma falha, sofre 4 rolagens do seu Dado de Caçador de dano de veneno e fica Envenenada e Cega até o fim do próximo turno dela, ou metade do dano e nenhuma condição em um sucesso. Você é imune à sua própria nuvem.",
+      "source_id": "042-efluvio-toxico"
+    },
+    {
+      "id": "rede-de-enrosco-rapido",
+      "name": "Rede de Enrosco Rápido",
+      "line": "Armadilhas e Emboscadas",
+      "degree": 1,
+      "level": 2,
+      "cost": 1,
+      "enhancement": true,
+      "text": "Custo: 1 Ponto de Segredo. Quando você usa a ação Atacar (Attack), pode substituir um dos seus ataques por um arremesso de rede a até 18 metros [60 pés] . O alvo faz um teste de resistência de Destreza contra a sua CD de Magia , ficando Restringido até escapar em uma falha; escapar exige uma Ação e um teste de Força (Atletismo) ou Destreza (Acrobacia) contra a sua CD de Magia . Aprimoramento: a rede tem farpas ou cargas elétricas, e a criatura Restringida sofre um número de rolagens do seu Dado de Caçador igual à metade do seu Bônus de Proficiência, arredondada para baixo (mínimo 1), de dano perfurante ou elétrico (à sua escolha) no início de cada um dos turnos dela enquanto estiver Restringida .",
+      "source_id": "045-rede-de-enrosco-rapido"
+    },
+    {
+      "id": "gancho-de-caca",
+      "name": "Gancho de Caça",
+      "line": "Armadilhas e Emboscadas",
+      "degree": 1,
+      "level": 2,
+      "cost": 1,
+      "enhancement": true,
+      "text": "Custo: 1 Ponto de Segredo. Imediatamente após acertar um ataque corpo a corpo ou à distância, você pode usar um gancho de caça. O alvo faz um teste de resistência de Força contra a sua CD de Magia ; em uma falha, criaturas de tamanho Grande ou menor ficam Caídas ou são puxadas em até 4,5 metros [15 pés] em sua direção (à sua escolha). Aprimoramento: se a criatura falhar no teste, ela também fica com deslocamento 0 até o início do seu próximo turno, e o puxão pode ser de até 9 metros [30 pés] .",
+      "source_id": "046-gancho-de-caca"
+    },
+    {
+      "id": "estrepes-improvisados",
+      "name": "Estrepes Improvisados",
+      "line": "Armadilhas e Emboscadas",
+      "degree": 1,
+      "level": 2,
+      "cost": 1,
+      "enhancement": true,
+      "text": "Custo: 1 Ponto de Segredo. Como uma Ação Bônus , você espalha estrepes em um espaço de 1,5 metro [5 pés] de raio adjacente a você. Cada criatura que entrar na área pela primeira vez no turno dela faz um teste de resistência de Destreza contra a sua CD de Magia ; em uma falha, sofre um número de rolagens do seu Dado de Caçador igual à metade do seu Bônus de Proficiência, arredondada para baixo (mínimo 1), de dano perfurante e tem o deslocamento reduzido em 3 metros [10 pés] até recuperar ao menos 1 Ponto de Vida. Aprimoramento: a área tem 3 metros [10 pés] de raio.",
+      "source_id": "047-estrepes-improvisados"
+    },
+    {
+      "id": "mina-de-impacto",
+      "name": "Mina de Impacto",
+      "line": "Armadilhas e Emboscadas",
+      "degree": 2,
+      "level": 5,
+      "cost": 2,
+      "enhancement": true,
+      "text": "Custo: 2 Pontos de Segredo. Como uma Ação Bônus , você instala uma mina em um espaço a até 1,5 metro [5 pés] de você, que permanece por até 8 horas ou até detonar. Quando uma criatura entra no espaço da mina, faz um teste de resistência de Destreza contra a sua CD de Magia , sofrendo um número de Dados de Caçador igual ao seu Bônus de Proficiência de dano de fogo em uma falha, ou metade em um sucesso. Uma criatura pode notar a mina com um teste de Inteligência (Investigação) bem-sucedido contra a sua CD de Magia . Aprimoramento: se você detonar uma mina sua a até 1,5 metro [5 pés] de outra mina sua, as duas disparam ao mesmo tempo, e uma criatura apanhada na área de ambas sofre o dano das duas somado.",
+      "source_id": "049-mina-de-impacto"
+    },
+    {
+      "id": "cordao-de-municoes",
+      "name": "Cordão de Munições",
+      "line": "Armadilhas e Emboscadas",
+      "degree": 2,
+      "level": 5,
+      "cost": 2,
+      "enhancement": false,
+      "text": "Custo: 2 Pontos de Segredo. Como uma Ação , você estende um cordão de munições preso entre duas superfícies — paredes, batentes ou colunas — separadas por no máximo 6 metros [20 pés] . O cordão permanece por até 8 horas ou até disparar. Quando uma criatura cruza a linha do cordão, faz um teste de resistência de Destreza contra a sua CD de Magia , sofrendo um número de Dados de Caçador igual ao seu Bônus de Proficiência de dano perfurante em uma falha, ou metade em um sucesso, conforme as munições disparam ao longo da reta. Uma criatura pode notar o cordão com um teste de Inteligência (Investigação) bem-sucedido contra a sua CD de Magia .",
+      "source_id": "050-cordao-de-municoes"
+    },
+    {
+      "id": "marcacao-de-trilha",
+      "name": "Marcação de Trilha",
+      "line": "Armadilhas e Emboscadas",
+      "degree": 2,
+      "level": 5,
+      "cost": 2,
+      "enhancement": false,
+      "text": "Custo: 2 Pontos de Segredo. Como uma Ação Bônus , você inscreve marcas espectrais no chão ou em superfícies, visíveis apenas para você e criaturas à sua escolha. Pelas próximas 8 horas, você e os aliados que viram as marcas têm Vantagem em testes de Sabedoria (Sobrevivência) para rastrear ou retornar ao caminho marcado, e percebem automaticamente se a trilha foi adulterada por terceiros.",
+      "source_id": "051-marcacao-de-trilha"
+    },
+    {
+      "id": "terreno-adulterado",
+      "name": "Terreno Adulterado",
+      "line": "Armadilhas e Emboscadas",
+      "degree": 3,
+      "level": 9,
+      "cost": 3,
+      "enhancement": true,
+      "text": "Custo: 3 Pontos de Segredo. Um composto químico preparado sob medida para sabotar uma espécie de presa. Como uma Ação , você espalha o composto por uma área de até 3 metros [10 pés] de raio e escolhe, ao marcá-la, um tipo de Inimigo Favorito. Pela próxima 1 hora, sempre que um Inimigo Favorito do tipo escolhido entrar na área, ele faz um teste de resistência de Constituição contra a sua CD de Magia ; em uma falha, fica Incapacitado por 1 minuto, repetindo o teste ao fim de cada turno dele para encerrar o efeito. Aprimoramento: a área passa a impor a condição Atordoado em vez de Incapacitado.",
+      "source_id": "053-terreno-adulterado"
+    },
+    {
+      "id": "manto-da-cacada",
+      "name": "Manto da Caçada",
+      "line": "Armadilhas e Emboscadas",
+      "degree": 3,
+      "level": 9,
+      "cost": 3,
+      "enhancement": false,
+      "text": "Custo: 3 Pontos de Segredo. Como uma Ação , você libera os próprios sentidos muito além do humano por 1 minuto. Enquanto durar, todas as pegadas e marcas de mãos dentro de uma Emanação de 9 metros [30 pés] a partir de você passam a brilhar suavemente e ficam visíveis para você. Ao ativar o Segredo, escolha um instante de até 10 dias atrás: apenas as pegadas e marcas deixadas entre aquele momento e o presente são reveladas. Cada criatura que as deixou recebe uma cor única, embora isso não a identifique de nenhuma outra maneira. Qualquer criatura que se mova ou toque objetos dentro da Emanação também deixa pegadas e marcas coloridas, o que pode revelar criaturas Invisíveis na área.",
+      "source_id": "054-manto-da-cacada"
+    },
+    {
+      "id": "cacada-inevitavel",
+      "name": "Caçada Inevitável",
+      "line": "Armadilhas e Emboscadas",
+      "degree": 4,
+      "level": 13,
+      "cost": 4,
+      "enhancement": false,
+      "text": "Custo: 4 Pontos de Segredo. Como uma Ação , você marca uma área num círculo de 9 metros [30 pés] de raio centrado em você. Pelo próximo 1 minuto, dentro daquela área, criaturas hostis tratam todo o solo como terreno difícil e, sempre que uma delas se move voluntariamente dentro da área, sofre 2 rolagens do seu Dado de Caçador de dano perfurante, mas cada criatura só pode sofrer esse dano uma vez por turno; você e seus aliados ignoram completamente o efeito de terreno difícil ali.",
+      "source_id": "056-cacada-inevitavel"
+    },
+    {
+      "id": "armadilha-final",
+      "name": "Armadilha Final",
+      "line": "Armadilhas e Emboscadas",
+      "degree": 4,
+      "level": 13,
+      "cost": 4,
+      "enhancement": false,
+      "text": "Custo: 4 Pontos de Segredo. Ao preparar este Segredo, escolha um tipo de dano dentre perfurante, cortante, concussivo, fogo, frio ou elétrico. Como uma Ação , você espalha uma profusão de aparatos ocultos pelo chão numa área de 9 metros [30 pés] de raio ao seu redor. Pelo próximo 1 minuto, sempre que uma criatura se mover dentro dessa área, você pode usar a sua Reação para disparar uma das armadilhas contra ela, lançando munições. A criatura faz um teste de resistência de Destreza contra a sua CD de Magia ; em uma falha, sofre 4 rolagens do seu Dado de Caçador de dano do tipo escolhido e um efeito à sua escolha entre ficar Caída , ter o deslocamento reduzido em 3 metros [10 pés] até o fim do próximo turno dela, ou ser empurrada em até 4,5 metros [15 pés] para outro ponto dentro da área. Em um sucesso, sofre apenas metade do dano e nenhum efeito.",
+      "source_id": "057-armadilha-final"
+    },
+    {
+      "id": "sinal-veritas",
+      "name": "Sinal Veritas",
+      "line": "Conhecimentos Ancestrais (Sinais)",
+      "degree": 1,
+      "level": 2,
+      "cost": 1,
+      "enhancement": false,
+      "text": "Custo: 1 Ponto de Segredo. Como uma Ação Bônus , você traça o Sinal sobre a criatura sob a sua Marca do Caçador, e ele dura 1 minuto. Ao ativá-lo, você descobre uma informação à sua escolha sobre a criatura: o tipo dela, uma de suas imunidades, resistências ou vulnerabilidades a dano, uma de suas imunidades a condição, ou qual magia a afeta (e o Círculo dela). Enquanto o Sinal durar, nos seus turnos seguintes você pode usar uma Ação Bônus para descobrir uma informação adicional a cada vez.",
+      "source_id": "060-sinal-veritas"
+    },
+    {
+      "id": "sinal-exitium",
+      "name": "Sinal Exitium",
+      "line": "Conhecimentos Ancestrais (Sinais)",
+      "degree": 1,
+      "level": 2,
+      "cost": 1,
+      "enhancement": true,
+      "text": "Custo: 1 Ponto de Segredo. Como uma Ação Bônus , você inscreve um sinal de execução no ar. Até o fim do seu próximo turno, as suas jogadas de ataque contra a sua Presa Marcada causam Acerto Crítico com um resultado de 19 ou 20 no dado. Aprimoramento: o efeito dura 1 minuto e, se a Presa Marcada morrer, transfere-se automaticamente para a próxima criatura que você marcar dentro da duração.",
+      "source_id": "061-sinal-exitium"
+    },
+    {
+      "id": "sinal-vorago",
+      "name": "Sinal Vorago",
+      "line": "Conhecimentos Ancestrais (Sinais)",
+      "degree": 1,
+      "level": 2,
+      "cost": 1,
+      "enhancement": false,
+      "text": "Custo: 1 Ponto de Segredo. Como uma Ação Bônus , você lê uma criatura que possa ver a até 9 metros [30 pés] ; ela faz um teste de resistência de Sabedoria contra a sua CD de Magia . Em uma falha, você sabe automaticamente se ela mentiu na última conversa que teve com você ou se guarda intenção hostil contra você ou um aliado seu, e a criatura não percebe ter sido lida. Passando ou falhando no teste, a criatura fica imune a este Sinal por 24 horas.",
+      "source_id": "062-sinal-vorago"
+    },
+    {
+      "id": "sinal-potentia",
+      "name": "Sinal Potentia",
+      "line": "Conhecimentos Ancestrais (Sinais)",
+      "degree": 2,
+      "level": 5,
+      "cost": 2,
+      "enhancement": false,
+      "text": "Custo: 2 Pontos de Segredo. Quando você conjura uma magia que causa dano ou cura, tem duração Instantânea e tempo de conjuração de Ação , Ação Bônus ou Reação , você pode alterar os dados de dano ou cura dela: em vez do dado normal da magia (por exemplo, d4, d6 ou d8), você usa o seu Dado de Caçador para calcular o dano.",
+      "source_id": "064-sinal-potentia"
+    },
+    {
+      "id": "sinal-vinculum",
+      "name": "Sinal Vinculum",
+      "line": "Conhecimentos Ancestrais (Sinais)",
+      "degree": 2,
+      "level": 5,
+      "cost": 2,
+      "enhancement": false,
+      "text": "Custo: 2 Pontos de Segredo. Como uma Ação , você inscreve um círculo selado no chão aos seus pés, numa área de 3 metros [10 pés] de raio. Por 1 minuto, criaturas hostis dentro do círculo não podem se teletransportar nem usar invisibilidade (efeitos existentes ficam suspensos enquanto a criatura permanecer nele). Em vez disso, você pode gravar o círculo ao longo de 1 hora, pagando o custo em Pontos de Segredo uma única vez; gravado dessa forma, o círculo permanece no local por 1 semana.",
+      "source_id": "065-sinal-vinculum"
+    },
+    {
+      "id": "sinal-mentis",
+      "name": "Sinal Mentis",
+      "line": "Conhecimentos Ancestrais (Sinais)",
+      "degree": 3,
+      "level": 9,
+      "cost": 3,
+      "enhancement": true,
+      "text": "Custo: 3 Pontos de Segredo. Como uma Reação ao ver uma criatura a até 18 metros [60 pés] conjurar uma magia, você traça um sinal contra ela. Ela faz um teste de resistência de Inteligência contra a sua CD de Magia ; em uma falha, a magia falha e não produz efeito, mas a criatura não gasta o espaço de magia que usaria. Aprimoramento: a criatura também não pode emitir componentes verbais ou somáticos de magias até o início do seu próximo turno.",
+      "source_id": "067-sinal-mentis"
+    },
+    {
+      "id": "sinal-custodia",
+      "name": "Sinal Custódia",
+      "line": "Conhecimentos Ancestrais (Sinais)",
+      "degree": 3,
+      "level": 9,
+      "cost": 3,
+      "enhancement": true,
+      "text": "Custo: 3 Pontos de Segredo. Como uma Reação , quando você ou uma criatura a até 9 metros [30 pés] de você precisar fazer um teste de resistência contra uma magia ou for alvo de uma rolagem de ataque mágico, a criatura adiciona o seu modificador de Inteligência ou Sabedoria ao teste de resistência ou à Classe de Armadura contra aquele ataque. Aprimoramento: o efeito persiste até o início do seu próximo turno e se aplica a todos os testes de resistência mágicos e ataques mágicos daquela criatura nesse período.",
+      "source_id": "068-sinal-custodia"
+    },
+    {
+      "id": "sinal-damnatio",
+      "name": "Sinal Damnatio",
+      "line": "Conhecimentos Ancestrais (Sinais)",
+      "degree": 4,
+      "level": 13,
+      "cost": 4,
+      "enhancement": false,
+      "text": "Custo: 4 Pontos de Segredo. Ao acertar um ataque contra uma criatura que seja um dos seus Inimigos Favoritos ou a sua Presa Marcada, você inscreve sobre ela um sinal de condenação. Até o fim do seu próximo turno, no próximo efeito ou magia que você usar contra a criatura, ela subtrai uma rolagem do seu Dado de Caçador do Teste de Resistência que fizer para resistir.",
+      "source_id": "070-sinal-damnatio"
+    },
+    {
+      "id": "sinal-eclipse",
+      "name": "Sinal Eclipse",
+      "line": "Conhecimentos Ancestrais (Sinais)",
+      "degree": 4,
+      "level": 13,
+      "cost": 4,
+      "enhancement": false,
+      "text": "Custo: 4 Pontos de Segredo. Como uma Ação , você escolhe um ponto que possa ver a até 9 metros [30 pés] e inscreve um sinal supressor numa área de 3 metros [10 pés] de raio centrada nele. Pelo próximo 1 minuto, criaturas hostis na área perdem benefícios mágicos contínuos (resistências e bônus dados por magias como Escudo da Fé [Shield of Faith] ou Bênção [Bless] , que não são dissipados, apenas suspensos enquanto a criatura estiver na área), e as magias conjuradas por criaturas hostis na área têm seus espaços de magia tratados como sendo de 1 Círculo a menos (para fins de detecção, dissipação e efeito você e os aliados à sua escolha não são afetados.",
+      "source_id": "071-sinal-eclipse"
+    }
+  ],
+  "spell_grants": [
+    {
+      "english": "Battle Familiar",
+      "level": 3,
+      "order": "ordem-da-alianca-selvagem",
+      "source": "Companheiro Primordial",
+      "feature_grant": true
+    },
+    {
+      "english": "Mage Hand",
+      "level": 3,
+      "order": "ordem-do-enxame",
+      "source": "Simbiose do Enxame",
+      "feature_grant": true,
+      "catalog_identity": {
+        "slug": "mao-arcana",
+        "level": 0,
+        "evidence": "home/fixtures/conteudo.json: home.tbmagia 322; Simbiose do Enxame na referência local"
+      }
+    },
+    {
+      "order": "",
+      "level": 1,
+      "english": "Hunter's Mark",
+      "source": "Marca do Caçador"
+    },
+    {
+      "order": "ordem-da-alianca-selvagem",
+      "level": 3,
+      "english": "Animal Friendship",
+      "source": "Magias e Segredos da Ordem da Aliança Selvagem"
+    },
+    {
+      "order": "ordem-da-alianca-selvagem",
+      "level": 3,
+      "english": "Absorb Elements",
+      "source": "Magias e Segredos da Ordem da Aliança Selvagem"
+    },
+    {
+      "order": "ordem-da-alianca-selvagem",
+      "level": 5,
+      "english": "Dragon's Breath",
+      "source": "Magias e Segredos da Ordem da Aliança Selvagem"
+    },
+    {
+      "order": "ordem-da-alianca-selvagem",
+      "level": 5,
+      "english": "Warding Bond",
+      "source": "Magias e Segredos da Ordem da Aliança Selvagem"
+    },
+    {
+      "order": "ordem-da-alianca-selvagem",
+      "level": 9,
+      "english": "Conjure Animals",
+      "source": "Magias e Segredos da Ordem da Aliança Selvagem"
+    },
+    {
+      "order": "ordem-da-alianca-selvagem",
+      "level": 9,
+      "english": "Protection from Energy",
+      "source": "Magias e Segredos da Ordem da Aliança Selvagem"
+    },
+    {
+      "order": "ordem-da-alianca-selvagem",
+      "level": 13,
+      "english": "Dominate Beast",
+      "source": "Magias e Segredos da Ordem da Aliança Selvagem"
+    },
+    {
+      "order": "ordem-da-alianca-selvagem",
+      "level": 13,
+      "english": "Fire Shield",
+      "source": "Magias e Segredos da Ordem da Aliança Selvagem"
+    },
+    {
+      "order": "ordem-da-alianca-selvagem",
+      "level": 17,
+      "english": "Commune with Nature",
+      "source": "Magias e Segredos da Ordem da Aliança Selvagem"
+    },
+    {
+      "order": "ordem-da-alianca-selvagem",
+      "level": 17,
+      "english": "Awaken",
+      "source": "Magias e Segredos da Ordem da Aliança Selvagem"
+    },
+    {
+      "order": "ordem-do-crepusculo",
+      "level": 3,
+      "english": "Disguise Self",
+      "source": "Magias e Segredos da Ordem do Crepúsculo"
+    },
+    {
+      "order": "ordem-do-crepusculo",
+      "level": 3,
+      "english": "Fog Cloud",
+      "source": "Magias e Segredos da Ordem do Crepúsculo"
+    },
+    {
+      "order": "ordem-do-crepusculo",
+      "level": 5,
+      "english": "Darkness",
+      "source": "Magias e Segredos da Ordem do Crepúsculo"
+    },
+    {
+      "order": "ordem-do-crepusculo",
+      "level": 5,
+      "english": "Rope Trick",
+      "source": "Magias e Segredos da Ordem do Crepúsculo"
+    },
+    {
+      "order": "ordem-do-crepusculo",
+      "level": 9,
+      "english": "Fear",
+      "source": "Magias e Segredos da Ordem do Crepúsculo"
+    },
+    {
+      "order": "ordem-do-crepusculo",
+      "level": 9,
+      "english": "Nondetection",
+      "source": "Magias e Segredos da Ordem do Crepúsculo"
+    },
+    {
+      "order": "ordem-do-crepusculo",
+      "level": 13,
+      "english": "Shadow of Moil",
+      "source": "Magias e Segredos da Ordem do Crepúsculo"
+    },
+    {
+      "order": "ordem-do-crepusculo",
+      "level": 13,
+      "english": "Dimension Door",
+      "source": "Magias e Segredos da Ordem do Crepúsculo"
+    },
+    {
+      "order": "ordem-do-crepusculo",
+      "level": 17,
+      "english": "Modify Memory",
+      "source": "Magias e Segredos da Ordem do Crepúsculo"
+    },
+    {
+      "order": "ordem-do-crepusculo",
+      "level": 17,
+      "english": "Seeming",
+      "source": "Magias e Segredos da Ordem do Crepúsculo"
+    },
+    {
+      "order": "ordem-do-despertar",
+      "level": 3,
+      "english": "Ancestral Communion",
+      "source": "Magias e Segredos da Ordem do Despertar"
+    },
+    {
+      "order": "ordem-do-despertar",
+      "level": 3,
+      "english": "Wrathful Smite",
+      "source": "Magias e Segredos da Ordem do Despertar"
+    },
+    {
+      "order": "ordem-do-despertar",
+      "level": 5,
+      "english": "Alter Self",
+      "source": "Magias e Segredos da Ordem do Despertar",
+      "catalog_identity": {
+        "slug": "alterar-se",
+        "level": 2,
+        "evidence": "ref/Livros/magias_alinhado.csv:9; source Hunter table Alterar-se; fixture 576 vs 8"
+      }
+    },
+    {
+      "order": "ordem-do-despertar",
+      "level": 5,
+      "english": "Beast Sense",
+      "source": "Magias e Segredos da Ordem do Despertar"
+    },
+    {
+      "order": "ordem-do-despertar",
+      "level": 9,
+      "english": "Phantom Steed",
+      "source": "Magias e Segredos da Ordem do Despertar"
+    },
+    {
+      "order": "ordem-do-despertar",
+      "level": 9,
+      "english": "Haste",
+      "source": "Magias e Segredos da Ordem do Despertar"
+    },
+    {
+      "order": "ordem-do-despertar",
+      "level": 13,
+      "english": "Dominate Beast",
+      "source": "Magias e Segredos da Ordem do Despertar"
+    },
+    {
+      "order": "ordem-do-despertar",
+      "level": 13,
+      "english": "Call of the Wild",
+      "source": "Magias e Segredos da Ordem do Despertar"
+    },
+    {
+      "order": "ordem-do-despertar",
+      "level": 17,
+      "english": "Steel Wind Strike",
+      "source": "Magias e Segredos da Ordem do Despertar"
+    },
+    {
+      "order": "ordem-do-despertar",
+      "level": 17,
+      "english": "Awaken",
+      "source": "Magias e Segredos da Ordem do Despertar"
+    },
+    {
+      "order": "ordem-do-enxame",
+      "level": 3,
+      "english": "Faerie Fire",
+      "source": "Magias e Segredos da Ordem do Enxame"
+    },
+    {
+      "order": "ordem-do-enxame",
+      "level": 3,
+      "english": "Fog Cloud",
+      "source": "Magias e Segredos da Ordem do Enxame"
+    },
+    {
+      "order": "ordem-do-enxame",
+      "level": 5,
+      "english": "Web",
+      "source": "Magias e Segredos da Ordem do Enxame"
+    },
+    {
+      "order": "ordem-do-enxame",
+      "level": 5,
+      "english": "Misty Step",
+      "source": "Magias e Segredos da Ordem do Enxame"
+    },
+    {
+      "order": "ordem-do-enxame",
+      "level": 9,
+      "english": "Gaseous Form",
+      "source": "Magias e Segredos da Ordem do Enxame"
+    },
+    {
+      "order": "ordem-do-enxame",
+      "level": 9,
+      "english": "Cacophonic Shield",
+      "source": "Magias e Segredos da Ordem do Enxame"
+    },
+    {
+      "order": "ordem-do-enxame",
+      "level": 13,
+      "english": "Arcane Eye",
+      "source": "Magias e Segredos da Ordem do Enxame"
+    },
+    {
+      "order": "ordem-do-enxame",
+      "level": 13,
+      "english": "Confusion",
+      "source": "Magias e Segredos da Ordem do Enxame",
+      "catalog_identity": {
+        "slug": "confusao",
+        "level": 4,
+        "evidence": "ref/Livros/magias_alinhado.csv:92; ref/Livros/magias_en_pt.csv:23; fixture 41"
+      }
+    },
+    {
+      "order": "ordem-do-enxame",
+      "level": 17,
+      "english": "Insect Plague",
+      "source": "Magias e Segredos da Ordem do Enxame"
+    },
+    {
+      "order": "ordem-do-enxame",
+      "level": 17,
+      "english": "Rary's Telepathic Bond",
+      "source": "Magias e Segredos da Ordem do Enxame"
+    },
+    {
+      "order": "ordem-dos-exorcistas",
+      "level": 3,
+      "english": "Detect Evil and Good",
+      "source": "Magias e Segredos da Ordem dos Exorcistas"
+    },
+    {
+      "order": "ordem-dos-exorcistas",
+      "level": 3,
+      "english": "Protection from Evil and Good",
+      "source": "Magias e Segredos da Ordem dos Exorcistas"
+    },
+    {
+      "order": "ordem-dos-exorcistas",
+      "level": 5,
+      "english": "Silence",
+      "source": "Magias e Segredos da Ordem dos Exorcistas"
+    },
+    {
+      "order": "ordem-dos-exorcistas",
+      "level": 5,
+      "english": "See Invisibility",
+      "source": "Magias e Segredos da Ordem dos Exorcistas"
+    },
+    {
+      "order": "ordem-dos-exorcistas",
+      "level": 9,
+      "english": "Remove Curse",
+      "source": "Magias e Segredos da Ordem dos Exorcistas"
+    },
+    {
+      "order": "ordem-dos-exorcistas",
+      "level": 9,
+      "english": "Phantom Steed",
+      "source": "Magias e Segredos da Ordem dos Exorcistas"
+    },
+    {
+      "order": "ordem-dos-exorcistas",
+      "level": 13,
+      "english": "Banishment",
+      "source": "Magias e Segredos da Ordem dos Exorcistas"
+    },
+    {
+      "order": "ordem-dos-exorcistas",
+      "level": 13,
+      "english": "Phantasmal Killer",
+      "source": "Magias e Segredos da Ordem dos Exorcistas"
+    },
+    {
+      "order": "ordem-dos-exorcistas",
+      "level": 17,
+      "english": "Grave Ground",
+      "source": "Magias e Segredos da Ordem dos Exorcistas"
+    },
+    {
+      "order": "ordem-dos-exorcistas",
+      "level": 17,
+      "english": "Dispel Evil and Good",
+      "source": "Magias e Segredos da Ordem dos Exorcistas"
+    },
+    {
+      "order": "ordem-dos-exterminadores",
+      "level": 3,
+      "english": "Detect Magic",
+      "source": "Magias e Segredos da Ordem dos Exterminadores"
+    },
+    {
+      "order": "ordem-dos-exterminadores",
+      "level": 3,
+      "english": "Detect Poison and Disease",
+      "source": "Magias e Segredos da Ordem dos Exterminadores"
+    },
+    {
+      "order": "ordem-dos-exterminadores",
+      "level": 5,
+      "english": "See Invisibility",
+      "source": "Magias e Segredos da Ordem dos Exterminadores"
+    },
+    {
+      "order": "ordem-dos-exterminadores",
+      "level": 5,
+      "english": "Detect Thoughts",
+      "source": "Magias e Segredos da Ordem dos Exterminadores"
+    },
+    {
+      "order": "ordem-dos-exterminadores",
+      "level": 9,
+      "english": "Dispel Magic",
+      "source": "Magias e Segredos da Ordem dos Exterminadores"
+    },
+    {
+      "order": "ordem-dos-exterminadores",
+      "level": 9,
+      "english": "Crooked Ward",
+      "source": "Magias e Segredos da Ordem dos Exterminadores"
+    },
+    {
+      "order": "ordem-dos-exterminadores",
+      "level": 13,
+      "english": "Divination",
+      "source": "Magias e Segredos da Ordem dos Exterminadores"
+    },
+    {
+      "order": "ordem-dos-exterminadores",
+      "level": 13,
+      "english": "Locate Creature",
+      "source": "Magias e Segredos da Ordem dos Exterminadores"
+    },
+    {
+      "order": "ordem-dos-exterminadores",
+      "level": 17,
+      "english": "Hold Monster",
+      "source": "Magias e Segredos da Ordem dos Exterminadores"
+    },
+    {
+      "order": "ordem-dos-exterminadores",
+      "level": 17,
+      "english": "Legend Lore",
+      "source": "Magias e Segredos da Ordem dos Exterminadores"
+    },
+    {
+      "order": "ordem-dos-mutantes",
+      "level": 3,
+      "english": "Jump",
+      "source": "Magias e Segredos da Ordem dos Mutantes"
+    },
+    {
+      "order": "ordem-dos-mutantes",
+      "level": 3,
+      "english": "Absorb Elements",
+      "source": "Magias e Segredos da Ordem dos Mutantes"
+    },
+    {
+      "order": "ordem-dos-mutantes",
+      "level": 5,
+      "english": "Alter Self",
+      "source": "Magias e Segredos da Ordem dos Mutantes",
+      "catalog_identity": {
+        "slug": "alterar-se",
+        "level": 2,
+        "evidence": "ref/Livros/magias_alinhado.csv:9; source Hunter table Alterar-se; fixture 576 vs 8"
+      }
+    },
+    {
+      "order": "ordem-dos-mutantes",
+      "level": 5,
+      "english": "Enlarge/Reduce",
+      "source": "Magias e Segredos da Ordem dos Mutantes"
+    },
+    {
+      "order": "ordem-dos-mutantes",
+      "level": 9,
+      "english": "Haste",
+      "source": "Magias e Segredos da Ordem dos Mutantes"
+    },
+    {
+      "order": "ordem-dos-mutantes",
+      "level": 9,
+      "english": "Protection from Energy",
+      "source": "Magias e Segredos da Ordem dos Mutantes"
+    },
+    {
+      "order": "ordem-dos-mutantes",
+      "level": 13,
+      "english": "Polymorph",
+      "source": "Magias e Segredos da Ordem dos Mutantes"
+    },
+    {
+      "order": "ordem-dos-mutantes",
+      "level": 13,
+      "english": "Freedom of Movement",
+      "source": "Magias e Segredos da Ordem dos Mutantes"
+    },
+    {
+      "order": "ordem-dos-mutantes",
+      "level": 17,
+      "english": "Hold Monster",
+      "source": "Magias e Segredos da Ordem dos Mutantes"
+    },
+    {
+      "order": "ordem-dos-mutantes",
+      "level": 17,
+      "english": "Reincarnate",
+      "source": "Magias e Segredos da Ordem dos Mutantes"
+    },
+    {
+      "order": "ordem-dos-viajantes-primordiais",
+      "level": 3,
+      "english": "Protection from Evil and Good",
+      "source": "Magias e Segredos da Ordem dos Viajantes Primordiais"
+    },
+    {
+      "order": "ordem-dos-viajantes-primordiais",
+      "level": 3,
+      "english": "Detect Evil and Good",
+      "source": "Magias e Segredos da Ordem dos Viajantes Primordiais"
+    },
+    {
+      "order": "ordem-dos-viajantes-primordiais",
+      "level": 5,
+      "english": "Misty Step",
+      "source": "Magias e Segredos da Ordem dos Viajantes Primordiais"
+    },
+    {
+      "order": "ordem-dos-viajantes-primordiais",
+      "level": 5,
+      "english": "See Invisibility",
+      "source": "Magias e Segredos da Ordem dos Viajantes Primordiais"
+    },
+    {
+      "order": "ordem-dos-viajantes-primordiais",
+      "level": 9,
+      "english": "Haste",
+      "source": "Magias e Segredos da Ordem dos Viajantes Primordiais"
+    },
+    {
+      "order": "ordem-dos-viajantes-primordiais",
+      "level": 9,
+      "english": "Blink",
+      "source": "Magias e Segredos da Ordem dos Viajantes Primordiais"
+    },
+    {
+      "order": "ordem-dos-viajantes-primordiais",
+      "level": 13,
+      "english": "Banishment",
+      "source": "Magias e Segredos da Ordem dos Viajantes Primordiais"
+    },
+    {
+      "order": "ordem-dos-viajantes-primordiais",
+      "level": 13,
+      "english": "Dimension Door",
+      "source": "Magias e Segredos da Ordem dos Viajantes Primordiais"
+    },
+    {
+      "order": "ordem-dos-viajantes-primordiais",
+      "level": 17,
+      "english": "Teleportation Circle",
+      "source": "Magias e Segredos da Ordem dos Viajantes Primordiais"
+    },
+    {
+      "order": "ordem-dos-viajantes-primordiais",
+      "level": 17,
+      "english": "Banishing Smite",
+      "source": "Magias e Segredos da Ordem dos Viajantes Primordiais"
+    }
+  ],
+  "favored_enemies": {
+    "levels": [
+      2,
+      8,
+      14
+    ],
+    "types": [
+      {
+        "id": "aberracoes",
+        "name": "Aberrações"
+      },
+      {
+        "id": "bestas",
+        "name": "Bestas"
+      },
+      {
+        "id": "celestiais",
+        "name": "Celestiais"
+      },
+      {
+        "id": "constructos",
+        "name": "Constructos"
+      },
+      {
+        "id": "corruptores",
+        "name": "Corruptores"
+      },
+      {
+        "id": "dragoes",
+        "name": "Dragões"
+      },
+      {
+        "id": "elementais",
+        "name": "Elementais"
+      },
+      {
+        "id": "fadas",
+        "name": "Fadas"
+      },
+      {
+        "id": "gigantes",
+        "name": "Gigantes"
+      },
+      {
+        "id": "humanoides",
+        "name": "Humanoides"
+      },
+      {
+        "id": "monstruosidades",
+        "name": "Monstruosidades"
+      },
+      {
+        "id": "mortos-vivos",
+        "name": "Mortos-Vivos"
+      }
+    ]
+  },
+  "expertise": {
+    "levels": [
+      3,
+      9
+    ],
+    "abilities": [
+      "INT",
+      "SAB"
+    ]
+  },
+  "exclusive_secrets": [
+    {
+      "id": "despertar-final",
+      "name": "Despertar Final",
+      "level": 18,
+      "order": "ordem-do-despertar",
+      "cost": 4,
+      "enhancement": null,
+      "text": "A fera e eu já não brigamos. Somos a mesma coisa agora, e ela vem quando chamo, cresce quando uivo, e o mundo inteiro treme. Não há mais coleira, nem jaula, nem homem e monstro separados — só um caçador que aprendeu a ser, quando precisa, a própria caçada. Você adquire o Segredo do Caçador exclusivo desta Ordem, chamado Despertar Final. Custo: 4 Pontos de Segredo. Como uma Ação Bônus , você solta a fera por completo por 1 minuto. Enquanto durar, a sua Forma Desperta torna-se Grande (se ainda não for) e você ganha Pontos de Vida Temporários iguais a duas vezes o seu nível de Caçador . Os seus Golpes Predatórios passam a fazer um Golpe Desarmado adicional quando usados como Ação Bônus . Você conta como Sangrando para os efeitos de cura da sua Forma Desperta — o Vigor da Fera e a Regeneração Bestial passam a funcionar mesmo que você esteja com os Pontos de Vida cheios — e a sua carne se refaz como a magia Regenerar [Regenerate] : se você tiver perdido qualquer parte do corpo que não seja a cabeça, ela volta a crescer ao longo da duração. Por fim, você fica imune às condições Amedrontado e Enfeitiçado .",
+      "source_id": "198-nivel-18-despertar-final"
+    },
+    {
+      "id": "santuario-do-veu",
+      "name": "Santuário do Véu",
+      "level": 18,
+      "order": "ordem-dos-exorcistas",
+      "cost": 4,
+      "enhancement": null,
+      "text": "Onde eu finco a minha lanterna, o Véu se fecha, e nada que não devia passar, passa. Consagro o solo com água benta e palavra antiga, transformando um lugar qualquer em fronteira selada — um posto avançado meu, do qual a morte fica do lado de fora, batendo em vão. Você adquire o Segredo do Caçador exclusivo desta Ordem, chamado Santuário do Véu. Custo: 4 Pontos de Segredo. Em um ritual, você conjura Consagração [Hallow] ou Interdição [Forbiddance] , usando um Frasco Consagrado no lugar do componente material e de qualquer custo em ouro. Você também pode vincular a sua Lanterna do Véu a um local que tenha consagrado dessa forma: enquanto o vínculo durar, o local permanece permanentemente sob o efeito da magia escolhida, sem que você precise mantê-lo. Gastando 4 Pontos de Segredo , você pode conjurar Palavra de Retorno [Word of Recall] para esse local consagrado. Ao vincular um novo local, o vínculo com o anterior se desfaz.",
+      "source_id": "202-nivel-18-santuario-do-veu"
+    },
+    {
+      "id": "forma-quimerica",
+      "name": "Forma Quimérica",
+      "level": 18,
+      "order": "ordem-dos-mutantes",
+      "cost": 4,
+      "enhancement": null,
+      "text": "Passei anos mantendo cada essência em seu frasco, com medo de que juntas me consumissem. Agora conheço cada reação pelo nome; quando abro todas de uma vez, o monstro resultante ainda responde à minha vontade. Você adquire o Segredo do Caçador exclusivo desta Ordem, chamado Forma Quimérica. Custo: 4 Pontos de Segredo. Como uma Ação Bônus, você ativa por 1 minuto todos os mutagênicos que tem preparados. Pela duração, recebe apenas os Efeitos Benéficos deles. Você também ganha um deslocamento de escalada, natação ou voo igual ao seu deslocamento, à sua escolha, e Resistência a dois tipos de dano à sua escolha. Quando a forma termina, todos os seus mutagênicos ficam inativos por 1 hora. Você só pode usar este Segredo novamente depois que eles voltarem a ficar ativos.",
+      "source_id": "206-nivel-18-forma-quimerica"
+    },
+    {
+      "id": "caminho-final",
+      "name": "Caminho Final",
+      "level": 18,
+      "order": "ordem-dos-viajantes-primordiais",
+      "cost": 4,
+      "enhancement": null,
+      "text": "No alto do Teixo, cada plano parece uma folha ao alcance da mão. Escolho a rota antes de descansar e, quando a caçada chama, abro o caminho sem chave, círculo ou oferenda. Você adquire o Segredo do Caçador exclusivo desta Ordem, chamado Caminho Final. Você aprende Portal Arcano [Arcane Gate], Palavra de Retorno [Word of Recall], Etereidade [Etherealness], Mansão Magnífica de Mordenkainen [Mordenkainen's Magnificent Mansion], Teletransporte [Teleport] e Viagem Planar [Plane Shift]. Custo: 4 Pontos de Segredo. Ao terminar um Descanso Longo, escolha duas dessas magias. Elas ficam preparadas e não contam no seu limite de magias preparadas. Você pode conjurar cada magia escolhida uma vez gastando 4 Pontos de Segredo, sem gastar espaço de magia nem fornecer componentes materiais. Depois disso, não pode conjurá-la novamente por este Segredo até escolhê-la após outro Descanso Longo.",
+      "source_id": "208-nivel-18-caminho-final"
+    },
+    {
+      "id": "forma-primordial-suprema",
+      "name": "Forma Primordial Suprema",
+      "level": 18,
+      "order": "ordem-da-alianca-selvagem",
+      "cost": 4,
+      "enhancement": null,
+      "text": "Conheci apenas uma vez a forma completa do espírito, e desde então reconheço o peso daquela presença em cada pegada. Quando libero todo o pacto, a criatura que caminhava ao meu lado se ergue como a própria natureza decidida a caçar. Você adquire o Segredo do Caçador exclusivo desta Ordem, chamado Forma Primordial Suprema. Custo: 4 Pontos de Segredo. Como uma Ação Bônus , você faz o seu Companheiro Primordial alcançar a forma completa por 1 hora. Pela duração, Familiar de Batalha é tratada como conjurada com um espaço de magia de 9º Círculo para determinar todas as estatísticas e características que dependam do Círculo da magia. O máximo de Pontos de Vida do espírito é recalculado conforme o novo Círculo, e ele recupera Pontos de Vida até atingir esse máximo. Além disso, o espírito se torna Enorme pela duração.",
+      "source_id": "194-nivel-18-forma-primordial-suprema"
+    },
+    {
+      "id": "campo-de-caca-noturno",
+      "name": "Campo de Caça Noturno",
+      "level": 18,
+      "order": "ordem-do-crepusculo",
+      "cost": 4,
+      "enhancement": null,
+      "text": "Quando espalho meus aparatos sob a noite que carrego, o campo inteiro se transforma numa emboscada. Meus aliados enxergam apenas sombras comuns; para a presa, porém, cada passo atravessa um breu impossível e termina sob a mira de outra armadilha. Você adquire o Segredo do Caçador exclusivo desta Ordem, chamado Campo de Caça Noturno. Custo: 4 Pontos de Segredo. Como uma Ação , você ativa o Segredo Armadilha Final sem gastar Pontos de Segredo adicionais, aplicando as seguintes alterações: A área da Armadilha Final passa a ter 18 metros [60 pés] de raio. Para seus inimigos, a área é Escuridão mágica, considerada um efeito de 6º Círculo para determinar se suprime uma luz mágica. Para você e seus aliados, ela é Escuridão não mágica. O dano causado pelas armadilhas é psíquico, independentemente do tipo escolhido ao preparar Armadilha Final. Quando usa sua Reação para ativar uma armadilha contra uma criatura, você pode fazer um ataque contra ela como parte da mesma Reação. Você escolhe realizar esse ataque imediatamente antes ou depois de resolver o efeito da armadilha. O Campo de Caça Noturno segue todas as demais regras de Armadilha Final, incluindo sua duração, o gatilho das armadilhas e o teste de resistência.",
+      "source_id": "196-nivel-18-campo-de-caca-noturno"
+    },
+    {
+      "id": "cacada-final",
+      "name": "Caçada Final",
+      "level": 18,
+      "order": "ordem-dos-exterminadores",
+      "cost": 4,
+      "enhancement": null,
+      "text": "Há presas para as quais não preparo retorno, contenção ou segundo plano. Quando faço o sinal final, toda anotação converge numa única sentença: nenhuma resistência importa, nenhuma cura chega e cada golpe aproxima a execução. Você adquire o Segredo do Caçador exclusivo desta Ordem, chamado Caçada Final. Custo: 4 Pontos de Segredo. Quando aplica sua Marca do Caçador a uma criatura, pode declará-la alvo da Caçada Final. Durante 1 minuto ou até o alvo morrer, o efeito não pode ser transferido e concede os seguintes benefícios: O alvo não pode se beneficiar de Resistência contra dano causado por seus ataques, suas magias ou suas características. O alvo não pode recuperar Pontos de Vida. Quando você o acerta com um ataque com arma, ele sofre dano adicional igual a duas rolagens do seu Dado de Caçador, em vez do dano adicional normal da Marca do Caçador.",
+      "source_id": "204-nivel-18-cacada-final"
+    },
+    {
+      "id": "mao-da-colonia",
+      "name": "Mão da Colônia",
+      "level": 18,
+      "order": "ordem-do-enxame",
+      "cost": 4,
+      "enhancement": null,
+      "text": "A mão que antes carregava uma chave agora carrega uma criatura inteira. Quando libero toda a força da colônia, milhares de corpos se comprimem numa única forma colossal, capaz de agarrar, esmagar e proteger como se o próprio enxame tivesse fechado o punho. Você adquire o Segredo do Caçador exclusivo desta Ordem, chamado Mão da Colônia. Custo: 4 Pontos de Segredo. Como uma Ação , você faz a magia Mãos Mágicas criada pela sua Simbiose do Enxame se transformar numa Mão de Bigby [Bigby's Hand]. Se a magia Mãos Mágicas não estiver conjurada, você a conjura como parte da mesma ação antes de transformá-la. A Mão de Bigby é conjurada como uma magia de 6º Círculo , dura 1 minuto e não exige Concentração. Ela assume a aparência do seu enxame e segue todas as demais regras da magia, usando a sua CD de Magia e o seu modificador de ataque de magia.",
+      "source_id": "200-nivel-18-mao-da-colonia",
+      "casting": {
+        "spell": "Bigby's Hand",
+        "circle": 6,
+        "duration_seconds": 60,
+        "concentration": false,
+        "action": "action",
+        "includes_mage_hand": true
+      }
+    }
+  ],
+  "swarm_reaction": {
+    "level": 6,
+    "upgrade_level": 14,
+    "order": "ordem-do-enxame",
+    "text": "Certa vez pensei ter sido rápido o bastante para evitar uma flecha, até perceber que eles se moveram antes de mim. Desde então, já não sei onde termina o meu reflexo e começa o instinto de milhares de criaturas empenhadas em nos manter vivos. O enxame passa a agir por instinto para preservar você e as criaturas próximas, concedendo os benefícios a seguir: Barreira Viva. Uma vez por turno, quando você sofre dano, compare o dano total com o seu nível de Caçador + seu modificador de Inteligência ou Sabedoria, à sua escolha (mínimo de +1). Se o dano for igual ou menor que esse valor, ele é reduzido a 0. Caso seja maior, você sofre todo o dano. Resposta Instintiva. Quando uma criatura que você possa ver a até 9 metros [30 pés] faz uma jogada de ataque contra você ou contra um aliado a até 1,5 metro [5 pés] de você, você pode usar sua Reação para impor Desvantagem à jogada. Você também pode mover o alvo do ataque até 1,5 metro [5 pés] para um espaço desocupado. Esse movimento não provoca Ataques de Oportunidade. Você pode usar Resposta Instintiva um número de vezes igual ao seu modificador de Inteligência ou Sabedoria (mínimo de uma vez), recuperando todos os usos gastos ao terminar um Descanso Curto ou Longo.",
+    "upgrade_text": "Eles já não esperam por comando; sentem comigo quem precisa continuar de pé. Quando o perigo alcança um aliado, a colônia atravessa o campo como uma muralha viva, desvia o golpe e carrega a vítima para fora antes que o inimigo possa reagir. Sua Resposta Instintiva pode ser usada quando qualquer criatura a até 9 metros [30 pés] de você for alvo de uma jogada de ataque ou sofrer dano causado por um efeito que exija um teste de resistência. Quando a utiliza, aplique o benefício correspondente: Defesa contra Ataques. Você impõe Desvantagem à jogada de ataque. Se o ataque ainda acertar, o alvo recebe Resistência contra o dano desse ataque. Defesa contra Efeitos. O alvo realiza o teste de resistência normalmente e recebe Resistência contra o dano causado pelo efeito. Resgate Tático. Depois de resolver o ataque ou efeito, você pode mover a criatura protegida até 9 metros [30 pés] para um espaço desocupado. Esse movimento não provoca Ataques de Oportunidade."
+  },
+  "weapon_masteries": {
+    "level": 2,
+    "count": 3,
+    "replacement_count": 1,
+    "reset": "long_rest"
+  },
+  "mutagen_formulas": [
+    {
+      "id": "carapaca-de-basilisco",
+      "name": "Carapaça de Basilisco",
+      "level": 7,
+      "text": "Você ganha Resistência a dano cortante, perfurante e concussivo. Você não pode realizar a ação Esquivar e seu deslocamento é reduzido em 3 metros [10 pés]."
+    },
+    {
+      "id": "kraken-onisciente",
+      "name": "Kraken Onisciente",
+      "level": 3,
+      "text": "Sua Inteligência e o máximo desse atributo aumentam em 3. Esse aumento passa a 4 no 11º nível e a 5 no 18º nível, até o máximo de 22. Sua Sabedoria é reduzida em 3."
+    },
+    {
+      "id": "esfinge-visionaria",
+      "name": "Esfinge Visionária",
+      "level": 3,
+      "text": "Sua Sabedoria e o máximo desse atributo aumentam em 3. Esse aumento passa a 4 no 11º nível e a 5 no 18º nível, até o máximo de 22. Sua Inteligência é reduzida em 3."
+    },
+    {
+      "id": "salamandra-ignea",
+      "name": "Salamandra Ígnea",
+      "level": 3,
+      "text": "Você ganha Resistência a dano de fogo e Vulnerabilidade a dano de frio."
+    },
+    {
+      "id": "raptor-sombrio",
+      "name": "Raptor Sombrio",
+      "level": 3,
+      "text": "Sua Destreza e o máximo desse atributo aumentam em 3. Esse aumento passa a 4 no 11º nível e a 5 no 18º nível, até o máximo de 22. Sua Força é reduzida em 3."
+    },
+    {
+      "id": "yeti-boreal",
+      "name": "Yeti Boreal",
+      "level": 3,
+      "text": "Você ganha Resistência a dano de frio e Vulnerabilidade a dano de fogo."
+    },
+    {
+      "id": "vermeluz-das-cavernas",
+      "name": "Vermeluz das Cavernas",
+      "level": 3,
+      "text": "Você fica imune às condições Agarrado e Restringido. Você tem Desvantagem em testes de Força e não pode Agarrar criaturas."
+    },
+    {
+      "id": "morcego-abissal",
+      "name": "Morcego Abissal",
+      "level": 3,
+      "text": "Você ganha Visão no Escuro de 18 metros [60 pés]. Se já a possuir, o alcance aumenta em 18 metros [60 pés]. Sob luz plena, você tem Desvantagem em testes de habilidade e jogadas de ataque."
+    },
+    {
+      "id": "lobo-alfa",
+      "name": "Lobo Alfa",
+      "level": 3,
+      "text": "Você tem Vantagem em testes de Sabedoria (Percepção) baseados em audição, olfato ou visão e Desvantagem em testes de Carisma (Atuação, Enganação, Intimidação ou Persuasão)."
+    },
+    {
+      "id": "gorgona-prateada",
+      "name": "Górgona Prateada",
+      "level": 3,
+      "text": "Sua Força e o máximo desse atributo aumentam em 3. Esse aumento passa a 4 no 11º nível e a 5 no 18º nível, até o máximo de 22. Sua Destreza é reduzida em 3."
+    },
+    {
+      "id": "guepardo-das-planicies",
+      "name": "Guepardo das Planícies",
+      "level": 3,
+      "text": "Seu deslocamento aumenta em 3 metros [10 pés], ou em 4,5 metros [15 pés] a partir do 15º nível. Você tem Desvantagem em testes de Inteligência e não pode manter Concentração em magias ou rituais."
+    },
+    {
+      "id": "camaleao-espectral",
+      "name": "Camaleão Espectral",
+      "level": 3,
+      "text": "Você pode usar seu modificador de Inteligência ou Sabedoria em testes de Carisma. Você tem Desvantagem em rolagens de Iniciativa."
+    },
+    {
+      "id": "lagartixa-cicatrizante",
+      "name": "Lagartixa-Cicatrizante",
+      "level": 7,
+      "text": "Durante 1 hora, no início de cada um dos seus turnos, você recupera Pontos de Vida iguais ao seu Bônus de Proficiência se tiver ao menos 1 Ponto de Vida. Toda cura recebida de outra criatura tem seu valor reduzido à metade."
+    },
+    {
+      "id": "manticora-raivosa",
+      "name": "Manticora Raivosa",
+      "level": 11,
+      "text": "Quando realiza a ação Atacar, você pode fazer um ataque adicional como uma Ação Bônus. Você tem Desvantagem em testes de resistência de Inteligência, Sabedoria e Carisma."
+    },
+    {
+      "id": "harpia-das-montanhas",
+      "name": "Harpia das Montanhas",
+      "level": 11,
+      "text": "Durante 1 hora, você ganha deslocamento de voo igual ao seu deslocamento. Pela mesma duração, você tem Desvantagem em jogadas de ataque com armas."
+    },
+    {
+      "id": "quimera-do-caos",
+      "name": "Quimera do Caos",
+      "level": 11,
+      "text": "Seus ataques com armas obtêm um acerto crítico com resultados 19 ou 20 no d20. Você tem Desvantagem em testes de resistência contra efeitos mentais, incluindo medo e encantamento."
+    }
+  ]
+}

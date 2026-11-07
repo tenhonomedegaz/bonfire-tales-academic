@@ -1,0 +1,200 @@
+/* Printed sheets inside Bonfire's coal-and-ember shell. Presentation only:
+   saved layouts, Markdown source, editorial permissions and handlers stay intact. */
+body.bft-journal {
+  --news-paper: #e9dfc9;
+  --news-ink: #30251e;
+  --news-muted: #665342;
+  --news-rule: #a28a6b;
+  --news-red: #801e1b;
+  --news-texture: radial-gradient(ellipse at 0 0, #b88e4e16, transparent 60%),
+    radial-gradient(ellipse at 100% 100%, #a4783914, transparent 55%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.62' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Cpath fill='%23643e17' opacity='.045' filter='url(%23grain)' d='M0 0h180v180H0z'/%3E%3C/svg%3E");
+}
+.bft-journal :is(.journal-edition,.artigo-layout,#edPreviewContainer) {
+  background-color: var(--news-paper);
+  background-image: var(--news-texture);
+  color: var(--news-ink);
+}
+.bft-journal :is(.journal-edition,.artigo-layout) {
+  border: 1px solid #bca27d;
+  border-top: 4px solid #b31515;
+  border-radius: 0;
+  box-shadow: 0 8px 28px #0006;
+}
+.bft-journal .journal-edition {
+  width: min(calc(100% - 2.5rem), 1280px);
+  margin: 1.5rem auto 3rem;
+  padding: 1.2rem clamp(1rem, 3vw, 2.5rem) .7rem;
+}
+.bft-journal .journal-edition :is(a,button,input):focus-visible,
+.bft-journal .artigo-layout :is(a,button):focus-visible {
+  outline-color: var(--news-red);
+}
+.bft-journal .jornal-hero {background: none;border: 0;padding: 0;overflow: visible}
+.bft-journal .jornal-hero::after {display: none}
+.bft-journal :is(.journal-masthead-top,.journal-masthead-bottom) {color: var(--news-muted);border-color: var(--news-ink)}
+.bft-journal .journal-masthead-top {border-bottom: 3px double var(--news-ink);padding: .35rem 0 .6rem;font-size: .64rem;letter-spacing: .1em}
+.bft-journal .journal-masthead-top span:first-child {color: var(--news-red);font-weight: 800}
+.bft-journal .journal-masthead-main {justify-content: center;text-align: center;padding: 1.1rem 0 1.2rem;gap: 1rem}
+.bft-journal .journal-mark {width: 62px;height: 68px;flex-basis: 62px}
+.bft-journal .journal-mark img {display: block;width: 100%;height: 100%;object-fit: contain}
+.bft-journal .journal-edition .journal-kicker {color: var(--news-red);letter-spacing: .15em}
+.bft-journal .jornal-hero-title {font-size: clamp(2.4rem, 5.3vw, 4.8rem);font-weight: 700;color: var(--news-ink);letter-spacing: -.04em;line-height: 1.04;margin: .35rem 0 .45rem}
+.bft-journal .jornal-hero-sub {color: var(--news-muted);font: italic .95rem/1.5 Georgia,serif}
+.bft-journal .journal-masthead-bottom {border-top: 3px double var(--news-ink);border-bottom: 1px solid var(--news-rule);font-size: .66rem;padding: .55rem 0}
+.bft-journal .journal-masthead-bottom a {color: var(--news-red);font-weight: 700}
+/* Native filters remain obvious controls, not decorative newspaper labels. */
+.bft-journal .journal-archive-tools {border-color: var(--news-rule)}
+.bft-journal .journal-filters a {border-color: #9c8266;color: #5b402f;border-radius: 0;background: #f4eddd60}
+.bft-journal .journal-filters a[aria-current] {background: #801e1b;color: #fff2dd;border-color: #801e1b}
+.bft-journal .journal-filters a:hover {border-color: var(--news-red);color: var(--news-red);background: #fff6e670}
+.bft-journal .journal-search input {background: #f7f0e3;border-color: #9c8266;color: var(--news-ink);border-radius: 0;color-scheme: light}
+.bft-journal .journal-search input::placeholder {color: var(--news-muted)}
+.bft-journal .journal-search button {background: #4b0d0d;color: #fff0d9;border-color: #4b0d0d;border-radius: 0}
+.bft-journal .journal-archive-label {border-bottom: 3px double var(--news-ink);padding-bottom: .6rem;margin-bottom: 0}
+.bft-journal .journal-archive-label h2 {color: var(--news-red);font-size: 1.3rem;font-weight: 600}
+.bft-journal .journal-archive-label>span {color: var(--news-muted)}
+.bft-journal .journal-clear-search {color: var(--news-red);margin-top: .8rem}
+/* Headlines sit above illustrations, as in a printed broadsheet. */
+.bft-journal .jornal-grid {gap: 0;align-items: stretch;margin: 0 -.85rem}
+.bft-journal .jornal-card {background: none;color: var(--news-ink);border: 0;border-bottom: 1px solid var(--news-rule);border-radius: 0;padding: 1.2rem .85rem;overflow: visible;transition: background-color .2s;box-shadow: none}
+.bft-journal .jornal-card:not(.is-destaque) {border-right: 1px solid var(--news-rule)}
+.bft-journal .jornal-card:hover {background: #fff8ea55;border-color: var(--news-rule);box-shadow: none;transform: none}
+.bft-journal .journal-card-heading {padding-bottom: .7rem}
+.bft-journal .journal-card-rubric {display: flex;justify-content: space-between;align-items: center;gap: .5rem;min-height: 22px;margin-bottom: .4rem;color: var(--news-red);font-size: .58rem;letter-spacing: .09em;text-transform: uppercase;font-weight: 700;flex-wrap: wrap}
+.bft-journal .jornal-badge-destaque {position: static;border: 0;border-radius: 0;background: var(--news-red);color: #fff2dc;padding: .25rem .55rem;font-size: .58rem}
+.bft-journal .journal-demo-label {position: static;background: none;border: 1px solid var(--news-rule);color: var(--news-muted);font-size: .53rem;padding: .15rem .3rem;letter-spacing: .02em}
+.bft-journal .jornal-card-title {color: var(--news-ink);font: 700 clamp(1.35rem, 2.1vw, 1.7rem)/1.13 'Frank Ruhl Libre',Georgia,serif;letter-spacing: -.025em;margin: 0}
+.bft-journal .jornal-card-meta {border: 0;padding: 0;margin-top: .6rem;color: var(--news-muted);font-size: .6rem;line-height: 1.7;gap: .35rem}
+.bft-journal .jornal-card-meta .author {color: var(--news-red);font-weight: 600}
+.bft-journal .jornal-card-cover {background: #cdb895;border: 1px solid #ab9474;min-height: 0;padding: 3px;display: block;align-self: start;position: relative}
+.bft-journal .jornal-card-cover::after {display: none}
+.bft-journal .journal-print-image {display: block;width: 100%;filter: grayscale(.85) sepia(.35) contrast(1.05);mix-blend-mode: multiply}
+.bft-journal .jornal-card-cover .journal-print-image {aspect-ratio: 1.8;object-fit: cover}
+.bft-journal .jornal-card-body {padding: .8rem 0 0;gap: .8rem;justify-content: start}
+.bft-journal .jornal-card-summary {font: .98rem/1.65 Georgia,serif;color: var(--news-ink);flex: 0 1 auto}
+.bft-journal .journal-read-link {color: var(--news-red);border-top: 1px solid var(--news-rule);padding-top: .5rem;font-size: .68rem;margin-top: auto;min-height: 35px}
+.bft-journal .jornal-card:hover :is(.jornal-card-title,.journal-read-link) {color: #9b241f}
+.bft-journal .jornal-card.is-destaque {grid-template-columns: minmax(0,1.5fr) minmax(0,1fr);gap: 0 1.5rem;padding: 1.2rem .85rem 1.5rem;border-bottom: 3px double var(--news-ink)}
+.bft-journal .is-destaque .journal-card-heading {grid-column: 1/-1;text-align: center;padding-bottom: 1rem}
+.bft-journal .is-destaque .jornal-card-title {font-size: clamp(2rem, 3.6vw, 3.3rem);max-width: 30ch;margin: .2rem auto;line-height: 1.07}
+.bft-journal .is-destaque .jornal-card-meta {justify-content: center}
+.bft-journal .jornal-card.is-destaque .jornal-card-cover {min-height: 0}
+.bft-journal .jornal-card.is-destaque .jornal-card-body {padding: 0;justify-content: start;gap: 1rem}
+.bft-journal .jornal-card.is-destaque .jornal-card-summary {font: 1.1rem/1.7 Georgia,serif}
+.bft-journal .jornal-card.is-destaque.no-cover .jornal-card-body {grid-column: 1/-1;max-width: 70ch;justify-self: center;width: 100%}
+.bft-journal .jornal-empty {background: none;border: 0;border-bottom: 1px solid var(--news-rule);color: var(--news-muted)}
+.bft-journal .jornal-empty h3 {color: var(--news-ink)}
+.bft-journal .journal-empty-mark {color: var(--news-red)}
+.bft-journal .jornal-empty :is(.journal-empty-links a,.journal-secondary-link) {color: var(--news-red);border-color: var(--news-red)}
+.bft-journal .journal-empty-links a:first-child,.bft-journal .journal-empty-links a:hover {color: #fff0dc;background: #801e1b}
+.bft-journal .jornal-pagination {border-color: var(--news-rule)}
+.bft-journal .jornal-pagination span {color: var(--news-muted)}
+.bft-journal .jornal-pagination a {border-color: var(--news-red);border-radius: 0;background: #801e1b;color: #fff0dc}
+.bft-journal .jornal-pagination a:hover {color: #fff0dc;background: #4b0d0d}
+.bft-journal .journal-paper-footer {display: flex;align-items: center;justify-content: space-between;gap: .7rem;flex-wrap: wrap;border-top: 3px double var(--news-ink);margin-top: 1.5rem;padding-top: .65rem;color: var(--news-muted);font-size: .6rem;line-height: 1.6;letter-spacing: .02em}
+.bft-journal .journal-paper-footer>span[aria-hidden] {color: var(--news-red)}
+/* A complete article is one sheet, not a modern image-overlay hero. */
+.bft-journal .journal-reading-grid {margin-top: 0;gap: 1.25rem}
+.bft-journal .artigo-layout {padding: clamp(1rem, 3vw, 2.25rem);min-width: 0}
+.bft-journal .journal-imprint {display: flex;align-items: center;gap: .6rem;border-bottom: 3px double var(--news-ink);padding: 0 0 .75rem;margin-bottom: 1rem;color: var(--news-ink)}
+.bft-journal .journal-imprint img {width: 36px;height: 40px;object-fit: contain;flex: 0 0 36px}
+.bft-journal .journal-imprint>div {display: grid;gap: .1rem}
+.bft-journal .journal-imprint strong {font: 700 1.4rem/1.1 'Frank Ruhl Libre',Georgia,serif;letter-spacing: -.02em}
+.bft-journal .journal-imprint>div>span {font-size: .55rem;color: var(--news-red);letter-spacing: .16em;text-transform: uppercase;font-weight: 700}
+.bft-journal .journal-imprint-motto {margin-left: auto;font: italic .75rem/1.5 Georgia,serif;color: var(--news-muted);text-align: right;max-width: 18ch}
+.bft-journal .artigo-hero,.bft-journal .artigo-hero--text {background: none;border: 0;border-bottom: 1px solid var(--news-rule);min-height: 0;padding: .3rem 0 1.2rem;align-items: center;text-align: center;gap: .8rem}
+.bft-journal .artigo-eyebrow {color: var(--news-red);font-size: .6rem;display: flex;gap: .6rem;align-items: center}
+.bft-journal .artigo-title {color: var(--news-ink);font-size: clamp(2rem, 3.7vw, 3.4rem);font-weight: 700;letter-spacing: -.035em;line-height: 1.06;text-shadow: none;max-width: 28ch}
+.bft-journal .artigo-meta {color: var(--news-muted);font-size: .63rem;justify-content: center}
+.bft-journal .artigo-meta .author {color: var(--news-red)}
+.bft-journal .journal-article-summary {font: italic 1.1rem/1.6 Georgia,serif;color: #554131;max-width: 65ch;margin: 0}
+.bft-journal .journal-article-figure {margin: 1.2rem 0 0;padding: 4px;border: 1px solid var(--news-rule);background: #cdb895}
+.bft-journal .journal-article-figure .journal-print-image {max-height: 400px;object-fit: contain;object-position: center}
+.bft-journal .artigo-body:not(.artigo-body--atlas) {padding: 1.3rem 0 .5rem}
+.bft-journal .artigo-body:not(.artigo-body--atlas)>.bonfire-markdown {font: clamp(16px,1.14rem,18px)/1.85 Georgia,'Frank Ruhl Libre',serif;color: var(--news-ink);max-width: 75ch;margin: 0 auto;overflow-wrap: anywhere}
+.bft-journal .artigo-body:not(.artigo-body--atlas) .bonfire-markdown :is(h1,h2,h3,h4) {color: var(--news-ink);font-weight: 700;border-color: var(--news-rule)}
+.bft-journal :is(.artigo-body,.editor-preview) .bonfire-markdown strong,
+.bft-journal :is(.artigo-body .bonfire-markdown,.editor-preview) strong,
+.bft-journal .artigo-body:not(.artigo-body--atlas) .bonfire-markdown strong {color: var(--news-ink)}
+.bft-journal :is(.artigo-body .bonfire-markdown,.editor-preview) a {color: var(--news-red)}
+.bft-journal :is(.artigo-body .bonfire-markdown,.editor-preview) a:hover {color: #4b0d0d}
+.bft-journal .artigo-body:not(.artigo-body--atlas) .bonfire-markdown blockquote,
+.bft-journal .editor-preview blockquote {border: 0;border-block: 1px solid var(--news-rule);background: none;color: var(--news-red);font: italic 1.2rem/1.65 Georgia,serif;padding: 1rem .6rem}
+.bft-journal .artigo-body:not(.artigo-body--atlas)>.bonfire-markdown>p:first-of-type::first-letter,
+.bft-journal #edPreview:not([data-atlas-mode="true"])>p:first-of-type::first-letter {font: 700 3.5rem/.9 'Frank Ruhl Libre',Georgia,serif;float: left;margin: .15rem .35rem 0 0;color: var(--news-red)}
+.bft-journal .artigo-body--colunas .bonfire-markdown {column-rule: 1px solid var(--news-rule);column-gap: 2.5rem;max-width: none}
+.bft-journal :is(.artigo-body .bonfire-markdown,.editor-preview) :is(th,td) {border-color: var(--news-rule);color: var(--news-ink)}
+.bft-journal :is(.artigo-body .bonfire-markdown,.editor-preview) th {background: #d5c3a4;color: var(--news-ink)}
+.bft-journal :is(.artigo-body .bonfire-markdown,.editor-preview) :is(hr,pre) {border-color: var(--news-rule)}
+.bft-journal :is(.artigo-body .bonfire-markdown,.editor-preview) :is(pre,code) {background: #d9ccb4;color: #4b3025}
+.bft-journal .artigo-back {color: var(--news-red);border-color: var(--news-red);border-radius: 0}
+.bft-journal .artigo-back:hover {color: #fff0dc;background: #801e1b}
+.bft-journal .artigo-edit-tools {border-color: var(--news-rule)}
+.bft-journal .artigo-layout--atlas {--atlas-bg: var(--news-paper);--atlas-bg-dark: #ddceb1;--atlas-ink: var(--news-ink);--atlas-ink-muted: var(--news-muted);--atlas-rule: var(--news-rule);--atlas-accent: var(--news-red);padding: clamp(1rem,3vw,2rem)}
+.bft-journal .artigo-atlas-meta {background: none;border: 0;border-bottom: 1px solid var(--news-rule);padding: .3rem 0 1.2rem;color: var(--news-ink)}
+.bft-journal .artigo-atlas-meta :is(h1,p) {color: var(--news-ink)}
+.bft-journal .artigo-atlas-meta h1 {font-weight: 700;font-size: clamp(2rem,3.7vw,3rem);letter-spacing: -.025em}
+.bft-journal .artigo-atlas-meta .artigo-atlas-kicker {color: var(--news-red)}
+.bft-journal .artigo-body--atlas .atlas-columns {padding: 1.3rem 0}
+.bft-journal .artigo-body--atlas .bonfire-markdown {font-size: 16px}
+.bft-journal .artigo-body--atlas .atlas-no-column {padding-inline: 0}
+.bft-journal .artigo-body--atlas .atlas-header {background: none}
+/* Match the live preview without touching field values or submit handlers. */
+.bft-journal #edPreviewContainer {padding: 1.2rem;min-height: 100%;overflow-wrap: anywhere}
+.bft-journal #edPreviewContainer .journal-imprint {order: -2}
+.bft-journal #edPreviewContainer {display: flex;flex-direction: column}
+.bft-journal .editor-preview-heading {order: -1;text-align: center;border: 0;border-bottom: 1px solid var(--news-rule);padding: .2rem 0 1rem;margin-bottom: 1rem}
+.bft-journal .editor-preview-heading h3 {color: var(--news-ink);font: 700 clamp(1.7rem,2.5vw,2.5rem)/1.1 'Frank Ruhl Libre',Georgia,serif;margin: .3rem 0 .6rem;letter-spacing: -.025em}
+.bft-journal .editor-preview-heading :is(span,p) {color: var(--news-muted)}
+.bft-journal .editor-preview-heading p {font: italic 1rem/1.6 Georgia,serif;margin-top: .6rem}
+.bft-journal .editor-preview-cover {padding: 3px;border: 1px solid var(--news-rule);background: #cdb895;margin-bottom: 1rem}
+.bft-journal .editor-preview-cover img {filter: grayscale(.85) sepia(.35) contrast(1.05);mix-blend-mode: multiply;max-height: 280px;object-fit: contain}
+.bft-journal .editor-preview {color: var(--news-ink);font: clamp(16px,1.14rem,18px)/1.85 Georgia,serif;padding: 0;overflow: visible}
+.bft-journal .editor-preview :is(h1,h2,h3,h4) {font-family: 'Frank Ruhl Libre',Georgia,serif;color: var(--news-ink);font-weight: 700;border-color: var(--news-rule)}
+.bft-journal .editor-preview>p+p {margin-top: 1.15rem}
+.bft-journal-editor:has(#edLayout option[value="colunas"]:checked) #edPreview {column-rule-color: var(--news-rule)}
+.bft-journal #edPreviewContainer.artigo-layout--atlas :is(.editor-preview-heading h3,.editor-preview-heading span,.editor-preview-heading p,.editor-preview strong) {color: var(--news-ink)}
+/* The site's compact root size must not turn newspaper small print into tiny type. */
+.bft-journal .journal-edition .journal-kicker,.bft-journal .journal-masthead-top {font-size: 10px}
+.bft-journal .journal-masthead-bottom {font-size: 11px}
+.bft-journal .journal-filters a,.bft-journal .journal-search button {font-size: 12px}
+.bft-journal .journal-search input {font-size: 14px}
+.bft-journal .journal-archive-label>span {font-size: 11px}
+.bft-journal .journal-card-rubric,.bft-journal .jornal-badge-destaque {font-size: 10px}
+.bft-journal .journal-demo-label {font-size: 9px}
+.bft-journal .jornal-card-meta {font-size: 11px}
+.bft-journal .jornal-card-summary {font-size: 15px}
+.bft-journal .journal-read-link {font-size: 12px}
+.bft-journal .journal-imprint>div>span,.bft-journal .artigo-eyebrow {font-size: 10px}
+.bft-journal .artigo-meta {font-size: 12px}
+.bft-journal .journal-toc a {font-size: 12px}
+.bft-journal .journal-toc a[data-depth="3"] {font-size: 11px}
+.bft-journal .journal-paper-footer {font-size: 10px}
+@media(max-width:1100px) {.bft-journal .journal-reading-grid {gap: .8rem}}
+@media(max-width:650px) {
+  .bft-journal .journal-edition {width: calc(100% - 1rem);margin: 1rem auto 2rem;padding: .85rem .85rem .7rem}
+  .bft-journal .journal-masthead-main {gap: .5rem;padding: 1rem 0}
+  .bft-journal .journal-mark {flex-basis: 35px;width: 35px;height: 44px;margin: 0;align-self: center}
+  .bft-journal .jornal-hero-title {font-size: clamp(2rem,6.5vw,3rem)}
+  .bft-journal .jornal-hero-sub {font-size: .85rem}
+  .bft-journal .journal-search input {font-size: 16px}
+  .bft-journal .jornal-card:not(.is-destaque) {border-right: 0}
+  .bft-journal .jornal-card.is-destaque {grid-template-columns: minmax(0,1fr);gap: .8rem}
+  .bft-journal .is-destaque .journal-card-heading {padding-bottom: .2rem}
+  .bft-journal .is-destaque .jornal-card-title {font-size: 2.1rem}
+  .bft-journal .jornal-card.is-destaque .jornal-card-cover {min-height: 0}
+  .bft-journal .jornal-card.is-destaque .jornal-card-summary {font-size: 1rem}
+  .bft-journal .artigo-layout {padding: 1rem .9rem}
+  .bft-journal .journal-imprint {gap: .45rem}
+  .bft-journal .journal-imprint strong {font-size: 1.25rem}
+  .bft-journal .journal-imprint-motto {display: none}
+  .bft-journal .artigo-title {font-size: 2.05rem}
+  .bft-journal .journal-article-summary {font-size: 1rem}
+  .bft-journal .artigo-body:not(.artigo-body--atlas)>.bonfire-markdown {font-size: 16px;line-height: 1.85}
+  .bft-journal .artigo-body--atlas .atlas-columns {padding: 1rem 0}
+  .bft-journal #edPreviewContainer {padding: .9rem}
+  .bft-journal .journal-paper-footer {justify-content: center;text-align: center}
+  .bft-journal-list .journal-paper-footer>span:last-child {width: 100%}
+  .bft-journal-list .journal-paper-footer>span[aria-hidden] {display: none}
+}

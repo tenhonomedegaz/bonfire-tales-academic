@@ -1,0 +1,1522 @@
+{% extends 'home/base.html' %}
+{% load static cosmetic_packages %}
+
+{% block title %}{{ p.nome }} · Ficha · Bonfire Tales RPG{% endblock %}
+{% block body_class %}bft-character-sheet{% endblock %}
+
+{% comment %}Onda F: a folha usa 3 colunas de verdade (atributos | combate | características),
+então esta página abre mão do `max-w-5xl` padrão e ganha a largura de uma ficha de mesa —
+o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% endcomment %}
+{% block main_class %}ficha-main flex-1 w-full mx-auto px-3 md:px-5 py-4{% endblock %}
+
+{% comment %}Anúncios saem no papel: o wrapper .ficha-noprint é o gancho do @media print.{% endcomment %}
+{% block mobile_ad_top %}<div class="ficha-noprint">{{ block.super }}</div>{% endblock %}
+{% block mobile_ad %}<div class="ficha-noprint">{{ block.super }}</div>{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/ficha.css' %}?v=16">
+<link rel="stylesheet" href="{% static 'css/pages/characters-redesign.css' %}?v=4">
+<link rel="stylesheet" href="{% static 'css/pages/character-workflows.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'css/components/tema_swatch.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=4">
+{% if appearance.theme_css_href %}<link rel="stylesheet" href="{{ appearance.theme_css_href }}">{% endif %}
+<script src="{% static 'js/tema_swatch.js' %}?v=4" defer></script>
+<script src="{% static 'js/mochila.js' %}?v=1" defer></script>
+<script src="{% static 'js/ficha_opcoes.js' %}?v=2" defer></script>
+<script src="{% static 'js/characters-presentation.js' %}?v=3" defer></script>
+{% if partial_spell_slots %}
+<script src="{% static 'js/http.js' %}?v=1" defer></script>
+<script src="{% static 'js/spell_slots.js' %}?v=1" defer></script>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="character-breadcrumb ficha-noprint"><a href="{% url 'personagens' %}">Meus personagens</a><span aria-hidden="true">/</span><span>{{ p.nome }}</span><span class="character-sheet-label">Ficha de personagem</span></div>
+{% if character_preview %}<p class="character-local-note ficha-noprint">Ficha de demonstração local · criação, personalidade, notas e compras de itens mundanos podem ser testadas aqui. Progressão e demais ações de jogo dependem dos serviços oficiais e não estão ativas nesta prévia.</p><div class="character-preview-feedback ficha-noprint" data-character-preview-feedback hidden role="status"><span data-character-preview-message></span><button type="button" data-character-preview-close aria-label="Fechar aviso">×</button></div>{% endif %}
+{% for pc in p.classes.all %}{% if pc.cacador_rework %}
+  <a class="ficha-noprint" href="{% url 'hunter_sheet' p.pk %}">Consultar ficha da revis?o vinculada</a>
+{% endif %}{% endfor %}
+{% if p.dono_id == request.user.pk %}
+  {% for pc in p.classes.all %}{% if pc.id_classe.slug == 'cacador' and not pc.cacador_rework %}
+    <a class="ficha-noprint" href="{% url 'hunter_regularization_preview' p.pk %}">Prévia de regularização do Caçador</a>
+  {% endif %}{% if pc.cacador_rework %}
+    <a class="ficha-noprint" href="{% url 'hunter_preparation' p.pk %}">Preparar Segredos do Caçador</a>
+  {% endif %}{% endfor %}
+{% endif %}
+{% if appearance.background_url %}<div class="ficha-bg-media" style="background-image:url('{{ appearance.background_url }}');"></div>{% endif %}
+{% comment %}`ficha-has-bg` só sai COM imagem de fundo: é ela que liga o desfoque
+(backdrop-filter) da folha central em ficha.css. Sem imagem, folha sólida como sempre.{% endcomment %}
+<section class="ficha animate-fade-in space-y-3 {{ appearance.theme_class }} {{ appearance.effect_class }}{% if appearance.background_url %} ficha-has-bg{% endif %}" data-theme-category="{{ appearance.theme_category|default:'classico' }}" data-theme-motif="{{ appearance.theme_motif|default:'none' }}"{% if appearance.fx_particula %} data-fx-particula="{{ appearance.fx_particula }}" data-fx-vel="{{ appearance.fx_vel }}"{% endif %}{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %}>
+
+  {# ===================== CABEÇALHO (banner estilo planilha) ===================== #}
+  {% include 'home/partials/_ficha_banner.html' %}
+  {% if slot_readonly_reason %}<p class="cw-slots-warning" role="status">{{ slot_readonly_reason }} <a href="{% url 'character_slots' %}">Gerenciar fichas ativas →</a></p>{% endif %}
+  {% if direitos_tokens %}<section class="ficha-panel ficha-noprint" aria-labelledby="direitos-tokens-title">
+    <h2 id="direitos-tokens-title" class="ficha-section-title">Direitos desta ficha</h2>
+    <p>Tokens de progressão servem para solicitar missões. O pedido não publica uma missão nem concede item.</p>
+    <ul>{% for direito in direitos_tokens %}
+      <li>Nível {{ direito.level }} — {% if direito.benefit == 'quest' %}token de quest{% elif direito.benefit == 'item_rare' %}token de missão de item raro{% elif direito.benefit == 'item_very_rare' %}token de missão de item muito raro{% else %}slot de personagem{% endif %}:
+        {% if direito.benefit == 'slot' %}ativo no limite de fichas
+        {% elif direito.consume %}{% if direito.consume_needs_review %}missão estornada ou indisponível; consumo em revisão pela staff{% else %}consumido na missão #{{ direito.consume.payload_json.mission_ledger_id }}{% endif %}
+        {% elif direito.request %}pedido registrado; aguardando confirmação da staff
+          {% if is_staff %}<form method="post" action="{% url 'confirm_character_token' p.pk direito.grant.pk %}">{% csrf_token %}<label>Lançamento da missão nesta ficha <input type="number" min="1" required name="mission_ledger_id"></label><button type="submit">Confirmar consumo</button></form>{% endif %}
+        {% elif p.dono_id == request.user.pk %}<form method="post" action="{% url 'request_character_token' p.pk direito.grant.pk %}">{% csrf_token %}<button type="submit">Solicitar missão</button></form>
+        {% else %}disponível para solicitação pela dona da ficha{% endif %}
+      </li>
+    {% endfor %}</ul>
+  </section>{% endif %}
+
+  {# ===================== BARRA DE ABAS ===================== #}
+  <nav class="ficha-tabs" role="tablist" aria-label="Seções da ficha">
+    <button type="button" class="ficha-tab is-active" role="tab" data-tab="ficha" aria-selected="true">Ficha</button>
+    <button type="button" class="ficha-tab" role="tab" data-tab="mochila" aria-selected="false">Mochila</button>
+    <button type="button" class="ficha-tab" role="tab" data-tab="info" aria-selected="false">Informações</button>
+    {% comment %}Onda D: a aba de magias virou MAGIAS & OPÇÕES (as escolhas de classe moram
+    lá). O identificador `magias` NÃO muda — `?aba=magias` e os atalhos continuam válidos.{% endcomment %}
+    <button type="button" class="ficha-tab" role="tab" data-tab="magias" aria-selected="false">Magias &amp; Opções</button>
+    <button type="button" class="ficha-tab" role="tab" data-tab="historico" aria-selected="false">Histórico</button>
+  </nav>
+
+  {# ===================== ABA 1: FICHA ===================== #}
+  <div class="ficha-tabpanel is-active space-y-3" data-tabpanel="ficha" role="tabpanel">
+
+  {% include 'home/partials/_ficha_folha.html' %}
+
+  {% if reacao_cura and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="reacao-cura-title">
+    <h2 id="reacao-cura-title" class="ficha-section-title">{{ reacao_cura.name|default:"Reação de cura" }}</h2>
+    <p>Usos: {{ reacao_cura.current }}/{{ reacao_cura.maximum }} · Recupera {{ reacao_cura.heal }} PV com sua reação quando um inimigo a até {{ reacao_cura.range_ft }} pés cai a 0 PV. Usos retornam após descanso longo.</p>
+    {% if request.GET.reacao_cura == 'ok' %}<p role="status">Reação registrada e PV atualizados na ficha.</p>{% endif %}
+    {% if reacao_cura.current %}
+    <form method="post" action="{% url 'personagem_usar_reacao_cura' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ reacao_cura_operation_id }}">
+      <label>Distância do inimigo (pés) <input type="number" name="distance_ft" min="0" max="{{ reacao_cura.range_ft }}" required></label>
+      <label><input type="checkbox" name="enemy_at_zero" required> Inimigo reduzido a 0 PV</label>
+      <label><input type="checkbox" name="reaction_available" required> Minha reação está disponível</label>
+      <label><input type="checkbox" name="confirmed" required> Confirmo o evento declarado na mesa</label>
+      <button type="submit" class="banner-btn primary">Usar reação e recuperar PV</button>
+    </form>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  {% if selo_morte and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="selo-morte-title">
+    <h2 id="selo-morte-title" class="ficha-section-title">Finitude da Vida</h2>
+    <p>Quando uma criatura morrer em decorrência de dano causado por você, registre o selo. Apenas Desejo ou Ressurreição Verdadeira podem restaurá-la; ela não pode ser transformada em morto-vivo.</p>
+    {% if request.GET.morte_selada == 'ok' %}<p role="status">Morte selada registrada.</p>{% endif %}
+    {% if selo_morte.targets %}<p>Alvos registrados: {{ selo_morte.targets|join:', ' }}</p>{% endif %}
+    {% if selo_morte.active %}<form method="post" action="{% url 'personagem_registrar_morte_selada' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ selo_morte_operation_id }}">
+      <label>Identificação única da criatura (encontro e alvo) <input type="text" name="target" maxlength="100" required></label>
+      <label><input type="checkbox" name="caused_by_own_damage" required> Meu dano causou a morte</label>
+      <label><input type="checkbox" name="death_confirmed" required> A morte foi confirmada na mesa</label>
+      <button type="submit" class="banner-btn primary">Registrar morte selada</button>
+    </form>{% endif %}
+  </section>
+  {% endif %}
+
+  {% if ceifa and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="ceifa-title">
+    <h2 id="ceifa-title" class="ficha-section-title">Ceifa da Alma</h2>
+    {% for message in messages %}{% if 'epic-reaping' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
+    {% if ceifa.available %}
+    <p>Escolha um tipo de dano causado nesta rolagem. Todos os dados desse tipo usam o valor máximo; os demais dados mantêm os resultados informados.</p>
+    <form method="post" action="{% url 'personagem_ceifar_dano' p.pk %}" data-ceifa-form>
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ ceifa_operation_id }}">
+      <label>Identificação da criatura <input type="text" name="creature_ref" maxlength="120" required></label>
+      <label>Origem do dano <select name="source_kind"><option value="attack">Ataque</option><option value="spell">Magia</option><option value="feature">Característica</option></select></label>
+      <label>Tipo de dano a maximizar <input type="text" name="chosen_type" maxlength="50" required></label>
+      <div data-ceifa-rows>
+        <fieldset data-ceifa-row>
+          <legend>Parcela de dano</legend>
+          <label>Tipo <input type="text" name="damage_type" maxlength="50" required></label>
+          <label>Dados (ex.: 3d8) <input type="text" name="dice_expression" placeholder="3d8"></label>
+          <label>Resultados de cada dado (ex.: 1, 4, 8) <input type="text" name="rolled_values" placeholder="1, 4, 8"></label>
+          <label>Dano fixo <input type="number" name="fixed_damage" value="0" required></label>
+        </fieldset>
+      </div>
+      <button type="button" data-ceifa-add>Adicionar outro tipo de dano</button>
+      <button type="submit" class="banner-btn primary">Aplicar Ceifa</button>
+    </form>
+    {% else %}
+    <p>Ceifa indisponível até a criatura escolhida morrer com 0 PV ou você terminar um descanso curto ou longo.</p>
+    <form method="post" action="{% url 'personagem_liberar_ceifa' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ ceifa_death_operation_id }}">
+      <label>Identificação da mesma criatura <input type="text" name="creature_ref" maxlength="120" required></label>
+      <label>PV atuais da criatura <input type="number" name="current_hp" min="0" value="0" required></label>
+      <label><input type="checkbox" name="dead" required> A criatura morreu</label>
+      <button type="submit" class="banner-btn primary">Confirmar morte e liberar Ceifa</button>
+    </form>
+    {% endif %}
+  </section>
+  <script>
+    document.querySelectorAll('[data-ceifa-form]').forEach(form => {
+      const rows = form.querySelector('[data-ceifa-rows]');
+      form.querySelector('[data-ceifa-add]').addEventListener('click', () => {
+        if (rows.querySelectorAll('[data-ceifa-row]').length >= 10) return;
+        const copy = rows.querySelector('[data-ceifa-row]').cloneNode(true);
+        copy.querySelectorAll('input').forEach(input => { input.value = input.name === 'fixed_damage' ? '0' : ''; });
+        rows.appendChild(copy);
+      });
+    });
+  </script>
+  {% endif %}
+
+  {% if dano_magia_epica_opcoes and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="dano-magia-epica-title">
+    <h2 id="dano-magia-epica-title" class="ficha-section-title">Dano mágico refinado</h2>
+    {% for message in messages %}{% if 'epic-spell-damage' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
+    <p>Para uma magia preparada de 1º ciclo ou maior, cada dado de dano que rolou 1 ou 2 passa a valer 3.</p>
+    <form method="post" action="{% url 'personagem_resolver_dano_magia' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ dano_magia_epica_operation_id }}">
+      <label>Magia <select name="owned_spell_id" required>{% for spell in dano_magia_epica_opcoes %}<option value="{{ spell.id }}">{{ spell.name }} ({{ spell.circle }}º ciclo; {{ spell.damage_types|join:", " }})</option>{% endfor %}</select></label>
+      <label>Tipo de dano declarado na magia <input name="damage_type" required></label>
+      <label>Dados (faces:resultado, separados por vírgula) <input name="dice" placeholder="6:1, 6:2, 6:5" required></label>
+      <label>Dano fixo <input name="fixed" type="number" value="0"></label>
+      <button type="submit" class="banner-btn primary">Resolver dano</button>
+    </form>
+  </section>
+  {% endif %}
+
+  {% if inspiracao_heroica.available and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="inspiracao-heroica-title">
+    <h2 id="inspiracao-heroica-title" class="ficha-section-title">Inspiração Heróica</h2>
+    {% for message in messages %}{% if 'epic-heroic-inspiration' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
+    <p>Concedida por {{ inspiracao_heroica.origin }}. Registre o resultado da rolagem para atualizar o saldo.</p>
+    <form method="post" action="{% url 'personagem_usar_inspiracao_heroica' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ inspiracao_heroica_operation_id }}">
+      <label>Rolagem <select name="roll_kind"><option value="attack">Ataque</option><option value="ability_check">Teste de habilidade</option><option value="save">Salvaguarda</option></select></label>
+      <label><input type="checkbox" name="failed"> A rolagem ainda falhou</label>
+      <button type="submit" class="banner-btn primary">Registrar uso</button>
+    </form>
+  </section>
+  {% endif %}
+
+  {% if resistencia_lendaria and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="resistencia-lendaria-title">
+    <h2 id="resistencia-lendaria-title" class="ficha-section-title">Resistência lendária</h2>
+    {% for message in messages %}{% if 'epic-legendary-save' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
+    {% if resistencia_lendaria.available %}
+    <p>Após falhar em uma salvaguarda, converta a falha em sucesso. Recupera após descanso curto ou longo.</p>
+    <form method="post" action="{% url 'personagem_resistir_salvaguarda' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ resistencia_lendaria_operation_id }}">
+      <label>Salvaguarda <select name="save_kind"><option value="str">Força</option><option value="dex">Destreza</option><option value="con">Constituição</option><option value="int">Inteligência</option><option value="wis">Sabedoria</option><option value="cha">Carisma</option><option value="death">Contra a morte</option></select></label>
+      <label><input type="checkbox" name="failed" required> A salvaguarda falhou</label>
+      <button type="submit" class="banner-btn primary">Converter em sucesso</button>
+    </form>
+    {% else %}<p>Já usada neste descanso.</p>{% endif %}
+  </section>
+  {% endif %}
+
+  {% if nova_salvaguarda and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="nova-salvaguarda-title">
+    <h2 id="nova-salvaguarda-title" class="ficha-section-title">Nova rolagem de salvaguarda</h2>
+    {% for message in messages %}{% if 'epic-save-reroll' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
+    {% if nova_salvaguarda.available %}
+    <p>Após falhar em uma salvaguarda, inclusive contra a morte, role novamente o d20 e use o novo resultado.</p>
+    <form method="post" action="{% url 'personagem_rerolar_salvaguarda' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ nova_salvaguarda_operation_id }}">
+      <label>Salvaguarda <select name="save_kind"><option value="str">Força</option><option value="dex">Destreza</option><option value="con">Constituição</option><option value="int">Inteligência</option><option value="wis">Sabedoria</option><option value="cha">Carisma</option><option value="death">Contra a morte</option></select></label>
+      <label>Resultado original do d20 <input type="number" name="original_roll" min="1" max="20" required></label>
+      <label><input type="checkbox" name="failed" required> A salvaguarda original falhou</label>
+      <button type="submit" class="banner-btn primary">Usar nova rolagem</button>
+    </form>
+    {% else %}
+    <p>Você já usou esta nova rolagem. Ela volta a ficar disponível no início do seu próximo turno.</p>
+    <form method="post" action="{% url 'personagem_iniciar_turno_rerrolagem' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ nova_salvaguarda_turn_operation_id }}">
+      <label>Identificação do próximo turno <input type="text" name="turn_ref" maxlength="100" required></label>
+      <label><input type="checkbox" name="confirmed" required> Meu próximo turno começou na mesa</label>
+      <button type="submit" class="banner-btn primary">Iniciar próximo turno</button>
+    </form>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  {% if perfis_dano_implacavel and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="dano-implacavel-title">
+    <h2 id="dano-implacavel-title" class="ficha-section-title">Dano de arma</h2>
+    {% for message in messages %}{% if 'epic-relentless-damage' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
+    <p>Após confirmar o acerto na mesa, informe o dano da arma já rolado, incluindo os dados de crítico. A ficha soma o bônus épico e aplica a defesa declarada do alvo.</p>
+    <form method="post" action="{% url 'personagem_resolver_dano_arma' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ dano_implacavel_operation_id }}">
+      <label>Arma <select name="profile_index" required>{% for profile in perfis_dano_implacavel %}<option value="{{ profile.index }}">{{ profile.name }} ({{ profile.damage_type }})</option>{% endfor %}</select></label>
+      <label>Dano rolado <input type="number" name="rolled_damage" min="0" max="100000" required></label>
+      <label>Defesa do alvo <select name="target_defense" required><option value="none">Nenhuma</option><option value="resist">Resistência a este dano</option><option value="immune">Imunidade a este dano</option></select></label>
+      <label><input type="checkbox" name="critical"> Acerto crítico confirmado</label>
+      <label><input type="checkbox" name="confirmed" required> Confirmo o acerto na mesa</label>
+      <button type="submit" class="banner-btn primary">Resolver dano</button>
+    </form>
+  </section>
+  {% endif %}
+
+  {% if dano_sangrando and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="dano-sangrando-title">
+    <h2 id="dano-sangrando-title" class="ficha-section-title">Dano extra enquanto Sangrando</h2>
+    {% for message in messages %}{% if 'epic-bloodied-damage' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
+    <p>Após confirmar um acerto, escolha o ataque. Some o bônus indicado ao dano do mesmo tipo antes de aplicar as defesas do alvo.</p>
+    {% if dano_sangrando.available %}
+    <form method="post" action="{% url 'personagem_usar_dano_sangrando' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ dano_sangrando_operation_id }}">
+      <label>Ataque <select name="profile_index" required>{% for profile in dano_sangrando.profiles %}<option value="{{ profile.index }}">{{ profile.name }} ({{ profile.damage_type }})</option>{% endfor %}</select></label>
+      <label><input type="checkbox" name="hit_confirmed" required> Acerto confirmado na mesa</label>
+      <button type="submit" class="banner-btn primary">Aplicar +{{ dano_sangrando.bonus }} de dano</button>
+    </form>
+    {% else %}
+    <p>O bônus já foi usado neste turno.</p>
+    <form method="post" action="{% url 'personagem_iniciar_turno_dano_sangrando' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ dano_sangrando_turn_operation_id }}">
+      <label>Identificação do próximo turno <input type="text" name="turn_ref" maxlength="180" required></label>
+      <label><input type="checkbox" name="confirmed" required> Meu próximo turno começou na mesa</label>
+      <button type="submit" class="banner-btn primary">Liberar bônus</button>
+    </form>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  {% if destino_epico and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="destino-epico-title">
+    <h2 id="destino-epico-title" class="ficha-section-title">Alterar Destino</h2>
+    {% for message in messages %}{% if 'epic-fate' in message.tags or 'epic-battle-accuracy' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
+    {% if destino_epico.available %}
+    <p>Após uma rolagem d20 de sucesso ou falha, role {{ destino_epico.dice }} e aplique o total.{% if destino_epico.direction %} Este uso recuperado só permite {{ destino_epico.direction }}.{% endif %}</p>
+    <form method="post" action="{% url 'personagem_alterar_destino' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ destino_use_operation_id }}">
+      <label>Rolagem na mesa <input name="roll_ref" maxlength="180" required></label>
+      <label>Distância em pés <input type="number" name="distance_ft" min="0" max="{{ destino_epico.range_ft }}" value="0" required></label>
+      <label>Aplicar como <select name="direction"><option value="increase">Bônus</option><option value="decrease">Penalidade</option></select></label>
+      <label><input type="checkbox" name="confirmed" required> Sucesso ou falha em d20 confirmado na mesa</label>
+      <button type="submit" class="banner-btn primary">Rolar {{ destino_epico.dice }}</button>
+    </form>
+    {% else %}<p>Uso gasto até iniciativa ou descanso{% if destino_epico.recover_on_critical %}, ou crítico natural próprio{% endif %}.</p>{% endif %}
+    {% if destino_epico.recover_on_critical %}
+    <form method="post" action="{% url 'personagem_rolar_ataque_epico' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ destino_attack_operation_id }}">
+      <label><input type="checkbox" name="advantage"> Vantagem no ataque</label>
+      <label><input type="checkbox" name="disadvantage"> Desvantagem no ataque</label>
+      <button type="submit" class="banner-btn primary">Rolar ataque; crítico natural recupera uso</button>
+    </form>
+    <form method="post" action="{% url 'personagem_recuperar_destino' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ destino_critical_operation_id }}">
+      <label>Evento crítico <input name="event_ref" maxlength="180" required></label>
+      <label>D20 natural <select name="natural_d20"><option value="20">20</option><option value="1">1</option></select></label>
+      <label><input type="checkbox" name="own_roll_confirmed" required> Foi minha própria rolagem</label>
+      <label><input type="checkbox" name="critical_confirmed" required> Crítico natural confirmado</label>
+      <button type="submit" class="banner-btn primary">Registrar crítico</button>
+    </form>
+    {% endif %}
+    <form method="post" action="{% url 'personagem_iniciativa_destino' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ destino_initiative_operation_id }}">
+      <label>Iniciativa <input name="initiative_ref" maxlength="180" required></label>
+      <label><input type="checkbox" name="confirmed" required> Rolei iniciativa na mesa</label>
+      <button type="submit" class="banner-btn primary">Recuperar após iniciativa</button>
+    </form>
+  </section>
+  {% endif %}
+
+  {% if ataque_epico and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="ataque-epico-title">
+    <h2 id="ataque-epico-title" class="ficha-section-title">Rolagem de ataque épico</h2>
+    {% for message in messages %}{% if 'epic-battle-accuracy' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
+    <p>Role o d20 do ataque aqui. Compare o resultado com as regras da mesa. Crítico em {{ ataque_epico.critical_threshold }}–20 se o ataque acertar.{% if ataque_epico.no_disadvantage %} Mão Firme ignora a desvantagem.{% endif %}</p>
+    <form method="post" action="{% url 'personagem_rolar_ataque_epico' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ ataque_epico_operation_id }}">
+      <label><input type="checkbox" name="advantage"> O ataque tem vantagem</label>
+      <label><input type="checkbox" name="disadvantage"> O ataque teria desvantagem</label>
+      <button type="submit" class="banner-btn primary">Rolar ataque</button>
+    </form>
+    {% if ataque_epico.fortune_active %}
+    <h3>Fortuna do Assassino</h3>
+    <form method="post" action="{% url 'personagem_registrar_criatura_a_zero' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ fortuna_event_operation_id }}">
+      <label>Criatura <input type="text" name="creature_ref" maxlength="180" required></label>
+      <label>Identificação da queda <input type="text" name="event_ref" maxlength="180" required></label>
+      <label><input type="checkbox" name="visible_confirmed" required> Eu pude ver a criatura</label>
+      <label><input type="checkbox" name="zero_confirmed" required> A criatura caiu a 0 PV na mesa</label>
+      <label><input type="checkbox" name="during_own_turn"> A queda ocorreu no meu turno</label>
+      <button type="submit" class="banner-btn primary">Registrar vantagem</button>
+    </form>
+    {% if ataque_epico.fortune_pending %}
+    <p>Vantagem pendente para a próxima jogada de ataque.</p>
+    <form method="post" action="{% url 'personagem_encerrar_turno_fortuna' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ fortuna_turn_operation_id }}">
+      <label>Identificação do turno encerrado <input type="text" name="turn_ref" maxlength="180" required></label>
+      <label><input type="checkbox" name="confirmed" required> Meu turno terminou na mesa</label>
+      <button type="submit" class="banner-btn primary">Encerrar turno</button>
+    </form>
+    {% endif %}
+    {% endif %}
+    {% if ataque_epico.auto_hit_available and ataque_epico_rolagem_id %}
+    <form method="post" action="{% url 'personagem_converter_ataque_epico' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ ataque_epico_hit_operation_id }}">
+      <input type="hidden" name="attack_operation_id" value="{{ ataque_epico_rolagem_id }}">
+      <label><input type="checkbox" name="miss_confirmed" required> A rolagem registrada errou conforme a mesa</label>
+      <button type="submit" class="banner-btn primary">Escolher acertar</button>
+    </form>
+    {% elif ataque_epico.auto_hit_active and not ataque_epico.auto_hit_available %}
+    <p>Precisão Inigualável já foi usada; volta no início do próximo turno.</p>
+    <form method="post" action="{% url 'personagem_iniciar_turno_ataque_epico' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ ataque_epico_turn_operation_id }}">
+      <label>Identificação do próximo turno <input type="text" name="turn_ref" maxlength="100" required></label>
+      <label><input type="checkbox" name="confirmed" required> Meu próximo turno começou na mesa</label>
+      <button type="submit" class="banner-btn primary">Iniciar próximo turno</button>
+    </form>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  {% if resistencia_implacavel and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="resistencia-implacavel-title">
+    <h2 id="resistencia-implacavel-title" class="ficha-section-title">Resistência Implacável</h2>
+    {% for message in messages %}{% if 'epic-relentless' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
+    <form method="post" action="{% url 'personagem_resistencia_implacavel' p.pk %}">{% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ resistencia_implacavel_operation_id }}">
+      {% for slot in resistencia_implacavel.choice_slots %}
+      <label>Tipo {{ slot }} <select name="damage_types">{% for type in resistencia_implacavel.available_types %}<option value="{{ type }}">{{ type }}</option>{% endfor %}</select></label>
+      {% endfor %}
+      <label>Descanso longo para trocar <input name="long_rest_ref" maxlength="180"></label>
+      <label><input type="checkbox" name="long_rest_confirmed"> Descanso longo confirmado</label>
+      <button type="submit" class="banner-btn primary">Salvar resistências</button>
+    </form>
+    {% if resistencia_implacavel.configured %}
+    <form method="post" action="{% url 'personagem_alterar_ruina' p.pk %}">{% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ alterar_ruina_operation_id }}">
+      <label>Rodada <input name="round_ref" maxlength="180" required></label>
+      <label>Tipo recebido <select name="damage_type">{% for type in resistencia_implacavel.types %}<option value="{{ type }}">{{ type }}</option>{% endfor %}</select></label>
+      <label>Distância <input name="target_distance_ft" type="number" min="0" max="{{ resistencia_implacavel.range_ft }}" required></label>
+      <label>Modificador da salvaguarda <input name="target_save_modifier" type="number" value="0" required></label>
+      <label>Modificador <select name="declared_modifier"><option value="spell">Conjuração</option><option value="constitution">Constituição</option></select></label>
+      <label><input type="checkbox" name="damage_received" required> Recebi dano escolhido</label><label><input type="checkbox" name="target_visible" required> Vejo o alvo</label><label><input type="checkbox" name="target_has_total_cover"> Alvo tem cobertura total</label>
+      <button type="submit" class="banner-btn primary">Alterar Ruína</button>
+    </form>{% endif %}
+  </section>
+  {% endif %}
+
+  {% if recuperacao_pool and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="recuperacao-pool-title">
+    <h2 id="recuperacao-pool-title" class="ficha-section-title">Recuperar Vitalidade</h2>
+    {% for message in messages %}{% if 'epic-recovery-pool' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
+    <p>Dados de recuperação disponíveis: {{ recuperacao_pool.available }}/{{ recuperacao_pool.max }}. A cura é rolada no servidor e não ultrapassa seus PV máximos.</p>
+    {% if recuperacao_pool.available %}
+    <form method="post" action="{% url 'personagem_recuperar_vitalidade' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ recuperacao_pool_operation_id }}">
+      <label>Dados d10 a gastar <input type="number" name="dice_count" min="1" max="{{ recuperacao_pool.available }}" required></label>
+      <label><input type="checkbox" name="bonus_action_available" required> Minha ação bônus está disponível</label>
+      <label><input type="checkbox" name="confirmed" required> Confirmo o uso na mesa</label>
+      <button type="submit" class="banner-btn primary">Gastar dados e recuperar PV</button>
+    </form>
+    {% else %}<p>Os dados gastos retornam no fim de um descanso curto ou longo.</p>{% endif %}
+  </section>
+  {% endif %}
+
+  {% if sobrevivencia_epica and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="sobrevivencia-epica-title">
+    <h2 id="sobrevivencia-epica-title" class="ficha-section-title">Sobrevivência do Mais Forte</h2>
+    {% for message in messages %}{% if 'epic-survival' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
+    <p>Uso disponível até o próximo descanso longo: {{ sobrevivencia_epica.available|yesno:"sim,não" }}. Informe o dano final após resistências; PV temporários serão consumidos primeiro.</p>
+    <form method="post" action="{% url 'personagem_registrar_dano_sobrevivencia' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ sobrevivencia_operation_id }}">
+      <label>Dano final <input type="number" name="damage" min="1" required></label>
+      {% if sobrevivencia_epica.available %}<label><input type="checkbox" name="use_survival"> Usar o benefício se este dano me reduzir a 0 PV</label>{% endif %}
+      <label><input type="checkbox" name="confirmed" required> Confirmo o dano declarado na mesa</label>
+      <button type="submit" class="banner-btn primary">Registrar dano</button>
+    </form>
+  </section>
+  {% endif %}
+
+  {% if tempestade_save_types and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="tempestade-save-title">
+    <h2 id="tempestade-save-title" class="ficha-section-title">Salvaguarda contra magia da Tempestade</h2>
+    {% for message in messages %}{% if 'epic-storm-save' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
+    <p>Declare os dados da salvaguarda do alvo. A rolagem é feita no servidor com desvantagem; vantagem do alvo cancela a desvantagem.</p>
+    <form method="post" action="{% url 'personagem_salvaguarda_tempestade' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ tempestade_save_operation_id }}">
+      <label>Tipo de dano <select name="damage_type" required>{% for tipo in tempestade_save_types %}<option value="{{ tipo }}">{{ tipo|capfirst }}</option>{% endfor %}</select></label>
+      <label>Modificador da salvaguarda do alvo <input type="number" name="target_modifier" value="0" required></label>
+      <label>CD da magia <input type="number" name="save_dc" min="1" required></label>
+      <label><input type="checkbox" name="target_has_advantage"> O alvo tem vantagem nesta salvaguarda</label>
+      <label><input type="checkbox" name="confirmed" required> Confirmo a magia e o alvo declarados na mesa</label>
+      <button type="submit" class="banner-btn primary">Rolar salvaguarda do alvo</button>
+    </form>
+  </section>
+  {% endif %}
+
+  {% if bonus_pv_temporarios and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="pv-temporarios-epicos-title">
+    <h2 id="pv-temporarios-epicos-title" class="ficha-section-title">Receber PV temporários</h2>
+    {% for message in messages %}{% if 'epic-temporary-hp' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
+    <p>Ao receber PV temporários na mesa, a ficha acrescenta {{ bonus_pv_temporarios }} por suas fontes ativas e mantém o maior total.</p>
+    <form method="post" action="{% url 'personagem_receber_pv_temporarios' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ pv_temporarios_operation_id }}">
+      <label>PV temporários concedidos antes dos bônus <input type="number" name="amount" min="1" max="100000" required></label>
+      <label><input type="checkbox" name="confirmed" required> Confirmo a concessão na mesa</label>
+      <button type="submit" class="banner-btn primary">Registrar PV temporários</button>
+    </form>
+  </section>
+  {% endif %}
+
+  {% if dados_vida_epicos and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="dados-vida-epicos-title">
+    <h2 id="dados-vida-epicos-title" class="ficha-section-title">Recuperação Superior</h2>
+    {% for message in messages %}{% if 'epic-hit-dice' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
+    <p>Gaste Dados de Vida da sua classe e recupere o valor máximo de cada dado, somando Constituição. Os dados gastos retornam no descanso longo registrado na ficha.</p>
+    <form method="post" action="{% url 'personagem_gastar_dados_vida' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ dados_vida_epicos_operation_id }}">
+      <label>Dado <select name="die" required>{% for pool in dados_vida_epicos %}<option value="{{ pool.die }}">d{{ pool.die }}: {{ pool.available }}/{{ pool.maximum }}</option>{% endfor %}</select></label>
+      <label>Quantidade <input type="number" name="count" min="1" required></label>
+      <label><input type="checkbox" name="maximize"> Usar o valor máximo de cada dado</label>
+      <label><input type="checkbox" name="confirmed" required> Confirmo o gasto na mesa</label>
+      <button type="submit" class="banner-btn primary">Gastar Dados de Vida</button>
+    </form>
+  </section>
+  {% endif %}
+
+  {% if cura_turno_bloqueada and pode_editar %}
+  <section class="ficha-panel ficha-noprint" aria-labelledby="cura-turno-title">
+    <h2 id="cura-turno-title" class="ficha-section-title">Bônus de cura por turno</h2>
+    {% for message in messages %}{% if 'epic-healing-turn' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
+    <p>Um bônus de cura limitado por turno já foi usado. Libere-o somente quando o próximo turno começar na mesa.</p>
+    <form method="post" action="{% url 'personagem_iniciar_turno_cura' p.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="operation_id" value="{{ cura_turno_operation_id }}">
+      <label>Referência do turno <input type="text" name="turn_ref" maxlength="180" required></label>
+      <label><input type="checkbox" name="confirmed" required> Confirmo o início do próximo turno</label>
+      <button type="submit" class="banner-btn primary">Iniciar turno de cura</button>
+    </form>
+  </section>
+  {% endif %}
+
+  {# ===================== LARGURA CHEIA ===================== #}
+
+  {% comment %}As 4 caixinhas de RP do PDF da ficha. Edição inline (fetch) só para o dono/staff.{% endcomment %}
+  <div class="ficha-panel pers-panel" data-personalidade-panel>
+    <div class="ficha-section-title">Personalidade{% if pode_editar %}<span class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--muted)]" data-pers-feedback aria-live="polite"></span>{% endif %}</div>
+    {% if pode_editar %}
+    <form method="post" action="{% url 'personagem_personalidade_salvar' p.id_personagem %}" class="pers-form" data-pers-form>
+      {% csrf_token %}
+      <div class="pers-grid">
+        {% for campo in personalidade %}
+        <label class="pers-box">
+          <span class="pers-lbl">{{ campo.rotulo }}</span>
+          <textarea name="{{ campo.tipo }}" rows="3" placeholder="—">{{ campo.texto }}</textarea>
+        </label>
+        {% endfor %}
+      </div>
+      <div class="pers-actions"><button type="submit" class="banner-btn primary">Salvar Personalidade</button></div>
+    </form>
+    {% else %}
+    <div class="pers-grid">
+      {% for campo in personalidade %}
+      <div class="pers-box is-read">
+        <span class="pers-lbl">{{ campo.rotulo }}</span>
+        {% if campo.texto %}<p class="pers-text">{{ campo.texto|linebreaksbr }}</p>{% else %}<p class="pers-text is-empty">—</p>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  {% comment %}NOTAS DO JOGADOR (onda F) — rascunho de mesa na própria folha, largura cheia
+  logo abaixo da Personalidade (as duas caixas de RP ficam lado a lado no papel, nenhuma
+  espremida). Salva sozinho ao SAIR do campo (blur); o <noscript> mantém o botão. Só o dono
+  e a staff veem: é anotação pessoal, não vitrine — ficha pública não expõe.{% endcomment %}
+  {% if pode_editar %}
+  <div class="ficha-panel notas-panel" data-notas-panel>
+    <div class="ficha-section-title">Notas do Jogador<span class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--muted)]" data-notas-feedback aria-live="polite">salva sozinha ao sair do campo</span></div>
+    <form method="post" action="{% url 'personagem_notas_salvar' p.id_personagem %}" class="notas-form" data-notas-form>
+      {% csrf_token %}
+      <label class="notas-box">
+        <span class="sr-only">Notas do jogador</span>
+        <textarea name="notas_jogador" rows="5" data-notas-input placeholder="Pistas, nomes de NPC, combinados da mesa, lembretes de sessão…">{{ p.notas_jogador }}</textarea>
+      </label>
+      <noscript><div class="pers-actions"><button type="submit" class="banner-btn primary">Salvar Notas</button></div></noscript>
+    </form>
+  </div>
+  {% endif %}
+
+  {% comment %}O inventário saiu daqui: a aba Mochila é o lugar canônico (onda B).{% endcomment %}
+  <p class="ficha-jump"><button type="button" class="ficha-jump-chip" data-tab-jump="mochila">Inventário, slots e sintonização na aba <strong>Mochila</strong> →</button></p>
+
+  {% include 'home/partials/_ficha_folha_defesas.html' %}
+
+  </div>{# /ABA 1: FICHA #}
+
+  {# ===================== ABA 2: MOCHILA ===================== #}
+  {% comment %}Mochila (onda B): grade de SLOTS derivada do catálogo + inventário completo.
+  Equipar/desequipar/sintonizar por fetch (js/mochila.js) — os endpoints são os antigos.{% endcomment %}
+  <div class="ficha-tabpanel space-y-3" data-tabpanel="mochila" role="tabpanel" hidden>
+
+    <div class="bag-head">
+      {% comment %}Carteira em TRÊS CAIXINHAS (PO | PP | PC), como na ficha clássica de mesa.
+      O saldo exato mora em `carteira_pc`; a decomposição chega pronta do derive
+      (home/moeda.py) — o template não faz conta de moeda.{% endcomment %}
+      <div class="bag-stat bag-coins" data-carteira title="{{ ficha.carteira.display|default:'0 PO' }}">
+        <span class="lbl">Dinheiro{% if ficha.carteira.negativo %} <span class="coin-neg">(negativo)</span>{% endif %}</span>
+        <div class="coin-row">
+          <span class="coin-box"><span class="coin-val" data-carteira-po>{{ ficha.carteira.po|default:"0" }}</span><span class="coin-sig">PO</span></span>
+          <span class="coin-box"><span class="coin-val" data-carteira-pp>{{ ficha.carteira.pp|default:"0" }}</span><span class="coin-sig">PP</span></span>
+          <span class="coin-box"><span class="coin-val" data-carteira-pc>{{ ficha.carteira.pc|default:"0" }}</span><span class="coin-sig">PC</span></span>
+        </div>
+      </div>
+      <div class="bag-stat bag-braseiros">
+        <span class="lbl">Braseiros</span>
+        <strong class="v flame">{{ ficha.progressao.braseiros|default:"0" }}</strong>
+        <a href="{% url 'event_cosmetic_shop' %}" class="text-xs">Cosméticos de evento</a>
+      </div>
+      <div class="bag-stat">
+        <span class="lbl">Valor da mochila</span>
+        <strong class="v" data-mochila-total>{{ mochila.total_display }}</strong>
+      </div>
+      <div class="bag-stat">
+        <span class="lbl">Peso</span>
+        <strong class="v" data-mochila-peso>{{ mochila.peso_total }}</strong>
+      </div>
+      <div class="bag-stat">
+        <span class="lbl">Sintonização</span>
+        <strong class="v flame" data-sintonizados-count>{{ mochila.sintonizados_usados }}/{{ mochila.sintonizacao_maxima }}</strong>
+      </div>
+      <a href="{% url 'mercado_itens_mundanos' %}" class="banner-btn bag-market">Ir ao Mercado →</a>
+    </div>
+
+    {% if request.GET.compra == 'vendido' %}<div class="bag-alert is-ok">Item vendido por 80% do valor.</div>
+    {% elif request.GET.compra == 'sem_preco' %}<div class="bag-alert">Este item não tem preço de venda.</div>{% endif %}
+    {% if request.GET.anuncio == 'ok' %}<div class="bag-alert is-ok">Item anunciado no <a href="{% url 'mercado_comunidade' %}">Mercado da Comunidade</a>.</div>
+    {% elif request.GET.anuncio == 'invalido' %}<div class="bag-alert">Só item mágico vai para o Mercado da Comunidade.</div>
+    {% elif request.GET.anuncio == 'variante' %}<div class="bag-alert">Variantes com item-base devem ser vendidas diretamente no balcão para preservar a base escolhida.</div>{% endif %}
+    {% if request.GET.sint == 'limite' %}<div class="bag-alert">Limite de itens sintonizados atingido.</div>{% endif %}
+
+    <div class="ficha-panel">
+      <div class="ficha-section-title">Slots de Equipamento <span class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--muted)]" data-slots-livres>{{ mochila.slots_livres }} livre{{ mochila.slots_livres|pluralize }}</span></div>
+      <p class="bag-hint">Cada vaga aceita um item vestido; <strong>acessório</strong> concede o efeito sem ocupar o corpo. Poções, pergaminhos e objetos de uso não entram na grade — vivem na mochila abaixo.</p>
+      {% include 'home/partials/_ficha_slots.html' %}
+    </div>
+
+    <div class="ficha-panel">
+      <div class="ficha-section-title">Mochila <span class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--muted)]">{{ mochila.itens|length }} {% if mochila.itens|length == 1 %}item{% else %}itens{% endif %}</span></div>
+      <div class="bag-feedback" data-mochila-feedback hidden aria-live="polite"></div>
+      <div data-mochila-lista>
+        {% include 'home/partials/_ficha_inventario.html' %}
+      </div>
+    </div>
+  </div>{# /ABA 2: MOCHILA #}
+
+  {# ===================== ABA 3: INFORMAÇÕES ===================== #}
+  <div class="ficha-tabpanel space-y-3" data-tabpanel="info" role="tabpanel" hidden>
+    {% if pode_editar %}
+    <header class="cw-editor-intro"><div><p class="cw-eyebrow">Seu personagem, sua identidade</p><h2>Informações e aparência</h2><p>Edite os dados, as imagens e o visual da ficha. Raça, classe e progressão não são alteradas por este formulário.</p></div><a href="{% url 'personagens' %}">Gerenciar apresentação pública ↗</a></header>
+    <form method="post" action="{% url 'personagem_info_salvar' p.id_personagem %}" class="info-form space-y-3" enctype="multipart/form-data" id="ficha-appearance-form">
+      {% csrf_token %}
+
+      <div class="info-layout">
+        {# coluna esquerda: atributos físicos em grade rotulada #}
+        <div class="ficha-panel">
+          <div class="ficha-section-title">Dados do Personagem</div>
+          <div class="info-grid">
+            <label class="info-field"><span class="lbl">Idade</span><input type="text" name="idade" value="{{ p.idade|default:'' }}"></label>
+            <label class="info-field"><span class="lbl">Altura</span><input type="text" name="altura" value="{{ p.altura|default:'' }}"></label>
+            <label class="info-field"><span class="lbl">Peso</span><input type="text" name="peso" value="{{ p.peso|default:'' }}"></label>
+            <label class="info-field"><span class="lbl">Tamanho</span><input type="text" name="tamanho" value="{{ p.tamanho|default:'' }}"></label>
+            <label class="info-field"><span class="lbl">Gênero</span><input type="text" name="genero" value="{{ p.genero|default:'' }}"></label>
+            <label class="info-field"><span class="lbl">Olhos</span><input type="text" name="olhos" value="{{ p.olhos|default:'' }}"></label>
+            <label class="info-field"><span class="lbl">Cabelo</span><input type="text" name="cabelo" value="{{ p.cabelo|default:'' }}"></label>
+            <label class="info-field"><span class="lbl">Pele</span><input type="text" name="pele" value="{{ p.pele|default:'' }}"></label>
+          </div>
+        </div>
+
+        {# coluna direita: retrato + token #}
+        <div class="ficha-panel">
+          <div class="ficha-section-title">Retrato &amp; Token</div>
+          <div class="info-portraits">
+            <figure class="info-portrait">
+              {% if p.foto_url %}<img src="{{ p.foto_url }}" alt="Retrato de {{ p.nome }}" loading="lazy">{% else %}<div class="info-portrait-ph">Sem retrato</div>{% endif %}
+              <figcaption>Retrato</figcaption>
+            </figure>
+            <figure class="info-portrait token">
+              {% if p.token_url %}<img src="{{ p.token_url }}" alt="Token de {{ p.nome }}" loading="lazy">{% else %}<div class="info-portrait-ph">Sem token</div>{% endif %}
+              <figcaption>Token</figcaption>
+            </figure>
+          </div>
+          <label class="info-field full"><span class="lbl">URL do retrato <span class="hint">link de imagem</span></span><input type="text" inputmode="url" name="foto_url" value="{{ p.foto_url|default:'' }}" placeholder="https://..."></label>
+          <label class="info-field full"><span class="lbl">Enviar retrato <span class="hint">PNG/JPG/WEBP/GIF · até 8MB · substitui a URL</span></span><input type="file" name="foto_file" accept="image/png,image/jpeg,image/webp,image/gif"></label>
+          <label class="info-field full"><span class="lbl">URL do token <span class="hint">link de imagem</span></span><input type="text" inputmode="url" name="token_url" value="{{ p.token_url|default:'' }}" placeholder="https://..."></label>
+          <label class="info-field full"><span class="lbl">Enviar token <span class="hint">PNG/JPG/WEBP/GIF · até 8MB · substitui a URL</span></span><input type="file" name="token_file" accept="image/png,image/jpeg,image/webp,image/gif"></label>
+        </div>
+      </div>
+
+      <div class="ficha-panel">
+        <div class="ficha-section-title">Tema da Ficha</div>
+        <p><a class="cw-atelier-link" href="{% url 'cosmetic_discovery' %}" target="_blank" rel="noopener">Explorar cosméticos ↗</a></p>
+        <div class="info-grid appearance-controls">
+          <label class="info-field full"><span class="lbl">URL do banner <span class="hint">imagem ou GIF</span></span><input type="text" inputmode="url" name="banner_url" value="{{ p.banner_url|default:'' }}" placeholder="https://.../banner.gif"></label>
+          <label class="info-field full"><span class="lbl">Enviar banner <span class="hint">até 12MB · substitui a URL</span></span><input type="file" name="banner_file" accept="image/png,image/jpeg,image/webp,image/gif"></label>
+          <label class="info-field full"><span class="lbl">URL do fundo da página <span class="hint">imagem ou GIF (cover, fixo)</span></span><input type="text" inputmode="url" name="ficha_background_url" value="{{ p.ficha_background_url|default:'' }}" placeholder="https://.../fundo.jpg"></label>
+          <label class="info-field full"><span class="lbl">Enviar fundo <span class="hint">até 12MB · substitui a URL</span></span><input type="file" name="background_file" accept="image/png,image/jpeg,image/webp,image/gif"></label>
+        </div>
+        <div class="info-field full">
+          <span class="lbl">Tema</span>
+          <div class="tema-swatch-grid" id="ficha-theme-group" role="radiogroup" aria-label="Tema da ficha">
+            {% for item in appearance_themes %}
+            {% include 'home/includes/tema_swatch.html' with key=item.key item=item input_name='ficha_theme' input_id='ficha_theme_'|add:item.key selected_value=appearance.theme_key disabled=item.locked custom=appearance.custom %}
+            {% endfor %}
+          </div>
+          <span class="hint">Clique num cartão: a ficha inteira muda na hora. Nada é gravado até você salvar.</span>
+          <a class="cw-atelier-link" href="{% url 'theme_studio' %}" target="_blank" rel="noopener">Experimentar outras identidades no ateliê ↗</a><span class="hint">Abre em outra aba para preservar o que você está editando. Temas bloqueados não podem ser salvos sem aquisição.</span>
+        </div>
+        <div class="info-grid appearance-controls">
+          <div class="info-field">
+            {% cosmetic_catalog appearance_frames 'moldura' 'ficha-frame-select' 'foto_frame' appearance.frame_key 'ficha' 'Moldura' %}
+          </div>
+          <div class="info-field">
+            {% cosmetic_catalog appearance_effects 'efeito' 'ficha-effect-select' 'ficha_effect' appearance.effect_key 'ficha' 'Efeito' %}
+          </div>
+        </div>
+
+        {# Cores do tema Personalizado — só valem quando Tema = Personalizado #}
+        <div class="info-grid appearance-controls custom-theme-controls" id="ficha-custom-controls" style="{% if not appearance.is_custom %}display:none;{% endif %}margin-top:.5rem">
+          <label class="info-field"><span class="lbl">Destaque</span><input type="color" name="custom_accent" id="ficha-custom-accent" value="{{ appearance.custom.accent }}"></label>
+          <label class="info-field"><span class="lbl">Destaque 2</span><input type="color" name="custom_accent2" id="ficha-custom-accent2" value="{{ appearance.custom.accent2 }}"></label>
+          <label class="info-field"><span class="lbl">Superfície</span><input type="color" name="custom_surface" id="ficha-custom-surface" value="{{ appearance.custom.surface }}"></label>
+          <label class="info-field"><span class="lbl">Fundo</span><input type="color" name="custom_deep" id="ficha-custom-deep" value="{{ appearance.custom.deep }}"></label>
+          <label class="info-field full appearance-toggle"><input type="checkbox" name="custom_gradiente" id="ficha-custom-gradiente" {% if appearance.custom.gradiente %}checked{% endif %}> <span class="lbl">Degradê animado no destaque</span></label>
+        </div>
+
+        {% comment %}Preview de moldura/efeito. O TEMA não vive mais aqui: ele é aplicado
+        na folha inteira (section.ficha), e este bloco só HERDA as vars — se repetisse as
+        vars inline, elas venceriam a herança e o mini-preview congelaria no tema salvo.{% endcomment %}
+        {% cosmetic_media_options appearance_themes appearance_frames appearance_effects as sheet_media %}
+        {{ sheet_media|json_script:'ficha-cosmetic-media' }}
+        <div class="ficha-header ficha-live-preview {{ appearance.effect_class }}" id="ficha-preview" style="margin-top:.7rem">
+          <div class="banner-character-avatar {{ appearance.frame_class }}" id="ficha-preview-frame" style="width:56px;height:56px">
+            {% if p.foto_url %}<img src="{{ p.foto_url }}" alt="" loading="lazy">{% else %}<span>{{ p.nome|first|upper }}</span>{% endif %}
+          </div>
+          <span class="ficha-name" style="font-size:1rem">Prévia — {{ p.nome }}</span>
+        </div>
+      </div>
+
+      <div class="ficha-panel">
+        <div class="ficha-section-title">Aparência</div>
+        <label class="info-field full"><textarea name="aparencia" rows="4" placeholder="Descreva a aparência do personagem...">{{ p.aparencia|default:'' }}</textarea></label>
+      </div>
+
+      <div class="ficha-panel">
+        <div class="ficha-section-title">História</div>
+        <label class="info-field full"><textarea name="historia" rows="8" placeholder="A história e lore do personagem...">{{ p.historia|default:'' }}</textarea></label>
+      </div>
+
+      <div class="ficha-panel">
+        <div class="ficha-section-title">Anotações</div>
+        <label class="info-field full"><textarea name="anotacoes" rows="5" placeholder="Anotações livres...">{{ p.anotacoes|default:'' }}</textarea></label>
+      </div>
+
+      <div class="info-actions">
+        <button type="submit" class="banner-btn primary">Salvar Informações</button>
+        <span id="ficha-info-feedback" class="text-sm text-[var(--muted)]" aria-live="polite"></span>
+      </div>
+    </form>
+
+    {% else %}
+    {# ----- modo leitura ----- #}
+    <div class="info-layout">
+      <div class="ficha-panel">
+        <div class="ficha-section-title">Dados do Personagem</div>
+        <dl class="grid gap-x-4 sm:grid-cols-2">
+          <div class="def-row"><dt>Idade</dt><dd>{{ p.idade|default:"—" }}</dd></div>
+          <div class="def-row"><dt>Altura</dt><dd>{{ p.altura|default:"—" }}</dd></div>
+          <div class="def-row"><dt>Peso</dt><dd>{{ p.peso|default:"—" }}</dd></div>
+          <div class="def-row"><dt>Tamanho</dt><dd>{{ p.tamanho|default:"—" }}</dd></div>
+          <div class="def-row"><dt>Gênero</dt><dd>{{ p.genero|default:"—" }}</dd></div>
+          <div class="def-row"><dt>Olhos</dt><dd>{{ p.olhos|default:"—" }}</dd></div>
+          <div class="def-row"><dt>Cabelo</dt><dd>{{ p.cabelo|default:"—" }}</dd></div>
+          <div class="def-row"><dt>Pele</dt><dd>{{ p.pele|default:"—" }}</dd></div>
+        </dl>
+      </div>
+      <div class="ficha-panel">
+        <div class="ficha-section-title">Retrato &amp; Token</div>
+        <div class="info-portraits">
+          <figure class="info-portrait">
+            {% if p.foto_url %}<img src="{{ p.foto_url }}" alt="Retrato de {{ p.nome }}" loading="lazy">{% else %}<div class="info-portrait-ph">Sem retrato</div>{% endif %}
+            <figcaption>Retrato</figcaption>
+          </figure>
+          <figure class="info-portrait token">
+            {% if p.token_url %}<img src="{{ p.token_url }}" alt="Token de {{ p.nome }}" loading="lazy">{% else %}<div class="info-portrait-ph">Sem token</div>{% endif %}
+            <figcaption>Token</figcaption>
+          </figure>
+        </div>
+      </div>
+    </div>
+
+    <div class="ficha-panel">
+      <div class="ficha-section-title">Aparência</div>
+      {% if p.aparencia %}<div class="info-lore" data-lore>{{ p.aparencia }}</div>{% else %}<p class="info-empty">Sem descrição de aparência.</p>{% endif %}
+    </div>
+
+    <div class="ficha-panel">
+      <div class="ficha-section-title">História</div>
+      {% if p.historia %}<div class="info-lore" data-lore>{{ p.historia }}</div>{% else %}<p class="info-empty">Sem história registrada.</p>{% endif %}
+    </div>
+
+    {% if p.anotacoes %}
+    <div class="ficha-panel">
+      <div class="ficha-section-title">Anotações</div>
+      <div class="info-lore" data-lore>{{ p.anotacoes }}</div>
+    </div>
+    {% endif %}
+    {% endif %}
+  </div>{# /ABA 3: INFORMAÇÕES #}
+
+  {# ===================== ABA 4: MAGIAS & OPÇÕES ===================== #}
+  <div class="ficha-tabpanel space-y-3" data-tabpanel="magias" role="tabpanel" hidden>
+    {% for message in messages %}{% if 'epic-innate-cast' in message.tags %}<p role="status">{{ message }}</p>{% endif %}{% endfor %}
+    <div class="spellbook-head">
+      <div class="spell-title">
+        <span>Magias</span>
+        {% if magias_info.spellcasters %}
+          <strong>{% for caster in magias_info.spellcasters %}{{ caster.classe }}{% if not forloop.last %} · {% endif %}{% endfor %}</strong>
+        {% endif %}
+      </div>
+      <div class="spell-stats">
+        {% for caster in magias_info.spellcasters %}
+        <div class="spell-stat"><span>{{ caster.classe }} · {{ caster.ability_nome }}</span><strong>CD {{ caster.cd }} · {% if caster.ataque >= 0 %}+{% endif %}{{ caster.ataque }}{% if caster.mode == 'prepared' and caster.limite_preparadas is not None %} · {{ caster.preparadas_count }}/{{ caster.limite_preparadas }} prep.{% endif %}</strong></div>
+        {% endfor %}
+        <div class="spell-stat"><span>Preparadas</span><strong>{{ magias_info.n_preparadas }}</strong></div>
+        <div class="spell-stat alt"><span>Sempre</span><strong>{{ magias_info.n_sempre }}</strong></div>
+      </div>
+    </div>
+    {% if request.GET.prep == 'limite' %}
+    <div class="spell-alert">Limite de magias preparadas atingido.</div>
+    {% elif request.GET.prep == 'invalida' %}
+    <div class="spell-alert">Esta magia não pertence ao catálogo que a classe pode preparar.</div>
+    {% endif %}
+    {% if request.GET.transcricao == 'ok' %}
+    <div class="spell-alert">Magia transcrita para o grimório.</div>
+    {% elif request.GET.transcricao == 'saldo' %}
+    <div class="spell-alert">Não há ouro suficiente para concluir a transcrição.</div>
+    {% elif request.GET.transcricao == 'duplicada' %}
+    <div class="spell-alert">Essa magia já está registrada no grimório.</div>
+    {% elif request.GET.transcricao == 'invalida' %}
+    <div class="spell-alert">O pergaminho não pode ser transcrito por esta classe ou neste nível.</div>
+    {% endif %}
+
+    {% for caster in magias_info.spellcasters %}
+    {% if caster.slots_kind == 'pact' %}
+    <div class="mystic-casting">
+      {% if caster.mystic_resource %}
+      <article class="mystic-points">
+        <span>{{ caster.classe }} · {{ caster.mystic_resource.nome }}</span>
+        <strong>{{ caster.mystic_resource.atual }}/{{ caster.mystic_resource.maximo }}</strong>
+      </article>
+      {% endif %}
+      {% if caster.max_cycle %}
+      <article class="mystic-points subtle">
+        <span>Ciclo Maximo</span>
+        <strong>{{ caster.max_cycle }}</strong>
+      </article>
+      {% endif %}
+    </div>
+    {% endif %}
+    {% endfor %}
+    {% for message in messages %}{% if message.extra_tags == 'spell-slots' %}
+    <p class="spell-alert" role="status">{{ message }}</p>
+    {% endif %}{% endfor %}
+    {% if magias_info.slots %}
+    <div class="spell-slots-grid">
+      {% for s in magias_info.slots %}
+      <article class="spell-slot-card {% if s.total == 0 %}is-zero{% endif %}" data-spell-slot-card data-slot-level="{{ s.nivel }}" data-slot-version="{{ s.version }}" tabindex="-1">
+        <div class="spell-slot-level">{{ s.nivel }}</div>
+        <div class="spell-slot-numbers">
+          <span>Total</span><strong data-slot-total>{{ s.total }}</strong>
+          <span>Restantes</span><strong data-slot-atual>{{ s.atual }}</strong>
+        </div>
+        {% if pode_editar and s.total > 0 %}
+        <div class="spell-slot-actions">
+          <form method="post" action="{% url 'personagem_usar_slot_magia' p.id_personagem %}" data-spell-slot-form>
+            {% csrf_token %}<input type="hidden" name="next" value="{% url 'ficha_detail' p.id_personagem %}?aba=magias"><input type="hidden" name="nivel" value="{{ s.nivel }}"><input type="hidden" name="acao" value="gastar"><input type="hidden" name="operation_id" value="{{ s.gastar_operation_id }}"><input type="hidden" name="expected_version" value="{{ s.version }}">
+            <button type="submit" data-slot-action="gastar" {% if s.atual == 0 %}disabled{% endif %} title="Gastar slot">-</button>
+          </form>
+          <form method="post" action="{% url 'personagem_usar_slot_magia' p.id_personagem %}" data-spell-slot-form>
+            {% csrf_token %}<input type="hidden" name="next" value="{% url 'ficha_detail' p.id_personagem %}?aba=magias"><input type="hidden" name="nivel" value="{{ s.nivel }}"><input type="hidden" name="acao" value="desfazer"><input type="hidden" name="operation_id" value="{{ s.desfazer_operation_id }}"><input type="hidden" name="expected_version" value="{{ s.version }}">
+            <button type="submit" data-slot-action="desfazer" {% if s.atual == s.total %}disabled{% endif %} title="Restaurar slot">+</button>
+          </form>
+        </div>
+        {% endif %}
+        <p class="spell-alert" data-spell-slot-feedback role="status" aria-live="polite" hidden></p>
+      </article>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if magias_info.essencia_pendentes and pode_editar %}
+    <div class="ficha-panel border border-[var(--ember)]/40">
+      <div class="ficha-section-title">Magias a escolher</div>
+      {% for b in magias_info.essencia_pendentes %}
+      <form method="post" action="{% url 'personagem_escolher_magia_essencia' p.id_personagem %}" class="mb-2 last:mb-0">{% csrf_token %}
+        <input type="hidden" name="fonte" value="{{ b.fonte }}">
+        <input type="hidden" name="slot" value="{{ b.slot }}">
+        <p class="magias-help mb-1.5"><strong>{{ b.fonte }}</strong> — escolha {{ b.rotulo }}:</p>
+        <div class="flex flex-wrap gap-1.5 {% if b.opcoes|length > 12 %}max-h-56 overflow-y-auto pr-1{% endif %}">
+          {% for o in b.opcoes %}
+          <label class="inline-flex items-center gap-1.5 rounded border border-[var(--line)] px-3 py-1.5 text-sm cursor-pointer hover:border-[var(--ember)]">
+            <input type="checkbox" name="magia" value="{{ o.slug }}" {% if o.slug in b.escolhidos %}checked{% endif %}>
+            <span>{{ o.nome }}</span>
+          </label>
+          {% endfor %}
+        </div>
+        <button type="submit" class="btn-ember text-sm mt-1.5">Confirmar escolha</button>
+      </form>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if magias_info.transcricoes and pode_editar %}
+    <div class="ficha-panel">
+      <div class="ficha-section-title">Transcrever para o grimório</div>
+      <p class="magias-help mb-2">Pergaminhos compatíveis encontrados na mochila.</p>
+      <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {% for t in magias_info.transcricoes %}
+        <form method="post" action="{% url 'personagem_transcrever_magia' p.id_personagem %}" class="rounded border border-[var(--line)] p-3">
+          {% csrf_token %}
+          <input type="hidden" name="classe" value="{{ t.classe_id }}">
+          <input type="hidden" name="item" value="{{ t.item_id }}">
+          <strong class="block text-sm">{{ t.magia_nome }}{% if t.magia_nome_ingles %} <span class="text-xs text-[var(--muted)]">({{ t.magia_nome_ingles }})</span>{% endif %}</strong>
+          <span class="block text-xs text-[var(--muted)]">{{ t.classe }} · {{ t.nivel }}º nível · {{ t.item_nome }}{% if t.item_qtd > 1 %} ×{{ t.item_qtd }}{% endif %}</span>
+          <span class="mt-1 block text-xs">{% include 'home/partials/transcription_terms.html' with terms=t.terms only %}</span>
+          <button type="submit" class="btn-ember mt-2 text-sm" {% if not t.pode_pagar %}disabled title="Ouro insuficiente"{% endif %}>Transcrever</button>
+        </form>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if magias_info.lista or magias_info.spellcasting %}
+      <div class="spell-level-grid" data-spell-picker="Buscar magias para preparar" data-spell-row=".spell-row" data-spell-group=".spell-level-card">
+      {% for grupo in magias_info.grupos %}
+        <section class="spell-level-card {% if not grupo.magias %}is-empty{% endif %}">
+          <header class="spell-level-head">
+            <span class="spell-level-num">{% if grupo.nivel == 0 %}0{% else %}{{ grupo.nivel }}{% endif %}</span>
+            <strong>{{ grupo.titulo }}</strong>
+            {% if grupo.slot %}<span data-slot-summary="{{ grupo.nivel }}">{{ grupo.slot.atual }}/{{ grupo.slot.total }}</span>{% endif %}
+          </header>
+          <ul class="spell-list">
+            {% for m in grupo.magias %}
+            <li class="spell-row {% if not m.preparada and not m.sempre_preparada %}is-unprepared{% endif %}" data-spell-name="{{ m.nome }} {{ m.nome_ingles|default:'' }}" data-spell-level="{{ grupo.nivel }}" data-spell-selected="{% if m.preparada or m.sempre_preparada %}true{% else %}false{% endif %}">
+              {% if m.sempre_preparada %}
+                <span class="spell-marker {% if m.innate_label %}innate{% else %}always{% endif %}" title="{% if m.innate_label %}Conjuracao inata{% elif m.known_auto %}Conhecida{% else %}Sempre preparada{% endif %}"></span>
+              {% elif pode_editar and m.pode_alternar %}
+                {% if m.catalog_only %}
+                <form method="post" action="{% url 'personagem_toggle_magia_catalogo' p.id_personagem m.classe_id m.slug %}" class="contents">{% csrf_token %}<button type="submit" class="spell-marker toggle {% if m.preparada %}prepared{% endif %}" title="{% if m.preparada %}Preparada{% else %}Não preparada{% endif %}"></button></form>
+                {% else %}
+                <form method="post" action="{% url 'personagem_toggle_magia' p.id_personagem m.id %}" class="contents">{% csrf_token %}<button type="submit" class="spell-marker toggle {% if m.preparada %}prepared{% endif %}" title="{% if m.preparada %}Preparada{% else %}Não preparada{% endif %}"></button></form>
+                {% endif %}
+              {% else %}
+                <span class="spell-marker readonly {% if m.preparada %}prepared{% endif %}"></span>
+              {% endif %}
+              {% if m.descricao or m.em_niveis_superiores %}
+              <button type="button" class="spell-name spell-name-toggle" data-spell-toggle="{{ m.uid }}" aria-expanded="false" title="Ver descrição">{{ m.nome }}{% if m.nome_ingles %} <small>({{ m.nome_ingles }})</small>{% endif %}<span class="spell-caret" aria-hidden="true"></span></button>
+              {% else %}
+              <span class="spell-name">{{ m.nome }}{% if m.nome_ingles %} <small>({{ m.nome_ingles }})</small>{% endif %}</span>
+              {% endif %}
+              <span class="spell-tags">
+                {% if m.suspensa_na_revisao %}<span class="spell-tag muted">aquisição preservada · indisponível nesta revisão</span>
+                {% elif m.innate_label %}
+                  <span class="spell-tag innate">{{ m.innate_label }}</span>
+                  {% if m.innate_key %}
+                  <span class="spell-innate-counter">{{ m.innate_atual }}/{{ m.innate_max }}</span>
+                  {% if pode_editar %}
+                  <span class="spell-inline-actions">
+                    {% if m.innate_without_slot and m.innate_without_components %}
+                    <form method="post" action="{% url 'personagem_usar_magia_inata' p.id_personagem m.id %}">
+                      {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+                      <input type="hidden" name="operation_id" value="{{ m.innate_operation_id }}">
+                      <button type="submit" {% if m.innate_atual == 0 %}disabled{% endif %} title="Conjurar magia inata sem espaço ou componentes">Conjurar</button>
+                    </form>
+                    {% else %}
+                    <form method="post" action="{% url 'personagem_usar_magia_inata' p.id_personagem m.id %}">
+                      {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+                      <button type="submit" {% if m.innate_atual == 0 %}disabled{% endif %} title="Gastar uso inato">-</button>
+                    </form>
+                    {% endif %}
+                    {% if not m.innate_without_slot or not m.innate_without_components %}
+                    <form method="post" action="{% url 'personagem_usar_magia_inata' p.id_personagem m.id %}">
+                      {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="acao" value="desfazer">
+                      <button type="submit" {% if m.innate_atual == m.innate_max %}disabled{% endif %} title="Restaurar uso inato">+</button>
+                    </form>
+                    {% endif %}
+                  </span>
+                  {% endif %}
+                  {% endif %}
+                {% elif m.known_auto %}<span class="spell-tag always">conhecida</span>{% elif m.sempre_preparada %}<span class="spell-tag always">sempre</span>{% elif m.preparada %}<span class="spell-tag prepared">prep</span>{% endif %}
+                {% if m.assinatura %}<span class="spell-tag source">assinatura</span>{% endif %}
+                {% if m.escola %}<span class="spell-tag muted">{{ m.escola }}</span>{% endif %}
+                {% if m.origem %}<span class="spell-tag source">{{ m.origem }}</span>{% endif %}
+              </span>
+              {% if pode_editar and m.free_cast_slots %}
+              <form method="post" action="{% url 'personagem_conjurar_magia_ficha' p.id_personagem %}" class="spell-inline-actions">
+                {% csrf_token %}
+                <input type="hidden" name="magia_personagem" value="{{ m.id }}">
+                <input type="hidden" name="operation_id" value="{{ m.free_cast_operation_id }}">
+                <label>Espaço <select name="slot" aria-label="Espaço para {{ m.nome }}">
+                  {% for slot in m.free_cast_slots %}<option value="{{ slot.nivel }}">{{ slot.nivel }}º</option>{% endfor %}
+                </select></label>
+                <button type="submit" class="btn-ember">Conjurar</button>
+              </form>
+              {% endif %}
+              {% if m.descricao or m.em_niveis_superiores %}<div class="spell-desc" data-spell-body="{{ m.uid }}" hidden></div>{% endif %}
+            </li>
+            {% empty %}
+            <li class="spell-empty">-</li>
+            {% endfor %}
+          </ul>
+        </section>
+      {% endfor %}
+      </div>
+    {% else %}
+      <div class="ficha-panel"><p class="info-empty">Este personagem ainda não tem magias selecionadas.</p></div>
+    {% endif %}
+
+    {# --- OPÇÕES DE CLASSE (onda D): grupos do registry de picks, troca só onde a tag deixa --- #}
+    <div data-opcoes-slot>
+      {% include 'home/partials/_ficha_opcoes.html' %}
+    </div>
+  </div>{# /ABA 4: MAGIAS & OPÇÕES #}
+
+  {# ===================== ABA 5: HISTÓRICO ===================== #}
+  <div class="ficha-tabpanel space-y-3" data-tabpanel="historico" role="tabpanel" hidden>
+    {% if pode_editar %}
+    <div class="ficha-panel">
+      <div class="ficha-section-title">Ajustes da build</div>
+      {% if request.GET.revisao == 'ok' %}<p class="bag-alert is-ok">A última alteração da build foi desfeita.</p>{% endif %}
+      {% if request.GET.revisao == 'bloqueada' %}<p class="bag-alert">Esta alteração não pode mais ser desfeita porque a ficha já foi usada ou existe uma alteração posterior.</p>{% endif %}
+      {% if request.GET.reembolso == 'ok' %}<p class="bag-alert is-ok">Compra reembolsada e item removido da mochila.</p>{% endif %}
+      {% if request.GET.reembolso == 'bloqueado' %}<p class="bag-alert">A compra não pode ser reembolsada: ela foi alterada ou houve uma mesa depois dela.</p>{% endif %}
+      {% if request.GET.recriar == 'bloqueado' %}<p class="bag-alert">{{ recriar_nivel1_motivo|default:'O nível 1 não pode mais ser recriado.' }}</p>{% endif %}
+
+      <div class="flex flex-wrap items-center gap-2">
+        {% if pode_recriar_nivel1 %}
+        <a href="{% url 'criacao_ficha' %}?recriar={{ p.id_personagem }}" class="banner-btn primary">Refazer escolhas do nível 1</a>
+        {% else %}
+        <button type="button" class="banner-btn" disabled title="{{ recriar_nivel1_motivo }}">Refazer escolhas do nível 1</button>
+        {% endif %}
+
+        {% if revisao_ativa and pode_reverter_revisao %}
+        <form method="post" action="{% url 'personagem_reverter_revisao' p.id_personagem revisao_ativa.id_revisao %}" onsubmit="return confirm('Desfazer a alteração mais recente da build? Registros de mesa e economia não serão alterados.');">
+          {% csrf_token %}
+          <button type="submit" class="banner-btn">Desfazer última alteração</button>
+        </form>
+        {% elif revisao_ativa %}
+        <button type="button" class="banner-btn" disabled title="{{ revisao_motivo }}">Desfazer última alteração</button>
+        {% endif %}
+      </div>
+      {% if not pode_recriar_nivel1 and recriar_nivel1_motivo %}<p class="hist-note">{{ recriar_nivel1_motivo }}</p>{% endif %}
+      {% if revisao_ativa and not pode_reverter_revisao and revisao_motivo %}<p class="hist-note">{{ revisao_motivo }}</p>{% endif %}
+
+      {% if revisoes_build %}
+      <div class="hist-scroll mt-3">
+        <table class="hist-table">
+          <thead><tr><th>Data</th><th>Alteração</th><th>Níveis</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for r in revisoes_build %}
+            <tr class="{% if r.revertida %}is-reverted{% endif %}">
+              <td class="hist-date">{{ r.criado_em|date:'d/m/Y H:i' }}</td>
+              <td class="hist-desc">{{ r.descricao|default:r.get_tipo_display }}</td>
+              <td>{{ r.nivel_antes }} → {{ r.nivel_depois }}</td>
+              <td>{% if r.revertida %}desfeita{% elif revisao_ativa.id_revisao == r.id_revisao %}mais recente{% else %}aguardando rollback anterior{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+      <p class="hist-note">O jogador só pode desfazer escolhas enquanto não houver uma mesa posterior. A staff pode reconstruir o nível 1 sem apagar progressão, histórico ou moedas.</p>
+    </div>
+    {% endif %}
+
+    {% comment %}Onda E: as MISSÕES viraram registro completo — data da missão, mestre e
+    consumos. Linha lançada antes da onda E não tem esses dados e sai marcada "(legado)".
+    {% endcomment %}
+    <div class="ficha-panel" data-hist-missoes>
+      <div class="ficha-section-title">Missões</div>
+      {% if aventuras_hist %}
+      <div class="hist-scroll">
+        <table class="hist-table">
+          <thead>
+            <tr><th>Data da missão</th><th>Missão</th><th>Mestre</th><th class="num">Aventuras</th><th class="num">Ouro</th><th>Consumos</th></tr>
+          </thead>
+          <tbody>
+            {% for a in aventuras_hist %}
+            <tr class="{% if a.revertido %}is-reverted{% endif %}">
+              <td class="hist-date">{% if a.data_missao %}{{ a.data_missao|date:'d/m/Y' }}{% else %}<span class="hist-legado" title="Lançamento anterior ao registro de data da missão">(legado)</span>{% endif %}</td>
+              <td class="hist-desc">{{ a.nome_aventura }}{% if a.revertido %} <span class="hist-legado">— revertido</span>{% endif %}</td>
+              <td>{% if a.eh_legado %}<span class="hist-legado" title="Lançamento anterior ao cadastro obrigatório de mestre">{{ a.mestre_display }}</span>{% else %}{{ a.mestre_display }}{% endif %}</td>
+              <td class="num">{{ a.qtd_aventuras }}</td>
+              <td class="num hist-val">{{ a.ouro_pago_display }}</td>
+              <td class="hist-desc">
+                {% for c in a.consumos %}{% if c.tipo == 'item' %}{{ c.nome }} ×{{ c.qtd }}{% else %}{{ c.valor_display }} (RP){% endif %}{% if not forloop.last %} · {% endif %}{% empty %}—{% endfor %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="info-empty">Nenhuma missão registrada.</p>
+      {% endif %}
+    </div>
+
+    <div class="ficha-panel">
+      <div class="ficha-section-title">Histórico de Transações</div>
+      {% if transacoes %}
+      <div class="hist-scroll">
+        <table class="hist-table">
+          <thead>
+            <tr><th>Data</th><th>Tipo</th><th>Descrição</th><th class="num">Valor</th><th class="num">Saldo</th>{% if pode_editar %}<th>Ação</th>{% endif %}</tr>
+          </thead>
+          <tbody>
+            {% for t in transacoes %}
+            <tr class="{% if t.revertida %}is-reverted{% elif t.valor_pc < 0 %}is-debit{% elif t.valor_pc > 0 %}is-credit{% endif %}">
+              <td class="hist-date">{{ t.criado_em|date:'d/m/Y H:i' }}</td>
+              <td>{{ t.get_tipo_display }}</td>
+              <td class="hist-desc">{{ t.descricao|default:'—' }}</td>
+              <td class="num hist-val">{% if t.valor_pc > 0 %}+{% endif %}{{ t.valor_display }}</td>
+              <td class="num hist-saldo">{{ t.saldo_display }}</td>
+              {% if pode_editar %}
+              <td>
+                {% if t.revertida %}<span class="hist-legado">revertida</span>
+                {% elif t.pode_reembolsar %}
+                <form method="post" action="{% url 'personagem_reembolsar_compra' p.id_personagem t.id_transacao %}" onsubmit="return confirm('Reembolsar esta compra e remover a quantidade correspondente da mochila?');">
+                  {% csrf_token %}<button type="submit" class="banner-btn">Reembolsar</button>
+                </form>
+                {% elif t.tipo == 'compra' and t.valor_pc < 0 %}<span class="hist-legado" title="{{ t.reembolso_motivo }}">indisponível</span>
+                {% else %}—{% endif %}
+              </td>
+              {% endif %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="hist-note">Valores em PO / PP / PC (1 PO = 10 PP = 100 PC).</p>
+      {% else %}
+      <p class="info-empty">Nenhuma transação registrada.</p>
+      {% endif %}
+    </div>
+  </div>{# /ABA 5: HISTÓRICO #}
+
+  {# Descrição das magias da aba Magias (card expansível): id -> texto/meta #}
+  <script type="application/json" id="ficha-magia-desc">{% autoescape off %}{
+    {% for m in magias_info.lista %}"{{ m.uid }}": {"d": "{{ m.descricao|escapejs }}", "u": "{{ m.em_niveis_superiores|escapejs }}", "ct": "{{ m.casting_time|escapejs }}", "al": "{{ m.alcance|escapejs }}", "du": "{{ m.duracao|escapejs }}", "co": "{{ m.componentes|escapejs }}", "conc": {% if m.concentracao %}1{% else %}0{% endif %}, "rit": {% if m.ritual %}1{% else %}0{% endif %}}{% if not forloop.last %},
+    {% endif %}{% endfor %}
+  }{% endautoescape %}</script>
+</section>
+
+<script>
+(function () {
+  // Descrições markdown das habilidades (indexadas por chave estável).
+  let descMap = {};
+  try { descMap = JSON.parse(document.getElementById('ficha-feat-desc').textContent || '{}'); } catch (e) { descMap = {}; }
+
+  function renderDesc(raw) {
+    const value = String(raw || '').trim();
+    if (!value) return '<p class="feat-desc empty">Sem descrição detalhada.</p>';
+    let html;
+    if (typeof window.renderBonfireMarkdown === 'function') {
+      html = window.renderBonfireMarkdown(value);
+    } else {
+      html = '<p>' + value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/\n/g, '<br>') + '</p>';
+    }
+    return '<div class="feat-desc bonfire-markdown">' + html + '</div>';
+  }
+
+  // Percepção passiva: 10 + bônus da perícia Percepção, ou 10 + mod SAB se não proficiente.
+  const ppEl = document.querySelector('[data-passive-perception]');
+  if (ppEl) {
+    const percRaw = (ppEl.getAttribute('data-perc-bonus') || '').trim();
+    const sabMod = parseInt(ppEl.getAttribute('data-sab-mod') || '0', 10) || 0;
+    const value = percRaw !== '' ? (parseInt(percRaw, 10) + 10) : (10 + sabMod);
+    const ppOut = ppEl.querySelector('[data-pp-value]') || ppEl;
+    ppOut.textContent = value;
+  }
+
+  // Conta cards por grupo e esconde grupos vazios.
+  document.querySelectorAll('[data-feat-group]').forEach(function (group) {
+    const n = group.querySelectorAll('[data-feat-card]').length;
+    if (n === 0) { group.style.display = 'none'; return; }
+    const badge = group.querySelector('[data-feat-count]');
+    if (badge) badge.textContent = n;
+  });
+
+  const cards = document.querySelectorAll('.feat-card');
+  cards.forEach(function (card) {
+    const head = card.querySelector('.feat-head');
+    const inner = card.querySelector('.feat-body-inner');
+    if (!head || !inner) return;
+    let rendered = false;
+
+    head.addEventListener('click', function () {
+      const willOpen = !card.classList.contains('open');
+      if (willOpen && !rendered) {
+        const key = card.getAttribute('data-feat-key');
+        inner.innerHTML = renderDesc(descMap[key]);
+        rendered = true;
+      }
+      card.classList.toggle('open', willOpen);
+      head.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    });
+  });
+
+  // ---------- Descrição das magias (aba Magias): clicar no nome expande o card ----------
+  let magiaMap = {};
+  try { magiaMap = JSON.parse(document.getElementById('ficha-magia-desc').textContent || '{}'); } catch (e) { magiaMap = {}; }
+
+  function renderMagia(info) {
+    if (!info) return '<p class="feat-desc empty">Sem descrição detalhada.</p>';
+    const metaBits = [];
+    if (info.ct) metaBits.push('<span><b>Execução:</b> ' + escText(info.ct) + '</span>');
+    if (info.al) metaBits.push('<span><b>Alcance:</b> ' + escText(info.al) + '</span>');
+    if (info.du) metaBits.push('<span><b>Duração:</b> ' + escText(info.du) + (info.conc ? ' (concentração)' : '') + '</span>');
+    if (info.co) metaBits.push('<span><b>Componentes:</b> ' + escText(info.co) + '</span>');
+    if (info.rit) metaBits.push('<span><b>Ritual</b></span>');
+    let html = '';
+    if (metaBits.length) html += '<div class="spell-desc-meta">' + metaBits.join('') + '</div>';
+    if (info.d) html += '<div class="bonfire-markdown">' + renderMd(info.d) + '</div>';
+    if (info.u) html += '<div class="spell-desc-up"><b>Em níveis superiores.</b> <div class="bonfire-markdown">' + renderMd(info.u) + '</div></div>';
+    return html || '<p class="feat-desc empty">Sem descrição detalhada.</p>';
+  }
+  function renderMd(raw) {
+    const value = String(raw || '').trim();
+    if (typeof window.renderBonfireMarkdown === 'function') return window.renderBonfireMarkdown(value);
+    return '<p>' + escText(value).replace(/\n/g, '<br>') + '</p>';
+  }
+  function escText(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+  document.querySelectorAll('[data-spell-toggle]').forEach(function (btn) {
+    const id = btn.getAttribute('data-spell-toggle');
+    const body = document.querySelector('[data-spell-body="' + id + '"]');
+    if (!body) return;
+    let rendered = false;
+    btn.addEventListener('click', function () {
+      const willOpen = body.hidden;
+      if (willOpen && !rendered) { body.innerHTML = renderMagia(magiaMap[id]); rendered = true; }
+      body.hidden = !willOpen;
+      btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+      btn.classList.toggle('open', willOpen);
+    });
+  });
+
+  // ---------- Lore (aparência/história/anotações) em markdown, igual ao resto do site ----------
+  document.querySelectorAll('[data-lore]').forEach(function (el) {
+    const raw = el.textContent || '';
+    if (typeof window.renderBonfireMarkdown === 'function') {
+      el.innerHTML = '<div class="bonfire-markdown">' + window.renderBonfireMarkdown(raw) + '</div>';
+    } else {
+      el.innerHTML = raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/\n/g, '<br>');
+    }
+  });
+
+  // ---------- Abas (troca sem recarregar) ----------
+  const tabs = Array.prototype.slice.call(document.querySelectorAll('.ficha-tab'));
+  const panels = Array.prototype.slice.call(document.querySelectorAll('.ficha-tabpanel'));
+
+  function activateTab(name) {
+    const exists = tabs.some(function (t) { return t.getAttribute('data-tab') === name; });
+    if (!exists) name = 'ficha';
+    tabs.forEach(function (t) {
+      const on = t.getAttribute('data-tab') === name;
+      t.classList.toggle('is-active', on);
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    panels.forEach(function (pnl) {
+      const on = pnl.getAttribute('data-tabpanel') === name;
+      pnl.classList.toggle('is-active', on);
+      pnl.hidden = !on;
+    });
+  }
+
+  tabs.forEach(function (t) {
+    t.addEventListener('click', function () {
+      const name = t.getAttribute('data-tab');
+      activateTab(name);
+      try {
+        const url = new URL(window.location.href);
+        if (name === 'ficha') { url.searchParams.delete('aba'); }
+        else { url.searchParams.set('aba', name); }
+        history.replaceState(null, '', url);
+      } catch (e) {}
+    });
+  });
+
+  // Atalhos "ver aba X" espalhados pelo conteúdo (ex.: chip de Magias no fim da aba 1).
+  // DELEGAÇÃO no document (fix da onda B): estes chips vivem dentro de partials que o
+  // fetch da Mochila troca por outerHTML — um listener por elemento morreria na primeira
+  // troca. Delegando, o atalho sobrevive a qualquer re-render.
+  document.addEventListener('click', function (ev) {
+    const btn = ev.target.closest('[data-tab-jump]');
+    if (!btn) return;
+    const name = btn.getAttribute('data-tab-jump');
+    activateTab(name);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('aba', name);
+      history.replaceState(null, '', url);
+    } catch (e) {}
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  // Aba inicial via ?aba=info|magias|historico (padrão: ficha)
+  let initial = 'ficha';
+  try { initial = (new URL(window.location.href)).searchParams.get('aba') || 'ficha'; } catch (e) {}
+  if (initial !== 'ficha') activateTab(initial);
+})();
+</script>
+
+{% comment %}
+TEMA EM TEMPO REAL NA FICHA (pedido do PO: "ao escolher muda em tempo real").
+
+A ficha não tem pane de prévia como o perfil — então a PRÓPRIA FOLHA VISÍVEL é a
+prévia: clicar num cartão repinta `section.ficha` na hora. Nada é persistido; só
+o "Salvar Informações" grava (o POST continua sendo o mesmo radio ficha_theme).
+
+As cores saem dos data-* do cartão (definicao_json sanitizada no backend), lidas
+por static/js/tema_swatch.js — o MESMO módulo que o perfil usa, com o mesmo mapa
+de vars do `_theme_vars_style`. Por isso este bloco não monta mais um dicionário
+DEFS/THEME em JS gerado por template: o dado já viaja no HTML do cartão.
+
+Fora do alcance: o <link> do css_file do tema (theme_css_href) só troca depois de
+salvar — trocar folha de estilo no meio da sessão não é prévia, é navegação.
+{% endcomment %}
+<script>
+{% comment %}DOMContentLoaded, não IIFE solta: tema_swatch.js é `defer` e só existe
+depois do parse — um IIFE inline rodaria ANTES dele e sairia pela porta dos fundos.{% endcomment %}
+document.addEventListener('DOMContentLoaded', function () {
+  const folha = document.querySelector('section.ficha');
+  const grade = document.getElementById('ficha-theme-group');
+  if (!folha || !grade || !window.TemaSwatch) return;
+
+  const preview = document.getElementById('ficha-preview');
+  const frameEl = document.getElementById('ficha-preview-frame');
+  const frameSel = document.getElementById('ficha-frame-select');
+  const effectSel = document.getElementById('ficha-effect-select');
+  const customBox = document.getElementById('ficha-custom-controls');
+  const FRAME = { {% for item in appearance_frames %}'{{ item.key }}':'{{ item.class }}',{% endfor %} };
+  const EFFECT = { {% for item in appearance_effects %}'{{ item.key }}':'{{ item.class }}',{% endfor %} };
+  const media = JSON.parse(document.getElementById('ficha-cosmetic-media')?.textContent || '{}');
+  const CORES = {
+    accent: document.getElementById('ficha-custom-accent'),
+    accent2: document.getElementById('ficha-custom-accent2'),
+    surface: document.getElementById('ficha-custom-surface'),
+    deep: document.getElementById('ficha-custom-deep'),
+    gradiente: document.getElementById('ficha-custom-gradiente'),
+  };
+
+  function apply() {
+    const marcado = window.TemaSwatch.cartaoMarcado(grade, 'ficha_theme');
+    if (customBox) customBox.style.display = (marcado && marcado.chave === 'custom') ? '' : 'none';
+    // A folha inteira (e com ela o mini-preview, que só herda as vars).
+    window.TemaSwatch.aplica(folha, window.TemaSwatch.comCoresDoFormulario(marcado, CORES));
+    if (preview && effectSel) preview.className = 'ficha-header ficha-live-preview ' + (EFFECT[effectSel.value] || '');
+    if (frameEl && frameSel) frameEl.className = 'banner-character-avatar ' + (FRAME[frameSel.value] || '');
+    if (window.CosmeticRenderer && preview && frameEl) {
+      const theme = media.tema?.[marcado?.chave];
+      const frame = media.moldura?.[frameSel?.value];
+      const effect = media.efeito?.[effectSel?.value];
+      window.CosmeticRenderer.render(preview, 'banner', [theme, effect]);
+      window.CosmeticRenderer.render(preview, 'ornament', [theme, effect]);
+      window.CosmeticRenderer.render(frameEl, 'avatar', [frame, effect]);
+      frameEl.classList.toggle('is-packaged', Boolean(frame?.avatar?.length || effect?.avatar?.length));
+    }
+  }
+
+  grade.addEventListener('change', apply);
+  [frameSel, effectSel, CORES.accent, CORES.accent2, CORES.surface, CORES.deep, CORES.gradiente]
+    .forEach(el => { if (el) { el.addEventListener('input', apply); el.addEventListener('change', apply); } });
+  apply();
+});
+</script>
+
+{# Personalidade/Ideais/Vínculos/Defeitos: salva sem recarregar (mesmo padrão da aba Informações). #}
+<script>
+(function () {
+  const form = document.querySelector('[data-pers-form]');
+  if (!form) return;
+  const feedback = document.querySelector('[data-pers-feedback]');
+  form.addEventListener('submit', async function (event) {
+    event.preventDefault();
+    const button = form.querySelector('button[type="submit"]');
+    const data = new FormData(form);
+    if (button) button.disabled = true;
+    if (feedback) { feedback.textContent = 'Salvando…'; feedback.style.color = ''; }
+    try {
+      const response = await fetch(form.action, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': data.get('csrfmiddlewaretoken') || ''
+        },
+        body: data,
+        credentials: 'same-origin'
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) throw new Error('save');
+      if (feedback) { feedback.textContent = 'Salvo.'; feedback.style.color = 'var(--spark)'; }
+    } catch (error) {
+      if (feedback) { feedback.textContent = 'Não foi possível salvar.'; feedback.style.color = 'var(--flame)'; }
+    } finally {
+      if (button) button.disabled = false;
+    }
+  });
+})();
+</script>
+
+{% comment %}Notas do jogador (onda F): autosave no blur — sem botão, sem recarregar.
+Fechar a aba ou trocar de janela com texto sujo TAMBÉM salva (beacon/keepalive): a nota
+nunca some porque o jogador saiu sem tirar o cursor do campo.{% endcomment %}
+<script>
+(function () {
+  const form = document.querySelector('[data-notas-form]');
+  if (!form) return;
+  const input = form.querySelector('[data-notas-input]');
+  const feedback = document.querySelector('[data-notas-feedback]');
+  if (!input) return;
+  let salvo = input.value;
+
+  function aviso(texto, cor) {
+    if (!feedback) return;
+    feedback.textContent = texto;
+    feedback.style.color = cor || '';
+  }
+
+  async function salvar() {
+    if (input.value === salvo) return;            // nada mudou: não bate no servidor
+    const data = new FormData(form);
+    aviso('Salvando…');
+    try {
+      const response = await fetch(form.action, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': data.get('csrfmiddlewaretoken') || ''
+        },
+        body: data,
+        credentials: 'same-origin'
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) throw new Error('save');
+      salvo = payload.notas_jogador;
+      aviso('Notas salvas.', 'var(--spark)');
+    } catch (error) {
+      aviso('Não foi possível salvar.', 'var(--flame)');
+    }
+  }
+
+  // Rede de segurança para quem sai da página SEM tirar o cursor do campo (fechar aba,
+  // trocar de janela, navegar). O fetch normal é abortado no unload; `sendBeacon` e o
+  // `keepalive` sobrevivem. Sem resposta para ler — o endpoint aceita POST clássico e o
+  // CSRF viaja no corpo do próprio form, então não é preciso cabeçalho de XHR.
+  function salvarAoSair() {
+    if (input.value === salvo) return;               // nada sujo: não bate no servidor
+    const pendente = input.value;
+    const data = new FormData(form);
+    if (navigator.sendBeacon && navigator.sendBeacon(form.action, data)) {
+      salvo = pendente;
+      return;
+    }
+    try {
+      fetch(form.action, { method: 'POST', body: data, credentials: 'same-origin', keepalive: true });
+      salvo = pendente;
+    } catch (error) {
+      /* saindo da página: não há UI para avisar; o blur continua sendo o caminho normal */
+    }
+  }
+
+  input.addEventListener('blur', salvar);
+  form.addEventListener('submit', function (event) { event.preventDefault(); salvar(); });
+  window.addEventListener('beforeunload', salvarAoSair);
+  // `visibilitychange` é o único evento confiável em mobile (o beforeunload não dispara
+  // quando o sistema mata a aba em segundo plano).
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') salvarAoSair();
+  });
+})();
+</script>
+
+<script>
+(function () {
+  const form = document.getElementById('ficha-appearance-form');
+  if (!form) return;
+  const feedback = document.getElementById('ficha-info-feedback');
+  form.addEventListener('submit', async function (event) {
+    event.preventDefault();
+    const button = form.querySelector('button[type="submit"]');
+    const data = new FormData(form);
+    if (button) button.disabled = true;
+    if (feedback) {
+      feedback.textContent = 'Salvando…';
+      feedback.className = 'text-sm text-[var(--muted)]';
+    }
+    try {
+      const response = await fetch(form.action, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': data.get('csrfmiddlewaretoken') || ''
+        },
+        body: data,
+        credentials: 'same-origin'
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) throw new Error('save');
+      const imageFields = {
+        foto_url: 'foto_url',
+        token_url: 'token_url',
+        banner_url: 'banner_url',
+        background_url: 'ficha_background_url'
+      };
+      Object.keys(payload.imagens || {}).forEach(function (key) {
+        const field = form.elements[imageFields[key]];
+        if (field) field.value = payload.imagens[key] || '';
+      });
+      if (feedback) {
+        feedback.textContent = 'Informações salvas.';
+        feedback.className = 'text-sm text-[var(--spark)]';
+      }
+      form.querySelectorAll('input[type="file"]').forEach(function (field) {
+        field.value = '';
+      });
+    } catch (error) {
+      if (feedback) {
+        feedback.textContent = 'Não foi possível salvar.';
+        feedback.className = 'text-sm text-[var(--flame)]';
+      }
+    } finally {
+      if (button) button.disabled = false;
+    }
+  });
+})();
+</script>
+{% endblock %}

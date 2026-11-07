@@ -1,0 +1,2270 @@
+/* =============================================
+   PERFIL DE USUÁRIO
+   ============================================= */
+
+.profile-page {
+    --profile-accent: var(--ember);
+    --profile-accent-2: var(--flame);
+    --profile-surface: var(--bg1);
+    --profile-deep: var(--bg0);
+    /* Espelho SÓLIDO/semântico do tema para uso interno deste arquivo. --profile-accent
+       pode chegar como linear-gradient (tema com gradiente) e aí não serve em `color`,
+       `border-color` nem dentro de color-mix(); --pf-accent resolve isso de uma vez.
+       As semânticas (ok/err/info) ficam fora do tema de propósito. */
+    --pf-accent: var(--profile-accent-solid, var(--profile-accent));
+    --pf-accent-2: var(--profile-accent-2);
+    --pf-gold: var(--profile-gold, var(--spark));
+    --pf-ok: #22c55e;
+    --pf-err: #ef4444;
+    --pf-info: #3b82f6;
+    --pf-info-fg: #93c5fd;
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 1.25rem 0;
+}
+
+.profile-page.theme-ember,
+.public-profile-page.theme-ember { --profile-accent: #f59e0b; --profile-accent-2: #7c2d12; --profile-surface: #1b120f; --profile-deep: #0e0a08; }
+.profile-page.theme-arcane,
+.public-profile-page.theme-arcane { --profile-accent: #a78bfa; --profile-accent-2: #06b6d4; --profile-surface: #151223; --profile-deep: #090914; }
+.profile-page.theme-verdant,
+.public-profile-page.theme-verdant { --profile-accent: #34d399; --profile-accent-2: #84cc16; --profile-surface: #0e1a14; --profile-deep: #07110c; }
+.profile-page.theme-moonlit,
+.public-profile-page.theme-moonlit { --profile-accent: #cbd5e1; --profile-accent-2: #60a5fa; --profile-surface: #10151f; --profile-deep: #080b10; }
+
+/* Tema Personalizado (Discord Nitro-like): as CSS vars vêm de style inline VALIDADO
+   server-side (só #rrggbb). --profile-accent pode ser cor OU linear-gradient animado. */
+.profile-page.theme-custom,
+.public-profile-page.theme-custom,
+.player-card.theme-custom { --profile-accent-solid: var(--profile-accent); }
+
+/* Accent em degradê: quando o inline manda um linear-gradient(...), animamos o
+   background-position pra dar vida. Só entra quando o valor é realmente um gradiente. */
+.theme-custom .profile-btn,
+.theme-custom .profile-role.is-staff,
+.theme-custom .profile-header::before {
+    background-size: 200% 200%;
+    animation: profile-accent-shift 8s ease infinite;
+}
+
+@keyframes profile-accent-shift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* ===== Imagem de fundo do perfil (background_url) — cover fixo + overlay do tema ===== */
+.profile-has-bg { position: relative; }
+.profile-bg-media {
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    background-position: center;
+    background-size: cover;
+    background-attachment: fixed;
+}
+.profile-bg-media::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+        radial-gradient(120% 90% at 50% -10%, color-mix(in srgb, var(--pf-accent) 22%, transparent), transparent 60%),
+        linear-gradient(180deg, color-mix(in srgb, var(--profile-deep) 78%, transparent), color-mix(in srgb, var(--profile-deep) 94%, transparent));
+}
+
+/* ===== Painel central com DESFOQUE do fundo =============================
+   Pedido do PO: "a div principal (parte mais ao centro) precisa de um blur
+   desfocando a imagem de fundo, pra não desviar atenção".
+
+   Só entra quando HÁ imagem de fundo: `.profile-has-bg` é classe CONDICIONAL
+   no template (`{% if appearance.background_url %}`). Sem imagem, tudo
+   continua sólido como hoje — nada de painel lavado à toa.
+
+   O `backdrop-filter` mora no CONTAINER central, não em cada cartão: assim o
+   desfoque cobre também as FRESTAS entre os cartões (com o blur por cartão,
+   os vãos mostrariam a imagem NÍTIDA — exatamente o que desvia a atenção).
+   As superfícies de dentro ficam translúcidas para o desfoque atravessar; o
+   texto continua sobre superfície opaca o bastante para não perder contraste.
+
+   Tema continua mandando: tudo é derivado de --profile-deep/--profile-surface,
+   que o tema-dado/custom reescrevem por style inline. E nada aqui mexe em
+   z-index/partículas do perfil-fx (que vivem em ::before dos cartões). */
+.profile-page.profile-has-bg,
+.public-profile-page.profile-has-bg {
+    -webkit-backdrop-filter: blur(12px) saturate(115%);
+    backdrop-filter: blur(12px) saturate(115%);
+    background-color: color-mix(in srgb, var(--profile-deep) 34%, transparent);
+    border-radius: 14px;
+    padding-left: 0.6rem;
+    padding-right: 0.6rem;
+}
+
+.profile-page.profile-has-bg > .profile-header,
+.profile-page.profile-has-bg > .profile-section,
+.public-profile-page.profile-has-bg .public-profile-card,
+.public-profile-page.profile-has-bg .public-profile-section {
+    /* background-COLOR (e não o atalho `background`): preserva as camadas de
+       background-image que o perfil-fx.css põe nesses mesmos cartões. */
+    background-color: color-mix(in srgb, var(--profile-surface) 86%, transparent);
+}
+
+/* Prévia do editor: ali o fundo é um FILHO (.perfil-preview-bg, escopado no
+   palco) — e backdrop-filter do pai não desfoca o próprio filho. Então o
+   desfoque vai no elemento do fundo mesmo; a sangria maior esconde a borda
+   suave que o blur cria. */
+.public-profile-page.profile-has-bg.is-preview .perfil-preview-bg {
+    filter: blur(12px);
+    inset: -1.6rem;
+}
+
+/* Fallback: navegador sem backdrop-filter recebe fundo mais opaco (o fundo
+   fica atrás sem desfoque, então a legibilidade vem da opacidade). */
+@supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
+    .profile-page.profile-has-bg,
+    .public-profile-page.profile-has-bg {
+        background-color: color-mix(in srgb, var(--profile-deep) 80%, transparent);
+    }
+    .profile-page.profile-has-bg > .profile-header,
+    .profile-page.profile-has-bg > .profile-section,
+    .public-profile-page.profile-has-bg .public-profile-card,
+    .public-profile-page.profile-has-bg .public-profile-section {
+        background-color: color-mix(in srgb, var(--profile-surface) 97%, transparent);
+    }
+}
+
+/* --- Header do perfil --- */
+.profile-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.4rem 1.1rem;
+    background: var(--profile-surface);
+    border: 1px solid var(--stroke);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.profile-hero {
+    min-height: 220px;
+    justify-content: flex-end;
+}
+
+.profile-banner-media {
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 56%;
+    background-position: center;
+    background-size: cover;
+    opacity: 0.92;
+}
+
+.profile-banner-media::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0.08), var(--profile-surface));
+}
+
+.profile-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(to right, var(--profile-accent-2), var(--pf-accent));
+}
+
+.profile-avatar-wrapper {
+    position: relative;
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    border: 3px solid var(--stroke);
+    overflow: hidden;
+    background: var(--bg0);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--pf-accent-2) 15%, transparent);
+    transition: border-color 0.3s;
+}
+
+.profile-hero .profile-avatar-wrapper {
+    z-index: 1;
+    margin-top: 2.75rem;
+}
+
+.profile-avatar-wrapper:hover {
+    border-color: var(--pf-accent);
+}
+
+/* Base para molduras animadas: pseudo-elemento que gira/pulsa por cima da borda. */
+.frame-ember-ring,
+.frame-arcane-pulse,
+.frame-gold-trim,
+.frame-frost,
+.frame-verdant { position: relative; }
+
+.frame-ember-ring::before,
+.frame-arcane-pulse::before,
+.frame-gold-trim::before,
+.frame-frost::before,
+.frame-verdant::before {
+    content: "";
+    position: absolute;
+    inset: -6px;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* Anel de Brasa — brasas pulsantes girando */
+.frame-ember-ring {
+    border-color: #f97316;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.18), 0 0 24px rgba(249, 115, 22, 0.38);
+    animation: frame-ember-pulse 2.4s ease-in-out infinite;
+}
+.frame-ember-ring::before {
+    background: conic-gradient(from 0deg, transparent, #f97316, #fbbf24, transparent, #f97316, transparent);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+            mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+    animation: frame-spin 5s linear infinite;
+    opacity: 0.85;
+}
+@keyframes frame-ember-pulse {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.18), 0 0 20px rgba(249, 115, 22, 0.30); }
+    50%      { box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.30), 0 0 34px rgba(249, 115, 22, 0.55); }
+}
+
+/* Pulso Arcano — halo arcano respirando */
+.frame-arcane-pulse {
+    border-color: #a78bfa;
+    box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.14), 0 0 28px rgba(167, 139, 250, 0.42);
+    animation: frame-arcane-breathe 3.2s ease-in-out infinite;
+}
+.frame-arcane-pulse::before {
+    background: conic-gradient(from 90deg, transparent, #06b6d4, #a78bfa, transparent, #a78bfa, transparent);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+            mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+    animation: frame-spin 7s linear infinite reverse;
+    opacity: 0.8;
+}
+@keyframes frame-arcane-breathe {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.12), 0 0 22px rgba(167, 139, 250, 0.34); }
+    50%      { box-shadow: 0 0 0 4px rgba(167, 139, 250, 0.26), 0 0 40px rgba(6, 182, 212, 0.5); }
+}
+
+/* Friso Dourado — brilho que percorre a borda */
+.frame-gold-trim {
+    border-color: #facc15;
+    box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.22), inset 0 0 0 2px rgba(250, 204, 21, 0.18);
+}
+.frame-gold-trim::before {
+    background: conic-gradient(from 0deg, transparent 0deg, transparent 300deg, #fde68a 340deg, #fff 350deg, #facc15 360deg);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+            mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+    animation: frame-spin 3.5s linear infinite;
+}
+
+/* Moldura exclusiva do direito vitalício, distinta do Friso Dourado livre. */
+.frame-mestre-ouro {
+    border-color: #e7bd5a;
+    box-shadow: 0 0 0 3px rgba(231, 189, 90, .25), 0 0 22px rgba(231, 189, 90, .30);
+}
+.public-profile-gold-detail {
+    color: #e7bd5a;
+    font-size: .86rem;
+    letter-spacing: .02em;
+}
+
+/* Coroa de Gelo (nova) — cristais frios girando devagar */
+.frame-frost {
+    border-color: #7dd3fc;
+    box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.18), 0 0 26px rgba(224, 242, 254, 0.45);
+    animation: frame-arcane-breathe 4s ease-in-out infinite;
+}
+.frame-frost::before {
+    background: conic-gradient(from 45deg, transparent, #e0f2fe, #7dd3fc, transparent, #bae6fd, transparent);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+            mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+    animation: frame-spin 9s linear infinite;
+    opacity: 0.85;
+}
+
+/* Trança Verdejante (nova) — folhas/seiva percorrendo a borda */
+.frame-verdant {
+    border-color: #4ade80;
+    box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.16), 0 0 24px rgba(132, 204, 22, 0.4);
+    animation: frame-ember-pulse 3s ease-in-out infinite;
+}
+.frame-verdant::before {
+    background: conic-gradient(from 210deg, transparent, #84cc16, #4ade80, transparent, #22c55e, transparent);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+            mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+    animation: frame-spin 6s linear infinite;
+    opacity: 0.82;
+}
+
+@keyframes frame-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+.profile-avatar-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-avatar-fallback {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+}
+
+.profile-username {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 0.05em;
+}
+
+.profile-bio-preview {
+    z-index: 1;
+    max-width: 34rem;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.profile-role {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0.2rem 0.7rem;
+    border-radius: 3px;
+    background: var(--bg0);
+    border: 1px solid var(--stroke);
+    color: var(--muted);
+}
+
+.profile-role.is-staff {
+    background: linear-gradient(135deg, var(--profile-accent-2), var(--pf-accent));
+    border: none;
+    color: #fff;
+    box-shadow: 0 0 12px color-mix(in srgb, var(--pf-accent-2) 30%, transparent);
+}
+
+.profile-public-link {
+    z-index: 1;
+    color: var(--pf-accent);
+    font-size: 0.76rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* --- Cards / Seções --- */
+.profile-section {
+    background: var(--profile-surface);
+    border: 1px solid var(--stroke);
+    border-radius: 8px;
+    padding: 0.9rem;
+    margin-bottom: 1rem;
+    transition: border-color 0.3s;
+}
+
+.profile-section:hover {
+    border-color: color-mix(in srgb, var(--stroke) 70%, var(--pf-accent));
+}
+
+.profile-section-title {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--pf-accent);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--stroke);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.profile-field {
+    margin-bottom: 0.7rem;
+}
+
+.profile-field:last-of-type {
+    margin-bottom: 0;
+}
+
+.profile-label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 0.3rem;
+    letter-spacing: 0.02em;
+}
+
+.profile-input {
+    width: 100%;
+    padding: 0.45rem 0.6rem;
+    background: var(--bg0);
+    border: 1px solid var(--stroke);
+    border-radius: 4px;
+    color: var(--text);
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.profile-textarea {
+    min-height: 5.5rem;
+    resize: vertical;
+    line-height: 1.4;
+}
+
+.profile-appearance-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+}
+
+.profile-input:focus {
+    border-color: var(--pf-accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--pf-accent) 15%, transparent);
+}
+
+.profile-input::placeholder {
+    color: var(--muted);
+    opacity: 0.5;
+}
+
+/* Avatar preview inline */
+.avatar-preview-row {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin-top: 0.4rem;
+}
+
+.avatar-preview-small {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2px solid var(--stroke);
+    object-fit: cover;
+    background: var(--bg0);
+    flex-shrink: 0;
+}
+
+.avatar-preview-hint {
+    font-size: 0.75rem;
+    color: var(--muted);
+    opacity: 0.7;
+}
+
+.profile-file-drop {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    margin-top: 0.45rem;
+    border: 1px dashed color-mix(in srgb, var(--pf-accent) 45%, var(--stroke));
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--pf-accent) 8%, var(--bg0));
+    color: var(--pf-accent);
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+}
+
+.profile-file-drop:hover {
+    border-color: var(--pf-accent);
+    background: color-mix(in srgb, var(--pf-accent) 13%, var(--bg0));
+}
+
+.profile-file-drop input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.banner-preview-box {
+    width: 100%;
+    aspect-ratio: 21 / 6;
+    margin-top: 0.5rem;
+    border: 1px solid var(--stroke);
+    border-radius: 6px;
+    background-position: center;
+    background-size: cover;
+    background-color: var(--bg0);
+}
+
+.profile-inline-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-top: 0.45rem;
+    color: var(--muted);
+    font-size: 0.76rem;
+    cursor: pointer;
+}
+
+.profile-inline-check input {
+    accent-color: var(--pf-accent);
+}
+
+/* Botão */
+.profile-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1.25rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, var(--profile-accent-2), var(--pf-accent));
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 0.7rem;
+    transition: filter 0.2s, box-shadow 0.2s;
+    box-shadow: 0 0 12px color-mix(in srgb, var(--pf-accent-2) 20%, transparent);
+}
+
+.profile-btn:hover {
+    filter: brightness(1.15);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--pf-accent-2) 40%, transparent);
+}
+
+/* Toasts */
+.profile-toast {
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-bottom: 0.7rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    animation: profile-toast-in 0.35s ease-out;
+}
+
+.profile-toast.success {
+    background: color-mix(in srgb, var(--pf-ok) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--pf-ok) 30%, transparent);
+    color: var(--pf-ok);
+}
+
+.profile-toast.error {
+    background: color-mix(in srgb, var(--pf-err) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--pf-err) 30%, transparent);
+    color: var(--pf-err);
+}
+
+@keyframes profile-toast-in {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsivo */
+@media (max-width: 640px) {
+    .profile-page {
+        padding: 0.75rem 0;
+    }
+    .profile-header {
+        padding: 1rem 0.75rem;
+    }
+    .profile-section {
+        padding: 0.75rem;
+    }
+    .profile-appearance-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Checkbox / Switch VLibras */
+.profile-checkbox-group {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    margin-top: 0.9rem;
+    padding: 0.6rem;
+    background: var(--bg0);
+    border: 1px solid var(--stroke);
+    border-radius: 4px;
+    cursor: pointer;
+    user-select: none;
+    transition: border-color 0.2s;
+}
+
+.profile-checkbox-group:hover {
+    border-color: var(--pf-accent);
+}
+
+.profile-checkbox-group input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 1px solid var(--stroke);
+    border-radius: 3px;
+    outline: none;
+    background-color: var(--bg1);
+    cursor: pointer;
+    display: grid;
+    place-content: center;
+    transition: background-color 0.2s, border-color 0.2s;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.profile-checkbox-group input[type="checkbox"]:checked {
+    background-color: var(--pf-accent);
+    border-color: var(--pf-accent);
+}
+
+.profile-checkbox-group input[type="checkbox"]::before {
+    content: "";
+    width: 0.65rem;
+    height: 0.65rem;
+    transform: scale(0);
+    transition: 120ms transform ease-in-out;
+    background-color: #fff;
+    clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+}
+
+.profile-checkbox-group input[type="checkbox"]:checked::before {
+    transform: scale(1);
+}
+
+.profile-checkbox-label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    cursor: pointer;
+}
+
+.profile-checkbox-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.profile-checkbox-desc {
+    font-size: 0.75rem;
+    color: var(--muted);
+    opacity: 0.85;
+    line-height: 1.35;
+}
+
+.effect-soft-glow .profile-header,
+.effect-soft-glow .public-profile-card {
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35), 0 0 36px color-mix(in srgb, var(--pf-accent) 24%, transparent);
+}
+
+.effect-glass .profile-header,
+.effect-glass .profile-section,
+.effect-glass .public-profile-card,
+.effect-glass .public-profile-section {
+    background: color-mix(in srgb, var(--profile-surface) 82%, transparent);
+    backdrop-filter: blur(12px);
+}
+
+/* Brasas discretas — partículas subindo (CSS puro, sem JS) */
+.effect-embers .profile-header,
+.effect-embers .public-profile-card { position: relative; }
+.effect-embers .profile-header::after,
+.effect-embers .public-profile-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+        radial-gradient(circle at 15% 100%, color-mix(in srgb, var(--pf-accent) 60%, transparent) 0 1.5px, transparent 2.5px),
+        radial-gradient(circle at 42% 100%, color-mix(in srgb, var(--profile-accent-2) 55%, transparent) 0 1.5px, transparent 2.5px),
+        radial-gradient(circle at 68% 100%, color-mix(in srgb, var(--pf-accent) 55%, transparent) 0 1.5px, transparent 2.5px),
+        radial-gradient(circle at 88% 100%, color-mix(in srgb, var(--profile-accent-2) 55%, transparent) 0 1.5px, transparent 2.5px);
+    background-size: 90px 160px, 130px 200px, 110px 180px, 150px 220px;
+    background-repeat: repeat-x;
+    opacity: 0.5;
+    animation: effect-embers-rise 6s linear infinite;
+}
+@keyframes effect-embers-rise {
+    from { background-position: 0 0, 0 0, 0 0, 0 0; }
+    to   { background-position: 0 -160px, 0 -200px, 0 -180px, 0 -220px; }
+}
+
+/* Aurora (novo) — véus de cor deslizando por trás dos cards */
+.effect-aurora .profile-header,
+.effect-aurora .public-profile-card { position: relative; }
+.effect-aurora .profile-header::after,
+.effect-aurora .public-profile-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(115deg,
+        transparent 10%,
+        color-mix(in srgb, var(--pf-accent) 26%, transparent) 30%,
+        transparent 45%,
+        color-mix(in srgb, var(--profile-accent-2) 26%, transparent) 65%,
+        transparent 85%);
+    background-size: 260% 260%;
+    mix-blend-mode: screen;
+    opacity: 0.55;
+    animation: effect-aurora-flow 12s ease-in-out infinite;
+}
+@keyframes effect-aurora-flow {
+    0%, 100% { background-position: 0% 50%; }
+    50%      { background-position: 100% 50%; }
+}
+
+/* Chuva de estrelas (novo) — pontos brilhando/cintilando */
+.effect-starfall .profile-header,
+.effect-starfall .public-profile-card { position: relative; }
+.effect-starfall .profile-header::after,
+.effect-starfall .public-profile-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+        radial-gradient(circle at 20% 30%, #fff 0 1px, transparent 1.5px),
+        radial-gradient(circle at 70% 20%, color-mix(in srgb, var(--pf-accent) 80%, #fff) 0 1px, transparent 1.5px),
+        radial-gradient(circle at 45% 70%, #fff 0 1px, transparent 1.5px),
+        radial-gradient(circle at 85% 60%, color-mix(in srgb, var(--profile-accent-2) 80%, #fff) 0 1px, transparent 1.5px);
+    background-size: 200px 200px, 240px 240px, 180px 180px, 220px 220px;
+    opacity: 0.6;
+    animation: effect-starfall-twinkle 3.5s ease-in-out infinite;
+}
+@keyframes effect-starfall-twinkle {
+    0%, 100% { opacity: 0.25; }
+    50%      { opacity: 0.75; }
+}
+
+/* Acessibilidade: desliga animações para quem pediu menos movimento. */
+@media (prefers-reduced-motion: reduce) {
+    .frame-ember-ring,
+    .frame-arcane-pulse,
+    .frame-gold-trim,
+    .frame-frost,
+    .frame-verdant,
+    .frame-ember-ring::before,
+    .frame-arcane-pulse::before,
+    .frame-gold-trim::before,
+    .frame-frost::before,
+    .frame-verdant::before,
+    .effect-embers .profile-header::after,
+    .effect-embers .public-profile-card::after,
+    .effect-aurora .profile-header::after,
+    .effect-aurora .public-profile-card::after,
+    .effect-starfall .profile-header::after,
+    .effect-starfall .public-profile-card::after,
+    .theme-custom .profile-btn,
+    .theme-custom .profile-role.is-staff,
+    .theme-custom .profile-header::before {
+        animation: none !important;
+    }
+}
+
+.public-profile-page {
+    --profile-accent: var(--ember);
+    --profile-accent-2: var(--flame);
+    --profile-surface: var(--bg1);
+    --profile-deep: var(--bg0);
+    /* Espelho SÓLIDO/semântico do tema para uso interno deste arquivo. --profile-accent
+       pode chegar como linear-gradient (tema com gradiente) e aí não serve em `color`,
+       `border-color` nem dentro de color-mix(); --pf-accent resolve isso de uma vez.
+       As semânticas (ok/err/info) ficam fora do tema de propósito. */
+    --pf-accent: var(--profile-accent-solid, var(--profile-accent));
+    --pf-accent-2: var(--profile-accent-2);
+    --pf-gold: var(--profile-gold, var(--spark));
+    --pf-ok: #22c55e;
+    --pf-err: #ef4444;
+    --pf-info: #3b82f6;
+    --pf-info-fg: #93c5fd;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 1.25rem 0 2rem;
+}
+
+.public-profile-back {
+    display: inline-flex;
+    margin-bottom: 0.5rem;
+    color: var(--pf-accent);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.public-profile-card,
+.public-profile-section {
+    position: relative;
+    overflow: hidden;
+    min-width: 0;
+    border: 1px solid var(--stroke);
+    border-radius: 10px;
+    background: var(--profile-surface);
+}
+
+.public-profile-banner {
+    min-height: 170px;
+    background: radial-gradient(circle at 20% 0%, color-mix(in srgb, var(--pf-accent) 24%, transparent), transparent 48%),
+                linear-gradient(135deg, var(--profile-deep), var(--profile-surface));
+}
+
+.public-profile-banner-media,
+.public-character-banner {
+    position: absolute;
+    inset: 0;
+    background-position: center;
+    background-size: cover;
+}
+
+.public-profile-banner-media::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0.12), var(--profile-surface));
+}
+
+.public-profile-body {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.75rem;
+    align-items: end;
+    padding: 0 1rem 1rem;
+    margin-top: -58px;
+    position: relative;
+    z-index: 1;
+}
+
+.public-profile-avatar {
+    display: grid;
+    place-items: center;
+    width: 116px;
+    height: 116px;
+    border-radius: 50%;
+    border: 4px solid var(--profile-surface);
+    background: var(--profile-deep);
+    overflow: hidden;
+    color: var(--pf-accent);
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 2.8rem;
+    font-weight: 800;
+}
+
+.public-profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.public-profile-name-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    align-items: center;
+}
+
+.public-profile-name-row h1 {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 1.9rem;
+    font-weight: 800;
+    color: var(--text);
+}
+
+.public-profile-handle,
+.public-profile-bio,
+.public-profile-empty {
+    color: var(--muted);
+}
+
+.public-profile-bio {
+    max-width: 44rem;
+    margin-top: 0.5rem;
+    line-height: 1.45;
+}
+
+.public-profile-section {
+    margin-top: 0.7rem;
+    padding: 0.75rem;
+}
+
+.public-profile-section-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.6rem;
+    align-items: center;
+    margin-bottom: 0.7rem;
+}
+
+.public-profile-section-head h2 {
+    font-family: 'Frank Ruhl Libre', serif;
+    color: var(--pf-accent);
+    font-weight: 800;
+}
+
+.public-character-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
+    gap: 0.5rem;
+}
+
+.public-character-card {
+    position: relative;
+    overflow: hidden;
+    min-height: 110px;
+    border: 1px solid var(--stroke);
+    border-radius: 8px;
+    padding: 0.7rem;
+    background: var(--profile-deep);
+}
+
+.public-character-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0.18), var(--profile-deep));
+}
+
+.public-character-card strong,
+.public-character-card span,
+.public-character-card em {
+    position: relative;
+    z-index: 1;
+    display: block;
+}
+
+.public-character-card strong {
+    color: var(--text);
+    font-family: 'Frank Ruhl Libre', serif;
+    font-weight: 800;
+}
+
+.public-character-card span,
+.public-character-card em {
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+}
+
+@media (max-width: 640px) {
+    .public-profile-body {
+        grid-template-columns: 1fr;
+        justify-items: start;
+    }
+
+    .public-profile-section-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .public-character-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .public-character-card {
+        width: 100%;
+    }
+}
+
+/* Diretório de jogadores */
+.players-page {
+    --profile-accent: var(--ember);
+    --profile-accent-2: var(--flame);
+    --profile-surface: var(--bg1);
+    --profile-deep: var(--bg0);
+    /* Espelho SÓLIDO/semântico do tema para uso interno deste arquivo. --profile-accent
+       pode chegar como linear-gradient (tema com gradiente) e aí não serve em `color`,
+       `border-color` nem dentro de color-mix(); --pf-accent resolve isso de uma vez.
+       As semânticas (ok/err/info) ficam fora do tema de propósito. */
+    --pf-accent: var(--profile-accent-solid, var(--profile-accent));
+    --pf-accent-2: var(--profile-accent-2);
+    --pf-gold: var(--profile-gold, var(--spark));
+    --pf-ok: #22c55e;
+    --pf-err: #ef4444;
+    --pf-info: #3b82f6;
+    --pf-info-fg: #93c5fd;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 1rem 0 2rem;
+}
+
+.players-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 460px);
+    gap: 0.6rem;
+    align-items: end;
+    margin-bottom: 0.7rem;
+}
+
+.players-kicker {
+    margin-bottom: 0.25rem;
+    color: var(--pf-accent);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.players-head h1 {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: clamp(2rem, 4vw, 3.4rem);
+    font-weight: 800;
+    color: var(--text);
+}
+
+.players-search {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 40px;
+    padding: 0 0.45rem 0 0.65rem;
+    border: 1px solid var(--stroke);
+    border-radius: 6px;
+    background: var(--bg1);
+}
+
+.players-search:focus-within {
+    border-color: var(--pf-accent);
+    outline: 2px solid var(--pf-accent);
+    outline-offset: 2px;
+}
+
+.players-search svg {
+    color: var(--muted);
+}
+
+.players-search input {
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--text);
+    font-size: 0.92rem;
+}
+
+.players-search button,
+.players-pagination a {
+    border: 1px solid color-mix(in srgb, var(--pf-accent) 44%, var(--stroke));
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--pf-accent) 14%, var(--bg0));
+    color: var(--pf-accent);
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.players-search button {
+    padding: 0.4rem 0.65rem;
+}
+
+.players-toolbar {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.6rem;
+}
+
+.players-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.players-tabs a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 0.35rem 0.6rem;
+    border: 1px solid var(--stroke);
+    border-radius: 4px;
+    background: var(--bg1);
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.players-tabs a.is-active {
+    border-color: color-mix(in srgb, var(--pf-accent) 54%, var(--stroke));
+    background: color-mix(in srgb, var(--pf-accent) 16%, var(--bg0));
+    color: var(--pf-accent);
+}
+
+.players-tabs a:focus-visible,
+.players-pagination a:focus-visible {
+    outline: 2px solid var(--pf-accent);
+    outline-offset: 2px;
+}
+
+.players-order {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+}
+
+.players-order label {
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.players-order select {
+    min-height: 30px;
+    border: 1px solid var(--stroke);
+    border-radius: 4px;
+    background: var(--bg1);
+    color: var(--text);
+    padding: 0.3rem 0.5rem;
+    font-size: 0.85rem;
+    outline: none;
+}
+
+.players-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.6rem;
+    margin-bottom: 0.7rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+.players-meta-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.7rem;
+}
+
+.players-meta a {
+    color: var(--pf-accent);
+    font-weight: 700;
+}
+
+.players-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 0.55rem;
+}
+
+.player-card {
+    --profile-accent: var(--ember);
+    --profile-accent-2: var(--flame);
+    --profile-surface: var(--bg1);
+    --profile-deep: var(--bg0);
+    /* Espelho SÓLIDO/semântico do tema para uso interno deste arquivo. --profile-accent
+       pode chegar como linear-gradient (tema com gradiente) e aí não serve em `color`,
+       `border-color` nem dentro de color-mix(); --pf-accent resolve isso de uma vez.
+       As semânticas (ok/err/info) ficam fora do tema de propósito. */
+    --pf-accent: var(--profile-accent-solid, var(--profile-accent));
+    --pf-accent-2: var(--profile-accent-2);
+    --pf-gold: var(--profile-gold, var(--spark));
+    --pf-ok: #22c55e;
+    --pf-err: #ef4444;
+    --pf-info: #3b82f6;
+    --pf-info-fg: #93c5fd;
+    position: relative;
+    overflow: hidden;
+    min-height: 230px;
+    border: 1px solid var(--stroke);
+    border-radius: 8px;
+    background: var(--profile-surface);
+}
+
+.player-card.theme-ember { --profile-accent: #f59e0b; --profile-accent-2: #7c2d12; --profile-surface: #1b120f; --profile-deep: #0e0a08; }
+.player-card.theme-arcane { --profile-accent: #a78bfa; --profile-accent-2: #06b6d4; --profile-surface: #151223; --profile-deep: #090914; }
+.player-card.theme-verdant { --profile-accent: #34d399; --profile-accent-2: #84cc16; --profile-surface: #0e1a14; --profile-deep: #07110c; }
+.player-card.theme-moonlit { --profile-accent: #cbd5e1; --profile-accent-2: #60a5fa; --profile-surface: #10151f; --profile-deep: #080b10; }
+
+.player-card-banner {
+    position: relative;
+    display: block;
+    height: 86px;
+    background: radial-gradient(circle at 15% 0%, color-mix(in srgb, var(--pf-accent) 26%, transparent), transparent 52%),
+                linear-gradient(135deg, var(--profile-deep), var(--profile-surface));
+}
+
+.player-card-banner span {
+    position: absolute;
+    inset: 0;
+    background-position: center;
+    background-size: cover;
+}
+
+.player-card-banner::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0.06), var(--profile-surface));
+}
+
+.player-card-body {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.5rem;
+    align-items: end;
+    padding: 0 0.75rem 0.75rem;
+    margin-top: -34px;
+}
+
+.player-card-avatar {
+    display: grid;
+    place-items: center;
+    width: 74px;
+    height: 74px;
+    overflow: hidden;
+    border: 3px solid var(--profile-surface);
+    border-radius: 50%;
+    background: var(--profile-deep);
+    color: var(--pf-accent);
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 2rem;
+    font-weight: 800;
+}
+
+.player-card-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.player-card-title {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.player-card-title > a {
+    min-width: 0;
+    color: var(--text);
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 1.2rem;
+    font-weight: 800;
+}
+
+.player-card-main p {
+    margin-top: 0.3rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.player-card-count {
+    display: block;
+    margin-top: 0.35rem;
+    color: var(--pf-accent);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.player-card-characters {
+    display: grid;
+    gap: 0.4rem;
+    padding: 0 0.75rem 0.75rem;
+}
+
+.player-card-characters a {
+    min-height: 44px;
+    padding: 0.5rem;
+    border: 1px solid color-mix(in srgb, var(--stroke) 80%, var(--pf-accent));
+    border-radius: 6px;
+    background: var(--profile-deep);
+}
+
+.player-card-characters strong,
+.player-card-characters span {
+    display: block;
+}
+
+.player-card-characters strong {
+    color: var(--text);
+    font-size: 0.86rem;
+    overflow-wrap: anywhere;
+}
+
+.player-card-characters span {
+    margin-top: 0.2rem;
+    color: var(--muted);
+    font-size: 0.76rem;
+}
+
+.player-card-footer {
+    padding: 0 0.75rem 0.75rem;
+}
+
+.player-card-footer a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 30px;
+    padding: 0.35rem 0.6rem;
+    border: 1px solid color-mix(in srgb, var(--pf-accent) 54%, var(--stroke));
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--pf-accent) 13%, var(--profile-deep));
+    color: var(--pf-accent);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.players-empty {
+    border: 1px dashed var(--stroke);
+    border-radius: 8px;
+    padding: 1.25rem;
+    background: var(--bg1);
+    color: var(--muted);
+    text-align: center;
+}
+
+.players-empty h2 {
+    margin-bottom: 0.4rem;
+    color: var(--text);
+    font-family: 'Frank Ruhl Libre', serif;
+    font-weight: 800;
+}
+
+.players-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 0.9rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+.players-pagination a {
+    padding: 0.4rem 0.6rem;
+}
+
+@media (max-width: 740px) {
+    .players-head {
+        grid-template-columns: 1fr;
+    }
+
+    .players-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .players-order {
+        justify-content: space-between;
+    }
+}
+
+@media (max-width: 430px) {
+    .player-card-body {
+        grid-template-columns: 1fr;
+        margin-top: -46px;
+    }
+}
+
+/* ─────────────────────────── F2 — Badges & Títulos ─────────────────────────── */
+/* Título sob o nome (cor por raridade; spark/gold por padrão). */
+.profile-title {
+    margin-top: 0.35rem;
+    font-family: 'Frank Ruhl Libre', serif;
+    font-weight: 700;
+    font-size: 0.92rem;
+    letter-spacing: 0.04em;
+    color: var(--pf-gold);
+    text-shadow: 0 0 10px color-mix(in srgb, var(--pf-gold) 30%, transparent);
+}
+.profile-title.rar-comum { color: var(--muted); text-shadow: none; }
+.profile-title.rar-raro { color: var(--pf-accent); text-shadow: 0 0 10px color-mix(in srgb, var(--pf-accent) 28%, transparent); }
+.profile-title.rar-epico { color: var(--pf-gold); }
+.profile-title.rar-lendario {
+    background: linear-gradient(100deg, var(--pf-gold), var(--pf-accent), var(--pf-accent-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: var(--pf-gold);
+}
+.profile-title-mini { font-size: 0.78rem; margin-top: 0.25rem; }
+
+/* Linha de badges (pills pequenas). */
+.profile-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.55rem;
+    padding: 0;
+    list-style: none;
+}
+.profile-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    padding: 0.16rem 0.5rem;
+    font-size: 0.73rem;
+    font-weight: 700;
+    line-height: 1.2;
+    border-radius: 999px;
+    border: 1px solid var(--stroke);
+    background: var(--bg0);
+    color: var(--muted);
+    white-space: nowrap;
+}
+.profile-badge-emoji { font-size: 0.82rem; line-height: 1; }
+.profile-badge-icon { width: 14px; height: 14px; object-fit: contain; }
+.profile-badge-name { letter-spacing: 0.02em; }
+
+/* Derivadas (estado do usuário) — paleta real. */
+.badge-derivada { color: var(--text); }
+.badge-staff {
+    border-color: color-mix(in srgb, var(--pf-info) 55%, var(--stroke));
+    background: color-mix(in srgb, var(--pf-info) 16%, var(--bg0));
+    color: var(--pf-info-fg);
+}
+.badge-apoiador {
+    border-color: color-mix(in srgb, var(--pf-accent) 55%, var(--stroke));
+    background: color-mix(in srgb, var(--pf-accent) 16%, var(--bg0));
+    color: var(--pf-accent);
+}
+.badge-mestre-ouro {
+    border-color: color-mix(in srgb, var(--pf-gold) 60%, var(--stroke));
+    background: color-mix(in srgb, var(--pf-gold) 16%, var(--bg0));
+    color: var(--pf-gold);
+}
+.badge-fundador {
+    border-color: color-mix(in srgb, var(--pf-accent-2) 50%, var(--stroke));
+    background: color-mix(in srgb, var(--pf-accent-2) 14%, var(--bg0));
+    color: color-mix(in srgb, var(--pf-accent-2) 70%, var(--text));
+}
+
+/* Concedidas (inventário) — cor da borda por raridade. */
+.badge-concedida { color: var(--text); }
+.badge-rar-comum { border-color: var(--stroke); }
+.badge-rar-raro { border-color: color-mix(in srgb, var(--pf-accent) 50%, var(--stroke)); }
+.badge-rar-epico { border-color: color-mix(in srgb, var(--pf-gold) 55%, var(--stroke)); color: var(--pf-gold); }
+.badge-rar-lendario {
+    border-color: color-mix(in srgb, var(--pf-accent-2) 55%, var(--stroke));
+    background: color-mix(in srgb, var(--pf-accent-2) 12%, var(--bg0));
+    color: color-mix(in srgb, var(--pf-gold) 70%, var(--text));
+}
+
+/* Variante mini para os cards de /jogadores/. */
+.profile-badges-mini { margin-top: 0.4rem; gap: 0.28rem; }
+.profile-badges-mini .profile-badge {
+    padding: 0.12rem 0.42rem;
+    font-size: 0.67rem;
+}
+.profile-badges-mini .profile-badge-emoji { font-size: 0.72rem; }
+.profile-badges-mini .profile-badge-icon { width: 12px; height: 12px; }
+
+/* Editor de badges/títulos na página /perfil/. */
+.profile-badges-editor {
+    margin-top: 0.9rem;
+    padding-top: 0.7rem;
+    border-top: 1px dashed var(--stroke);
+}
+.profile-subsection-title {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--pf-accent);
+    margin-bottom: 0.6rem;
+}
+.profile-badge-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.4rem;
+}
+.profile-badge-pick {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    border-radius: 999px;
+    border: 1px solid var(--stroke);
+    background: var(--bg0);
+    color: var(--muted);
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, color 0.2s;
+}
+.profile-badge-pick:hover {
+    border-color: color-mix(in srgb, var(--pf-accent) 45%, var(--stroke));
+}
+.profile-badge-pick input {
+    accent-color: var(--pf-accent);
+    width: 0.9rem;
+    height: 0.9rem;
+    margin: 0;
+}
+.profile-badge-pick:has(input:checked) {
+    border-color: var(--pf-accent);
+    background: color-mix(in srgb, var(--pf-accent) 14%, var(--bg0));
+    color: var(--text);
+}
+
+/* Conquistas compactas com detalhes acessíveis no toque e no teclado. */
+.conquista-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0.3rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+.conquista-item {
+    display: block;
+    max-width: 100%;
+    padding: 0.22rem 0.5rem 0.22rem 0.28rem;
+    border: 1px solid var(--stroke);
+    border-radius: 999px;
+    background: var(--bg0);
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+.conquista-item.is-obtida {
+    border-color: color-mix(in srgb, var(--pf-gold) 50%, var(--stroke));
+    background: color-mix(in srgb, var(--pf-gold) 10%, var(--bg0));
+    color: var(--text);
+}
+.conquista-item.is-bloqueada {
+    color: var(--muted);
+}
+.conquista-item:has(.conquista-info[open]) {
+    width: min(100%, 22rem);
+    border-radius: 0.75rem;
+}
+.conquista-info {
+    max-width: 100%;
+}
+.conquista-info summary {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    list-style: none;
+    cursor: pointer;
+}
+.conquista-info summary::-webkit-details-marker {
+    display: none;
+}
+.conquista-info summary:focus-visible {
+    outline: 2px solid var(--pf-accent);
+    outline-offset: 3px;
+    border-radius: 0.25rem;
+}
+.conquista-expand {
+    margin-left: auto;
+    font-size: 0.9rem;
+}
+.conquista-info[open] .conquista-expand {
+    transform: rotate(180deg);
+}
+.conquista-info-body {
+    padding: 0.5rem 0.25rem 0.15rem;
+    font-size: 0.85rem;
+    font-weight: 400;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+.conquista-info-body p {
+    margin: 0 0 0.4rem;
+}
+.conquista-info-body .conquista-progress {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+}
+.conquista-icone {
+    width: 22px;
+    height: 22px;
+    flex: 0 0 22px;
+    object-fit: contain;
+    border-radius: 50%;
+}
+.conquista-icone-fallback,
+.conquista-icone-lock {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    background: color-mix(in srgb, var(--stroke) 60%, var(--bg0));
+}
+.conquista-item.is-obtida .conquista-icone-fallback {
+    background: color-mix(in srgb, var(--pf-gold) 22%, var(--bg0));
+}
+.conquista-nome {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 12rem;
+    letter-spacing: 0.02em;
+}
+.conquista-progress {
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: normal;
+}
+.conquista-evidencias {
+    margin-top: 0.9rem;
+    color: var(--muted);
+    font-size: 0.8rem;
+}
+.conquista-evidencias h3 {
+    color: var(--text);
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+.conquista-evidencias details {
+    margin-top: 0.45rem;
+    padding: 0.45rem 0.65rem;
+    border: 1px solid var(--stroke);
+    border-radius: 0.5rem;
+    background: var(--bg0);
+}
+.conquista-evidencias summary {
+    color: var(--text);
+    cursor: pointer;
+    font-weight: 600;
+}
+.conquista-evidencias code {
+    overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .profile-title,
+    .profile-badge {
+        text-shadow: none;
+    }
+    .profile-badge-pick {
+        transition: none;
+    }
+}
+
+/* Seletor de tema com prévia (cards-swatch) — MUDOU DE ARQUIVO.
+   Virou componente COMPARTILHADO em css/components/tema_swatch.css: perfil e
+   ficha usam a mesma grade, e a ficha (que não carrega perfil.css) antes ficava
+   com o seletor SEM ESTILO NENHUM. Ver aquele arquivo para as regras. */
+
+/* =====================================================================
+   PRÉVIA VIVA DO PERFIL (editor de aparência)
+   O painel mostra o PERFIL PÚBLICO DE VERDADE — mesmo partial, mesmo
+   `appearance`, mesmas partículas (data-fx-*). Este bloco é ADITIVO: só
+   posiciona/emoldura a área da prévia; NADA aqui redefine a aparência do
+   perfil público em si (o tema continua mandando por cima, como na página
+   real). Identidade Cinzel/ember, sem cromo genérico.
+   ===================================================================== */
+
+/* Larguras em px de propósito: a raiz do site usa 13px, então `rem` aqui daria
+   medidas surpreendentes. O <main> do site já limita a coluna (~800px) — a
+   prévia divide ESSE espaço com o formulário, sem estourar o gabarito da página
+   nem invadir as trilhas laterais de apoio.
+
+   Só o CARTÃO DO EDITOR usa a largura cheia do <main>; o resto da página de
+   perfil (hero, e-mail, senha, Discord, toasts) continua na coluna de leitura
+   de 680px — ou seja, nada mudou de lugar fora do editor. */
+@media (min-width: 900px) {
+    .profile-page:has(.perfil-editor-layout) {
+        max-width: none;
+    }
+    .profile-page:has(.perfil-editor-layout) > .profile-header,
+    .profile-page:has(.perfil-editor-layout) > .profile-toast,
+    .profile-page:has(.perfil-editor-layout) > .profile-section:not(.profile-editor) {
+        max-width: 680px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+}
+
+.perfil-editor-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+.perfil-editor-main {
+    min-width: 0;
+}
+
+/* MOBILE: a prévia NÃO some — vira bloco colapsável ACIMA do formulário. */
+.perfil-preview-pane {
+    order: -1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+@media (min-width: 900px) {
+    .perfil-editor-layout {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+    }
+    .perfil-preview-pane {
+        order: 0;
+        position: sticky;
+        top: calc(var(--bft-header-height, 57px) + 12px);
+        max-height: calc(100vh - 81px);
+        overflow: auto;
+        scrollbar-width: thin;
+    }
+    /* Desktop: o cabeçalho é rótulo, não botão de colapsar. */
+    .perfil-preview-toggle {
+        pointer-events: none;
+    }
+    .perfil-preview-chevron {
+        display: none;
+    }
+}
+
+.perfil-preview-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.perfil-preview-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--pf-accent);
+    cursor: pointer;
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+}
+
+.perfil-preview-chevron {
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid currentColor;
+    transition: transform 0.2s ease;
+}
+
+.perfil-preview-pane.is-collapsed .perfil-preview-chevron {
+    transform: rotate(-90deg);
+}
+
+.perfil-preview-status {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+}
+
+.perfil-preview-status.is-recusa {
+    color: var(--pf-accent-2);
+}
+
+.perfil-preview-hint {
+    font-size: 0.7rem;
+    line-height: 1.45;
+    color: var(--muted);
+}
+
+.perfil-preview-hint strong {
+    color: var(--pf-accent);
+}
+
+/* Palco da prévia: recorta o perfil público como se fosse a janela do site. */
+.perfil-preview-stage {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--stroke);
+    border-radius: 10px;
+    padding: 0.6rem;
+    background: var(--profile-deep);
+    transition: opacity 0.18s ease;
+}
+
+.perfil-preview-stage.is-carregando {
+    opacity: 0.75;
+}
+
+.perfil-preview-pane.is-collapsed .perfil-preview-stage,
+.perfil-preview-pane.is-collapsed .perfil-preview-hint {
+    display: none;
+}
+
+/* O perfil público dentro do palco: mesma marcação, só sem a margem de página. */
+.perfil-preview-stage .public-profile-page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    position: relative;
+    isolation: isolate;
+}
+
+/* Fundo da página (background_url) ESCOPADO na área da prévia — na página real
+   ele é um `.profile-bg-media` fixo cobrindo a viewport; aqui vira a "parede"
+   do palco, com o mesmo overlay do tema pra legibilidade não mentir. */
+.perfil-preview-bg {
+    position: absolute;
+    inset: -0.6rem;
+    z-index: -1;
+    background-position: center;
+    background-size: cover;
+}
+
+.perfil-preview-bg::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(120% 90% at 50% -10%, color-mix(in srgb, var(--pf-accent) 22%, transparent), transparent 60%),
+        linear-gradient(180deg, color-mix(in srgb, var(--profile-deep) 78%, transparent), color-mix(in srgb, var(--profile-deep) 94%, transparent));
+}
+
+/* Prévia é vitrine, não navegação: os cartões de personagem não levam embora. */
+.public-profile-page.is-preview .public-character-card {
+    pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .perfil-preview-chevron,
+    .perfil-preview-stage {
+        transition: none;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SOCIAL DO PERFIL — curtir & seguir (regras NOVAS, nada acima foi tocado).
+   Espírito ember: a chama do "curtir" acende no accent do tema do dono do
+   perfil (--profile-accent), então cada perfil curte na própria cor.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.profile-social {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem 0.85rem;
+    margin-top: 0.65rem;
+}
+
+.profile-social-stat {
+    color: var(--muted);
+    font-size: 0.78rem;
+    letter-spacing: 0.02em;
+}
+
+.profile-social-stat strong {
+    color: var(--pf-accent);
+    font-size: 0.92rem;
+    font-weight: 800;
+}
+
+.profile-social-actions {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.profile-social-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.32rem 0.8rem;
+    border: 1px solid var(--stroke);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease;
+}
+
+.profile-social-btn:hover:not(:disabled) {
+    border-color: var(--pf-accent);
+    color: var(--pf-accent);
+}
+
+.profile-social-btn:disabled {
+    opacity: 0.55;
+    cursor: progress;
+}
+
+.profile-social-btn.is-on {
+    border-color: var(--pf-accent);
+    background: color-mix(in srgb, var(--pf-accent) 16%, transparent);
+    color: var(--pf-accent);
+}
+
+/* A chama só "queima" quando a curtida está ligada; apagada fica dessaturada. */
+.profile-social-btn .profile-social-flame {
+    filter: grayscale(1);
+    opacity: 0.65;
+    transition: filter 0.18s ease, opacity 0.18s ease, transform 0.18s ease;
+}
+
+.profile-social-btn.is-curtir.is-on .profile-social-flame {
+    filter: none;
+    opacity: 1;
+    transform: scale(1.12);
+}
+
+.profile-social-msg {
+    color: var(--muted);
+    font-size: 0.72rem;
+}
+
+.profile-social-signin {
+    color: var(--pf-accent);
+    font-size: 0.74rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.profile-social-signin:hover {
+    text-decoration: underline;
+}
+
+/* /jogadores/ — contagens discretas no rodapé do corpo do cartão. */
+.player-card-social {
+    display: flex;
+    gap: 0.7rem;
+    margin-top: 0.3rem;
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+/* Editor de perfil: a MESMA linha de contagens do hero público, mas aqui ela abre
+   uma seção (é o resumo das listas logo abaixo) em vez de acompanhar o avatar. Sem
+   botões de ação — o dono não curte nem segue a si mesmo —, então a linha ganha o
+   filete de base do bloco e cola no topo da própria caixa. */
+.profile-social-own {
+    margin-top: 0.15rem;
+    padding-bottom: 0.55rem;
+    border-bottom: 1px solid var(--stroke);
+}
+
+/* Editor de perfil: listas colapsáveis de seguidores/seguindo/curtidas. */
+.profile-social-lists {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-top: 0.6rem;
+}
+
+.profile-social-list {
+    border: 1px solid var(--stroke);
+    border-radius: 0.5rem;
+    padding: 0.4rem 0.6rem;
+}
+
+.profile-social-list > summary {
+    cursor: pointer;
+    color: var(--pf-accent);
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.profile-social-list ul {
+    list-style: none;
+    margin: 0.5rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    max-height: 16rem;
+    overflow-y: auto;
+}
+
+.profile-social-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.profile-social-list .social-credit-entry {
+    display: block;
+    overflow-wrap: anywhere;
+}
+
+.profile-social-list li > a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: inherit;
+    text-decoration: none;
+    min-width: 0;
+}
+
+.profile-social-list li > a:hover {
+    color: var(--pf-accent);
+}
+
+.profile-social-list li img,
+.profile-social-list li .profile-social-initial {
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 50%;
+    object-fit: cover;
+    flex: 0 0 auto;
+}
+
+.profile-social-list li .profile-social-initial {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--stroke);
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.profile-social-list li em {
+    color: var(--muted);
+    font-size: 0.7rem;
+    font-style: normal;
+    flex: 0 0 auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .profile-social-btn,
+    .profile-social-btn .profile-social-flame {
+        transition: none;
+    }
+}
+
+/* =====================================================================
+   ACENTO DO TEMA NAS SUPERFÍCIES DE DESTAQUE (perfil público + editor)
+   Bloco ADITIVO e puramente cromático — só `color`, `border-color` e
+   `background`. Nenhuma métrica muda: mesma caixa, mesma posição.
+
+   Antes daqui o tema pintava basicamente o filete do topo do header, os
+   títulos e os botões; o resto do perfil (seções, cartões de personagem,
+   badges do editor, palco da prévia) ficava numa borda cinza fixa, igual
+   em todo tema. Tudo abaixo sai de var(--pf-accent), então no basal
+   continua ember e em qualquer outro tema o perfil inteiro acompanha.
+
+   Fica no FIM do arquivo de propósito: vence as regras base por ORDEM,
+   sem `!important`, e continua abaixo das regras de tema/`:hover`.
+   ===================================================================== */
+
+/* --- molduras das superfícies --- */
+.profile-header,
+.profile-section,
+.public-profile-card,
+.public-profile-section,
+.player-card,
+.players-empty {
+    border-color: color-mix(in srgb, var(--pf-accent) 22%, var(--stroke));
+}
+
+.public-character-card,
+.profile-role,
+.avatar-preview-small,
+.banner-preview-box,
+.profile-social-list,
+.perfil-preview-stage {
+    border-color: color-mix(in srgb, var(--pf-accent) 26%, var(--stroke));
+}
+
+/* --- filetes de seção: a régua sob o título deixa de ser cinza morto --- */
+.profile-section-title {
+    border-bottom-color: color-mix(in srgb, var(--pf-accent) 34%, var(--stroke));
+}
+
+.profile-badges-editor {
+    border-top-color: color-mix(in srgb, var(--pf-accent) 30%, var(--stroke));
+}
+
+/* --- estados vivos --- */
+/* (o hover do cartão de tema mora em components/tema_swatch.css) */
+.players-tabs a:hover,
+.profile-badge:hover {
+    border-color: color-mix(in srgb, var(--pf-accent) 45%, var(--stroke));
+}
+
+.profile-social-list > summary:hover {
+    color: var(--pf-accent);
+}
+
+/* Manifesto de mídia: arte restrita ao banner e ao aro, atrás das ações. */
+.public-profile-banner {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.cosmetic-layers {
+  position: absolute;
+  pointer-events: none;
+  user-select: none;
+  overflow: hidden;
+}
+
+.cosmetic-layers--banner {
+  inset: 0;
+  z-index: 0;
+}
+
+.profile-hero > .cosmetic-layers--banner {
+  bottom: auto;
+  height: 56%;
+}
+
+.public-profile-banner-media,
+.profile-banner-media {
+  z-index: 0;
+}
+
+.cosmetic-layers--ornament {
+  top: 10px;
+  right: 10px;
+  width: min(38%, 290px);
+  height: 50px;
+  z-index: 2;
+}
+
+.profile-hero > .cosmetic-layers--ornament {
+  top: 8px;
+}
+
+.cosmetic-layer {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.cosmetic-layers--banner .cosmetic-layer {
+  opacity: .95;
+}
+
+.cosmetic-layers--ornament .cosmetic-layer {
+  object-fit: contain;
+}
+
+.cosmetic-layer--left { object-position: left center; }
+.cosmetic-layer--right { object-position: right center; }
+
+.profile-avatar-wrapper.is-packaged,
+.public-profile-avatar.is-packaged {
+  position: relative;
+  overflow: visible;
+  isolation: isolate;
+}
+
+.profile-avatar-wrapper.is-packaged > img,
+.public-profile-avatar.is-packaged > img {
+  border-radius: 50%;
+}
+
+.profile-avatar-wrapper.is-packaged::before,
+.public-profile-avatar.is-packaged::before {
+  display: none;
+}
+
+.cosmetic-layers--avatar {
+  inset: -12%;
+  z-index: 3;
+  overflow: visible;
+}
+
+.profile-avatar-wrapper .cosmetic-layers--avatar .cosmetic-layer,
+.public-profile-avatar .cosmetic-layers--avatar .cosmetic-layer {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.cosmetic-layer--float,
+.cosmetic-layer--pulse {
+  animation-play-state: paused;
+}
+
+.cosmetic-layers.is-visible .cosmetic-layer--float {
+  animation: cosmetic-float 7s ease-in-out infinite;
+}
+
+.cosmetic-layers.is-visible .cosmetic-layer--pulse {
+  animation: cosmetic-pulse 4s ease-in-out infinite;
+}
+
+.cosmetic-layers.is-paused .cosmetic-layer {
+  animation-play-state: paused;
+}
+
+@keyframes cosmetic-float {
+  50% { transform: translateY(-4px); opacity: .78; }
+}
+
+@keyframes cosmetic-pulse {
+  50% { transform: scale(1.035); filter: drop-shadow(0 0 7px currentColor); }
+}
+
+@media (max-width: 600px) {
+  .public-profile-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .public-profile-main {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .cosmetic-layers--ornament {
+    width: min(48%, 185px);
+    height: 38px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cosmetic-layers .cosmetic-layer {
+    animation: none !important;
+    transform: none !important;
+  }
+}

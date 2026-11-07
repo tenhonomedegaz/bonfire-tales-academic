@@ -1,0 +1,62 @@
+{% for item in itens %}
+<template id="mi-{{ item.pk }}-tpl">
+  <article class="mkt-card rarity-{{ item.base_rarity }}">
+    <header class="mkt-item-heading">
+      <figure class="mkt-figure">
+        {% if item.safe_image_url %}<img src="{{ item.safe_image_url }}" alt="{{ item.nome }}" loading="lazy">
+        {% else %}<span class="mkt-sigil"><span class="mkt-sigil-letter">{{ item.nome|first|upper }}</span></span>{% endif %}
+        <figcaption class="sr-only">{{ item.raridade_label }}</figcaption>
+      </figure>
+      <div class="market-item-identity">
+        <p class="mkt-card-kind"><span class="mkt-rarity-tag">{{ item.raridade_label }}</span> · {{ item.grupo_label }}</p>
+        <h2 class="mkt-card-name">{{ item.nome }}</h2>
+        {% if item.nome_ingles %}<p class="magic-english-name">{{ item.nome_ingles }}</p>{% endif %}
+        <span class="market-entry-status" data-magic-stock-label>{% if item.preco_display %}Com preço no catálogo{% else %}Recompensa de missão{% endif %}</span>
+        {% if market_favorites_enabled %}
+        <form method="post" action="{% url 'market_item_favorite' 'magico' item.pk %}" class="mkt-favorite-form" data-shop-favorite data-target="mi-{{ item.pk }}">
+          {% csrf_token %}<input type="hidden" name="favorite" value="{{ item.is_favorite|yesno:'false,true' }}">
+          <button type="submit" class="mkt-favorite-btn" aria-pressed="{{ item.is_favorite|yesno:'true,false' }}">{% if item.is_favorite %}★ Favorito{% else %}☆ Salvar favorito{% endif %}</button>
+        </form>
+        {% endif %}
+      </div>
+    </header>
+    {% if item.preco_display %}
+    <div class="mkt-deal">
+      <div><span class="market-unit-label">Preço por item</span><span class="mkt-price">{{ item.preco_display }}</span></div>
+      {% if mercado_ativo %}
+      <form method="post" action="{% url 'personagem_comprar_magico' mercado_ativo.pk %}" class="mkt-buy magic-buy-form" data-shop-buy data-market-unit="{{ item.preco_ordem }}">
+        {% csrf_token %}
+        <input type="hidden" name="item" value="{{ item.slug }}">
+        <input type="hidden" name="next" value="{{ mercado_next }}">
+        {% if item.opcoes_item_base %}
+        <label class="magic-base-picker"><span>Escolha o item-base</span>
+          <select name="base_item" class="mkt-select" required aria-label="Escolher item-base de {{ item.nome }}">
+            <option value="">Selecione…</option>
+            {% for base in item.opcoes_item_base %}<option value="{{ base.slug }}">{{ base.nome }}</option>{% endfor %}
+          </select>
+        </label>
+        {% endif %}
+        <button type="submit" class="mkt-btn is-buy" data-nome="{{ item.nome }}">Comprar</button>
+      </form>
+      {% endif %}
+    </div>
+    {% if mercado_ativo %}
+    <div class="market-buy-summary"><div><span>Total da compra</span><strong data-market-total>{{ item.preco_display }}</strong></div><p data-market-after></p></div>
+    <p class="market-recipient">Para <strong>{{ mercado_ativo.nome }}</strong> · o item entra guardado, sem equipar ou sintonizar automaticamente.</p>
+    {% else %}
+    <p class="market-recipient">{% if mercado_logado %}<a href="{% url 'criacao_ficha' %}">Crie um personagem</a> para comprar.{% else %}<a href="{% url 'login' %}?next={{ request.path|urlencode }}">Entre na sua conta</a> para comprar para uma ficha.{% endif %}</p>
+    {% endif %}
+    {% else %}
+    <p class="magic-availability-note"><span class="mkt-seal">Recompensa de missão</span> · item sem preço no catálogo. A compra não está liberada.</p>
+    {% endif %}
+    <dl class="mkt-stats">
+      <div><dt>Tipo</dt><dd>{{ item.tipo_label }}</dd></div>
+      <div><dt>Slot</dt><dd>{{ item.get_slot_display }}</dd></div>
+      <div><dt>Sintonização</dt><dd>{% if item.requer_sintonizacao %}{{ item.detalhes_sintonizacao|default:'Exigida' }}{% else %}Não exige{% endif %}</dd></div>
+    </dl>
+    {% if item.descricao_markdown %}<div class="bonfire-markdown mkt-desc" data-markdown-source>{{ item.descricao_markdown|escape }}</div>
+    {% else %}<p class="mkt-card-line">Sem descrição catalogada.</p>{% endif %}
+    {% if request.user.is_superuser %}{% include 'home/partials/magic_market_editor.html' %}{% endif %}
+  </article>
+</template>
+{% endfor %}

@@ -1,0 +1,96 @@
+{% extends 'home/base.html' %}
+{% load static editorial_images %}
+
+{% block body_class %}bft-public-profile{% endblock %}
+{% block main_class %}bft-profile-main{% endblock %}
+{% block content_libraries %}{% include 'home/includes/content_libraries.html' with defer_scripts=True %}{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/perfil.css' %}?v=10">
+<link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=4">
+<link rel="stylesheet" href="{% static 'css/pages/profile-redesign.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'css/pages/profile-wall.css' %}?v=1">
+<script src="{% static 'js/profile-wall.js' %}?v=1" defer></script>
+<link rel="stylesheet" href="{% static 'css/pages/master-hub.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/pages/master-portfolio.css' %}?v=1">
+{% if appearance.theme_css_href %}<link rel="stylesheet" href="{{ appearance.theme_css_href }}">{% endif %}
+{% if master_appearance.theme_css_href and master_appearance.theme_css_href != appearance.theme_css_href %}<link rel="stylesheet" href="{{ master_appearance.theme_css_href }}">{% endif %}
+<title>{{ viewed_user.username }} - Perfil - Bonfire Tales RPG</title>
+{% endblock %}
+
+{% block content %}
+{% include 'home/partials/players_preview_notice.html' %}
+{% if master_demo %}<p class="master-area mh-notice" role="status">Demonstração visual: este perfil e suas mesas são fictícios. Nenhum cargo ou inscrição é criado.</p>{% endif %}
+{% if appearance.background_url|safe_profile_image %}<div class="profile-bg-media" style="background-image:url('{{ appearance.background_url|safe_profile_image }}');"></div>{% endif %}
+{% if master_appearance and community.is_master and community.listado %}
+  {% if request.GET.aba == 'mestre' or community.modo == 'mestre' %}
+    {% include 'home/partials/_perfil_publico_hero.html' with appearance=master_appearance profile=master_profile_display %}
+  {% else %}{% include 'home/partials/_perfil_publico_hero.html' %}{% endif %}
+{% else %}{% include 'home/partials/_perfil_publico_hero.html' %}{% endif %}
+
+{% comment %}
+Curtir/Seguir — o wiring existe SÓ AQUI (página pública). O partial é o mesmo da
+prévia do editor, mas lá `preview_mode` suprime os botões e este script nem é
+carregado: a prévia jamais dispara um toggle.
+
+O servidor devolve o ESTADO resultante (mesmo formato de social.estado_social) e o
+cliente só reescreve o que veio — sem contador otimista, sem recálculo local.
+{% endcomment %}
+{% if social.pode_interagir %}
+<script>
+(() => {
+    const bloco = document.querySelector('.profile-social[data-social-username]');
+    if (!bloco) return;
+    const csrf = '{{ csrf_token }}';
+    const urls = {
+        curtir: "{% url 'perfil_curtir' viewed_user.username %}",
+        seguir: "{% url 'perfil_seguir' viewed_user.username %}",
+    };
+    const msg = bloco.querySelector('[data-social-msg]');
+
+    const pinta = (dados) => {
+        for (const chave of ['curtidas', 'seguidores', 'seguindo']) {
+            const el = bloco.querySelector('[data-social-count="' + chave + '"]');
+            if (el && typeof dados[chave] === 'number') el.textContent = dados[chave];
+        }
+        const pares = [['curtir', 'curtiu', 'Curtido', 'Curtir'],
+                       ['seguir', 'segue', 'Seguindo', 'Seguir']];
+        for (const [acao, campo, ligado, desligado] of pares) {
+            const btn = bloco.querySelector('[data-social-action="' + acao + '"]');
+            if (!btn) continue;
+            const on = !!dados[campo];
+            btn.classList.toggle('is-on', on);
+            btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+            const label = btn.querySelector('.profile-social-label');
+            if (label) label.textContent = on ? ligado : desligado;
+        }
+    };
+
+    bloco.addEventListener('click', async (ev) => {
+        const btn = ev.target.closest('[data-social-action]');
+        if (!btn || btn.disabled) return;
+        const url = urls[btn.getAttribute('data-social-action')];
+        if (!url) return;
+        btn.disabled = true;
+        if (msg) msg.textContent = '';
+        try {
+            const resp = await fetch(url, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin',
+            });
+            const dados = await resp.json().catch(() => ({}));
+            if (!resp.ok || !dados.ok) {
+                if (msg) msg.textContent = dados.erro || 'Nao foi possivel concluir.';
+                return;
+            }
+            pinta(dados);
+        } catch (e) {
+            if (msg) msg.textContent = 'Falha de conexao.';
+        } finally {
+            btn.disabled = false;
+        }
+    });
+})();
+</script>
+{% endif %}
+{% endblock %}

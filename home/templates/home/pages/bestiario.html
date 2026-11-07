@@ -1,0 +1,105 @@
+{% extends 'home/base.html' %}
+{% load static editorial_images %}
+{% block body_class %}bft-bestiary{% endblock %}
+{% block main_class %}be-main{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/bestiary.css' %}?v=4"><script src="{% static 'js/bestiary.js' %}?v=3" defer></script>{% endblock %}
+{% block content %}
+<section class="bestiary-shell" aria-labelledby="bestiary-title">
+  <header class="be-heading">
+    <div class="be-heading-copy"><span class="be-heading-mark" aria-hidden="true">{% include 'home/partials/bestiary_mark.html' %}</span><div><p class="be-eyebrow">Arquivo de criaturas · Cinéria</p><h1 id="bestiary-title">Bestiário</h1><p>Conheça o perigo. Prepare o encontro.</p></div></div>
+    {% if pode_criar %}<a href="{% url 'bestiario_criar' %}" class="be-button">+ Nova criatura</a>{% endif %}
+  </header>
+  {% if bestiary_local_preview %}<p class="be-local">Acervo de referência da cópia local · edição e exclusão oficiais não são executadas nesta prévia.</p>{% endif %}
+  {% if msg == 'criada' %}<p class="be-notice" role="status">Criatura criada.</p>
+  {% elif msg == 'editada' %}<p class="be-notice" role="status">Criatura atualizada.</p>
+  {% elif msg == 'excluida' %}<p class="be-notice" role="status">Criatura excluída.</p>
+  {% elif msg == 'referenciada' %}<p class="be-notice" role="alert">Esta criatura ainda é usada por uma habilidade ou magia. Remova a referência antes de excluí-la.</p>{% endif %}
+  <div class="bestiary-grid">
+    <aside class="be-catalog" aria-label="Catálogo de criaturas">
+      <form method="get" action="{{ request.path }}" class="bestiary-toolbar" id="bz-filter-form">
+        <input type="hidden" id="bz-active" name="active" value="{{ active_creature_id|default_if_none:'' }}">
+        <label for="bz-busca" class="be-eyebrow">Encontre uma criatura</label>
+        <div class="be-search"><input id="bz-busca" name="q" type="search" value="{{ busca }}" placeholder="Nome, tipo ou tamanho…" autocomplete="off"><button type="submit" class="be-search-button" aria-label="Buscar criaturas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg></button></div>
+        <details class="be-filters"{% if filtro or nd_sel or tipo_sel or tam_sel or uso_sel or ordem != 'az' %} open{% endif %}>
+          <summary><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4"/></svg>Filtros e ordenação</span><span aria-hidden="true">⌄</span></summary>
+          <div class="be-filter-grid">
+            <label for="bz-origin">Origem<select id="bz-origin" name="f" onchange="this.form.submit()"><option value="" {% if not filtro %}selected{% endif %}>Todas</option><option value="oficial" {% if filtro == 'oficial' %}selected{% endif %}>Oficiais</option><option value="comunidade" {% if filtro == 'comunidade' %}selected{% endif %}>Comunidade</option></select></label>
+            <label for="bz-cr">Nível de desafio<select id="bz-cr" name="nd" onchange="this.form.submit()"><option value="">Todos os NDs</option>{% for key,label in nds %}<option value="{{ key }}" {% if key == nd_sel %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+            <label for="bz-type">Tipo<select id="bz-type" name="tipo" onchange="this.form.submit()"><option value="">Todos os tipos</option>{% for key,label in tipos %}<option value="{{ key }}" {% if key == tipo_sel %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+            <label for="bz-size">Tamanho<select id="bz-size" name="tam" onchange="this.form.submit()"><option value="">Todos</option>{% for key,label in tamanhos %}<option value="{{ key }}" {% if key == tam_sel %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+            <label for="bz-use">Vínculo<select id="bz-use" name="uso" aria-label="Vínculo da criatura" onchange="this.form.submit()"><option value="">Todos os vínculos</option>{% for key,label in usos %}<option value="{{ key }}" {% if key == uso_sel %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+            <label for="bz-order">Ordenar<select id="bz-order" name="ord" onchange="this.form.submit()"><option value="az" {% if ordem == 'az' %}selected{% endif %}>Nome · A–Z</option><option value="za" {% if ordem == 'za' %}selected{% endif %}>Nome · Z–A</option><option value="nd_asc" {% if ordem == 'nd_asc' %}selected{% endif %}>Menor ND</option><option value="nd_desc" {% if ordem == 'nd_desc' %}selected{% endif %}>Maior ND</option></select></label>
+          </div><div class="be-filter-actions"><button class="be-button be-button-small" type="submit">Aplicar filtros</button><a class="be-text-link" href="{{ request.path }}">Limpar</a></div>
+        </details>
+      </form>
+      <div class="be-list-heading"><p><span id="bz-count">{{ criaturas|length }}</span> de {{ total_criaturas }} criatura(s)</p><a class="be-text-link be-skip-list" href="#bz-sheet">Ir para a ficha ↓</a></div>
+      <nav class="bestiary-list" id="bz-list" aria-label="Escolher criatura">
+        {% for c in criaturas %}
+        <a href="?{{ request.GET.urlencode }}{% if request.GET %}&amp;{% endif %}active={{ c.id }}" class="bz-item bestiary-list-item{% if c.id == active_creature_id %} is-active{% endif %}" data-target="monster-{{ c.id }}" aria-controls="monster-{{ c.id }}"{% if c.id == active_creature_id %} aria-current="true"{% endif %}>
+          <span class="be-list-copy"><strong>{{ c.nome }}</strong><small class="be-type-label">{% include 'home/partials/creature_type_icon.html' with icons=c.type_icons %}{{ c.tipo }} · {{ c.tamanho }}</small>{% if c.imagem %}<small class="be-list-art">Ilustração disponível</small>{% endif %}{% if c.usages %}<small class="be-list-usage">{{ c.usages|join:", " }}</small>{% endif %}{% if c.comunidade %}<small class="be-list-community">Comunidade</small>{% endif %}</span>
+          <span class="be-list-nd" title="{{ c.nd_source }}"><small aria-hidden="true">ND</small><b aria-hidden="true">{{ c.nd }}</b><span class="be-sr-only">ND {{ c.nd }}</span></span>
+        </a>
+        {% empty %}<div class="be-list-empty"><strong>Nenhuma criatura encontrada</strong><p>Tente outro nome ou remova um filtro.</p><a class="be-text-link" href="{{ request.path }}">Limpar busca →</a></div>{% endfor %}
+      </nav>
+      {% if page_count > 1 %}<nav aria-label="Páginas do bestiário" class="be-pagination">{% if prev_page_url %}<a href="{{ prev_page_url }}" aria-label="Página anterior">← Anterior</a>{% else %}<span>← Anterior</span>{% endif %}<span>{{ page_number }} / {{ page_count }}</span>{% if next_page_url %}<a href="{{ next_page_url }}" aria-label="Próxima página">Próxima →</a>{% else %}<span>Próxima →</span>{% endif %}</nav>{% endif %}
+    </aside>
+
+    <div class="monster-sheet" id="bz-sheet" role="region" aria-label="Ficha da criatura selecionada" tabindex="-1">
+      {% if criaturas %}<div class="be-target-control"><label for="bz-target-size">Consultar tamanho do alvo<select id="bz-target-size" name="target_size" form="bz-filter-form" onchange="this.form.submit()" aria-describedby="bz-target-help"><option value="">Sem alvo selecionado</option>{% for key,label in target_size_options %}<option value="{{ key }}" {% if target_size == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label><p id="bz-target-help">Indica limites de tamanho nas ações. Não resolve ataques ou testes de resistência.</p></div>{% endif %}
+      {% for c in criaturas %}
+      <article id="monster-{{ c.id }}" class="monster-panel {% if c.id != active_creature_id %}hidden{% endif %}" aria-labelledby="monster-title-{{ c.id }}">
+        {% with sb=c.sb %}
+        <header class="monster-header">
+          <div class="be-monster-title"><div class="be-badges"><span>{% if c.comunidade %}Comunidade{% else %}Acervo oficial{% endif %}</span><span>{% if c.nd_key == 'unrated' %}{{ c.nd }}{% else %}ND {{ c.nd|default:'pendente' }}{% endif %}</span>{% for usage in c.usages %}<span>{{ usage }}</span>{% endfor %}</div><h2 id="monster-title-{{ c.id }}" class="monster-title">{{ c.nome }}</h2><p class="monster-subtitle">{{ sb.cabecalho }}{% if c.autor %} · por {{ c.autor }}{% endif %}</p></div>
+          {% if c.imagem|safe_profile_image %}<img class="be-creature-art" src="{{ c.imagem|safe_profile_image }}" alt="Ilustração de {{ c.nome }}" loading="lazy">{% else %}<span class="be-creature-mark" aria-hidden="true">{% include 'home/partials/bestiary_mark.html' %}</span>{% endif %}
+        </header>
+        {% if c.statblock_incompleto %}<p class="be-incomplete" role="note">Statblock incompleto: atributos e ações ainda não foram cadastrados.</p>{% endif %}
+        {% if c.imagem|safe_profile_image %}<div class="be-view-switch" role="group" aria-label="Visualização de {{ c.nome }}" hidden><button type="button" data-creature-view="sheet" aria-pressed="true" aria-controls="monster-{{ c.id }}-sheet">Ficha da criatura</button><button type="button" data-creature-view="art" aria-pressed="false" aria-controls="monster-{{ c.id }}-art">Ilustração</button></div>{% endif %}
+        <div class="monster-sheet-inner" id="monster-{{ c.id }}-sheet" data-creature-content="sheet">
+          {% if c.variant_selector %}<section class="monster-section" aria-label="Ficha variável">
+            <h3 class="monster-section-title">Ficha variavel</h3>
+            <p>{{ c.variant_selector.selection_note }}</p>
+            <p>Exemplos de fichas:
+              {% for ref in c.variant_selector.variant_refs %}<a href="?q={{ ref.slug|urlencode }}" class="bonfire-card-trigger" data-table="tbBestiario" data-args="{{ ref.slug }}">{{ ref.name }} (ND {{ ref.cr|default:'?' }})</a>{% endfor %}
+            </p>
+          </section>{% endif %}
+          <dl class="monster-vitals">
+            <div><dt>Classe de Armadura</dt><dd>{{ sb.ca|default:'Não informada' }}</dd></div>
+            <div><dt>Pontos de Vida</dt><dd>{{ sb.pv|default:'Não informados' }}</dd></div>
+            <div><dt>Deslocamento</dt><dd>{{ sb.desloc|default:'Não informado' }}</dd></div>
+          </dl>
+          {% if sb.abilities %}<section class="monster-attrs" aria-label="Atributos">{% for a in sb.abilities %}<div class="monster-attr"><h3>{{ a.sig }}</h3><span>{{ a.score }}</span><b>{{ a.mod }}</b></div>{% endfor %}</section>{% endif %}
+          <dl class="monster-details">
+            {% if sb.saves %}<div><dt>Testes de Resistência</dt><dd>{{ sb.saves }}</dd></div>{% endif %}
+            {% if sb.skills %}<div><dt>Perícias</dt><dd>{{ sb.skills }}</dd></div>{% endif %}
+            {% if sb.vuln %}<div><dt>Vulnerabilidades</dt><dd>{{ sb.vuln }}</dd></div>{% endif %}
+            {% if sb.resist %}<div><dt>Resistências</dt><dd>{{ sb.resist }}</dd></div>{% endif %}
+            {% if sb.immune %}<div><dt>Imunidades a dano</dt><dd>{{ sb.immune }}</dd></div>{% endif %}
+            {% if sb.cond_immune %}<div><dt>Imunidades a condição</dt><dd>{{ sb.cond_immune }}</dd></div>{% endif %}
+            {% if sb.sentidos %}<div><dt>Sentidos</dt><dd>{{ sb.sentidos }}{% if sb.passivo %} · Percepção passiva {{ sb.passivo }}{% endif %}</dd></div>{% elif sb.passivo %}<div><dt>Percepção passiva</dt><dd>{{ sb.passivo }}</dd></div>{% endif %}
+            {% if sb.idiomas %}<div><dt>Idiomas</dt><dd>{{ sb.idiomas }}</dd></div>{% endif %}
+            {% if sb.cr %}<div><dt>Nível de Desafio</dt><dd>{{ sb.cr }}</dd></div>{% endif %}
+            {% if sb.xp %}<div><dt>XP</dt><dd>{{ sb.xp }}</dd></div>{% endif %}
+            {% if sb.pb %}<div><dt>Bônus de Proficiência (PB)</dt><dd>{{ sb.pb }}</dd></div>{% endif %}
+            {% if c.nd_notes %}<div><dt>Notas do desafio</dt><dd>{{ c.nd_notes }}</dd></div>{% endif %}
+          </dl>
+          <nav class="be-sheet-index" aria-label="Seções de {{ c.nome }}">{% if sb.traits %}<a href="#monster-{{ c.id }}-traits">Traços</a>{% endif %}{% if sb.actions %}<a href="#monster-{{ c.id }}-actions">Ações</a>{% endif %}{% if sb.conjuration_target %}<a href="#{{ sb.conjuration_target }}">Conjuração</a>{% endif %}{% if sb.legendary or sb.mythic or sb.lair or sb.regional %}<a href="#monster-{{ c.id }}-special">Especiais</a>{% endif %}{% if c.descricao %}<a href="#monster-{{ c.id }}-description">Descrição</a>{% endif %}</nav>
+          {% if sb.traits %}<section class="monster-section" id="monster-{{ c.id }}-traits"><h3 class="monster-section-title">Traços</h3>{% include 'home/partials/bestiary_features.html' with bloco=sb.traits %}</section>{% endif %}
+          {% if sb.actions %}<section class="monster-section" id="monster-{{ c.id }}-actions"><h3 class="monster-section-title">Ações</h3>{% include 'home/partials/bestiary_features.html' with bloco=sb.actions %}</section>{% endif %}
+          {% if sb.bonus %}<section class="monster-section"><h3 class="monster-section-title">Ações bônus</h3>{% include 'home/partials/bestiary_features.html' with bloco=sb.bonus %}</section>{% endif %}
+          {% if sb.reactions %}<section class="monster-section"><h3 class="monster-section-title">Reações</h3>{% include 'home/partials/bestiary_features.html' with bloco=sb.reactions %}</section>{% endif %}
+          {% if sb.legendary or sb.mythic or sb.lair or sb.regional %}<div id="monster-{{ c.id }}-special" class="be-special-sections">{% if sb.legendary %}<section class="monster-section"><h3 class="monster-section-title">Ações lendárias</h3>{% include 'home/partials/bestiary_features.html' with bloco=sb.legendary %}</section>{% endif %}{% if sb.mythic %}<section class="monster-section"><h3 class="monster-section-title">Ações míticas</h3>{% include 'home/partials/bestiary_features.html' with bloco=sb.mythic %}</section>{% endif %}{% if sb.lair %}<section class="monster-section"><h3 class="monster-section-title">Ações de covil</h3>{% include 'home/partials/bestiary_features.html' with bloco=sb.lair %}</section>{% endif %}{% if sb.regional %}<section class="monster-section"><h3 class="monster-section-title">Efeitos regionais</h3>{% include 'home/partials/bestiary_features.html' with bloco=sb.regional %}</section>{% endif %}</div>{% endif %}
+          {% if c.descricao %}<details class="be-description monster-section" id="monster-{{ c.id }}-description"><summary>Descrição e informações complementares <span aria-hidden="true">⌄</span></summary><div class="bonfire-markdown" data-markdown-source>{{ c.descricao|escape }}</div></details>{% endif %}
+        </div>
+        <section class="be-visual-panel" id="monster-{{ c.id }}-art" data-creature-content="art" aria-label="Ilustração de {{ c.nome }}" hidden>
+          {% if c.imagem|safe_profile_image %}<div class="be-visual-grid"><figure class="be-illustration"><img src="{{ c.imagem|safe_profile_image }}" alt="Ilustração completa de {{ c.nome }}" loading="lazy"><figcaption>{{ c.nome }} <a href="{{ c.imagem|safe_profile_image }}" download="{{ c.slug }}-ilustracao.png">Baixar ilustração ↓</a></figcaption></figure><div class="be-token-block"><h3>Token para a mesa</h3>{% if c.art.token %}<div class="be-token-stage"><img src="{{ c.art.token }}" alt="Token redondo de {{ c.nome }} com fundo transparente" loading="lazy"></div><a class="be-button" href="{{ c.art.token }}" download="{{ c.slug }}-token.png">Baixar token PNG ↓</a><p>Fundo transparente. Importe o PNG na sua mesa virtual, como o Roll20.</p>{% else %}<p>Esta criatura ainda não tem token disponível.</p>{% endif %}</div></div>{% else %}<div class="be-visual-empty"><h3>Arte ainda não disponível</h3><p>A ficha está completa. Procure a indicação “Ilustração disponível” na lista para ver as criaturas já ilustradas.</p></div>{% endif %}
+        </section>
+        <noscript>{% if c.imagem|safe_profile_image %}<p class="be-noscript-art"><a href="{{ c.imagem|safe_profile_image }}">Ver ilustração</a>{% if c.art.token %} · <a href="{{ c.art.token }}" download>Baixar token PNG</a>{% endif %}</p>{% endif %}</noscript>{% endwith %}
+        {% if c.pode_editar %}<footer class="be-editor-actions"><a href="{% url 'bestiario_editar' c.id %}" class="be-text-link">Editar criatura</a><form method="post" action="{% url 'bestiario_excluir' c.id %}" onsubmit="return confirm('Excluir {{ c.nome|escapejs }}?');">{% csrf_token %}<button type="submit" class="be-danger"{% if bestiary_local_preview %} disabled{% endif %}>Excluir</button></form></footer>{% endif %}
+      </article>
+      {% empty %}<div class="monster-empty">{% include 'home/partials/bestiary_mark.html' %}<h2>Nenhuma criatura neste filtro</h2><p>Seu próximo encontro pode estar em outra busca.</p><a class="be-button" href="{{ request.path }}">Ver todas as criaturas</a></div>{% endfor %}
+    </div>
+  </div>
+  <p class="be-sr-only" id="bz-announcement" role="status" aria-live="polite" aria-atomic="true"></p>
+</section>
+{% endblock %}

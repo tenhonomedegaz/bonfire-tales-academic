@@ -1,0 +1,37 @@
+{% extends 'home/base.html' %}{% load static %}
+{% block body_class %}{% if pagina == 'sobre' or pagina == 'contato' %}bft-complementary{% endif %}{% endblock %}
+{% block main_class %}{% if pagina == 'sobre' or pagina == 'contato' %}cp-main flex-1 w-full min-w-0{% else %}flex-1 w-full max-w-5xl mx-auto px-3 md:px-5 py-4{% endif %}{% endblock %}
+{% block extra_head %}{% if pagina == 'sobre' or pagina == 'contato' %}<link rel="stylesheet" href="{% static 'css/pages/complementary.css' %}?v=1">{% endif %}{% endblock %}
+
+{% block content %}
+{% if pagina == 'sobre' or pagina == 'contato' %}{% include 'home/partials/institutional_complementary.html' %}{% else %}
+<div class="mx-auto max-w-4xl py-5 md:py-8">
+  <header class="border-b border-[var(--stroke)] pb-5">
+    <p class="text-xs font-bold uppercase text-[var(--ember)]">Bonfire Tales</p>
+    <h1 class="mt-2 font-rpg text-3xl font-bold text-[var(--text)] md:text-5xl">{{ page_title }}</h1>
+    <p class="mt-3 max-w-3xl text-sm leading-relaxed text-[var(--muted)] md:text-base">{{ meta_description }}</p>
+  </header>
+
+  <div class="divide-y divide-[var(--stroke)]">
+    {% for bloco in blocos %}
+    <article class="py-6" id="{{ bloco.chave }}">
+      {% if bloco.titulo and bloco.titulo != page_title %}
+      <h2 class="font-rpg text-2xl font-bold text-[var(--text)]">{{ bloco.titulo }}</h2>
+      {% endif %}
+      {% if bloco.subtitulo %}
+      <p class="mt-2 text-sm leading-relaxed text-[var(--muted)]">{{ bloco.subtitulo }}</p>
+      {% endif %}
+      {% if bloco.conteudo_markdown %}
+      <div class="bonfire-markdown mt-5 text-sm leading-7 text-[var(--muted)]" data-markdown-source>{{ bloco.conteudo_markdown }}</div>
+      {% endif %}
+      {% if bloco.cta_texto and bloco.safe_cta_url %}
+      <a href="{{ bloco.safe_cta_url }}" class="mt-5 inline-flex items-center rounded border border-[var(--ember)] px-4 py-2 text-sm font-bold text-[var(--ember)] hover:bg-[var(--ember)] hover:text-black">
+        {{ bloco.cta_texto }}
+      </a>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

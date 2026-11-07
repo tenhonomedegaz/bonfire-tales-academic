@@ -1,0 +1,18 @@
+@keyframes mobileMenuIn {
+  from { opacity: 0; transform: translateY(-8px) scale(.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes mobileMenuOut {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(-8px) scale(.96); }
+}
+@keyframes mobileCatIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.mobile-menu-enter {
+  animation: mobileMenuIn .25s cubic-bezier(.2,.8,.2,1) both;
+}
+.mobile-cat-enter {
+  animation: mobileCatIn .2s ease both;
+}

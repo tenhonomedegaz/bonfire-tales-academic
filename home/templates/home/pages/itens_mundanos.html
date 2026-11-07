@@ -1,0 +1,31 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block body_class %}bft-mundane-market bft-market-game{% endblock %}
+{% block main_class %}bft-market-main{% endblock %}
+
+{% block title %}Mercado Mundano | Bonfire Tales{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/mercado_loja.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/pages/mundane-market-redesign.css' %}?v=7">
+<link rel="stylesheet" href="{% static 'css/pages/mundane-market-game.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/pages/market-transaction-review.css' %}?v=1">
+<script src="{% static 'js/mercado_loja.js' %}?v=16" defer></script>
+<script src="{% static 'js/mundane-market-presentation.js' %}?v=3" defer></script>
+<script src="{% static 'js/mundane-market-game.js' %}?v=2" defer></script>
+{% endblock %}
+
+{% block content %}
+<div class="mundane-market">
+  <div class="market-breadcrumb"><a href="{% url 'home' %}">Bonfire Tales</a><span aria-hidden="true">/</span><span>Mercado Mundano</span></div>
+  <header class="market-game-header">
+    <div><h1>Mercado Mundano</h1><p>Escolha um nome para ver detalhes, preço e opções para sua ficha.</p></div>
+    <div class="market-game-header-actions"><button type="button" data-market-select="guide-sobre">Sobre o mercado</button><button type="button" data-market-select="guide-economia">Economia e regras</button></div>
+  </header>
+  {% if market_preview %}<p class="market-game-local">Prévia local · compras e vendas afetam somente as fichas de demonstração.</p>{% endif %}
+  <div id="content-container">{% include 'home/partials/itens_mundanos_content.html' %}</div>
+  <p class="market-game-footer-note">Compras usam os preços atuais do catálogo. Serviços e versões não cadastradas estão marcados como consulta e não descontam ouro.</p>
+  {{ market_legacy_navigation|json_script:'market-legacy-navigation' }}
+</div>
+{% endblock %}

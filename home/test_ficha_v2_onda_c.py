@@ -1,0 +1,488 @@
+# -*- coding: utf-8 -*-
+"""Regressão da FICHA v2 — onda C (MERCADO), briefing docs/agentes/briefing_ficha_v2.md.
+
+  1. As páginas do Mercado são LOJA MASTER-DETAIL: uma LISTA compacta de itens (linha =
+     nome · meta · preço composto) com busca e filtros simples, e o PAINEL DE DESTAQUE com a
+     prévia completa do item selecionado. As prateleiras em blocos foram REPROVADAS pelos
+     jogadores e não podem voltar.
+  2. A prévia traz o pacote inteiro: retrato (imagem do catálogo ou selo temático), preço em
+     destaque, ficha mecânica, descrição COMPLETA em markdown e o botão de compra.
+  3. Balcão no topo: seletor de personagem ativo (só os do usuário, persistido em sessão) e
+     carteira composta em PO/PP/PC.
+  4. Compra por fetch nos endpoints de sempre debita a carteira, materializa o item e
+     devolve carteira + painel de venda re-renderizados (sem reload).
+  5. Venda a 80% mora no painel VENDER do Mercado, na mesma lista+destaque.
+  6. Item sem preço fica exposto como "Recompensa de missão", sem botão — e o POST direto
+     continua recusado no backend.
+  7. `editar_ficha` é ferramenta SÓ-DA-STAFF: dono não-staff é redirecionado para a ficha;
+     para a staff sobra o staffbox (aventuras + conceder/reverter item), sem loja.
+  8. Fix cosmético da onda B: os atalhos [data-tab-jump] usam delegação no document.
+
+Roda contra o conteúdo real (fixture `conteudo.json`), reusando o `LevelUpLoteBase`.
+"""
+import io
+import os
+
+from django.conf import settings
+from django.urls import reverse
+
+from home.models import TbItemMagico, TbItemMundano, TbPersonagem, TbPersonagemItem
+from home.views import _preco_em_pc, _preco_venda_mundano_pc, _preco_venda_pc
+from home.test_levelup import LevelUpLoteBase
+
+
+class _MercadoBase(LevelUpLoteBase):
+    AJAX = {'HTTP_X_REQUESTED_WITH': 'XMLHttpRequest'}
+    MUNDANOS = reverse('mercado_itens_mundanos')
+    MAGICOS = reverse('mercado_itens_magicos')
+
+    def _char(self, apelido='mercado', ouro_pc=1_000_000):
+        p = self._guerreiro_no_nivel(1, apelido=apelido)
+        p.carteira_pc = ouro_pc
+        p.save(update_fields=['carteira_pc'])
+        return p
+
+    def _dono_comum(self, p, username):
+        """Troca o dono por um usuário NÃO-staff (o `_guerreiro_no_nivel` cria staff)."""
+        user = self._novo_usuario(username, staff=False)
+        p.dono = user
+        p.save(update_fields=['dono'])
+        return user
+
+    def _item_mundano_com_preco(self):
+        return next(i for i in TbItemMundano.objects.order_by('nome')
+                    if _preco_em_pc(i.preco) is not None)
+
+    def _vitrine(self, url, user=None, **params):
+        if user is not None:
+            self.client.force_login(user)
+        resp = self.client.get(url, params)
+        self.assertEqual(resp.status_code, 200, resp.content[:400])
+        return resp.content.decode('utf-8')
+
+    def _bloco(self, html, abre, fecha):
+        """Recorta um pedaço do HTML — a linha da lista ou a prévia de um item."""
+        self.assertIn(abre, html, abre)
+        return html.split(abre, 1)[1].split(fecha, 1)[0]
+
+    def _previa(self, html, alvo):
+        return self._bloco(html, '<template id="%s-tpl">' % alvo, '</template>')
+
+    def _linha(self, html, alvo):
+        return self._bloco(html, 'data-target="%s"' % alvo, '</button>')
+
+
+class VitrineDeLojaTests(_MercadoBase):
+    def test_mundano_e_lista_compacta_com_painel_de_destaque(self):
+        p = self._char('vitrine-mu')
+        html = self._vitrine(self.MUNDANOS, p.dono)
+        # loja MASTER-DETAIL: lista de linhas à esquerda, painel de destaque à direita
+        for needle in ('data-shop-root', 'data-shop-kind="mundano"', 'data-shop-list',
+                       'data-mkt-row', 'mkt-row-name', 'mkt-row-price', 'data-shop-preview',
+                       'data-shop-detail', 'data-shop-counter', 'mkt-wallet',
+                       'data-shop-search', 'data-shop-group',
+                       'css/pages/mercado_loja.css', 'js/mercado_loja.js'):
+            self.assertIn(needle, html, needle)
+        # uma linha por item do catálogo, e uma prévia por linha
+        total = TbItemMundano.objects.count()
+        self.assertEqual(html.count('data-mkt-row data-target="mu-'), total)
+        self.assertEqual(html.count('<template id="mu-'), total)
+        # a categoria REAL do catálogo virou OPÇÃO DE FILTRO (dado, não lista fixa)
+        for categoria in TbItemMundano.objects.values_list('categoria', flat=True).distinct():
+            rotulo = dict(TbItemMundano.CATEGORIA_CHOICES).get(categoria, categoria)
+            self.assertIn('>%s (' % rotulo, html, rotulo)
+        # preço composto em PO/PP/PC (a exibição decimal morreu na onda A)
+        self.assertIn(' PO<', html)
+
+    def test_magico_filtra_por_loja_do_catalogo_e_por_raridade(self):
+        p = self._char('vitrine-mi')
+        html = self._vitrine(self.MAGICOS, p.dono)
+        self.assertIn('data-shop-kind="magico"', html)
+        lojas = {(l or '').strip() for l in
+                 TbItemMagico.objects.values_list('loja', flat=True).distinct()}
+        # as lojas do catálogo (Alquimia, Forja, Joalheria…) viram opção do seletor
+        for loja in ('Alquimia', 'Forja', 'Joalheria'):
+            self.assertIn(loja, lojas, 'catálogo real deveria ter a loja %s' % loja)
+            self.assertIn('>%s (' % loja, html, loja)
+        # busca + dois filtros simples, nada de prateleira
+        self.assertIn('data-shop-search', html)
+        self.assertIn('data-shop-group', html)
+        self.assertIn('data-shop-rarity', html)
+        for raridade in TbItemMagico.objects.values_list('raridade', flat=True).distinct():
+            self.assertIn('<option value="%s">' % raridade, html, raridade)
+        # raridade DISCRETA na linha (um ponto), preço na linha E no painel
+        self.assertIn('mkt-row-dot', html)
+        self.assertIn('mkt-row-price', html)
+        self.assertIn('mkt-price', html)
+        self.assertIn(' PO<', html)
+        self.assertIn('Recompensa de missão', html)
+
+    def test_as_prateleiras_em_blocos_nao_voltam(self):
+        """Veredito do PO: o layout em prateleiras/blocos foi reprovado pelos jogadores —
+        nem ele nem a lista-wiki podem ressuscitar."""
+        p = self._char('sem-prateleira')
+        for url in (self.MUNDANOS, self.MAGICOS):
+            html = self._vitrine(url, p.dono)
+            for morto in ('shop-shelf', 'shelf-head', 'shelf-name', 'shelf-grid',
+                          'shelf-count', 'data-shelf-filter', 'data-rarity-filter',
+                          'goods-face', 'data-goods-open', 'shop-chip'):
+                self.assertNotIn(morto, html, '%s ressuscitou em %s' % (morto, url))
+
+    def test_balcao_lista_so_personagens_do_usuario_e_mostra_carteira(self):
+        p = self._char('balcao')
+        p.carteira_pc = 123_450          # 1234 PO 5 PP
+        p.save(update_fields=['carteira_pc'])
+        alheio = self._char('balcao-alheio')
+        alheio.nome = 'Personagem Alheio'
+        alheio.save(update_fields=['nome'])
+        html = self._vitrine(self.MUNDANOS, p.dono)
+        self.assertIn('data-shop-personagem', html)
+        self.assertIn(p.nome, html)
+        self.assertNotIn('Personagem Alheio', html)   # é de outro dono
+        self.assertIn('1234 PO 5 PP', html)           # carteira do ativo, decomposta
+
+    def test_personagem_ativo_vem_do_parametro_e_persiste_na_sessao(self):
+        p1 = self._char('ativo-1')
+        p2 = TbPersonagem.objects.create(dono=p1.dono, nome='Segundo Herói', carteira_pc=777_00)
+        # ?personagem= fixa o ativo...
+        html = self._vitrine(self.MUNDANOS, p1.dono, personagem=p2.pk)
+        self.assertIn('value="%d" selected' % p2.pk, html)
+        self.assertIn('777 PO', html)
+        self.assertEqual(self.client.session['mercado_personagem'], p2.pk)
+        # ...e a escolha atravessa para a outra vitrine sem repetir o parâmetro
+        html = self._vitrine(self.MAGICOS)
+        self.assertIn('value="%d" selected' % p2.pk, html)
+
+    def test_anonimo_ve_a_vitrine_sem_botao_de_compra(self):
+        html = self._vitrine(self.MUNDANOS)
+        self.assertIn('data-mkt-row', html)
+        self.assertIn('Entre na sua conta', html)
+        self.assertNotIn('data-shop-buy', html)
+
+
+class PainelDeDestaqueTests(_MercadoBase):
+    """A ESTRELA do pedido: clicou na linha, o painel mostra a peça inteira."""
+
+    def _magico_com_descricao(self):
+        return (TbItemMagico.objects.filter(preco__gt=0)
+                .exclude(descricao_markdown__isnull=True).exclude(descricao_markdown='')
+                .order_by('nome').first())
+
+    def test_previa_magica_traz_descricao_preco_e_botao_de_compra(self):
+        from django.utils.html import escape
+        p = self._char('previa-mi')
+        item = self._magico_com_descricao()
+        self.assertIsNotNone(item, 'catálogo real deveria ter item mágico com descrição')
+        html = self._vitrine(self.MAGICOS, p.dono)
+        previa = self._previa(html, 'mi-%d' % item.pk)
+        # nome grande, raridade e preço em destaque
+        self.assertIn(item.nome, previa)
+        self.assertIn('mkt-card-name', previa)
+        self.assertIn('mkt-price', previa)
+        self.assertIn(item.get_raridade_display(), previa)
+        from home.moeda import preco_po_display
+        self.assertIn(preco_po_display(item.preco), previa)
+        # descrição COMPLETA, crua, para o markdown do site renderizar no cliente
+        self.assertIn('data-markdown-source', previa)
+        primeira_linha = escape(item.descricao_markdown.strip().splitlines()[0])
+        self.assertIn(primeira_linha, previa)
+        # sintonização e o botão de compra vivem DENTRO do painel
+        self.assertIn('Sintonização', previa)
+        self.assertIn('data-shop-buy', previa)
+        self.assertIn(reverse('personagem_comprar_magico', args=[p.pk]), previa)
+
+    def test_previa_mundana_traz_ficha_mecanica_preco_e_quantidade(self):
+        p = self._char('previa-mu')
+        arma = next(i for i in TbItemMundano.objects.filter(categoria='arma').order_by('nome')
+                    if _preco_em_pc(i.preco) is not None)
+        html = self._vitrine(self.MUNDANOS, p.dono)
+        previa = self._previa(html, 'mu-%d' % arma.pk)
+        self.assertIn(arma.nome, previa)
+        self.assertIn('mkt-price', previa)
+        from home.views import _preco_display
+        self.assertIn(_preco_display(arma.preco), previa)
+        self.assertIn('data-shop-buy', previa)
+        self.assertIn('name="qtd"', previa)        # compra com quantidade, no painel
+        self.assertIn(reverse('personagem_comprar_item', args=[p.pk]), previa)
+
+    def test_retrato_usa_imagem_do_catalogo_e_cai_no_selo_tematico(self):
+        """`imagem_url` existe nos dois catálogos mas quase ninguém preenche: sem imagem o
+        painel mostra um selo temático — nunca um buraco."""
+        p = self._char('retrato')
+        item = self._magico_com_descricao()
+        item.imagem_url = ''
+        item.save(update_fields=['imagem_url'])
+        previa = self._previa(self._vitrine(self.MAGICOS, p.dono), 'mi-%d' % item.pk)
+        self.assertIn('mkt-figure', previa)
+        self.assertIn('mkt-sigil', previa)                 # selo temático (fallback)
+        self.assertNotIn('<img', previa)
+        # com imagem no catálogo, o retrato passa a ser a imagem
+        item.imagem_url = '/static/img/reliquia-teste.png'
+        item.save(update_fields=['imagem_url'])
+        previa = self._previa(self._vitrine(self.MAGICOS, p.dono), 'mi-%d' % item.pk)
+        self.assertIn('<img src="/static/img/reliquia-teste.png"', previa)
+        self.assertNotIn('mkt-sigil', previa)
+
+    def test_painel_nunca_nasce_vazio_e_setas_andam_na_lista(self):
+        """Seleção inicial e navegação por teclado vivem no JS da vitrine."""
+        caminho = os.path.join(settings.BASE_DIR, 'home', 'static', 'js', 'mercado_loja.js')
+        codigo = io.open(caminho, encoding='utf-8').read()
+        self.assertIn('function garantirSelecao', codigo)
+        # o filtro inicial roda no load e já destaca a primeira linha visível
+        self.assertIn('garantirSelecao();', codigo)
+        self.assertIn('aplicarFiltros();', codigo)
+        # setas ↑↓ (e Home/End) andam na lista
+        for tecla in ("'ArrowDown'", "'ArrowUp'", "'Home'", "'End'"):
+            self.assertIn(tecla, codigo, tecla)
+
+
+class CompraNoMercadoTests(_MercadoBase):
+    def test_compra_mundana_por_fetch_debita_e_atualiza_sem_reload(self):
+        p = self._char('compra-mu')
+        item = self._item_mundano_com_preco()
+        custo = _preco_em_pc(item.preco)
+        antes = p.carteira_pc
+        self.client.force_login(p.dono)
+        resp = self.client.post(reverse('personagem_comprar_item', args=[p.pk]),
+                                data={'item': item.slug, 'qtd': 2}, **self.AJAX)
+        self.assertEqual(resp.status_code, 200, resp.content)
+        body = resp.json()
+        self.assertTrue(body['ok'], body)
+        p.refresh_from_db()
+        self.assertEqual(p.carteira_pc, antes - custo * 2)
+        # o payload traz o que a vitrine precisa trocar sem recarregar
+        from home.moeda import moeda_display
+        self.assertEqual(body['carteira_display'], moeda_display(p.carteira_pc))
+        self.assertIn('venda_html', body)
+        self.assertIn(item.nome, body['inventario_html'])
+        self.assertTrue(TbPersonagemItem.objects.filter(id_personagem=p, nome=item.nome).exists())
+
+    def test_compra_magica_por_fetch(self):
+        p = self._char('compra-mi', ouro_pc=100_000_000)
+        item = TbItemMagico.objects.filter(preco__gt=0).order_by('preco').first()
+        self.client.force_login(p.dono)
+        resp = self.client.post(reverse('personagem_comprar_magico', args=[p.pk]),
+                                data={'item': item.slug}, **self.AJAX)
+        self.assertEqual(resp.status_code, 200, resp.content)
+        body = resp.json()
+        self.assertTrue(body['ok'], body)
+        self.assertIn(item.nome, body['inventario_html'])
+
+    def test_saldo_insuficiente_nao_debita(self):
+        p = self._char('sem-ouro', ouro_pc=0)
+        item = self._item_mundano_com_preco()
+        self.client.force_login(p.dono)
+        resp = self.client.post(reverse('personagem_comprar_item', args=[p.pk]),
+                                data={'item': item.slug}, **self.AJAX)
+        self.assertFalse(resp.json()['ok'])
+        self.assertEqual(resp.json()['msg'], 'saldo')
+        p.refresh_from_db()
+        self.assertEqual(p.carteira_pc, 0)
+
+    def test_sem_preco_e_recompensa_de_missao_sem_botao(self):
+        p = self._char('missao', ouro_pc=100_000_000)
+        sem_preco = TbItemMagico.objects.filter(preco=0).first()
+        self.assertIsNotNone(sem_preco, 'catálogo real deveria ter item de missão')
+        html = self._vitrine(self.MAGICOS, p.dono)
+        # a linha existe (fica exposta para consulta) e a prévia troca o botão pelo selo
+        self.assertIn(sem_preco.nome, html)
+        self.assertIn('Recompensa de missão', html)
+        linha = self._linha(html, 'mi-%d' % sem_preco.pk)
+        self.assertIn('mkt-row-price is-mission', linha)
+        previa = self._previa(html, 'mi-%d' % sem_preco.pk)
+        self.assertIn('mkt-seal', previa)
+        self.assertIn('Recompensa de missão', previa)
+        self.assertNotIn('data-shop-buy', previa)
+        # e o POST direto continua recusado pelo backend
+        self.client.force_login(p.dono)
+        resp = self.client.post(reverse('personagem_comprar_magico', args=[p.pk]),
+                                data={'item': sem_preco.slug}, **self.AJAX)
+        self.assertFalse(resp.json()['ok'])
+        self.assertEqual(resp.json()['msg'], 'invalido')
+
+    def test_post_classico_sem_js_volta_para_a_vitrine(self):
+        p = self._char('prg')
+        item = self._item_mundano_com_preco()
+        self.client.force_login(p.dono)
+        resp = self.client.post(reverse('personagem_comprar_item', args=[p.pk]),
+                                data={'item': item.slug, 'next': self.MUNDANOS})
+        self.assertEqual(resp.status_code, 302)
+        self.assertTrue(resp['Location'].startswith(self.MUNDANOS), resp['Location'])
+        self.assertIn('compra=ok', resp['Location'])
+        # sem `next` confiável, cai na vitrine mundana (nunca mais no editar_ficha)
+        resp = self.client.post(reverse('personagem_comprar_item', args=[p.pk]),
+                                data={'item': item.slug, 'next': 'https://evil.example/x'})
+        self.assertTrue(resp['Location'].startswith(self.MUNDANOS), resp['Location'])
+
+
+class VendaNoMercadoTests(_MercadoBase):
+    def _com_item_vendavel(self, apelido):
+        p = self._char(apelido)
+        item = self._item_mundano_com_preco()
+        linha = TbPersonagemItem.objects.create(id_personagem=p, nome=item.nome, qtd=1,
+                                                custo=item.preco)
+        return p, linha, _preco_venda_mundano_pc(item.preco)
+
+    def test_painel_vender_lista_o_inventario_com_valor_de_80(self):
+        p, linha, venda_pc = self._com_item_vendavel('venda-painel')
+        html = self._vitrine(self.MUNDANOS, p.dono)
+        self.assertIn('data-shop-tab="vender"', html)
+        self.assertIn('data-shop-venda', html)
+        self.assertIn(linha.nome, html)
+        # a venda usa a MESMA anatomia da compra: linha compacta + destaque no painel
+        row = self._linha(html, 'sell-%d' % linha.id)
+        self.assertIn('mkt-row-name', row)
+        self.assertIn('mkt-row-price', row)
+        previa = self._previa(html, 'sell-%d' % linha.id)
+        self.assertIn('data-shop-sell', previa)
+        self.assertIn('mkt-price', previa)
+        self.assertIn(reverse('personagem_vender_item', args=[p.pk]), previa)
+        # 80% do preço de catálogo, exibido em moeda composta (PO/PP/PC)
+        from home.moeda import moeda_display
+        self.assertIn(moeda_display(venda_pc), previa)
+        self.assertEqual(venda_pc, int(round(_preco_em_pc(linha.custo) * 0.8)))
+
+    def test_venda_por_fetch_credita_a_carteira_e_some_do_inventario(self):
+        p, linha, venda_pc = self._com_item_vendavel('venda-fetch')
+        antes = p.carteira_pc
+        self.client.force_login(p.dono)
+        resp = self.client.post(reverse('personagem_vender_item', args=[p.pk]),
+                                data={'item': linha.id, 'qtd': 1}, **self.AJAX)
+        self.assertEqual(resp.status_code, 200, resp.content)
+        body = resp.json()
+        self.assertTrue(body['ok'], body)
+        self.assertEqual(body['msg'], 'vendido')
+        self.assertIn('credito_display', body)
+        self.assertIn('venda_html', body)
+        p.refresh_from_db()
+        self.assertEqual(p.carteira_pc, antes + venda_pc)
+        self.assertFalse(TbPersonagemItem.objects.filter(pk=linha.pk).exists())
+        # o painel volta re-renderizado, já sem a linha vendida
+        self.assertNotIn(linha.nome, body['venda_html'])
+        # e a transação ficou no extrato
+        self.assertTrue(p.transacoes.filter(tipo='venda').exists())
+
+    def test_item_magico_vende_pelo_balcao_por_80_porcento(self):
+        p = self._char('venda-magico')
+        magico = TbItemMagico.objects.filter(preco__gt=0).first()
+        linha = TbPersonagemItem.objects.create(id_personagem=p, nome=magico.nome, qtd=1,
+                                                custo='%g PO' % float(magico.preco),
+                                                id_item_magico=magico)
+        self.client.force_login(p.dono)
+        resp = self.client.post(reverse('personagem_vender_item', args=[p.pk]),
+                                data={'item': linha.id}, **self.AJAX)
+        self.assertEqual(resp.status_code, 200, resp.content)
+        self.assertEqual(resp.json()['msg'], 'vendido')
+        self.assertFalse(TbPersonagemItem.objects.filter(pk=linha.pk).exists())
+        p.refresh_from_db()
+        self.assertEqual(p.carteira_pc, 1_000_000 + _preco_venda_pc(magico))
+
+    def test_variante_magica_exige_base_declarada_na_tag_e_preserva_mecanica(self):
+        p = self._char('variante-base')
+        base = TbItemMundano.objects.filter(
+            categoria='armadura', subcategoria__in=['media', 'pesada']).first()
+        self.assertIsNotNone(base)
+        variante = TbItemMagico.objects.create(
+            nome='Armadura Variável de Teste', slug='armadura-variavel-de-teste',
+            tipo='variante genérica', slot='armadura', preco=100,
+            tags_json=['base_item{catalog:mundane, category:armor, subtype:medium|heavy}',
+                       'ca:+1'],
+        )
+        self.client.force_login(p.dono)
+        url = reverse('personagem_comprar_magico', args=[p.pk])
+        sem_base = self.client.post(url, data={'item': variante.slug}, **self.AJAX)
+        self.assertEqual(sem_base.status_code, 200, sem_base.content)
+        self.assertFalse(sem_base.json()['ok'])
+        self.assertEqual(sem_base.json()['msg'], 'base_item')
+
+        comprado = self.client.post(
+            url, data={'item': variante.slug, 'base_item': base.slug}, **self.AJAX)
+        self.assertEqual(comprado.status_code, 200, comprado.content)
+        linha = TbPersonagemItem.objects.get(id_personagem=p, id_item_magico=variante)
+        self.assertEqual(linha.id_item_mundano, base)
+        self.assertEqual(linha.tags_json, base.tags_json)
+        self.assertIn(base.nome, linha.nome)
+
+    def test_item_sem_preco_nao_entra_no_painel_nem_vende(self):
+        p = self._char('venda-sem-preco')
+        linha = TbPersonagemItem.objects.create(id_personagem=p, nome='Lembrança da Missão',
+                                                qtd=1, custo=None)
+        html = self._vitrine(self.MUNDANOS, p.dono)
+        self.assertNotIn('Lembrança da Missão', html)
+        self.client.force_login(p.dono)
+        resp = self.client.post(reverse('personagem_vender_item', args=[p.pk]),
+                                data={'item': linha.id}, **self.AJAX)
+        self.assertEqual(resp.status_code, 400, resp.content)
+        self.assertEqual(resp.json()['msg'], 'sem_preco')
+
+    def test_venda_saiu_da_mochila_da_ficha(self):
+        p, linha, _venda = self._com_item_vendavel('venda-migrou')
+        self.client.force_login(p.dono)
+        html = self.client.get(reverse('ficha_detail', args=[p.pk])).content.decode('utf-8')
+        self.assertIn(linha.nome, html)                                   # continua na mochila
+        self.assertNotIn(reverse('personagem_vender_item', args=[p.pk]), html)
+        self.assertIn(self.MUNDANOS, html)                                # com atalho pro Mercado
+
+
+class EditarFichaSoStaffTests(_MercadoBase):
+    def test_dono_nao_staff_e_devolvido_para_a_ficha(self):
+        p = self._char('so-staff')
+        dono = self._dono_comum(p, 'dono-comum-mercado')
+        self.client.force_login(dono)
+        resp = self.client.get(reverse('editar_ficha', args=[p.pk]))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp['Location'], reverse('ficha_detail', args=[p.pk]))
+        # e a ficha dele NÃO oferece mais o atalho para o painel da staff
+        html = self.client.get(reverse('ficha_detail', args=[p.pk])).content.decode('utf-8')
+        self.assertNotIn(reverse('editar_ficha', args=[p.pk]), html)
+        self.assertIn(self.MUNDANOS, html)
+
+    def test_staff_ve_o_painel_integro_e_sem_loja(self):
+        p = self._char('staffbox')
+        self.client.force_login(p.dono)                 # _guerreiro_no_nivel cria dono staff
+        resp = self.client.get(reverse('editar_ficha', args=[p.pk]))
+        self.assertEqual(resp.status_code, 200)
+        html = resp.content.decode('utf-8')
+        # o que FICA: aventuras + conceder/reverter item
+        self.assertIn('lvl-aventuras-staffbox', html)
+        self.assertIn(reverse('personagem_conceder_item', args=[p.pk]), html)
+        self.assertIn('data-conceder-form', html)
+        # o que SAIU: a loja inteira (shell, chips, listas, forms e o JS dela)
+        for morto in ('id="loja-shell"', 'data-loja-root', 'data-loja-list', 'data-loja-form',
+                      'js/loja_ficha.js', 'loja-busca'):
+            self.assertNotIn(morto, html, morto)
+        self.assertNotIn(reverse('personagem_comprar_item', args=[p.pk]), html)
+        self.assertNotIn(reverse('personagem_comprar_magico', args=[p.pk]), html)
+        self.assertNotIn(reverse('personagem_vender_item', args=[p.pk]), html)
+        # nem inventário/equipar (onda B) nem magias preparadas/recursos (são do jogador)
+        self.assertNotIn('bag-list', html)
+        self.assertNotIn(reverse('personagem_preparar_magias', args=[p.pk]), html)
+        self.assertNotIn(reverse('personagem_usar_recurso', args=[p.pk]), html)
+
+    def test_o_arquivo_da_loja_da_ficha_foi_removido(self):
+        caminho = os.path.join(settings.BASE_DIR, 'home', 'static', 'js', 'loja_ficha.js')
+        self.assertFalse(os.path.exists(caminho), 'loja_ficha.js deveria ter sido removido')
+
+    def test_staff_ainda_alcanca_o_painel_de_ficha_alheia(self):
+        p = self._char('staff-alheio')
+        self._dono_comum(p, 'dono-de-outro')
+        staff = self._novo_usuario('staff-do-mercado', staff=True)
+        self.client.force_login(staff)
+        resp = self.client.get(reverse('editar_ficha', args=[p.pk]))
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('lvl-aventuras-staffbox', resp.content.decode('utf-8'))
+
+
+class TabJumpDelegadoTests(_MercadoBase):
+    def test_atalhos_de_aba_usam_delegacao_no_document(self):
+        """Fix cosmético da onda B: os chips [data-tab-jump] vivem em partials que o fetch
+        troca por outerHTML — um listener por elemento morreria na primeira troca."""
+        caminho = os.path.join(settings.BASE_DIR, 'home', 'templates', 'home',
+                               'pages', 'ficha_detail.html')
+        codigo = io.open(caminho, encoding='utf-8').read()
+        self.assertNotIn("querySelectorAll('[data-tab-jump]')", codigo)
+        self.assertIn("closest('[data-tab-jump]')", codigo)
+        # e o atalho segue funcionando na página renderizada
+        p = self._char('tabjump')
+        html = self._vitrine(reverse('ficha_detail', args=[p.pk]), p.dono)
+        self.assertIn('data-tab-jump="mochila"', html)

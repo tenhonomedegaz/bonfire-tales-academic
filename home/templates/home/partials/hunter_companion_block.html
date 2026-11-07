@@ -1,0 +1,18 @@
+{% if companion.active %}
+{% if companion.block %}
+<div aria-label="Bloco do Companheiro Primordial">
+  <h3>{{ companion.block.form_label }} — {{ companion.block.size }}</h3>
+  <p>CA {{ companion.block.ac }}; PV {{ companion.block.hp_current }}/{{ companion.block.hp_max }}; Iniciativa base +3 (13).</p>
+  <p>Caminhada {{ companion.block.walk_m }} m; natação {{ companion.block.swim_m }} m.{% if companion.block.fly_m %} Voo {{ companion.block.fly_m }} m, pairar.{% endif %}{% if companion.block.climb_m %} Escalada {{ companion.block.climb_m }} m.{% endif %}</p>
+  <table><caption>Atributos e testes de resistência do espírito</caption><thead><tr><th>Atributo</th><th>Valor</th><th>Modificador</th><th>Teste de resistência total</th></tr></thead><tbody>
+  {% for attribute in companion.block.attributes %}<tr><th>{{ attribute.name }}</th><td>{{ attribute.score }}</td><td>{{ attribute.modifier }}</td><td>{{ attribute.save }}</td></tr>{% endfor %}
+  </tbody></table>
+  <p>Talentoso e vínculo: +{{ companion.block.check_save_bonus }} a qualquer teste de atributo ou teste de resistência (já incluído nos testes de resistência acima). Percepção Passiva base 11. Compreende os idiomas do Caçador. Imunidades: Enfeitiçado e Amedrontado.</p>
+  <p>Retalhar: ataque corpo a corpo {{ companion.block.rend_attack|stringformat:'+d' }}, alcance {{ companion.block.reach_m }} m; {{ companion.block.rend_damage }} de dano de Força. Até {{ companion.rend_attacks }} Retalhar por Comando, usando a Reação do espírito.</p>
+  <p>No próprio turno do espírito, Ataques Múltiplos do bloco permite {{ companion.block.multiattack }} Retalhar{% if companion.block.stalk %}, podendo substituir um por Espreitar{% endif %}. O limite de ataques da Reação do Comando é separado.</p>
+  {% if companion.block.flyby %}<p>Sobrevoo: não provoca Ataques de Oportunidade ao sair voando do alcance de um inimigo.</p>{% endif %}
+  {% if companion.block.stalk %}<p>Espreitar: move até metade do deslocamento sem provocar Ataques de Oportunidade; ao final pode Esconder-se.</p>{% endif %}
+  <p>O vínculo do Caçador mantém o espírito até 0 PV, nova invocação, morte do Caçador ou dispensa. O Comando segue as regras da Ordem.</p>
+</div>
+{% else %}<p>A invocação antiga não tem forma de bloco registrada. Defina Bruto, Voador ou Espreitador e confirme seus PV atuais em Gerenciar companheiro.</p>{% endif %}
+{% endif %}

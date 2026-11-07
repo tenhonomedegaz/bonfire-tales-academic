@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "slug": "moldura-gold-trim",
+  "type": "moldura",
+  "scope": "ambos",
+  "layers": [
+    {
+      "slot": "avatar",
+      "file": "community-frame-gold-trim-v1.webp",
+      "fallback": "community-frame-gold-trim-v1.png",
+      "width": 512,
+      "height": 512,
+      "motion": "none",
+      "aperture": {
+        "cx": 49.512,
+        "cy": 49.609,
+        "diameter": 74.083
+      }
+    }
+  ]
+}

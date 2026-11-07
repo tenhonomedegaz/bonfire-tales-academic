@@ -1,0 +1,77 @@
+{% extends 'home/gestao/shell.html' %}
+{% load static %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/pages/character-log-import.css' %}?v=1">{% endblock %}
+{% block gestao_content %}
+<div class="character-log-import">
+  <nav class="gestao-breadcrumb" aria-label="Caminho"><a href="{% url 'gestao:index' %}">Gestao</a><span aria-hidden="true">/</span><span>Fichas do bot</span></nav>
+  <header class="gestao-heading"><div class="gestao-identity"><h1>Fichas do bot</h1><p class="gestao-muted">Historico privado &middot; acesso restrito a administradores</p></div>{% if preview or batch %}<a class="gestao-button" href="{{ root_url }}">Voltar a consulta</a>{% endif %}</header>
+  <p class="gestao-notice">Somente historico: nao cria personagem jogavel nem concede nivel, ouro ou credito de aventuras. Apenas correspondencias confirmadas vinculam esta ficha externa a missoes ja existentes no bot.</p>
+  {% if error %}<p class="gestao-errors" role="alert">{{ error }}</p>{% endif %}
+
+  {% if preview or batch %}
+  {% if metadata.history_authority == 'registered_staff_log' %}<p class="gestao-notice">Log oficial cadastrado e aprovado pela staff. A falta de participantes nos registros antigos do bot nao invalida esta evidencia historica. Nenhuma recompensa sera paga novamente.</p>{% endif %}
+  <section class="gestao-section" aria-labelledby="identity-title">
+    <div class="gestao-section-heading"><h2 id="identity-title">{% if preview %}Conferir previa{% else %}Recibo #{{ batch.pk }}{% endif %}</h2>{% if batch %}<span class="gestao-status success">Historico registrado</span>{% else %}<span class="gestao-status warning">Ainda nao gravado</span>{% endif %}</div>
+    <dl class="gestao-details">
+      <div><dt>Aventuras no saldo conciliado</dt><dd>{{ metadata.adventures_reconciled|default_if_none:'Nao calculado' }}</dd></div>
+      <div><dt>Personagem externo</dt><dd>{{ character_name }}</dd></div>
+      <div><dt>Conta proprietaria verificada</dt><dd>@{{ owner.username }} <span class="gestao-subline">Conta #{{ owner.pk }}</span></dd></div>
+      <div><dt>Discord cadastrado</dt><dd>{{ discord_id }}{% if discord_tag %}<span class="gestao-subline">{{ discord_tag }}</span>{% endif %}</dd></div>
+      <div><dt>Personagem associado no site</dt><dd>{% if character_id %}#{{ character_id }}{% else %}Legado &middot; sem personagem utilizavel associado{% endif %}</dd></div>
+      <div><dt>Origem</dt><dd>{{ source_label }}</dd></div>
+      {% if not metadata_comparison %}<div><dt>Nivel / classe declarados na planilha</dt><dd>{{ metadata.level|default_if_none:'Nao informado' }} / {{ metadata.class_name|default:'Nao informada' }}</dd></div>
+      <div><dt>Rank declarado na planilha</dt><dd>{{ metadata.rank_name|default:'Nao informado' }}</dd></div>
+      <div><dt>Aventuras declaradas na planilha</dt><dd>{{ metadata.adventures_reported|default_if_none:'Nao informadas' }}</dd></div>{% endif %}
+      {% if batch %}<div><dt>Registro</dt><dd>{{ batch.created_at|date:'d/m/Y H:i' }}<span class="gestao-subline">Por @{{ batch.actor.username }}</span></dd></div>{% endif %}
+    </dl>
+    {% if metadata_comparison %}<table class="gestao-table character-log-metadata"><caption>Metadados declarados &middot; sem alterar nivel ou saldo</caption><thead><tr><th scope="col">Campo</th><th scope="col">Planilha</th><th scope="col">Cadastro do bot</th></tr></thead><tbody>{% for field in metadata_comparison %}<tr><td data-label="Campo">{{ field.label }}</td><td data-label="Planilha">{{ field.sheet }}</td><td data-label="Cadastro do bot">{{ field.bot }}</td></tr>{% endfor %}</tbody></table>{% endif %}
+    {% if batch %}<p class="gestao-subline">Recibo preservado em modo somente leitura. A identidade associada e a da fonte registrada; os registros abaixo sao o snapshot deste recibo.</p>{% endif %}
+    {% for warning in warnings %}<p class="gestao-notice warning">{{ warning }}</p>{% endfor %}
+  </section>
+  <section class="gestao-section" id="history" aria-labelledby="history-title">
+    <div class="gestao-section-heading"><h2 id="history-title">Registros da planilha</h2><p class="gestao-muted">{{ row_count }} registros &middot; {{ matched }} correspondencias &middot; {{ pending }} pendencias</p></div>
+    {% if preview %}
+      {% for group in row_groups %}<details class="character-log-group"{% if forloop.first %} open{% endif %}><summary>Registros {{ group.start }} a {{ group.end }}</summary>{% include 'home/gestao/_character_log_rows.html' with rows=group.rows only %}</details>{% empty %}<p class="gestao-empty">Nenhum registro legivel.</p>{% endfor %}
+    {% else %}
+      {% include 'home/gestao/_character_log_rows.html' with rows=receipt_rows only %}
+      <nav class="gestao-pagination" aria-label="Paginas do recibo">{% if receipt_nav.previous %}<a class="gestao-button" href="{{ receipt_nav.previous }}" rel="prev">Anterior</a>{% else %}<span class="gestao-button" aria-disabled="true">Anterior</span>{% endif %}<span>Pagina {{ receipt_nav.page.number }} de {{ receipt_nav.page.paginator.num_pages }}</span>{% if receipt_nav.next %}<a class="gestao-button" href="{{ receipt_nav.next }}" rel="next">Proxima</a>{% else %}<span class="gestao-button" aria-disabled="true">Proxima</span>{% endif %}</nav>
+    {% endif %}
+  </section>
+  {% if preview %}
+  <section class="gestao-section" aria-labelledby="apply-title">
+    <h2 id="apply-title">Confirmar registro privado</h2>
+    <form method="post" action="{{ root_url }}" class="character-log-confirm">{% csrf_token %}
+      <input type="hidden" name="action" value="apply"><input type="hidden" name="ticket" value="{{ preview.ticket }}">
+      <label class="character-log-check"><input type="checkbox" name="confirm" value="yes" required><span>Conferi o dono, a origem e as pendencias. Confirmo somente o historico privado e os vinculos comprovados, sem criar personagem jogavel ou creditar recompensas.</span></label>
+      <div class="gestao-actions"><button class="gestao-button gestao-primary" type="submit"><img class="gestao-icon" src="{% static 'icons/lucide/check.svg' %}" alt="">Confirmar importacao</button><a class="gestao-button" href="{{ root_url }}">Descartar previa</a></div>
+    </form>
+  </section>
+  {% endif %}
+  {% endif %}
+
+  {% if not preview %}
+  <section class="gestao-section" aria-labelledby="search-title">
+    <h2 id="search-title">Cadastro do bot</h2>
+    <form method="get" action="{{ root_url }}" class="gestao-filters"><div class="gestao-field gestao-grow"><label for="discord-q">ID Discord do jogador</label><input id="discord-q" type="search" name="q" value="{{ q }}" inputmode="numeric" pattern="[0-9]{15,22}" minlength="15" maxlength="22" required></div><button class="gestao-button" type="submit"><img class="gestao-icon" src="{% static 'icons/lucide/search.svg' %}" alt="">Buscar</button>{% if q %}<a class="gestao-button" href="{{ root_url }}">Limpar</a>{% endif %}</form>
+    {% for log in logs %}
+    <article class="character-log-entry" aria-labelledby="log-{{ forloop.counter }}">
+      <div><h3 id="log-{{ forloop.counter }}">{{ log.characterName }}</h3><p>{{ log.discordUserTag }} <span class="gestao-muted">&middot; {{ log.discordUserId }}</span></p><p class="gestao-subline">Cadastro #{{ log.pk }} &middot; Nivel {{ log.level }} &middot; {{ log.className|default:'Classe nao informada' }}{% if log.rankName %} &middot; {{ log.rankName }}{% endif %}</p></div>
+      <form method="post" action="{{ root_url }}" enctype="multipart/form-data" class="character-log-preview-form">{% csrf_token %}<input type="hidden" name="action" value="preview"><input type="hidden" name="log_id" value="{{ log.pk }}">
+        <div class="gestao-field"><label for="guild-{{ forloop.counter }}">ID do servidor Discord (opcional)</label><input id="guild-{{ forloop.counter }}" name="guild_id" type="text" inputmode="numeric" pattern="[0-9]{15,22}" maxlength="22"></div>
+        <div class="gestao-field"><label for="xlsx-{{ forloop.counter }}">XLSX opcional &middot; ate 8 MB</label><input id="xlsx-{{ forloop.counter }}" name="uploaded" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></div>
+        <button class="gestao-button" type="submit"><img class="gestao-icon" src="{% static 'icons/lucide/file-search.svg' %}" alt="">Analisar ficha</button>
+      </form>
+    </article>
+    {% empty %}<p class="gestao-empty">{% if q %}Nenhuma ficha cadastrada para este ID Discord.{% else %}Nenhuma busca selecionada.{% endif %}</p>{% endfor %}
+  </section>
+  <section class="gestao-section" id="imports" aria-labelledby="imports-title">
+    <div class="gestao-section-heading"><h2 id="imports-title">Fontes e recibos importados{% if q %} deste Discord{% endif %}</h2>{% if imports_nav %}<span class="gestao-muted">{{ imports_nav.page.paginator.count }} recibos</span>{% endif %}</div>
+    <table class="gestao-table character-log-imports"><thead><tr><th scope="col">Fonte e dono</th><th scope="col">Metadados do recibo</th><th scope="col">Registro</th></tr></thead><tbody>
+    {% for item in imports %}<tr><td data-label="Fonte e dono"><strong>{{ item.batch.source.character_name }}</strong><span class="gestao-subline">@{{ item.batch.source.owner.username }} &middot; Conta #{{ item.batch.source.owner_id }}</span><span class="gestao-subline">Discord {{ item.batch.source.discord_user_id }}</span><span class="gestao-subline">Fonte #{{ item.batch.source_id }} &middot; {% if item.batch.source.character_id %}Personagem do site #{{ item.batch.source.character_id }}{% else %}Legado &middot; sem personagem utilizavel associado{% endif %}</span></td><td data-label="Metadados do recibo">{{ item.source_label }}<span class="gestao-subline">Nivel {{ item.metadata.level|default_if_none:'Nao informado' }} &middot; {{ item.metadata.class_name|default:'Classe nao informada' }}</span>{% if item.metadata.rank_name %}<span class="gestao-subline">{{ item.metadata.rank_name }}</span>{% endif %}</td><td data-label="Registro"><a href="{{ root_url }}?batch={{ item.batch.pk }}">Recibo #{{ item.batch.pk }}</a><span class="gestao-subline">{{ item.batch.created_at|date:'d/m/Y H:i' }}</span><span class="gestao-subline">Por @{{ item.batch.actor.username }}</span></td></tr>
+    {% empty %}<tr><td colspan="3">Nenhuma importacao registrada{% if q %} para este Discord{% endif %}.</td></tr>{% endfor %}
+    </tbody></table>
+    {% if imports_nav %}<nav class="gestao-pagination" aria-label="Paginas de importacoes">{% if imports_nav.previous %}<a class="gestao-button" href="{{ imports_nav.previous }}" rel="prev">Anterior</a>{% else %}<span class="gestao-button" aria-disabled="true">Anterior</span>{% endif %}<span>Pagina {{ imports_nav.page.number }} de {{ imports_nav.page.paginator.num_pages }}</span>{% if imports_nav.next %}<a class="gestao-button" href="{{ imports_nav.next }}" rel="next">Proxima</a>{% else %}<span class="gestao-button" aria-disabled="true">Proxima</span>{% endif %}</nav>{% endif %}
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

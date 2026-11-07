@@ -1,0 +1,118 @@
+{% extends 'home/base.html' %}
+{% load static %}
+{% block body_class %}bft-chronicles bft-chronicles-review{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/cronicas_review.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/pages/chronicles-redesign.css' %}?v=1">
+
+{% endblock %}
+
+{% block content %}
+<div class="review-shell">
+  <p class="chronicles-kicker">Mesa editorial · Crônicas de Cinéria</p>
+  <a href="{% url 'mundo_cronicas' %}" class="review-back">
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+    Voltar às Crônicas
+  </a>
+
+  <div class="review-header">
+    <h1>Fila de Revisão</h1>
+    <p id="reviewPendingSummary" data-count="{{ pendentes|length }}">{{ pendentes|length }} crônica{{ pendentes|length|pluralize:"s" }} aguardando aprovação. Leia o conteúdo abaixo e decida.</p>
+  </div>
+
+  {% for c in pendentes %}
+  <div class="review-item" id="review-{{ c.id_cronica }}" data-revision="{{ c.revisao_edicao.submetida_em|default:'' }}" data-snapshot="{{ c.review_snapshot }}">
+    <div class="review-item-header">
+      <h2 class="review-item-title">{{ c.review_data.titulo }}</h2>
+      <div class="review-item-meta">
+        <span class="author">{{ c.autor.username }}</span>
+        {% if c.review_data.personagem_nome %}<span>&middot; como <em>{{ c.review_data.personagem_nome }}</em></span>{% endif %}
+        {% if c.review_data.territorio_label %}<span>&middot; <span class="location">{{ c.review_data.territorio_label }}{% if c.review_data.regiao_label %} / {{ c.review_data.regiao_label }}{% endif %}</span></span>{% endif %}
+        {% if c.status == 'aprovada' %}<span>&middot; Edição de crônica já publicada</span>{% endif %}
+        <span>&middot; {{ c.data_submissao|date:"d/m/Y H:i" }}</span>
+      </div>
+    </div>
+    <div class="review-item-body">
+      {% if c.review_forwarding.motivo %}<p class="review-item-summary" role="status"><strong>Encaminhada ao Loremaster:</strong> {{ c.review_forwarding.motivo }}</p>{% endif %}
+      {% if c.review_data.resumo %}<p class="review-item-summary"><strong>Resumo:</strong> {{ c.review_data.resumo }}</p>{% endif %}
+      {% if c.review_data.imagem_url %}<p class="review-item-cover"><strong>URL da capa:</strong> <span>{{ c.review_data.imagem_url }}</span></p>{% endif %}
+      <div class="bonfire-markdown" data-markdown-source data-markdown-options="false">{{ c.review_data.conteudo_markdown|escape }}</div>
+    </div>
+    <div class="review-item-actions">
+      {% if not c.review_forwarding or can_decide_forwarded %}
+      <label class="review-feedback-label" for="feedback-{{ c.id_cronica }}">Motivo da devolução ou encaminhamento</label>
+      <input type="text" class="review-feedback-input" id="feedback-{{ c.id_cronica }}" aria-describedby="review-error-{{ c.id_cronica }}" maxlength="500" placeholder="Obrigatório para devolver ou encaminhar">
+      <button type="button" class="review-btn-approve" onclick="reviewAction({{ c.id_cronica }}, 'aprovar')">✓ Aprovar</button>
+      {% if can_decide_forwarded %}<button type="button" class="review-btn-reject" onclick="reviewAction({{ c.id_cronica }}, 'reprovar')">✗ Devolver ao autor</button>{% endif %}
+      {% if can_triage and not c.review_forwarding %}<button type="button" class="review-btn-reject" onclick="reviewAction({{ c.id_cronica }}, 'encaminhar')">Encaminhar ao Loremaster</button>{% endif %}
+      {% else %}<span>Aguardando decisão do Loremaster.</span>{% endif %}
+    </div>
+    <p id="review-error-{{ c.id_cronica }}" class="review-item-error" role="alert" hidden></p>
+  </div>
+  {% empty %}
+  <div class="review-empty">
+    <p>🎉 Nenhuma crônica pendente! Todas foram revisadas.</p>
+  </div>
+  {% endfor %}
+</div>
+
+<script>
+function csrfToken() {
+  return decodeURIComponent((document.cookie.split('; ').find(r => r.startsWith('csrftoken=')) || '').split('=')[1] || '');
+}
+
+async function reviewAction(id, action) {
+  const item = document.getElementById(`review-${id}`);
+  if (!item || item.dataset.submitting === 'true') return;
+  const feedbackEl = document.getElementById(`feedback-${id}`);
+  const feedback = feedbackEl ? feedbackEl.value : '';
+  const errorEl = document.getElementById(`review-error-${id}`);
+  errorEl.hidden = true;
+  
+  if ((action === 'reprovar' || action === 'encaminhar') && !feedback.trim()) {
+    feedbackEl.style.borderColor = '#ef4444';
+    feedbackEl.focus();
+    errorEl.textContent = 'Informe o motivo da decisão.';
+    errorEl.hidden = false;
+    return;
+  }
+  if (feedbackEl) feedbackEl.style.borderColor = '';
+
+  const buttons = item.querySelectorAll('.review-item-actions button');
+  item.dataset.submitting = 'true';
+  item.setAttribute('aria-busy', 'true');
+  buttons.forEach(button => { button.disabled = true; });
+  try {
+    const res = await fetch(`/mundo/cronicas/${id}/revisar/`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken()},
+      body: JSON.stringify({ action, feedback, expected_revision: item.dataset.revision, expected_snapshot: item.dataset.snapshot }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) throw new Error(data.error || 'Não foi possível revisar esta crônica.');
+    if (action === 'encaminhar') {
+      window.location.reload();
+      return;
+    }
+    item.classList.add('is-resolved');
+    const actionsDiv = item.querySelector('.review-item-actions');
+    const status = document.createElement('span');
+    status.className = action === 'aprovar' ? 'review-result-approved' : 'review-result-rejected';
+    status.textContent = action === 'aprovar' ? '✓ Aprovada' : '✗ Reprovada';
+    actionsDiv.replaceChildren(status);
+    const summary = document.getElementById('reviewPendingSummary');
+    const remaining = Math.max(0, Number(summary.dataset.count) - 1);
+    summary.dataset.count = String(remaining);
+    summary.textContent = `${remaining} crônica${remaining === 1 ? '' : 's'} aguardando aprovação. Leia o conteúdo abaixo e decida.`;
+  } catch (err) {
+    errorEl.textContent = err.message || 'Não foi possível revisar esta crônica.';
+    errorEl.hidden = false;
+  } finally {
+    delete item.dataset.submitting;
+    item.removeAttribute('aria-busy');
+    buttons.forEach(button => { button.disabled = false; });
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,6 @@
+.master-portfolio { display:grid; gap:1rem; }
+.master-portfolio .mh-master-cover { min-height:10rem; padding:1.25rem; border:1px solid var(--stroke); background:linear-gradient(120deg,var(--bg2),var(--bg0)); }
+.master-portfolio .mh-master-avatar { display:grid; place-items:center; width:4rem; height:4rem; border:1px solid var(--ember); color:var(--flame); font-family:'Cinzel',serif; font-size:1.5rem; }
+.master-portfolio .mh-reading { color:var(--muted); line-height:1.8; }
+.mh-work-form .mh-banner-preview { aspect-ratio:4/3; }
+.mh-work-form .mh-banner-preview img { object-fit:contain; }

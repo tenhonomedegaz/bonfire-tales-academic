@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 340" fill="none">
+  <defs>
+    <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#2a101a"/><stop offset=".53" stop-color="#753320"/><stop offset="1" stop-color="#160f18"/></linearGradient>
+    <radialGradient id="sun"><stop stop-color="#ffe3a0"/><stop offset=".32" stop-color="#f5a94b"/><stop offset="1" stop-color="#f76523" stop-opacity="0"/></radialGradient>
+    <linearGradient id="mount" x2="0" y2="1"><stop stop-color="#4c2730"/><stop offset="1" stop-color="#130f17"/></linearGradient>
+    <pattern id="stars" width="127" height="67" patternUnits="userSpaceOnUse"><circle cx="15" cy="11" r="1" fill="#ffd5a2" opacity=".66"/><circle cx="95" cy="35" r="1.5" fill="#ffd5a2" opacity=".38"/></pattern>
+  </defs>
+  <rect width="1200" height="340" fill="url(#sky)"/>
+  <rect width="1200" height="170" fill="url(#stars)"/>
+  <circle cx="805" cy="169" r="198" fill="url(#sun)"/>
+  <circle cx="805" cy="169" r="61" fill="#ffd79a" opacity=".8"/>
+  <path d="M0 239 117 187l86 42 122-96 120 104 139-84 112 91 96-69 115 61 128-88 165 79v113H0Z" fill="url(#mount)"/>
+  <path d="M0 280 100 248l67 18 136-67 116 71 119-36 97 39 153-76 113 64 99-39 100 44v74H0Z" fill="#17131b" opacity=".92"/>
+  <path d="M562 340c18-52 38-74 57-101 18 23 27 35 32 58 11-22 16-41 33-63 18 30 30 54 46 106" fill="#9b3c25" opacity=".62"/>
+  <path d="M621 340c16-39 9-64 29-85 20 21 20 44 33 85" fill="#e88335" opacity=".72"/>
+  <path d="M0 0h1200v340H0z" stroke="#f5af62" stroke-opacity=".22" stroke-width="3"/>
+</svg>

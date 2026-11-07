@@ -1,0 +1,3416 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block title %}Mapa de Cinéria · Bonfire Tales RPG{% endblock %}
+{% block body_class %}bft-atlas{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/mapa.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'css/pages/atlas.css' %}?v=1">
+<script defer src="{% static 'js/atlas-presentation.js' %}?v=1"></script>
+{% endblock %}
+
+{% block main_class %}flex-1 w-full overflow-hidden{% endblock %}
+
+{% block ad_containers %}{% endblock %}
+{% block ad_containers_right %}{% endblock %}
+{% block mobile_ad_top %}{% endblock %}
+{% block mobile_ad %}{% endblock %}
+
+{% block content %}
+{% static 'assets/cineria.jpg' as map_url %}
+{% static 'assets/subterraneo_placeholder.png' as underground_map_url %}
+{% static 'assets/fire_background.png' as default_place_url %}
+
+<header class="atlas-topbar">
+  <div class="atlas-heading"><span class="atlas-compass" aria-hidden="true"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="20" cy="20" r="13"/><path d="M20 1v10m0 18v10M1 20h10m18 0h10M6 6l6 6m16 16 6 6M34 6l-6 6M12 28l-6 6m14-15 6-6-5 12-7 6 5-12Z"/></svg></span><div><p>Atlas do mundo compartilhado</p><h1>Mapa de Cinéria</h1></div></div>
+  <div class="atlas-topbar-actions"><span class="atlas-layer-status" id="atlasLayerStatus">Cinéria</span>{% if atlas_local_preview %}<span class="atlas-local" title="Referência pública capturada em 14/10/2026. Nenhuma alteração é salva na prévia.">Cópia local · leitura</span>{% endif %}<button type="button" class="atlas-button" id="atlasOverview" aria-label="Enquadrar mapa" title="Enquadrar a imagem inteira, sem apagar filtros ou alterações"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5M8 8h8v8H8Z"/></svg><span>Enquadrar mapa</span></button><details class="atlas-help" id="atlasHelp"><summary aria-label="Guia do mapa"><span aria-hidden="true">?</span><span>Guia</span></summary><div class="atlas-help-panel"><h2>Explore Cinéria</h2><section><h3>Navegue pelo mapa</h3><p>Arraste para se mover. Use + e −, a roda do mouse ou o gesto de pinça para aproximar e afastar. “Enquadrar mapa” mostra a imagem inteira.</p></section><section><h3>Encontre um local</h3><p>A busca e a categoria filtram os pinos no mapa. O índice continua agrupado por território: abra um grupo e escolha um local para consultar sua ficha.</p></section><section><h3>Leia o território</h3><p>As cores identificam os territórios. Clique em uma área ou no nome dela no índice. Os indicadores das fichas usam uma escala de 0 a 5.</p></section><section><h3>Troque de camada</h3><p>Os botões sobre o mapa mostram as camadas disponíveis para você. Locais, áreas e desenhos pertencem à sua própria camada.</p></section>{% if can_edit_wiki %}<section><h3>Editor preservado</h3><p>Marcadores, áreas, recortes, edição, linhas, imagens, desenhos, suavização, otimização, alinhamento, desfazer e salvar continuam na barra lateral.</p></section>{% endif %}{% if atlas_local_preview %}<section><h3>Sobre esta cópia</h3><p>Os dados públicos foram capturados em 14/10/2026. Alterações não são salvas nesta prévia. Os links de história e catálogo consultam as páginas públicas do Bonfire.</p></section>{% endif %}</div></details></div>
+</header>
+<div class="map-shell border-t border-[var(--stroke)] layer-surface layer-0">
+  <button id="sidebarToggle" class="map-sidebar-mobile-toggle" aria-label="Abrir locais do mapa" aria-controls="mapSidebar" aria-expanded="false" type="button">
+    <div class="toggle-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 open-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 close-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    </div>
+    <span class="atlas-toggle-label">Locais</span>
+  </button>
+  
+  <aside class="map-sidebar" id="mapSidebar" aria-label="Índice de locais de Cinéria">
+    <header class="atlas-index-heading"><p>Escolha seu destino</p><h2>Explorar locais</h2><span id="atlasLayerCount">{{ json_markers|length }} locais no atlas</span></header>
+    <div class="map-sidebar-tools">
+      <label class="map-search-new">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="mapSearch" type="search" placeholder="Buscar um local no mapa…" aria-label="Buscar locais no mapa" autocomplete="off">
+      </label>
+      <div class="map-category-filter" id="categoryFilterWrap">
+        <button type="button" class="map-category-button" id="categoryFilterButton" aria-haspopup="listbox" aria-expanded="false">
+          <span class="map-category-current-icon"></span>
+          <span class="map-category-current-label">Todas as categorias</span>
+          <svg class="map-category-chevron" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="map-category-menu" id="categoryFilterMenu" role="listbox"></div>
+        <input id="categoryFilter" type="hidden" value="">
+      </div>
+      <div class="atlas-filter-state"><span id="atlasFilterStatus" role="status" aria-live="polite">Carregando pinos…</span><button type="button" id="atlasClearFilters" hidden>Limpar</button></div>
+    </div>
+
+    <div class="map-index custom-scrollbar" id="mapIndex"></div>
+
+    {% if can_edit_wiki %}
+    <div class="admin-toolbar" id="adminToolbar">
+        <button class="admin-btn" onclick="startCreateMarker()" title="Novo Marcador">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            <span>Marcador</span>
+        </button>
+        <button class="admin-btn" onclick="startDrawPolygon()" id="btnDraw" title="Desenhar Área">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5z"></path></svg>
+            <span>Área</span>
+        </button>
+        <button class="admin-btn" onclick="startDrawHole()" id="btnCut" title="Cortar Buraco no Polígono">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 15.536c-1.171 1.952-3.07 1.952-4.242 0-1.172-1.953-1.172-5.119 0-7.072 1.171-1.952 3.07-1.952 4.242 0M8 10.5h8m-8 3h8"></path></svg>
+            <span>Buraco</span>
+        </button>
+        <button class="admin-btn" onclick="toggleEditMode()" id="btnEdit" title="Editar Polígonos">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+            <span>Editar</span>
+        </button>
+        <div class="w-px h-6 bg-bonfire-stroke mx-1"></div>
+        <button class="admin-btn" onclick="startDrawLinha()" id="btnLinha" title="Desenhar Linha/Rota (ancora em pinos)">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19L19 5M5 19a2 2 0 100-4 2 2 0 000 4zm14-14a2 2 0 100 4 2 2 0 000-4z"></path></svg>
+            <span>Linha</span>
+        </button>
+        <button class="admin-btn" onclick="startAddImagem()" id="btnImagem" title="Sobrepor Imagem (PNG)">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            <span>Imagem</span>
+        </button>
+        <button class="admin-btn" onclick="toggleDesenhoListPanel()" id="btnDesenhoList" title="Listar / editar / excluir desenhos desta camada">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h10M4 18h10"></path></svg>
+            <span>Desenhos</span>
+        </button>
+        <div class="w-px h-6 bg-bonfire-stroke mx-1"></div>
+        <button class="admin-btn" onclick="applyChaikin()" id="btnSmooth" title="Suavizar Bordas">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            <span>Suavizar</span>
+        </button>
+        <button class="admin-btn" onclick="optimizePolygon()" id="btnOptimize" title="Otimizar/Limpar Vértices">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l-7-7m14 0l-5 5M5 19l5-5"></path></svg>
+            <span>Otimizar</span>
+        </button>
+        <button class="admin-btn" onclick="autoAlignPolygon()" id="btnAlign" title="Alinhar Vértices aos Vizinhos">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+            <span>Alinhar</span>
+        </button>
+        <div style="margin-left: auto; display: flex; gap: .3rem;">
+            <button class="admin-btn disabled-btn" id="btnUndo" onclick="undoLastChange()" title="Desfazer última alteração">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
+            </button>
+            <button class="admin-btn disabled-btn" id="btnSaveAll" onclick="saveAllChanges()" title="Salvar todas as alterações">
+                Salvar
+            </button>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="map-sidebar-footer">
+      <a href="{% url 'mundo_regioes' %}">Ver catálogo completo <span aria-hidden="true">↗</span></a>
+    </div>
+  </aside>
+
+  <div id="map">
+    {% if json_layers|length > 1 or request.user.is_superuser %}
+    <div class="map-layer-selector leaflet-bar leaflet-control" style="pointer-events: auto;">
+        {% for layer in json_layers %}
+        <button id="btnLayer{{ layer.id_layer }}" class="layer-selector-btn{% if layer.id_layer == 0 %} active{% endif %}" onclick="switchLayer({{ layer.id_layer }})" title="{{ layer.nome }}" data-layer-id="{{ layer.id_layer }}">
+            {% if layer.id_layer == 0 %}
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            {% else %}
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            {% endif %}
+            <span>{{ layer.nome }}</span>
+        </button>
+        {% endfor %}
+        {% if request.user.is_superuser %}
+        <button class="layer-selector-btn layer-manage-btn" onclick="openLayerManagement()" title="Gerenciar Camadas" style="border-left: 1px solid var(--stroke); border-radius: 0 6px 6px 0; padding: 0.5rem 0.8rem;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+        {% endif %}
+    </div>
+    {% endif %}
+  </div>
+  <p class="atlas-map-hint" id="atlasMapHint"><span class="atlas-hint-diamond" aria-hidden="true">◇</span> Arraste para explorar · Selecione um pino ou território</p>
+  <div class="atlas-no-results" id="atlasNoResults" hidden><strong id="atlasEmptyTitle">Nenhum pino encontrado</strong><p id="atlasEmptyCopy">Tente outro nome ou limpe os filtros. Os territórios continuam disponíveis no mapa.</p><button type="button" id="atlasEmptyClear">Limpar filtros</button></div>
+  
+  <div id="toast-container"></div>
+
+  {% if can_edit_wiki %}
+  <div class="map-modal-backdrop" id="areaTerritoryModal" hidden>
+    <div class="map-modal" role="dialog" aria-modal="true" aria-labelledby="areaTerritoryTitle">
+      <h2 id="areaTerritoryTitle">Escolher território da área</h2>
+      <p>A nova área será vinculada a este território.</p>
+      
+      <div id="selectTerritorySection">
+        <label>
+          Território
+          <select id="areaTerritorySelect" style="width: 100%; margin-bottom: 0.5rem; background: var(--bg2); border: 1px solid var(--stroke); color: var(--text); padding: .3rem; font-size: .75rem; border-radius: 4px; outline: none;">
+            {% for territory in json_territories %}
+            <option value="{{ territory.nome }}">{{ territory.nome }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <button type="button" class="map-modal-secondary" id="btnShowCreateTerritory" style="width: 100%; margin-bottom: 1rem; border: 1px dashed var(--stroke); padding: 0.5rem; text-align: center; font-size: 0.75rem; cursor: pointer; border-radius: 4px;">+ Criar Novo Território</button>
+      </div>
+
+      <div id="createTerritorySection" style="display: none; border-top: 1px solid var(--stroke); padding-top: 1rem; margin-top: 0.5rem; margin-bottom: 1rem;">
+        <h3 style="font-size: 0.85rem; font-weight: bold; text-transform: uppercase; margin-bottom: 0.75rem; color: var(--ember);">Novo Território</h3>
+        <label style="display: block; margin-bottom: 0.5rem; font-size: 0.75rem;">
+          Nome
+          <input type="text" id="newTerritoryName" placeholder="Ex: Reino de Cinéria" style="width: 100%; background: var(--bg2); border: 1px solid var(--stroke); color: var(--text); padding: 0.4rem; border-radius: 4px; outline: none; margin-top: 0.25rem; font-size: 0.75rem;">
+        </label>
+        <label style="display: block; margin-bottom: 0.5rem; font-size: 0.75rem;">
+          Cor do Território
+          <input type="color" id="newTerritoryColor" value="#ff8800" style="display: block; width: 60px; height: 36px; padding: 2px; cursor: pointer; border: 1px solid var(--stroke); border-radius: 4px; margin-top: 0.25rem; background: transparent;">
+        </label>
+        <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+          <button type="button" id="btnCancelCreateTerritory" class="map-modal-secondary" style="flex: 1; padding: 0.4rem; font-size: 0.75rem; border-radius: 4px; cursor: pointer;">Voltar</button>
+          <button type="button" id="btnConfirmCreateTerritory" class="map-modal-primary" style="flex: 1; padding: 0.4rem; font-size: 0.75rem; border-radius: 4px; cursor: pointer; background: var(--ember); border: none;">Criar Território</button>
+        </div>
+      </div>
+
+      <div class="map-modal-actions" id="areaTerritoryMainActions">
+        <button type="button" class="map-modal-secondary" id="areaTerritoryCancel">Cancelar</button>
+        <button type="button" class="map-modal-primary" id="areaTerritoryConfirm">Confirmar</button>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if request.user.is_superuser %}
+  <div class="map-modal-backdrop" id="layerManagementModal" hidden>
+    <div class="map-modal" role="dialog" aria-modal="true" aria-labelledby="layerManagementTitle" style="max-width: 600px; width: 90%;">
+      <h2 id="layerManagementTitle">Gerenciar Camadas do Mapa</h2>
+      <p style="margin-bottom: 1rem; font-size: 0.85rem; color: var(--muted);">Adicione novas camadas subterrâneas, faça upload da imagem de fundo, renomeie ou exclua as existentes.</p>
+      
+      <!-- List of layers -->
+      <div id="layerListContainer" style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 250px; overflow-y: auto; margin-bottom: 1.5rem; padding-right: 0.25rem;">
+        <!-- Filled dynamically by JavaScript -->
+      </div>
+      
+      <!-- Add New Layer Form -->
+      <div style="border-top: 1px solid var(--stroke); padding-top: 1rem; margin-top: 1rem;">
+        <h3 style="font-family: 'Frank Ruhl Libre', serif; font-size: 0.9rem; text-transform: uppercase; color: var(--ember); margin-bottom: 0.75rem;">Adicionar Nova Camada</h3>
+        <form id="addLayerForm" onsubmit="submitAddLayer(event)" enctype="multipart/form-data" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          {% csrf_token %}
+          <label style="grid-column: span 2;">
+            Nome da Camada
+            <input type="text" name="nome" placeholder="Ex: Subterrâneo Lvl 2" required style="width: 100%; margin-top: 0.25rem;">
+          </label>
+          <label>
+            Ordem (Exibição)
+            <input type="number" name="ordem" value="0" required style="width: 100%; margin-top: 0.25rem;">
+          </label>
+          <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; margin-top: 1.2rem;">
+            <input type="checkbox" name="publica" style="width: auto; cursor: pointer;">
+            <span>Camada Pública?</span>
+          </label>
+          <label style="grid-column: span 2;">
+            Imagem de Fundo (.png, .jpg)
+            <input type="file" name="imagem" accept="image/*" required style="width: 100%; margin-top: 0.25rem; background: var(--bg2); border: 1px solid var(--stroke); padding: 0.4rem; border-radius: 4px;">
+          </label>
+          <div style="grid-column: span 2; display: flex; justify-content: flex-end; margin-top: 0.5rem;">
+            <button type="submit" class="map-modal-primary" style="padding: 0.5rem 1rem; font-size: 0.8rem;">Criar Camada</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="map-modal-actions" style="margin-top: 1.5rem; border-top: 1px solid var(--stroke); padding-top: 1rem;">
+        <button type="button" class="map-modal-secondary" onclick="closeLayerManagement()">Fechar</button>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if can_edit_wiki %}
+  <!-- Painel flutuante de estilo de linha (aparece durante desenho/edição de uma linha) -->
+  <div id="linhaStylePanel" class="desenho-style-panel" hidden>
+    <div class="desenho-style-head">
+      <span>Estilo da Linha</span>
+      <button type="button" class="desenho-style-close" onclick="closeLinhaStylePanel()" title="Fechar">×</button>
+    </div>
+    <label class="desenho-style-row">
+      <span>Cor</span>
+      <input type="color" id="linhaColorInput" value="#ffffff">
+    </label>
+    <label class="desenho-style-row">
+      <span>Espessura</span>
+      <input type="range" id="linhaWeightInput" min="1" max="12" value="3">
+      <output id="linhaWeightOut">3</output>
+    </label>
+    <label class="desenho-style-row desenho-style-check">
+      <input type="checkbox" id="linhaDashInput">
+      <span>Tracejado</span>
+    </label>
+    <label class="desenho-style-field">
+      <span>Nome</span>
+      <input type="text" id="linhaNomeInput" maxlength="150" placeholder="Ex.: Rota do Comércio">
+    </label>
+    <label class="desenho-style-field">
+      <span>Descrição</span>
+      <textarea id="linhaDescricaoInput" maxlength="300" rows="3" placeholder="Aparece no popup ao clicar (opcional)."></textarea>
+    </label>
+    <div id="linhaAnchorInfo" class="desenho-style-anchor"></div>
+    <div class="desenho-style-actions">
+      <button type="button" class="admin-btn" id="linhaDuplicateBtn" onclick="duplicateLinha()" hidden>Duplicar</button>
+      <button type="button" class="admin-btn desenho-danger" id="linhaDeleteBtn" onclick="deleteCurrentLinha()" hidden>Excluir</button>
+      <button type="button" class="admin-btn primary-active" id="linhaSaveBtn" onclick="saveCurrentLinha()">Salvar Linha</button>
+    </div>
+  </div>
+
+  <!-- Painel flutuante de imagem sobreposta -->
+  <div id="imagemStylePanel" class="desenho-style-panel" hidden>
+    <div class="desenho-style-head">
+      <span>Imagem Sobreposta</span>
+      <button type="button" class="desenho-style-close" onclick="closeImagemStylePanel()" title="Fechar">×</button>
+    </div>
+    <p class="desenho-style-hint" id="imagemStyleHint">Envie um PNG e desenhe um retângulo no mapa para posicioná-la.</p>
+    <label class="desenho-style-row">
+      <span>Opacidade</span>
+      <input type="range" id="imagemOpacityInput" min="0.1" max="1" step="0.05" value="1">
+      <output id="imagemOpacityOut">1</output>
+    </label>
+    <label class="desenho-style-field">
+      <span>Nome</span>
+      <input type="text" id="imagemNomeInput" maxlength="150" placeholder="Ex.: Ruínas do Norte">
+    </label>
+    <label class="desenho-style-field">
+      <span>Descrição</span>
+      <textarea id="imagemDescricaoInput" maxlength="300" rows="3" placeholder="Aparece no popup ao clicar (opcional)."></textarea>
+    </label>
+    <div class="desenho-style-actions">
+      <button type="button" class="admin-btn" id="imagemRedrawBtn" onclick="redrawImagemBounds()" hidden>Redesenhar área</button>
+      <button type="button" class="admin-btn desenho-danger" id="imagemDeleteBtn" onclick="deleteCurrentImagem()" hidden>Excluir</button>
+      <button type="button" class="admin-btn primary-active" id="imagemSaveBtn" onclick="saveCurrentImagem()" hidden>Salvar Imagem</button>
+    </div>
+    <input type="file" id="imagemFileInput" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+  </div>
+
+  <!-- Painel-lista: descoberta/gerência dos desenhos da camada ativa (fallback que
+       não depende de acertar o clique no canvas). -->
+  <div id="desenhoListPanel" class="desenho-style-panel desenho-list-panel" hidden>
+    <div class="desenho-style-head">
+      <span>Desenhos da Camada</span>
+      <button type="button" class="desenho-style-close" onclick="toggleDesenhoListPanel(false)" title="Fechar">×</button>
+    </div>
+    <div id="desenhoListBody" class="desenho-list-body"></div>
+  </div>
+  {% endif %}
+
+  <aside class="map-detail-panel" id="mapDetail" aria-live="polite"></aside>
+</div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+{% if can_edit_wiki %}
+<link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.css" />
+<script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.js"></script>
+{% endif %}
+
+{{ json_markers|json_script:"markers-data" }}
+{{ json_regions|json_script:"regions-data" }}
+{{ json_territories|json_script:"territories-data" }}
+{{ json_layers|json_script:"layers-data" }}
+{{ json_desenhos|json_script:"desenhos-data" }}
+<script src="{% static 'js/map_geometry.js' %}?v=1"></script>
+<script>
+const canEditWiki = {% if can_edit_wiki %}true{% else %}false{% endif %};
+
+function escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+const categoriaChoices = {
+    'capital': 'Capital',
+    'cidade': 'Cidade',
+    'fortaleza': 'Fortaleza',
+    'conglomerado_vilas': 'Conglomerado de Vilas',
+    'vila': 'Vila',
+    'cidade_portuaria': 'Cidade Portuária',
+    'area_selvagem': 'Área Selvagem'
+};
+
+// Global state for editor (Phase 1: Infrastructure)
+let pendingChanges = {
+    markers: {},    // { id_marker_or_tempId: { id, nome, lat, lng, categoria, territorio, camada } }
+    territories: {} // { id_territory: [ coords_arrays ] }
+};
+
+function markChange() {
+  const btnSave = document.getElementById('btnSaveAll');
+  const btnUndo = document.getElementById('btnUndo');
+  if (btnSave) {
+      btnSave.classList.remove('disabled-btn');
+      btnSave.classList.add('primary-active');
+  }
+  if (btnUndo) {
+      btnUndo.classList.remove('disabled-btn');
+      btnUndo.classList.add('primary-active');
+  }
+}
+
+function updatePendingMarkerField(id, field, value) {
+    if (!pendingChanges.markers[id]) {
+        // Find existing marker data to seed the pending change
+        const marker = leafletMarkers.find(m => (m._bonfireData?.id == id || m._tempId == id));
+        if (marker) {
+            // Seed with all current data to avoid losing lat/lng
+            pendingChanges.markers[id] = { 
+                id: marker._bonfireData.id || null,
+                nome: marker._bonfireData.nome,
+                lat: marker._bonfireData.lat,
+                lng: marker._bonfireData.lng,
+                categoria: marker._bonfireData.categoria,
+                territorio: marker._bonfireData.territorio,
+                camada: marker._bonfireData.camada ?? activeLayer
+            };
+        } else {
+            pendingChanges.markers[id] = {};
+        }
+    }
+    pendingChanges.markers[id][field] = value;
+    const liveMarker = leafletMarkers.find(m => (m._bonfireData?.id == id || m._tempId == id));
+    if (liveMarker && liveMarker._bonfireData) {
+        liveMarker._bonfireData[field] = value;
+        if (field === 'nome') liveMarker.options.title = value;
+    }
+    markChange();
+}
+
+async function saveAllChanges() {
+    const btn = document.getElementById('btnSaveAll');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerText = 'Salvando...';
+    }
+    
+    const payload = {
+        markers: Object.values(pendingChanges.markers),
+        territories: Object.entries(pendingChanges.territories).map(([id, coords]) => {
+            const terr = jsonTerritories.find(x => x.id == id);
+            return {
+                id,
+                coordenadas_poligono: coords,
+                camada: terr ? (terr.camada || 0) : activeLayer
+            };
+        })
+    };
+    
+    try {
+        const res = await fetch('/wiki/mapa/salvar-lote/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.ok === false) throw new Error(data.error || 'Falha no servidor');
+        window.location.reload();
+    } catch (err) {
+        showToast('Erro ao salvar: ' + err.message, 'error');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = 'Salvar';
+        }
+    }
+}
+
+const jsonMarkers = JSON.parse(document.getElementById('markers-data').textContent);
+const jsonRegions = JSON.parse(document.getElementById('regions-data').textContent);
+const jsonTerritories = JSON.parse(document.getElementById('territories-data').textContent);
+const defaultPlaceImage = 'url("{{ default_place_url }}")';
+
+// Build a color lookup map from the database
+const _territoryColorMap = {};
+jsonTerritories.forEach(t => {
+  if (t.nome && t.cor_hex) {
+    _territoryColorMap[t.nome] = t.cor_hex;
+  }
+});
+
+function normalize(value) {
+  return String(value || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().trim();
+}
+
+function territoryColor(territory) {
+  if (!territory) return '#f27007';
+  // Direct lookup from database
+  if (_territoryColorMap[territory]) return _territoryColorMap[territory];
+  // Fallback: try normalized match
+  const key = normalize(territory);
+  for (const [name, color] of Object.entries(_territoryColorMap)) {
+    if (normalize(name) === key) return color;
+  }
+  return '#f27007'; // Default ember color
+}
+
+
+
+
+
+// Ray-Casting algorithm: checks if a point is inside a polygon
+function pointInPolygon(point, vs) {
+  const x = point.lat, y = point.lng;
+  let inside = false;
+  for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+    const xi = vs[i].lat, yi = vs[i].lng;
+    const xj = vs[j].lat, yj = vs[j].lng;
+    const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function isPolygonInsideOther(innerCoords, outerCoords) {
+  return innerCoords.every(pt => pointInPolygon(pt, outerCoords));
+}
+
+function displayTerritory(territory, plural = false) {
+  const key = normalize(territory);
+  if (key.includes('auralino')) return 'Reino Auraliano';
+  if (key.includes('territorio independente')) {
+    return plural ? 'Territórios Independentes' : 'Território Independente';
+  }
+  return territory || 'Sem território';
+}
+
+function categoryLabel(value) {
+  return String(value || 'cidade').replace(/_/g, ' ');
+}
+
+function setAccent(territory) {
+  const color = territoryColor(territory);
+  const colorLower = String(color).toLowerCase();
+  const textColor = (colorLower === '#000000' || colorLower === '#000') ? '#ffffff' : color;
+  const contrastColor = (colorLower === '#000000' || colorLower === '#000') ? '#ffffff' : '#070707';
+  
+  document.querySelector('.map-shell')?.style.setProperty('--territory-color', color);
+  document.querySelector('.map-shell')?.style.setProperty('--territory-text-color', textColor);
+  document.querySelector('.map-shell')?.style.setProperty('--territory-contrast', contrastColor);
+}
+
+function markerKey(item) {
+  return `${item.lat}|${item.lng}|${item.nome}`;
+}
+
+function regionKey(item) {
+  return normalize(item.nome);
+}
+
+const regionsByName = new Map();
+jsonRegions.forEach(r => regionsByName.set(regionKey(r), r));
+
+const enrichedMarkers = jsonMarkers.map(marker => {
+  const regionData = regionsByName.get(regionKey(marker)) || {};
+  return { ...regionData, ...marker };
+});
+
+function renderDots(value) {
+  const dots = [];
+  for (let i = 1; i <= 5; i++) {
+    dots.push(`<div class="map-place-dot ${i <= (value || 0) ? 'filled' : ''}"></div>`);
+  }
+  return `<div class="map-place-dots">${dots.join('')}</div>`;
+}
+
+function getCategoryIcon(categoria) {
+  const filenames = {
+    'capital': 'capital.png',
+    'cidade': 'cidade.png',
+    'fortaleza': 'fortaleza.png',
+    'castelo': 'fortaleza.png',
+    'conglomerado_de_vilas': 'conglomerado.png',
+    'conglomerado_vilas': 'conglomerado.png',
+    'vila': 'vila.png',
+    'cidade_portuaria': 'porto.png',
+    'porto': 'porto.png',
+    'area_selvagem': 'terras_selvagens.png',
+    'area_perigosa': 'terras_selvagens.png'
+  };
+  const file = filenames[categoria] || 'cidade.png';
+  const url = `{% static 'assets/map_icons/' %}${file}`;
+  
+  const scale = (categoria === 'conglomerado_de_vilas' || categoria === 'conglomerado_vilas') ? 'scale(1.25)' : 'scale(1)';
+  
+  return `<img src="${url}" style="width: 24px; height: 24px; object-fit: contain; transform: ${scale}; pointer-events: none;" />`;
+}
+
+// Auto-loader para SVGs injetados de forma assíncrona (resolve problema de CORS/Mask e garante currentColor)
+const svgStash = {};
+const svgObserver = new MutationObserver(mutations => {
+  mutations.forEach(m => {
+    m.addedNodes.forEach(node => {
+      if (node.nodeType === 1) {
+        if (node.classList && node.classList.contains('dynamic-svg-mask') && !node.innerHTML) {
+          asyncLoadSvg(node);
+        }
+        const children = node.querySelectorAll ? node.querySelectorAll('.dynamic-svg-mask:empty') : [];
+        children.forEach(asyncLoadSvg);
+      }
+    });
+  });
+});
+svgObserver.observe(document.body, { childList: true, subtree: true });
+
+function asyncLoadSvg(el) {
+  const src = el.getAttribute('data-svg-src');
+  if (!src) return;
+  
+  if (svgStash[src] && svgStash[src] !== 'loading') {
+    el.innerHTML = svgStash[src];
+  } else if (svgStash[src] === 'loading') {
+    setTimeout(() => asyncLoadSvg(el), 50);
+  } else {
+    svgStash[src] = 'loading';
+    fetch(src)
+      .then(r => r.text())
+      .then(svg => {
+        svgStash[src] = svg;
+        el.innerHTML = svg;
+        document.querySelectorAll(`.dynamic-svg-mask[data-svg-src="${src}"]:empty`).forEach(e => e.innerHTML = svg);
+      })
+      .catch(e => {
+        console.error('Erro ao carregar SVG:', e);
+        svgStash[src] = null;
+      });
+  }
+}
+
+function markerIcon(item) {
+  const layerClass = (item.camada || 0) > 0 ? 'layer-underground' : 'layer-surface';
+  return L.divIcon({
+    className: `custom-map-icon ${layerClass}`,
+    html: `<div class="map-pin" style="--pin: ${territoryColor(item.territorio)}">
+             <div class="map-pin-symbol" style="display:flex; justify-content:center; align-items:center;">${getCategoryIcon(item.categoria || 'cidade')}</div>
+           </div>`,
+    iconSize: [48, 48],
+    iconAnchor: [24, 48]
+  });
+}
+
+function placeCard(item) {
+  setAccent(item.territorio);
+  let briefDesc = item.descricao_breve || '';
+  
+  let statsHtml = '';
+  if (item.stats) {
+    const statsList = (item.categoria === 'area_selvagem' || item.categoria === 'area_perigosa') 
+      ? ['ameacas_internas', 'densidade_populacional', 'nivel_periculosidade', 'manipulacao_trama', 'recursos_naturais', 'recursos_magicos', 'diversidade_criaturas']
+      : ['movimentacoes_economicas', 'poder_militar', 'desenvolvimento_tecnologico', 'estabilidade_politica_interna', 'ameacas_externas', 'densidade_populacional', 'tolerancia_estrangeiros', 'manipulacao_trama'];
+    
+    const statsLabels = {
+        'movimentacoes_economicas': 'Movimentações Econômicas',
+        'poder_militar': 'Poder Militar',
+        'desenvolvimento_tecnologico': 'Desenvolvimento Tecnológico',
+        'estabilidade_politica_interna': 'Estabilidade Política Interna',
+        'ameacas_externas': 'Ameaças Externas',
+        'densidade_populacional': 'Densidade Populacional',
+        'tolerancia_estrangeiros': 'Tolerância a Estrangeiros',
+        'manipulacao_trama': 'Manipulação da Trama',
+        'ameacas_internas': 'Ameaças Internas',
+        'nivel_periculosidade': 'Nível de Periculosidade',
+        'recursos_naturais': 'Recursos Naturais',
+        'recursos_magicos': 'Recursos Mágicos',
+        'diversidade_criaturas': 'Diversidade de Criaturas'
+    };
+    
+    statsHtml = `<div class="map-place-stats">` + statsList.map(s => {
+      const label = statsLabels[s] || s.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      return `<div class="map-place-stat"><span>${label}</span>${renderDots(item.stats[s])}</div>`;
+    }).join('') + `</div>`;
+  }
+
+  const detailUrl = `/mundo/regioes/${item.slug}/`;
+  const bgImage = item.imagem_capa ? `url("${item.imagem_capa}")` : defaultPlaceImage;
+
+  let adminEditHtml = '';
+  if (canEditWiki) {
+    adminEditHtml = `
+      <div class="map-admin-edit" style="border-top: 1px solid var(--stroke); padding-top: 1rem; margin-top: 1rem;">
+          <p class="text-[0.6rem] font-bold uppercase mb-2 opacity-50">Editor Administrativo</p>
+          <div class="flex flex-col gap-2">
+              <div class="flex flex-col gap-1">
+                  <label class="text-[0.6rem] uppercase opacity-70">Nome</label>
+                  <input type="text" value="${escapeHtml(item.nome)}" oninput="updatePendingMarkerField('${item.id || item._tempId}', 'nome', this.value)" style="background: var(--bg2); border: 1px solid var(--stroke); color: var(--text); padding: .3rem; font-size: .75rem; border-radius: 4px; outline: none;">
+              </div>
+              <div class="flex flex-col gap-1">
+                  <label class="text-[0.6rem] uppercase opacity-70">Categoria</label>
+                  <select onchange="updatePendingMarkerField('${item.id || item._tempId}', 'categoria', this.value)" style="background: var(--bg2); border: 1px solid var(--stroke); color: var(--text); padding: .3rem; font-size: .75rem; border-radius: 4px; outline: none; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right .7rem top 50%; background-size: .65rem auto;">
+                      ${Object.entries(categoriaChoices).map(([k, v]) => `<option value="${k}" ${item.categoria === k ? 'selected' : ''} style="background: var(--bg1); color: var(--text);">${v}</option>`).join('')}
+                  </select>
+              </div>
+              <div class="flex flex-col gap-1">
+                  <label class="text-[0.6rem] uppercase opacity-70">Território</label>
+                  <select onchange="updatePendingMarkerField('${item.id || item._tempId}', 'territorio', this.value)" style="background: var(--bg2); border: 1px solid var(--stroke); color: var(--text); padding: .3rem; font-size: .75rem; border-radius: 4px; outline: none; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right .7rem top 50%; background-size: .65rem auto;">
+                      <option value="" style="background: var(--bg1); color: var(--text);">Sem Território</option>
+                      ${jsonTerritories.map(t => `<option value="${t.nome}" ${item.territorio === t.nome ? 'selected' : ''} style="background: var(--bg1); color: var(--text);">${t.nome}</option>`).join('')}
+                  </select>
+              </div>
+              <div class="flex flex-col gap-1">
+                  <label class="text-[0.6rem] uppercase opacity-70">Camada</label>
+                  <select onchange="updatePendingMarkerField('${item.id || item._tempId}', 'camada', parseInt(this.value))" style="background: var(--bg2); border: 1px solid var(--stroke); color: var(--text); padding: .3rem; font-size: .75rem; border-radius: 4px; outline: none; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right .7rem top 50%; background-size: .65rem auto;">
+                      ${layersData.map(l => `<option value="${l.id_layer}" ${(item.camada || 0) === l.id_layer ? 'selected' : ''} style="background: var(--bg1); color: var(--text);">${escapeHtml(l.nome)}</option>`).join('')}
+                  </select>
+              </div>
+          </div>
+      </div>
+    `;
+  }
+
+  return `
+    <article class="map-place-card">
+      <header class="map-place-hero" style="--place-image: ${bgImage}; min-height: 122px;">
+        <div class="map-place-kicker">${escapeHtml(categoryLabel(item.categoria))}</div>
+        <h2 class="map-place-title">${escapeHtml(item.nome)}</h2>
+      </header>
+      <div class="map-place-body">
+        <div class="map-place-grid">
+          <div class="map-place-field"><span>Território</span><strong>${escapeHtml(displayTerritory(item.territorio, false) || '-')}</strong></div>
+        </div>
+        ${briefDesc ? `<p class="map-place-desc" style="margin-top: 1rem; margin-bottom: 0;">${escapeHtml(briefDesc)}</p>` : ''}
+        ${statsHtml}
+        ${adminEditHtml}
+        <a class="map-place-action" href="${escapeHtml(detailUrl)}">Ver história completa</a>
+      </div>
+    </article>
+  `;
+}
+
+function territoryCard(territory) {
+  const nome = typeof territory === 'string' ? territory : territory.nome;
+  const slug = territory.slug || '';
+  setAccent(nome);
+
+  let briefDesc = extractMarkdownBrief(territory.lore_markdown) || territory.descricao_breve || '';
+
+  const statsHtml = territory.stats ? `
+    <div class="map-place-stats" style="margin-top: 1rem; border-top: 0; padding-top: 0;">
+      <div class="map-place-stat"><span>Riqueza Natural</span>${renderDots(territory.stats.riqueza_natural)}</div>
+      <div class="map-place-stat"><span>Monetária</span>${renderDots(territory.stats.riqueza_monetaria)}</div>
+      <div class="map-place-stat"><span>Militar</span>${renderDots(territory.stats.poder_militar)}</div>
+      <div class="map-place-stat"><span>Tecnologia</span>${renderDots(territory.stats.desenvolvimento_tecnologico)}</div>
+      <div class="map-place-stat"><span>Estabilidade</span>${renderDots(territory.stats.estabilidade_politica_interna)}</div>
+      <div class="map-place-stat"><span>Ameaças Externas</span>${renderDots(territory.stats.ameacas_externas)}</div>
+      <div class="map-place-stat"><span>Diplomacia</span>${renderDots(territory.stats.diplomacia)}</div>
+      <div class="map-place-stat"><span>Trama</span>${renderDots(territory.stats.manipulacao_trama)}</div>
+    </div>
+  ` : '';
+
+  const linkUrl = slug ? `/mundo/regioes/?territory=${slug}` : '/mundo/regioes/';
+
+  return `
+    <article class="territory-card">
+      <header class="territory-hero" style="min-height: 80px;">
+        <h2 class="territory-title">${escapeHtml(displayTerritory(nome, true))}</h2>
+      </header>
+      <div class="territory-body">
+        ${briefDesc ? `<p class="map-place-desc" style="margin-bottom: 1rem;">${escapeHtml(briefDesc)}</p>` : ''}
+        ${statsHtml}
+        <a class="territory-action" href="${escapeHtml(linkUrl)}">Página do Território</a>
+      </div>
+    </article>
+  `;
+}
+
+function extractMarkdownBrief(markdown) {
+  if (!markdown) return '';
+  const lines = String(markdown).replace(/\r\n/g, '\n').split('\n');
+  let started = false;
+  const parts = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!started) {
+      if (/^#(?!#)\s+/.test(trimmed)) started = true;
+      continue;
+    }
+    if (/^##\s+/.test(trimmed)) break;
+    if (/^-{3,}\s*$/.test(trimmed)) break;
+    if (trimmed && !trimmed.startsWith('#')) parts.push(trimmed);
+  }
+  const result = (parts.length ? parts.join(' ') : '').trim();
+  return result;
+}
+
+const map = L.map('map', {
+  attributionControl: false,
+  crs: L.CRS.Simple,
+  minZoom: -3,
+  maxZoom: 2,
+  zoomControl: false,
+  zoomSnap: 0.25,
+  zoomDelta: 0.5,
+  preferCanvas: false,
+  renderer: L.svg({ padding: 1.5 })
+});
+L.control.zoom({ position: 'topright' }).addTo(map);
+
+const markersLayer = L.layerGroup().addTo(map);
+const territoryPolygonsLayer = L.featureGroup().addTo(map);
+const leafletMarkers = [];
+let activeMarker = null;
+let activeTerritory = '';
+let isEditMode = false;
+
+let activeLayer = 0; // 0 = Superfície, 1 = Subterrâneo
+
+// ==== Desenhos do mapa (linhas / imagens sobrepostas) — WP2 ====
+// Pane dedicada para os desenhos: fica ACIMA da imagem de fundo (tilePane=200)
+// e ABAIXO dos marcadores (markerPane=600), para não interceptar cliques dos pinos.
+map.createPane('desenhosPane');
+map.getPane('desenhosPane').style.zIndex = 450;
+
+const jsonDesenhos = JSON.parse(document.getElementById('desenhos-data').textContent);
+// Grupo que só contém os desenhos da camada ativa (filtragem por camada EXATA,
+// igual aos markers em filterMap — SEM depender das classes .layer-N do CSS,
+// que têm teto de 20 e são só para os polígonos de território).
+// featureGroup (não layerGroup): só o featureGroup propaga eventos das camadas-filhas
+// para o grupo (layer.addEventParent). É isso que faz desenhosLayer.on('click') disparar
+// quando o staff clica num desenho — com layerGroup o clique nunca chegava (bug do Gaz).
+const desenhosLayer = L.featureGroup().addTo(map);
+// desenho.id -> { data, leafletLayer|null } (leafletLayer só existe enquanto na camada ativa)
+const desenhoRegistry = new Map();
+jsonDesenhos.forEach(d => desenhoRegistry.set(d.id, { data: d, leafletLayer: null }));
+
+function switchLayer(layerIndex) {
+    if (activeLayer === layerIndex) return;
+    activeLayer = layerIndex;
+    
+    const shell = document.querySelector('.map-shell');
+    if (activeLayer === 0) {
+        shell.classList.remove('layer-underground');
+        shell.classList.add('layer-surface');
+    } else {
+        shell.classList.remove('layer-surface');
+        shell.classList.add('layer-underground');
+    }
+    
+    // Clear and update dynamic layer class
+    shell.className = shell.className.replace(/\blayer-\d+/g, '');
+    shell.classList.add(`layer-${activeLayer}`);
+    
+    document.querySelectorAll('.layer-selector-btn').forEach((btn) => {
+        if (btn.dataset.layerId) {
+            const id = parseInt(btn.dataset.layerId);
+            btn.classList.toggle('active', id === activeLayer);
+        }
+    });
+    
+    // Toggle overlays opacity
+    Object.keys(mapOverlays).forEach(id => {
+        const overlay = mapOverlays[id];
+        if (overlay) {
+            if (parseInt(id) === activeLayer) {
+                overlay.setOpacity(1);
+            } else {
+                overlay.setOpacity(0);
+            }
+        }
+    });
+    
+    if (activeMarker) {
+        const itemLayer = activeMarker._bonfireData.camada || 0;
+        if (itemLayer !== activeLayer) {
+            closeDetail();
+        }
+    }
+    
+    buildSidebarIndex();
+    filterMap();
+}
+
+// History for Undo
+let initialPolygons = {}; // To store initial states if needed
+
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = `bonfire-toast type-${type}`;
+  
+  let iconSvg = '';
+  if (type === 'error') {
+      iconSvg = `<svg class="toast-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+  } else if (type === 'success') {
+      iconSvg = `<svg class="toast-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+  } else {
+      iconSvg = `<svg class="toast-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+  }
+
+  toast.innerHTML = `
+      ${iconSvg}
+      <div class="toast-content">${message}</div>
+  `;
+  
+  container.appendChild(toast);
+  
+  // Animate in
+  requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+          toast.classList.add('show');
+      });
+  });
+  
+  // Animate out
+  setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => toast.remove(), 400);
+  }, 4000);
+}
+
+function undoAllChanges() {
+    if(Object.keys(pendingChanges.markers).length > 0 || Object.keys(pendingChanges.territories).length > 0) {
+        if(confirm("Deseja descartar todas as alterações não salvas?")) {
+            location.reload();
+        }
+    }
+}
+window.undoLastChange = undoAllChanges;
+
+const layersData = JSON.parse(document.getElementById('layers-data').textContent);
+
+const mapWidth = 6144;
+const mapHeight = 4608;
+
+const bounds = new L.LatLngBounds(
+  map.unproject([0, mapHeight], map.getMaxZoom() - 1),
+  map.unproject([mapWidth, 0], map.getMaxZoom() - 1)
+);
+
+map.setMaxBounds(bounds.pad(0.2));
+
+const mapOverlays = {};
+layersData.forEach((layer) => {
+    const opacity = (layer.id_layer === activeLayer) ? 1 : 0;
+    const isPlaceholder = layer.is_placeholder;
+    const className = `map-overlay-layer layer-overlay-${layer.id_layer}` + (isPlaceholder ? ' placeholder-overlay brightness-50' : '');
+    const overlay = L.imageOverlay(layer.imagem_url, bounds, {
+        opacity: opacity,
+        className: className
+    }).addTo(map);
+    mapOverlays[layer.id_layer] = overlay;
+});
+
+// Center map instead of fitBounds, preventing top-left alignment issues
+map.setView(bounds.getCenter(), window.innerWidth <= 1100 ? -2 : -1);
+
+function isPointOrLatLng(val) {
+    if (!val) return false;
+    if (val instanceof L.LatLng) return true;
+    if (typeof val === 'object' && 'lat' in val && 'lng' in val) return true;
+    if (Array.isArray(val) && val.length === 2 && typeof val[0] === 'number') return true;
+    return false;
+}
+
+function getLatLngValues(p) {
+    if (!p) return { lat: 0, lng: 0 };
+    if (p instanceof L.LatLng) return { lat: p.lat, lng: p.lng };
+    if (typeof p === 'object') {
+        if ('lat' in p && 'lng' in p) return { lat: p.lat, lng: p.lng };
+        if (Array.isArray(p) && p.length >= 2) return { lat: p[0], lng: p[1] };
+    }
+    return { lat: 0, lng: 0 };
+}
+
+function cleanLatLngs(coords) {
+    if (!Array.isArray(coords)) return coords;
+    if (coords.length === 0) return coords;
+
+    if (isPointOrLatLng(coords[0])) {
+        const cleaned = [];
+        for (let i = 0; i < coords.length; i++) {
+            const p = coords[i];
+            const val = getLatLngValues(p);
+            
+            if (cleaned.length === 0) {
+                cleaned.push(p);
+            } else {
+                const prev = cleaned[cleaned.length - 1];
+                const prevVal = getLatLngValues(prev);
+                
+                if (Math.abs(prevVal.lat - val.lat) > 1e-7 || Math.abs(prevVal.lng - val.lng) > 1e-7) {
+                    cleaned.push(p);
+                }
+            }
+        }
+        
+        if (cleaned.length > 1) {
+            const first = getLatLngValues(cleaned[0]);
+            const last = getLatLngValues(cleaned[cleaned.length - 1]);
+            if (Math.abs(first.lat - last.lat) < 1e-7 && Math.abs(first.lng - last.lng) < 1e-7) {
+                cleaned.pop();
+            }
+        }
+        return cleaned;
+    }
+
+    return coords.map(cleanLatLngs);
+}
+
+function getSinglePolygons(coords) {
+    return BonfireMapGeometry.splitPolygonParts(coords);
+}
+
+function flattenCoordinates(arr) {
+    if (!Array.isArray(arr)) return arr;
+    let current = arr;
+    while (current.length === 1 && Array.isArray(current[0]) && !isPointOrLatLng(current[0][0])) {
+        current = current[0];
+    }
+    return current;
+}
+
+setupMarkersAndPolygons();
+
+function setupMarkersAndPolygons() {
+  enrichedMarkers.forEach(item => {
+    const isMobile = window.innerWidth <= 1100;
+    const marker = L.marker([item.lat, item.lng], { 
+      icon: markerIcon(item), 
+      title: item.nome,
+      draggable: canEditWiki 
+    }).on('click', (e) => {
+        L.DomEvent.stopPropagation(e);
+        selectRegion(item.nome, true, marker);
+    });
+
+    if (canEditWiki && item.id) {
+      marker.on('dragend', (e) => {
+        const newPos = e.target.getLatLng();
+        updatePendingMarkerField(item.id, 'lat', newPos.lat);
+        updatePendingMarkerField(item.id, 'lng', newPos.lng);
+        // Ligações: linhas ancoradas neste pino acompanham o novo ponto.
+        if (typeof renderDesenhos === 'function') renderDesenhos();
+      });
+      // Enquanto arrasta, atualiza as ligações em tempo real (feedback visual).
+      marker.on('drag', () => { if (typeof renderDesenhos === 'function') renderDesenhos(); });
+    }
+
+    marker._bonfireData = item;
+    marker.addTo(markersLayer);
+    leafletMarkers.push(marker);
+  });
+
+  // Sort territories by area descending so smaller ones render on top of larger ones (preventing enclaves from being covered)
+  const territoriesWithArea = Object.values(jsonTerritories).map(t => {
+      let area = 0;
+      if (t.coordenadas_poligono) {
+          try {
+              let coords = typeof t.coordenadas_poligono === 'string' ? JSON.parse(t.coordenadas_poligono) : t.coordenadas_poligono;
+              coords = flattenCoordinates(coords);
+              coords = cleanLatLngs(coords);
+              const singlePolygons = getSinglePolygons(coords);
+              singlePolygons.forEach(polyCoords => {
+                  area += BonfireMapGeometry.polygonArea(polyCoords);
+              });
+          } catch (e) {
+              area = 0;
+          }
+      }
+      return { territory: t, area: area };
+  });
+
+  territoriesWithArea.sort((a, b) => b.area - a.area);
+
+  territoriesWithArea.forEach(({ territory: t }) => {
+      if (!t.coordenadas_poligono) return;
+      let coords = typeof t.coordenadas_poligono === 'string' ? JSON.parse(t.coordenadas_poligono) : t.coordenadas_poligono;
+      coords = flattenCoordinates(coords);
+      coords = cleanLatLngs(coords);
+      
+      const singlePolygons = getSinglePolygons(coords);
+      
+      singlePolygons.forEach(polyCoords => {
+          const color = territoryColor(t.nome);
+
+          const polygon = L.polygon(polyCoords, {
+              className: `territory-polygon layer-${t.camada || 0} layer-${t.camada > 0 ? 'underground' : 'surface'}`,
+              color: color,
+              fillColor: color,
+              fillOpacity: 0.3,
+              weight: 2,
+              smoothFactor: 0,
+              noClip: true
+          }).addTo(territoryPolygonsLayer);
+          polygon._bonfireTerritory = t;
+          
+          if (canEditWiki) {
+              polygon.on('pm:edit', (e) => {
+                  recalculateTerritoryCoords(t.nome);
+              });
+              polygon.on('pm:vertexadded', () => recalculateTerritoryCoords(t.nome));
+              polygon.on('pm:vertexremoved', (e) => {
+                  if (e.marker) syncNeighborRemove(e.marker.getLatLng(), t.nome);
+                  recalculateTerritoryCoords(t.nome);
+              });
+              polygon.on('pm:markerdragstart', (e) => {
+                  if (e.marker) polygon._bonfireOriginalVertex = Object.assign({}, e.marker.getLatLng());
+              });
+              polygon.on('pm:markerdragend', (e) => {
+                  if (e.marker && polygon._bonfireOriginalVertex) {
+                      syncNeighborDrag(polygon._bonfireOriginalVertex, e.marker.getLatLng(), t.nome);
+                  }
+                  recalculateTerritoryCoords(t.nome);
+              });
+          }
+          
+          polygon.on('mouseover', (e) => {
+              if (!document.querySelector('.map-shell').classList.contains('is-focused')) {
+                  e.target.setStyle({ fillOpacity: 0.45 });
+              }
+          });
+          polygon.on('mouseout', (e) => {
+              e.target.setStyle({ fillOpacity: 0.3 });
+          });
+          polygon.on('click', () => selectTerritory(t.nome));
+      });
+  });
+
+  buildCategoryFilter();
+  buildSidebarIndex();
+}
+
+function regionsByTerritory() {
+  const grouped = new Map();
+  enrichedMarkers.forEach(m => {
+    if ((m.camada || 0) !== activeLayer) return;
+    const t = m.territorio || 'Sem território';
+    if (!grouped.has(t)) grouped.set(t, []);
+    grouped.get(t).push(m);
+  });
+  return grouped;
+}
+
+function buildCategoryFilter() {
+  const filter = document.getElementById('categoryFilter');
+  const wrap = document.getElementById('categoryFilterWrap');
+  const button = document.getElementById('categoryFilterButton');
+  const menu = document.getElementById('categoryFilterMenu');
+  const currentIcon = button.querySelector('.map-category-current-icon');
+  const currentLabel = button.querySelector('.map-category-current-label');
+  const categories = new Set(enrichedMarkers.map(m => m.categoria).filter(Boolean));
+
+  const options = [{ value: '', label: 'Todas as categorias', icon: '' }]
+    .concat(Array.from(categories).sort((a, b) => categoryLabel(a).localeCompare(categoryLabel(b))).map(cat => ({
+      value: cat,
+      label: categoryLabel(cat),
+      icon: getCategoryIcon(cat)
+    })));
+
+  function setCategory(value) {
+    const option = options.find(opt => opt.value === value) || options[0];
+    filter.value = option.value;
+    currentIcon.innerHTML = option.icon || '';
+    currentLabel.textContent = option.label;
+    menu.querySelectorAll('.map-category-option').forEach(item => {
+      item.classList.toggle('is-active', item.dataset.value === option.value);
+    });
+    wrap.classList.remove('is-open');
+    button.setAttribute('aria-expanded', 'false');
+    filterMap();
+  }
+
+  menu.innerHTML = options.map(option => `
+    <button type="button" class="map-category-option" role="option" data-value="${escapeHtml(option.value)}">
+      <span class="map-category-option-icon">${option.icon || ''}</span>
+      <span class="map-category-option-label">${escapeHtml(option.label)}</span>
+    </button>
+  `).join('');
+
+  button.addEventListener('click', () => {
+    const open = !wrap.classList.contains('is-open');
+    wrap.classList.toggle('is-open', open);
+    button.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+
+  menu.querySelectorAll('.map-category-option').forEach(item => {
+    item.addEventListener('click', () => setCategory(item.dataset.value || ''));
+  });
+
+  document.addEventListener('click', event => {
+    if (!wrap.contains(event.target)) {
+      wrap.classList.remove('is-open');
+      button.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  setCategory('');
+}
+
+function buildSidebarIndex() {
+  const container = document.getElementById('mapIndex');
+  const grouped = regionsByTerritory();
+  const territories = Array.from(grouped.keys()).sort((a,b) => {
+      if (a === 'Sem território') return 1;
+      if (b === 'Sem território') return -1;
+      return a.localeCompare(b);
+  });
+
+  container.innerHTML = territories.map(t => {
+    const regions = grouped.get(t).sort((a,b) => a.nome.localeCompare(b.nome));
+    const isOpen = activeTerritory === t ? 'is-open' : '';
+    const isActive = activeTerritory === t ? 'is-active' : '';
+    
+    const color = territoryColor(t);
+    const colorLower = String(color).toLowerCase();
+    const textColor = (colorLower === '#000000' || colorLower === '#000') ? '#ffffff' : color;
+    
+    return `
+      <div class="territory-group ${isOpen}" data-territory-name="${escapeHtml(t)}" style="--item-color: ${color}; --item-text-color: ${textColor};">
+        <button class="territory-button ${isActive}" data-territory-open="${escapeHtml(t)}">
+          ${escapeHtml(displayTerritory(t, true))}
+        </button>
+        <div class="territory-regions">
+          ${regions.map(r => `
+            <button class="index-item" data-marker-key="${escapeHtml(markerKey(r))}" onclick="event.stopPropagation(); selectRegion(${escapeHtml(JSON.stringify(r.nome))}, true)">
+              <div class="index-item-icon-png" style="flex-shrink: 0; display:flex; justify-content:center; align-items:center;">${getCategoryIcon(r.categoria)}</div>
+              <span class="index-item-title">${escapeHtml(r.nome)}</span>
+            </button>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  container.querySelectorAll('[data-territory-open]').forEach(btn => {
+    btn.onclick = () => {
+        const group = btn.closest('.territory-group');
+        const wasOpen = group.classList.contains('is-open');
+        const targetName = btn.dataset.territoryOpen;
+        
+        document.querySelectorAll('.territory-group').forEach(g => g.classList.remove('is-open'));
+        
+        if (!wasOpen) {
+            group.classList.add('is-open');
+            selectTerritory(targetName);
+        } else {
+            if (activeTerritory === targetName && activeMarker === null) {
+                closeDetail();
+            } else {
+                group.classList.add('is-open');
+                selectTerritory(targetName);
+            }
+        }
+    };
+  });
+}
+
+function openDetail(html) {
+  const panel = document.getElementById('mapDetail');
+  const shell = document.querySelector('.map-shell');
+  panel.innerHTML = `<button type="button" class="map-detail-close" onclick="closeDetail()">×</button>${html}`;
+  shell.classList.add('has-detail');
+  setTimeout(() => map.invalidateSize(), 80);
+}
+
+function closeDetail() {
+  const shell = document.querySelector('.map-shell');
+  shell.classList.remove('has-detail', 'is-focused');
+  activeMarker = null;
+  activeTerritory = '';
+  updateActiveIndex();
+  territoryPolygonsLayer.eachLayer(l => l.getElement()?.classList.remove('is-active'));
+  document.querySelectorAll('.custom-map-icon').forEach(el => {
+    el.classList.remove('is-active');
+    el.style.opacity = '1';
+  });
+}
+
+function selectTerritory(territory) {
+  if (isEditMode) return;
+  const terrObj = jsonTerritories.find(t => t.nome === territory);
+  if (terrObj) {
+      const tCamada = terrObj.camada || 0;
+      if (tCamada !== activeLayer) {
+          switchLayer(tCamada);
+      }
+  }
+  activeTerritory = territory;
+  activeMarker = null;
+  const shell = document.querySelector('.map-shell');
+  shell.classList.add('is-focused');
+  
+  document.querySelectorAll('.territory-group').forEach(g => g.classList.remove('is-open'));
+  const group = document.querySelector(`.territory-group[data-territory-name="${territory}"]`);
+  if (group) group.classList.add('is-open');
+  
+  territoryPolygonsLayer.eachLayer(l => {
+      const isMine = l._bonfireTerritory && l._bonfireTerritory.nome === territory;
+      l.getElement()?.classList.toggle('is-active', isMine);
+  });
+  
+  document.querySelectorAll('.custom-map-icon').forEach(icon => {
+      const marker = leafletMarkers.find(m => m.getElement() === icon);
+      const belongs = marker && marker._bonfireData.territorio === territory;
+      icon.classList.toggle('is-active', belongs);
+  });
+
+  const myPolygons = [];
+  territoryPolygonsLayer.eachLayer(l => {
+      if (l._bonfireTerritory && l._bonfireTerritory.nome === territory) myPolygons.push(l);
+  });
+  if (myPolygons.length) {
+      map.fitBounds(L.featureGroup(myPolygons).getBounds(), { padding: [50, 50] });
+  }
+  
+  const html = territoryCard(terrObj || { nome: territory });
+  if (window.innerWidth <= 1100) {
+      document.querySelector('.map-shell').classList.remove('has-detail', 'is-sidebar-open');
+      const popupLatLng = myPolygons.length ? L.featureGroup(myPolygons).getBounds().getCenter() : map.getCenter();
+      L.popup({ closeButton: true, className: 'mobile-leaflet-popup', offset: [0, -10], maxWidth: 340 })
+        .setLatLng(popupLatLng)
+        .setContent(`<div class="mobile-popup-wrapper">${html}</div>`)
+        .openOn(map);
+  } else {
+      map.closePopup();
+      openDetail(html);
+  }
+  updateActiveIndex();
+}
+
+function openRegionPopup(marker) {
+  const popupHtml = `<div class="mobile-popup-wrapper">${placeCard(marker._bonfireData)}</div>`;
+  L.popup({ closeButton: true, className: 'mobile-leaflet-popup', offset: [0, -20], maxWidth: 340 })
+    .setLatLng(marker.getLatLng())
+    .setContent(popupHtml)
+    .openOn(map);
+}
+
+function selectRegion(name, shouldZoom, explicitMarker = null) {
+  if (isEditMode) return;
+  const marker = explicitMarker || leafletMarkers.find(m => normalize(m._bonfireData.nome) === normalize(name));
+  if (!marker) return;
+  
+  const mCamada = marker._bonfireData.camada || 0;
+  if (mCamada !== activeLayer) {
+      switchLayer(mCamada);
+  }
+  
+  activeMarker = marker;
+  activeTerritory = marker._bonfireData.territorio;
+  
+  // Apply accordion behavior
+  document.querySelectorAll('.territory-group').forEach(g => g.classList.remove('is-open'));
+  if (activeTerritory) {
+      const group = document.querySelector(`.territory-group[data-territory-name="${activeTerritory}"]`);
+      if (group) group.classList.add('is-open');
+  }
+
+  const shell = document.querySelector('.map-shell');
+  shell.classList.add('is-focused');
+  
+  // Highlight this marker
+  document.querySelectorAll('.custom-map-icon').forEach(el => el.classList.remove('is-active'));
+  if (!markersLayer.hasLayer(marker)) marker.addTo(markersLayer);
+  marker.getElement()?.classList.add('is-active');
+  requestAnimationFrame(() => marker.getElement()?.classList.add('is-active'));
+  
+  // Also highlight the territory polygon it belongs to
+  territoryPolygonsLayer.eachLayer(l => {
+      const isMine = l._bonfireTerritory && l._bonfireTerritory.nome === activeTerritory;
+      l.getElement()?.classList.toggle('is-active', isMine);
+  });
+
+  if (shouldZoom) {
+    map.setView(marker.getLatLng(), Math.max(map.getZoom(), 1), { animate: true });
+  }
+  
+  if (window.innerWidth <= 1100) {
+      document.querySelector('.map-shell').classList.remove('has-detail', 'is-sidebar-open');
+      if (!markersLayer.hasLayer(marker)) marker.addTo(markersLayer);
+      if (shouldZoom) {
+        map.once('moveend', () => openRegionPopup(marker));
+      } else {
+        openRegionPopup(marker);
+      }
+  } else {
+      map.closePopup();
+      openDetail(placeCard(marker._bonfireData));
+  }
+  updateActiveIndex();
+}
+
+let lastResizedMode = window.innerWidth <= 1100 ? 'mobile' : 'desktop';
+window.addEventListener('resize', () => {
+    const newMode = window.innerWidth <= 1100 ? 'mobile' : 'desktop';
+    if (newMode !== lastResizedMode) {
+        lastResizedMode = newMode;
+        if (activeMarker) {
+            selectRegion(activeMarker._bonfireData.nome, false, activeMarker);
+        }
+    }
+});
+
+function updateActiveIndex() {
+  const key = activeMarker ? markerKey(activeMarker._bonfireData || activeMarker) : '';
+  document.querySelectorAll('.index-item').forEach(el => {
+    el.classList.toggle('is-active', el.dataset.markerKey === key);
+  });
+}
+
+// ==== Renderização dos desenhos (viewer, todos os usuários) ====
+
+// Resolve a posição ATUAL de um marker de ligação (id_marker) -> [lat, lng].
+// Usa o marker Leaflet vivo (que reflete arrastes não-salvos no editor) e cai
+// no dado embutido se o marker não estiver instanciado.
+function resolveMarkerLatLng(markerId) {
+    if (markerId === null || markerId === undefined) return null;
+    const live = leafletMarkers.find(m => m._bonfireData && m._bonfireData.id == markerId);
+    if (live) {
+        const ll = live.getLatLng();
+        return [ll.lat, ll.lng];
+    }
+    const raw = enrichedMarkers.find(m => m.id == markerId);
+    if (raw) return [raw.lat, raw.lng];
+    return null;
+}
+
+// Constrói os pontos efetivos de uma linha: se houver liga_marker_inicio/fim,
+// o primeiro/último ponto vira a posição atual do marker correspondente.
+function linhaEffectivePoints(dados) {
+    const pts = (dados.pontos || []).map(p => [p[0], p[1]]);
+    if (pts.length < 2) return pts;
+    if (dados.liga_marker_inicio !== null && dados.liga_marker_inicio !== undefined) {
+        const ll = resolveMarkerLatLng(dados.liga_marker_inicio);
+        if (ll) pts[0] = ll;
+    }
+    if (dados.liga_marker_fim !== null && dados.liga_marker_fim !== undefined) {
+        const ll = resolveMarkerLatLng(dados.liga_marker_fim);
+        if (ll) pts[pts.length - 1] = ll;
+    }
+    return pts;
+}
+
+// Monta o HTML do popup de um desenho (nome + descrição), sempre escapado —
+// nunca insere dado do banco cru via innerHTML sem passar por escapeHtml.
+function desenhoPopupHtml(d) {
+    const dados = d.dados_json || {};
+    const nome = (d.nome || '').trim();
+    const descricao = (dados.descricao || '').trim();
+    if (!nome && !descricao) return null;
+    let html = '<div class="desenho-popup">';
+    if (nome) html += '<strong>' + escapeHtml(nome) + '</strong>';
+    if (descricao) html += '<p>' + escapeHtml(descricao) + '</p>';
+    html += '</div>';
+    return html;
+}
+
+// Cria a camada Leaflet de um desenho. interactive=false no viewer (não intercepta
+// cliques dos markers) A MENOS que o desenho tenha nome/descrição — nesse caso vira
+// clicável e ganha um popup (WP2: feedback do Gaz "precisava ser clicável pra aparecer
+// o que ela é"). No editor staff passamos interactive=true para poder selecioná-lo
+// (edição tem prioridade sobre popup — o clique lá abre o painel de edição).
+function buildDesenhoLayer(d, interactive) {
+    const dados = d.dados_json || {};
+    const popupHtml = interactive ? null : desenhoPopupHtml(d);
+    const clicavel = !!interactive || !!popupHtml;
+    if (d.tipo === 'linha') {
+        const pts = linhaEffectivePoints(dados);
+        if (pts.length < 2) return null;
+        const layer = L.polyline(pts, {
+            pane: 'desenhosPane',
+            color: dados.cor || '#ffffff',
+            weight: dados.espessura || 3,
+            opacity: 0.9,
+            dashArray: dados.tracejado ? '10, 8' : null,
+            interactive: clicavel,
+            bubblingMouseEvents: false
+        });
+        if (popupHtml) layer.bindPopup(popupHtml, { className: 'desenho-popup-wrap' });
+        return layer;
+    }
+    if (d.tipo === 'imagem') {
+        const b = dados.bounds;
+        if (!Array.isArray(b) || b.length !== 2) return null;
+        const layer = L.imageOverlay(dados.url, [b[0], b[1]], {
+            pane: 'desenhosPane',
+            opacity: (dados.opacidade === undefined || dados.opacidade === null) ? 1 : dados.opacidade,
+            interactive: clicavel
+        });
+        if (popupHtml) layer.bindPopup(popupHtml, { className: 'desenho-popup-wrap' });
+        return layer;
+    }
+    return null;
+}
+
+// Filtra os desenhos por camada EXATA (mesmo mecanismo dos markers) e (re)desenha.
+function renderDesenhos() {
+    desenhoRegistry.forEach(entry => {
+        const d = entry.data;
+        // Remove a instância antiga (para re-resolver ligações que possam ter mudado).
+        if (entry.leafletLayer) {
+            desenhosLayer.removeLayer(entry.leafletLayer);
+            entry.leafletLayer = null;
+        }
+        if ((d.camada || 0) !== activeLayer) return; // camada 1 não aparece na 2
+        const layer = buildDesenhoLayer(d, canEditWiki);
+        if (layer) {
+            layer._bonfireDesenhoId = d.id;
+            desenhosLayer.addLayer(layer);
+            entry.leafletLayer = layer;
+        }
+    });
+}
+
+renderDesenhos();
+
+function filterMap() {
+  const query = document.getElementById('mapSearch').value.toLowerCase();
+  const cat = document.getElementById('categoryFilter').value;
+  renderDesenhos();
+  markersLayer.clearLayers();
+  leafletMarkers.forEach(m => {
+    const d = m._bonfireData;
+    const isOnCurrentLayer = (d.camada || 0) === activeLayer;
+    const match = isOnCurrentLayer && (!query || d.nome.toLowerCase().includes(query)) && (!cat || d.categoria === cat);
+    if (match) {
+        m.addTo(markersLayer);
+        const icon = m.getElement();
+        if (icon) {
+            const isMe = activeMarker === m;
+            icon.classList.toggle('is-active', isMe);
+        }
+    }
+  });
+}
+
+document.getElementById('mapSearch').oninput = filterMap;
+document.getElementById('categoryFilter').onchange = filterMap;
+
+// Step 3.2: Create New Pin
+function startCreateMarker() {
+    const center = map.getCenter();
+    const tempId = 'new_' + Date.now();
+    const data = {
+        id: null,
+        _tempId: tempId,
+        nome: 'Nova Região',
+        lat: center.lat,
+        lng: center.lng,
+        categoria: 'cidade',
+        territorio: activeTerritory && activeTerritory !== 'Sem território' ? activeTerritory : '',
+        camada: activeLayer
+    };
+    
+    const marker = L.marker(center, {
+        icon: markerIcon(data),
+        draggable: true,
+        title: 'Arraste para posicionar'
+    }).addTo(map);
+    
+    marker._bonfireData = data;
+    marker._tempId = tempId;
+    
+    marker.on('dragend', () => {
+        const pos = marker.getLatLng();
+        updatePendingMarkerField(tempId, 'lat', pos.lat);
+        updatePendingMarkerField(tempId, 'lng', pos.lng);
+        if (typeof renderDesenhos === 'function') renderDesenhos();
+    });
+    marker.on('drag', () => { if (typeof renderDesenhos === 'function') renderDesenhos(); });
+    
+    marker.on('click', (e) => {
+        L.DomEvent.stopPropagation(e);
+        selectRegion(data.nome, true, marker);
+    });
+    
+    leafletMarkers.push(marker);
+    pendingChanges.markers[tempId] = data;
+    markChange();
+    
+    // Select it to open editor
+    selectRegion(data.nome, true, marker);
+}
+
+function recalculateTerritoryCoords(territoryName) {
+    const multiCoords = [];
+    territoryPolygonsLayer.eachLayer(l => {
+        if (l._bonfireTerritory && l._bonfireTerritory.nome === territoryName) {
+            // Leaflet polygons might be single or multi. getLatLngs() returns an array of rings/polygons.
+            let latlngs = l.getLatLngs();
+            latlngs = flattenCoordinates(latlngs);
+            latlngs = cleanLatLngs(latlngs);
+            if (latlngs && latlngs.length > 0) {
+                // Leaflet standardizes to 3D arrays for single polygon with holes, or 4D for multi
+                // We will just store what it gives us. Usually latlngs[0] is the outer ring.
+                multiCoords.push(latlngs);
+            }
+        }
+    });
+    
+    const t = jsonTerritories.find(x => x.nome === territoryName);
+    if (t) {
+        const rawCoords = multiCoords.length === 1 ? multiCoords[0] : multiCoords;
+        pendingChanges.territories[t.id] = cleanLatLngs(flattenCoordinates(rawCoords));
+        markChange();
+    }
+}
+
+function startDrawPolygon() {
+    isEditMode = true;
+    updateAdminEditState();
+    document.getElementById('btnDraw')?.classList.add('primary-active');
+    showToast('Desenhe a nova área. Depois escolha o território dela.', 'info');
+
+    map.pm.enableDraw('Polygon', {
+        snappable: true,
+        snapDistance: 20,
+        allowSelfIntersection: false,
+    });
+    
+    // Right-click anywhere on the map removes the last placed vertex
+    function _onDrawRightClick(e) {
+        e.originalEvent.preventDefault();
+        try {
+            map.pm.Draw.Polygon._removeLastVertex();
+        } catch(_) {}
+    }
+    map.on('contextmenu', _onDrawRightClick);
+    
+    // Clean up the handler when drawing finishes or is cancelled
+    function _cleanupDrawListeners() {
+        map.off('contextmenu', _onDrawRightClick);
+        map.off('pm:drawend', _cleanupDrawListeners);
+        isEditMode = false;
+        updateAdminEditState();
+        document.getElementById('btnDraw')?.classList.remove('primary-active');
+    }
+    map.on('pm:drawend', _cleanupDrawListeners);
+    
+    map.once('pm:create', async (e) => {
+        const layer = e.layer;
+        const chosenTerritory = await chooseAreaTerritory(activeTerritory && activeTerritory !== 'Sem território' ? activeTerritory : '');
+        if (!chosenTerritory) {
+            map.removeLayer(layer);
+            showToast('Criação de área cancelada.', 'info');
+            return;
+        }
+        bindTerritoryLayer(layer, chosenTerritory);
+        territoryPolygonsLayer.addLayer(layer);
+        activeTerritory = chosenTerritory;
+        processTerritoryGeometry(chosenTerritory);
+        selectTerritory(chosenTerritory);
+    });
+}
+
+function chooseAreaTerritory(preferredName = '') {
+    const modal = document.getElementById('areaTerritoryModal');
+    const select = document.getElementById('areaTerritorySelect');
+    const confirmBtn = document.getElementById('areaTerritoryConfirm');
+    const cancelBtn = document.getElementById('areaTerritoryCancel');
+    if (!modal || !select || !confirmBtn || !cancelBtn) return Promise.resolve(preferredName || jsonTerritories[0]?.nome || '');
+    
+    // Elements for inline territory creation
+    const btnShow = document.getElementById('btnShowCreateTerritory');
+    const btnCancel = document.getElementById('btnCancelCreateTerritory');
+    const btnConfirm = document.getElementById('btnConfirmCreateTerritory');
+    const selectSection = document.getElementById('selectTerritorySection');
+    const createSection = document.getElementById('createTerritorySection');
+    const mainActions = document.getElementById('areaTerritoryMainActions');
+
+    // Reset section visibilities
+    if (selectSection && createSection && mainActions) {
+        selectSection.style.display = 'block';
+        mainActions.style.display = 'flex';
+        createSection.style.display = 'none';
+    }
+
+    // Set up listeners once
+    if (btnShow && !btnShow._hasListener) {
+        btnShow._hasListener = true;
+        btnShow.addEventListener('click', () => {
+            selectSection.style.display = 'none';
+            mainActions.style.display = 'none';
+            createSection.style.display = 'block';
+            document.getElementById('newTerritoryName').value = '';
+            document.getElementById('newTerritoryName').focus();
+        });
+        
+        btnCancel.addEventListener('click', () => {
+            createSection.style.display = 'none';
+            selectSection.style.display = 'block';
+            mainActions.style.display = 'flex';
+        });
+
+        btnConfirm.addEventListener('click', async () => {
+            const nameInput = document.getElementById('newTerritoryName');
+            const colorInput = document.getElementById('newTerritoryColor');
+            const name = nameInput.value.trim();
+            const color = colorInput.value;
+            if (!name) return alert('Nome do território é obrigatório.');
+            
+            btnConfirm.disabled = true;
+            btnConfirm.textContent = 'Criando...';
+            try {
+                const res = await fetch('/wiki/territorios/criar/', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+                    body: JSON.stringify({ nome: name, cor_hex: color, camada: activeLayer })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Erro do servidor');
+                
+                // Add to local cache
+                jsonTerritories.push({
+                    id: data.territory.id,
+                    nome: data.territory.nome,
+                    slug: data.territory.slug,
+                    cor_hex: data.territory.cor_hex,
+                    camada: data.territory.camada
+                });
+                _territoryColorMap[data.territory.nome] = data.territory.cor_hex;
+                
+                // Re-open with the new territory selected
+                createSection.style.display = 'none';
+                selectSection.style.display = 'block';
+                mainActions.style.display = 'flex';
+                
+                chooseAreaTerritory(data.territory.nome);
+            } catch (err) {
+                alert('Erro ao criar território: ' + err.message);
+            } finally {
+                btnConfirm.disabled = false;
+                btnConfirm.textContent = 'Criar Território';
+            }
+        });
+    }
+
+    // Populate dropdown dynamically with all territories and their layer names
+    select.innerHTML = '';
+    
+    // Sort territories: current layer first, then alphabetical by name
+    const sortedTerritories = [...jsonTerritories].sort((a, b) => {
+        const aCamada = a.camada || 0;
+        const bCamada = b.camada || 0;
+        if (aCamada === activeLayer && bCamada !== activeLayer) return -1;
+        if (aCamada !== activeLayer && bCamada === activeLayer) return 1;
+        return a.nome.localeCompare(b.nome);
+    });
+
+    sortedTerritories.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.nome;
+        const terrCamada = t.camada || 0;
+        const layerObj = layersData.find(l => l.id_layer === terrCamada);
+        const layerName = layerObj ? layerObj.nome : `Camada ${terrCamada}`;
+        opt.textContent = `${t.nome} (${layerName})`;
+        opt.style.background = 'var(--bg1)';
+        opt.style.color = 'var(--text)';
+        select.appendChild(opt);
+    });
+    
+    if (preferredName) {
+        select.value = preferredName;
+    } else {
+        select.value = sortedTerritories[0]?.nome || '';
+    }
+    
+    modal.hidden = false;
+    select.focus();
+    return new Promise(resolve => {
+        const cleanup = (value) => {
+            modal.hidden = true;
+            confirmBtn.removeEventListener('click', onConfirm);
+            cancelBtn.removeEventListener('click', onCancel);
+            resolve(value);
+        };
+        const onConfirm = () => cleanup(select.value);
+        const onCancel = () => cleanup('');
+        confirmBtn.addEventListener('click', onConfirm);
+        cancelBtn.addEventListener('click', onCancel);
+    });
+}
+
+function bindTerritoryLayer(layer, territoryName) {
+    const t = jsonTerritories.find(x => x.nome === territoryName) || { nome: territoryName, camada: activeLayer };
+    layer._bonfireTerritory = t;
+    const color = territoryColor(territoryName);
+    
+    layer.setStyle({
+        className: `territory-polygon layer-${t.camada || 0} layer-${t.camada > 0 ? 'underground' : 'surface'}`,
+        color: color,
+        fillColor: color,
+        fillOpacity: 0.3,
+        weight: 2,
+        smoothFactor: 0,
+        noClip: true
+    });
+    layer.on('pm:edit', () => recalculateTerritoryCoords(territoryName));
+    layer.on('pm:vertexadded', () => recalculateTerritoryCoords(territoryName));
+    layer.on('pm:vertexremoved', (evt) => {
+        if (evt.marker) syncNeighborRemove(evt.marker.getLatLng(), territoryName);
+        recalculateTerritoryCoords(territoryName);
+    });
+    layer.on('pm:markerdragstart', (evt) => {
+        if (evt.marker) layer._bonfireOriginalVertex = Object.assign({}, evt.marker.getLatLng());
+    });
+    layer.on('pm:markerdragend', (evt) => {
+        if (evt.marker && layer._bonfireOriginalVertex) {
+            syncNeighborDrag(layer._bonfireOriginalVertex, evt.marker.getLatLng(), territoryName);
+        }
+        recalculateTerritoryCoords(territoryName);
+    });
+    layer.on('mouseover', (evt) => {
+        if (!document.querySelector('.map-shell').classList.contains('is-focused')) {
+            evt.target.setStyle({ fillOpacity: 0.45 });
+        }
+    });
+    layer.on('mouseout', (evt) => {
+        evt.target.setStyle({ fillOpacity: 0.3 });
+    });
+    layer.on('click', () => selectTerritory(territoryName));
+}
+
+function processTerritoryGeometry(territoryName) {
+    recalculateTerritoryCoords(territoryName);
+    showToast('Área criada. Lembre-se de salvar suas alterações.', 'success');
+}
+
+function startDrawHole() {
+    console.log('startDrawHole called. activeTerritory:', activeTerritory);
+    if (!activeTerritory || activeTerritory === 'Sem território') {
+        showToast('Selecione um território antes de cortar um buraco.', 'error');
+        return;
+    }
+    
+    isEditMode = true;
+    updateAdminEditState();
+    document.getElementById('btnCut')?.classList.add('primary-active');
+    showToast('Desenhe a área que deseja recortar dentro de um polígono existente.', 'info');
+    
+    const layers = territoryPolygonsLayer.getLayers();
+    console.log('Layers available for cutting:', layers.length, layers);
+    
+    map.pm.enableGlobalCutMode({
+        allowSelfIntersection: false,
+        layersToCut: layers
+    });
+    
+    // Right-click removes last vertex during cut too
+    function _onCutRightClick(e) {
+        e.originalEvent.preventDefault();
+        try {
+            map.pm.Draw.Cut._removeLastVertex();
+        } catch(_) {}
+    }
+    map.on('contextmenu', _onCutRightClick);
+    function _cleanupCutListeners() {
+        console.log('_cleanupCutListeners called');
+        map.off('contextmenu', _onCutRightClick);
+        map.off('pm:drawend', _cleanupCutListeners);
+        map.pm.disableGlobalCutMode();
+        isEditMode = false;
+        updateAdminEditState();
+        document.getElementById('btnCut')?.classList.remove('primary-active');
+    }
+    map.on('pm:drawend', _cleanupCutListeners);
+}
+
+function applyChaikinToRingSelective(ring, sharedKeys, iterations) {
+    if (!ring || ring.length < 3) return ring;
+    let newCoords = ring;
+    for (let iter = 0; iter < iterations; iter++) {
+        const tempCoords = [];
+        for (let i = 0; i < newCoords.length; i++) {
+            const p1 = newCoords[i];
+            const p2 = newCoords[(i + 1) % newCoords.length];
+            
+            const is_p1_shared = sharedKeys.has(`${p1.lat}|${p1.lng}`);
+            const is_p2_shared = sharedKeys.has(`${p2.lat}|${p2.lng}`);
+            
+            if (is_p1_shared && is_p2_shared) {
+                tempCoords.push(p1);
+            } else if (is_p1_shared && !is_p2_shared) {
+                tempCoords.push(p1);
+                tempCoords.push(L.latLng(0.25 * p1.lat + 0.75 * p2.lat, 0.25 * p1.lng + 0.75 * p2.lng));
+            } else if (!is_p1_shared && is_p2_shared) {
+                tempCoords.push(L.latLng(0.75 * p1.lat + 0.25 * p2.lat, 0.75 * p1.lng + 0.25 * p2.lng));
+            } else {
+                tempCoords.push(L.latLng(0.75 * p1.lat + 0.25 * p2.lat, 0.75 * p1.lng + 0.25 * p2.lng));
+                tempCoords.push(L.latLng(0.25 * p1.lat + 0.75 * p2.lat, 0.25 * p1.lng + 0.75 * p2.lng));
+            }
+        }
+        newCoords = tempCoords;
+    }
+    return newCoords;
+}
+
+function countVertices(coordsArray) {
+    if (coordsArray.length > 0 && coordsArray[0] instanceof L.LatLng) {
+        return coordsArray.length;
+    }
+    return coordsArray.reduce((acc, arr) => acc + countVertices(arr), 0);
+}
+
+function collectSharedVertices(territoryName) {
+    const shared = new Set();
+    let targetCoords = [];
+    territoryPolygonsLayer.eachLayer(l => {
+        if (l._bonfireTerritory && l._bonfireTerritory.nome === territoryName) {
+            const polys = getOuterRingsWithParents(l.getLatLngs());
+            polys.forEach(p => targetCoords.push(...p.outerRing));
+        }
+    });
+    territoryPolygonsLayer.eachLayer(l => {
+        if (l._bonfireTerritory && l._bonfireTerritory.nome !== territoryName) {
+            const polys = getOuterRingsWithParents(l.getLatLngs());
+            for (const p of polys) {
+                for (const ring of p.parentPolygon) {
+                    for (const pt of ring) {
+                        for (const tc of targetCoords) {
+                            if (Math.abs(tc.lat - pt.lat) < 1.0 && Math.abs(tc.lng - pt.lng) < 1.0) {
+                                shared.add(`${tc.lat}|${tc.lng}`);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    });
+    return shared;
+}
+
+function applyChaikin(territoryName = activeTerritory, silent = false) {
+    if (!territoryName || territoryName === 'Sem território') {
+        showToast('Selecione um território para suavizar.', 'error');
+        return;
+    }
+    
+    let targetLayers = [];
+    territoryPolygonsLayer.eachLayer(l => {
+        if (l._bonfireTerritory && l._bonfireTerritory.nome === territoryName) {
+            targetLayers.push(l);
+        }
+    });
+    
+    if (targetLayers.length === 0) {
+        showToast('Este território ainda não possui um polígono para suavizar.', 'error');
+        return;
+    }
+
+    const sharedKeys = collectSharedVertices(territoryName);
+
+    targetLayers.forEach(targetLayer => {
+        const rings = targetLayer.getLatLngs();
+        const polys = getOuterRingsWithParents(rings);
+
+        for (const poly of polys) {
+            const outerRing = poly.outerRing;
+            const outerVertices = countVertices([outerRing]);
+
+            if (outerVertices > 400) {
+                showToast('Polígono muito complexo. Suavização bloqueada.', 'error');
+                return;
+            }
+
+            let iterations = 3;
+            if (outerVertices > 100) iterations = 2;
+            if (outerVertices > 250) iterations = 1;
+
+            // Smooth only the outer ring, preserving shared borders
+            const smoothed = applyChaikinToRingSelective(outerRing, sharedKeys, iterations);
+            // Replace outer ring in-place
+            poly.parentPolygon[0] = smoothed;
+            // Inner rings (holes) are preserved as-is
+        }
+        targetLayer.setLatLngs(rings);
+    });
+    
+    recalculateTerritoryCoords(territoryName);
+    if (!silent) showToast('Polígonos suavizados com sucesso (preservando fronteiras)!', 'success');
+}
+
+function getClosestPointOnSegment(p, p1, p2) {
+    const l2 = (p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2;
+    if (l2 === 0) return { point: p1, t: 0 };
+    let t = ((p.x - p1.x) * (p2.x - p1.x) + (p.y - p1.y) * (p2.y - p1.y)) / l2;
+    t = Math.max(0, Math.min(1, t));
+    return { point: L.point(p1.x + t * (p2.x - p1.x), p1.y + t * (p2.y - p1.y)), t: t };
+}
+
+function optimizePolygon(territoryName = activeTerritory, silent = false) {
+    if (!territoryName || territoryName === 'Sem território') {
+        showToast('Selecione um território para otimizar.', 'error');
+        return;
+    }
+    
+    let targetLayers = [];
+    let otherLayers = [];
+    
+    territoryPolygonsLayer.eachLayer(l => {
+        if (l._bonfireTerritory && l._bonfireTerritory.nome === territoryName) {
+            targetLayers.push(l);
+        } else if (l._bonfireTerritory) {
+            otherLayers.push(l);
+        }
+    });
+    
+    if (targetLayers.length === 0) return;
+
+    let removedCount = 0;
+    let otherLayersModified = new Set();
+    
+    for (const targetLayer of targetLayers) {
+        let rings = targetLayer.getLatLngs();
+        let polygons = getOuterRingsWithParents(rings);
+        let targetUpdated = false;
+        
+        for (const poly of polygons) {
+            for (let ringIdx = 0; ringIdx < poly.parentPolygon.length; ringIdx++) {
+                let coords = poly.parentPolygon[ringIdx];
+                if (coords.length <= 3) continue;
+                
+                const points = coords.map((c, idx) => {
+                    let p = map.project(c, map.getMaxZoom());
+                    p._originalIndex = idx;
+                    p._latlng = c;
+                    return p;
+                });
+                
+                let proxyKept = [];
+                if (points.length > 0) {
+                    proxyKept.push(points[0]);
+                    for (let i = 1; i < points.length; i++) {
+                        if (points[i].distanceTo(proxyKept[proxyKept.length - 1]) >= 2) {
+                            proxyKept.push(points[i]);
+                        }
+                    }
+                }
+                
+                const simplified = L.LineUtil.simplify(proxyKept, 3);
+                const keptIndices = new Set(simplified.map(p => p._originalIndex));
+                
+                let toRemove = [];
+                for (let i = 0; i < coords.length; i++) {
+                    if (!keptIndices.has(i)) {
+                        toRemove.push({ index: i, latlng: coords[i] });
+                    }
+                }
+                
+                if (coords.length - toRemove.length < 3) {
+                    continue;
+                }
+                
+                if (toRemove.length > 0) {
+                    toRemove.sort((a, b) => b.index - a.index);
+                    
+                    for (const item of toRemove) {
+                        coords.splice(item.index, 1);
+                        removedCount++;
+                        targetUpdated = true;
+                        
+                        // Also remove from any sharing neighbor polygons in sync
+                        for (const other of otherLayers) {
+                            let otherLatLngs = other.getLatLngs();
+                            let otherPolys = getOuterRingsWithParents(otherLatLngs);
+                            let otherUpdated = false;
+                            
+                            for (const otherPoly of otherPolys) {
+                                for (let oRingIdx = 0; oRingIdx < otherPoly.parentPolygon.length; oRingIdx++) {
+                                    let oRing = otherPoly.parentPolygon[oRingIdx];
+                                    for (let j = oRing.length - 1; j >= 0; j--) {
+                                        const dist = Math.abs(oRing[j].lat - item.latlng.lat) + Math.abs(oRing[j].lng - item.latlng.lng);
+                                        if (dist < 1e-5) {
+                                            oRing.splice(j, 1);
+                                            otherUpdated = true;
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            if (otherUpdated) {
+                                other.setLatLngs(otherLatLngs);
+                                otherLayersModified.add(other);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (targetUpdated) {
+            targetLayer.setLatLngs(rings);
+        }
+    }
+    
+    otherLayersModified.forEach(layer => {
+        layer.setLatLngs(layer.getLatLngs());
+        recalculateTerritoryCoords(layer._bonfireTerritory.nome);
+    });
+    
+    if (removedCount > 0 || otherLayersModified.size > 0) {
+        recalculateTerritoryCoords(territoryName);
+        if (!silent) showToast(`${removedCount} vértices inúteis otimizados nos territórios!`, 'success');
+    } else {
+        if (!silent) showToast('O polígono já está limpo e otimizado.', 'info');
+    }
+}
+
+function getOuterRingsWithParents(arr) {
+    let results = [];
+    if (!Array.isArray(arr)) return results;
+    
+    if (arr.length > 0 && Array.isArray(arr[0]) && arr[0].length > 0 && arr[0][0] instanceof L.LatLng) {
+        results.push({
+            outerRing: arr[0],
+            parentPolygon: arr
+        });
+        return results;
+    }
+    
+    for (let i = 0; i < arr.length; i++) {
+        results = results.concat(getOuterRingsWithParents(arr[i]));
+    }
+    
+    return results;
+}
+
+function ringSignedArea(ring) {
+    if (!Array.isArray(ring) || ring.length < 3) return 0;
+    let area = 0;
+    for (let i = 0; i < ring.length; i++) {
+        const p1 = ring[i];
+        const p2 = ring[(i + 1) % ring.length];
+        area += (p1.lng * p2.lat) - (p2.lng * p1.lat);
+    }
+    return area / 2;
+}
+
+function ringAbsoluteArea(ring) {
+    return Math.abs(ringSignedArea(ring));
+}
+
+function ringsAlmostEqual(a, b, tolerance = 1.0) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+    const used = new Set();
+    return a.every(pointA => {
+        const matchIndex = b.findIndex((pointB, index) => {
+            if (used.has(index)) return false;
+            return Math.abs(pointA.lat - pointB.lat) <= tolerance && Math.abs(pointA.lng - pointB.lng) <= tolerance;
+        });
+        if (matchIndex === -1) return false;
+        used.add(matchIndex);
+        return true;
+    });
+}
+
+function ringContainsRing(outerRing, innerRing) {
+    if (!Array.isArray(outerRing) || !Array.isArray(innerRing) || outerRing.length < 3 || innerRing.length < 3) return false;
+    return innerRing.every(point => pointInPolygon(point, outerRing));
+}
+
+function ensureContainedPolygonHoles(targetLayers, otherLayers) {
+    let changed = false;
+    const modifiedLayers = new Set();
+
+    // Case 1: Target is contained in Neighbor (Neighbor gets a hole)
+    for (const targetLayer of targetLayers) {
+        const targetPolygons = getOuterRingsWithParents(targetLayer.getLatLngs());
+        for (const targetPoly of targetPolygons) {
+            const innerRing = targetPoly.outerRing;
+            if (!innerRing || innerRing.length < 3) continue;
+
+            let bestContainer = null;
+            for (const otherLayer of otherLayers) {
+                const otherPolygons = getOuterRingsWithParents(otherLayer.getLatLngs());
+                for (const otherPoly of otherPolygons) {
+                    const outerRing = otherPoly.outerRing;
+                    if (!ringContainsRing(outerRing, innerRing)) continue;
+
+                    const alreadyHasHole = otherPoly.parentPolygon
+                        .slice(1)
+                        .some(holeRing => ringsAlmostEqual(holeRing, innerRing));
+                    if (alreadyHasHole) continue;
+
+                    const area = ringAbsoluteArea(outerRing);
+                    if (!bestContainer || area < bestContainer.area) {
+                        bestContainer = { layer: otherLayer, polygon: otherPoly, area };
+                    }
+                }
+            }
+
+            if (bestContainer) {
+                bestContainer.polygon.parentPolygon.push(innerRing.map(point => L.latLng(point.lat, point.lng)));
+                modifiedLayers.add(bestContainer.layer);
+                changed = true;
+            }
+        }
+    }
+
+    // Case 2: Target contains Neighbor (Target gets a hole)
+    for (const targetLayer of targetLayers) {
+        const targetPolygons = getOuterRingsWithParents(targetLayer.getLatLngs());
+        for (const targetPoly of targetPolygons) {
+            const outerRing = targetPoly.outerRing;
+            if (!outerRing || outerRing.length < 3) continue;
+
+            for (const otherLayer of otherLayers) {
+                const otherPolygons = getOuterRingsWithParents(otherLayer.getLatLngs());
+                for (const otherPoly of otherPolygons) {
+                    const innerRing = otherPoly.outerRing;
+                    if (!innerRing || innerRing.length < 3) continue;
+
+                    if (ringContainsRing(outerRing, innerRing)) {
+                        const alreadyHasHole = targetPoly.parentPolygon
+                            .slice(1)
+                            .some(holeRing => ringsAlmostEqual(holeRing, innerRing));
+                        if (alreadyHasHole) continue;
+
+                        targetPoly.parentPolygon.push(innerRing.map(point => L.latLng(point.lat, point.lng)));
+                        modifiedLayers.add(targetLayer);
+                        changed = true;
+                    }
+                }
+            }
+        }
+    }
+
+    modifiedLayers.forEach(layer => {
+        layer.setLatLngs(layer.getLatLngs());
+        recalculateTerritoryCoords(layer._bonfireTerritory.nome);
+    });
+
+    return changed;
+}
+
+function autoAlignPolygon(territoryName = activeTerritory, silent = false) {
+    if (!territoryName || territoryName === 'Sem território') {
+        showToast('Selecione um território para alinhar.', 'error');
+        return;
+    }
+    
+    let targetLayers = [];
+    let otherLayers = [];
+    
+    territoryPolygonsLayer.eachLayer(l => {
+        if (l._bonfireTerritory && l._bonfireTerritory.nome === territoryName) {
+            targetLayers.push(l);
+        } else if (l._bonfireTerritory) {
+            otherLayers.push(l);
+        }
+    });
+    
+    if (targetLayers.length === 0) {
+        showToast('Este território ainda não possui um polígono para alinhar.', 'error');
+        return;
+    }
+
+    let changed = false;
+    const SNAP_DIST_PX = 25;
+
+    const getProj = (latlng) => map.project(latlng, map.getMaxZoom());
+    const getUnproj = (point) => map.unproject(point, map.getMaxZoom());
+
+    const getClosestPointOnSegment = (p, p1, p2) => {
+        const l2 = (p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2;
+        if (l2 === 0) return { point: p1, t: 0 };
+        let t = ((p.x - p1.x) * (p2.x - p1.x) + (p.y - p1.y) * (p2.y - p1.y)) / l2;
+        t = Math.max(0, Math.min(1, t));
+        return { point: L.point(p1.x + t * (p2.x - p1.x), p1.y + t * (p2.y - p1.y)), t: t };
+    };
+
+    const getClosestPointOnRing = (p, ring) => {
+        let bestDist = Infinity;
+        let bestPoint = null;
+        let bestSegmentIdx = -1;
+        
+        for (let i = 0; i < ring.length; i++) {
+            const nextIdx = (i + 1) % ring.length;
+            const p1 = getProj(ring[i]);
+            const p2 = getProj(ring[nextIdx]);
+            
+            const res = getClosestPointOnSegment(p, p1, p2);
+            const dist = p.distanceTo(res.point);
+            if (dist < bestDist) {
+                bestDist = dist;
+                bestPoint = res.point;
+                bestSegmentIdx = i;
+            }
+        }
+        return { dist: bestDist, point: bestPoint, segmentIdx: bestSegmentIdx };
+    };
+
+    if (ensureContainedPolygonHoles(targetLayers, otherLayers)) {
+        changed = true;
+    }
+
+    let otherLayersModified = new Set();
+
+    // Mutually inject vertices to ensure matching vertex layouts on shared borders
+    for (const targetLayer of targetLayers) {
+        let targetLatLngs = targetLayer.getLatLngs();
+        let targetPolys = getOuterRingsWithParents(targetLatLngs);
+        
+        for (const targetPoly of targetPolys) {
+            for (let tRingIdx = 0; tRingIdx < targetPoly.parentPolygon.length; tRingIdx++) {
+                let tRing = targetPoly.parentPolygon[tRingIdx];
+                if (!tRing || tRing.length < 3) continue;
+                
+                for (const other of otherLayers) {
+                    let otherLatLngs = other.getLatLngs();
+                    let otherPolys = getOuterRingsWithParents(otherLatLngs);
+                    let otherUpdated = false;
+                    
+                    for (const otherPoly of otherPolys) {
+                        for (let oRingIdx = 0; oRingIdx < otherPoly.parentPolygon.length; oRingIdx++) {
+                            let oRing = otherPoly.parentPolygon[oRingIdx];
+                            if (!oRing || oRing.length < 3) continue;
+                            
+                            // 1. Inject target vertices into neighbor edges
+                            for (let i = 0; i < tRing.length; i++) {
+                                const ptT = getProj(tRing[i]);
+                                const res = getClosestPointOnRing(ptT, oRing);
+                                if (res.dist < SNAP_DIST_PX) {
+                                    let exists = false;
+                                    for (let j = 0; j < oRing.length; j++) {
+                                        if (ptT.distanceTo(getProj(oRing[j])) < 3 || getProj(oRing[j]).distanceTo(res.point) < 3) {
+                                            exists = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!exists) {
+                                        const insertIdx = (res.segmentIdx + 1) % (oRing.length + 1);
+                                        oRing.splice(insertIdx, 0, getUnproj(res.point));
+                                        otherUpdated = true;
+                                        changed = true;
+                                    }
+                                }
+                            }
+                            
+                            // 2. Inject neighbor vertices into target edges
+                            for (let i = 0; i < oRing.length; i++) {
+                                const ptO = getProj(oRing[i]);
+                                const res = getClosestPointOnRing(ptO, tRing);
+                                if (res.dist < SNAP_DIST_PX) {
+                                    let exists = false;
+                                    for (let j = 0; j < tRing.length; j++) {
+                                        if (ptO.distanceTo(getProj(tRing[j])) < 3 || getProj(tRing[j]).distanceTo(res.point) < 3) {
+                                            exists = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!exists) {
+                                        const insertIdx = (res.segmentIdx + 1) % (tRing.length + 1);
+                                        tRing.splice(insertIdx, 0, getUnproj(res.point));
+                                        changed = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (otherUpdated) {
+                        other.setLatLngs(otherLatLngs);
+                        otherLayersModified.add(other);
+                    }
+                }
+            }
+        }
+        if (changed) {
+            targetLayer.setLatLngs(targetLatLngs);
+        }
+    }
+
+    // Phase 3: Snap target vertices exactly to neighbor vertices, and clean duplicates
+    for (const targetLayer of targetLayers) {
+        let targetLatLngs = targetLayer.getLatLngs();
+        let targetPolys = getOuterRingsWithParents(targetLatLngs);
+        
+        for (const targetPoly of targetPolys) {
+            for (let tRingIdx = 0; tRingIdx < targetPoly.parentPolygon.length; tRingIdx++) {
+                let tRing = targetPoly.parentPolygon[tRingIdx];
+                if (!tRing || tRing.length < 3) continue;
+                
+                for (let i = 0; i < tRing.length; i++) {
+                    const ptT = getProj(tRing[i]);
+                    let bestDist = SNAP_DIST_PX;
+                    let bestLatLng = null;
+                    
+                    for (const other of otherLayers) {
+                        let otherPolys = getOuterRingsWithParents(other.getLatLngs());
+                        for (const otherPoly of otherPolys) {
+                            for (const oRing of otherPoly.parentPolygon) {
+                                for (let j = 0; j < oRing.length; j++) {
+                                    const ptO = getProj(oRing[j]);
+                                    const d = ptT.distanceTo(ptO);
+                                    if (d < bestDist) {
+                                        bestDist = d;
+                                        bestLatLng = oRing[j];
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (bestLatLng && (tRing[i].lat !== bestLatLng.lat || tRing[i].lng !== bestLatLng.lng)) {
+                        tRing[i] = L.latLng(bestLatLng.lat, bestLatLng.lng);
+                        changed = true;
+                    }
+                }
+                
+                // Post-snap cleanup: remove consecutive duplicate vertices
+                const cleanedRing = [];
+                for (let i = 0; i < tRing.length; i++) {
+                    if (cleanedRing.length === 0) {
+                        cleanedRing.push(tRing[i]);
+                    } else {
+                        const prev = cleanedRing[cleanedRing.length - 1];
+                        if (Math.abs(prev.lat - tRing[i].lat) > 1e-7 || Math.abs(prev.lng - tRing[i].lng) > 1e-7) {
+                            cleanedRing.push(tRing[i]);
+                        }
+                    }
+                }
+                // Check closing duplicate
+                if (cleanedRing.length > 1) {
+                    const first = cleanedRing[0];
+                    const last = cleanedRing[cleanedRing.length - 1];
+                    if (Math.abs(first.lat - last.lat) < 1e-7 && Math.abs(first.lng - last.lng) < 1e-7) {
+                        cleanedRing.pop();
+                    }
+                }
+                
+                if (cleanedRing.length !== tRing.length) {
+                    targetPoly.parentPolygon[tRingIdx] = cleanedRing;
+                    changed = true;
+                }
+            }
+        }
+        if (changed) {
+            targetLayer.setLatLngs(targetLatLngs);
+        }
+    }
+
+    otherLayersModified.forEach(layer => {
+        layer.setLatLngs(layer.getLatLngs());
+        recalculateTerritoryCoords(layer._bonfireTerritory.nome);
+    });
+
+    if (changed || otherLayersModified.size > 0) {
+        recalculateTerritoryCoords(territoryName);
+        if (!silent) showToast('Fronteiras zipadas e alinhadas perfeitamente!', 'success');
+    } else {
+        if (!silent) showToast('Fronteiras já estão alinhadas.', 'info');
+    }
+}
+
+    map.on('pm:cut', (e) => {
+        console.log('pm:cut event triggered:', e);
+        const layer = e.layer;
+        const originalLayer = e.originalLayer;
+        const territoryName = originalLayer?._bonfireTerritory?.nome || activeTerritory;
+        console.log('pm:cut resolved layer:', layer, 'originalLayer:', originalLayer, 'territoryName:', territoryName);
+        if (!territoryName) {
+            showToast('Não consegui identificar o território cortado.', 'error');
+            return;
+        }
+        if (originalLayer) territoryPolygonsLayer.removeLayer(originalLayer);
+
+        // Geoman may return a LayerGroup when the cut splits the polygon
+        const layers = (layer instanceof L.LayerGroup) ? layer.getLayers() : [layer];
+        let addedCount = 0;
+        for (const subLayer of layers) {
+            if (subLayer instanceof L.Polygon || subLayer instanceof L.LayerGroup) {
+                // If it's a nested LayerGroup, flatten
+                const innerLayers = (subLayer instanceof L.LayerGroup) ? subLayer.getLayers() : [subLayer];
+                for (const inner of innerLayers) {
+                    if (inner instanceof L.Polygon) {
+                        bindTerritoryLayer(inner, territoryName);
+                        territoryPolygonsLayer.addLayer(inner);
+                        addedCount++;
+                    }
+                }
+            }
+        }
+        recalculateTerritoryCoords(territoryName);
+        if (addedCount > 1) {
+            showToast(`Polígono dividido em ${addedCount} partes!`, 'success');
+        } else {
+            showToast('Buraco cortado com sucesso!', 'success');
+        }
+    });
+
+document.getElementById('sidebarToggle').onclick = () => {
+  document.querySelector('.map-shell').classList.toggle('is-sidebar-open');
+};
+
+function syncNeighborDrag(oldPos, newPos, activeTerr) {
+    if (!oldPos || !newPos) return;
+    territoryPolygonsLayer.eachLayer(other => {
+        if (other._bonfireTerritory && other._bonfireTerritory.nome !== activeTerr) {
+            let otherRings = other.getLatLngs();
+            let otherPolys = getOuterRingsWithParents(otherRings);
+            let updated = false;
+            for (let op of otherPolys) {
+                for (let ring of op.parentPolygon) {
+                    for (let j = ring.length - 1; j >= 0; j--) {
+                        if (Math.abs(ring[j].lat - oldPos.lat) < 1.0 && Math.abs(ring[j].lng - oldPos.lng) < 1.0) {
+                            ring[j] = L.latLng(newPos.lat, newPos.lng);
+                            updated = true;
+                        }
+                    }
+                }
+            }
+            if (updated) {
+                other.setLatLngs(otherRings);
+                recalculateTerritoryCoords(other._bonfireTerritory.nome);
+            }
+        }
+    });
+}
+
+function syncNeighborRemove(pos, activeTerr) {
+    if (!pos) return;
+    territoryPolygonsLayer.eachLayer(other => {
+        if (other._bonfireTerritory && other._bonfireTerritory.nome !== activeTerr) {
+            let otherRings = other.getLatLngs();
+            let otherPolys = getOuterRingsWithParents(otherRings);
+            let updated = false;
+            for (let op of otherPolys) {
+                for (let ring of op.parentPolygon) {
+                    for (let j = ring.length - 1; j >= 0; j--) {
+                        if (Math.abs(ring[j].lat - pos.lat) < 1.0 && Math.abs(ring[j].lng - pos.lng) < 1.0) {
+                            ring.splice(j, 1);
+                            updated = true;
+                        }
+                    }
+                }
+            }
+            if (updated) {
+                other.setLatLngs(otherRings);
+                recalculateTerritoryCoords(other._bonfireTerritory.nome);
+            }
+        }
+    });
+}
+
+function updateAdminEditState() {
+    document.getElementById('adminToolbar')?.classList.toggle('is-edit-mode', isEditMode);
+}
+
+function toggleEditMode() {
+    const btnEdit = document.getElementById('btnEdit');
+    
+    let editModeActive = false;
+    territoryPolygonsLayer.eachLayer(l => {
+        if (l.pm && l.pm.enabled()) editModeActive = true;
+    });
+    
+    if (editModeActive) {
+        territoryPolygonsLayer.eachLayer(l => {
+            if (l.pm) l.pm.disable();
+        });
+        isEditMode = false;
+        updateAdminEditState();
+        if (btnEdit) btnEdit.classList.remove('primary-active');
+        showToast('Modo de edição desativado.', 'info');
+    } else {
+        if (!activeTerritory || activeTerritory === 'Sem território') {
+            showToast('Selecione um território antes de ativar a edição.', 'error');
+            return;
+        }
+        
+        let count = 0;
+        territoryPolygonsLayer.eachLayer(l => {
+            if (l._bonfireTerritory && l._bonfireTerritory.nome === activeTerritory) {
+                if (l.pm) {
+                    l.pm.enable({
+                        allowSelfIntersection: false,
+                        preventMarkerDoubleClicks: true
+                    });
+                    count++;
+                }
+            } else {
+                if (l.pm) l.pm.disable();
+            }
+        });
+        
+        if (count > 0) {
+            isEditMode = true;
+            updateAdminEditState();
+            if (btnEdit) btnEdit.classList.add('primary-active');
+            showToast(`Edição ativada para o território: ${activeTerritory}`, 'success');
+        } else {
+            showToast('Nenhuma camada encontrada para este território.', 'error');
+        }
+    }
+}
+
+function renderLayersList() {
+    const container = document.getElementById('layerListContainer');
+    if (!container) return;
+    container.innerHTML = '';
+    
+    layersData.forEach(layer => {
+        const isBaseLayer = layer.id_layer === 0;
+        const row = document.createElement('div');
+        row.style.background = 'var(--bg0)';
+        row.style.border = '1px solid var(--stroke)';
+        row.style.borderRadius = '6px';
+        row.style.padding = '0.75rem';
+        row.style.display = 'flex';
+        row.style.flexDirection = 'column';
+        row.style.gap = '0.5rem';
+        row.id = `layer-row-${layer.id_layer}`;
+        
+        row.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                <span style="font-family: 'Frank Ruhl Libre', serif; font-size: 0.8rem; font-weight: 700; color: var(--ember);">ID: ${layer.id_layer}</span>
+                <div style="display: flex; gap: 0.35rem;">
+                    <button type="button" class="map-modal-primary" onclick="saveLayerChanges(${layer.id_layer}, this)" style="padding: 0.35rem 0.7rem; font-size: 0.72rem; border-radius: 4px; border: none; font-weight: bold; cursor: pointer;">Salvar</button>
+                    ${!isBaseLayer ? `<button type="button" class="map-modal-secondary" onclick="deleteLayer(${layer.id_layer})" style="padding: 0.35rem 0.7rem; font-size: 0.72rem; border-radius: 4px; color: var(--ruby); border: 1px solid var(--ruby); cursor: pointer; background: transparent;">Excluir</button>` : ''}
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 0.5rem;">
+                <label style="margin: 0; font-size: 0.75rem;">
+                    Nome
+                    <input type="text" id="layer-name-${layer.id_layer}" value="${layer.nome}" style="width: 100%; padding: 0.25rem; font-size: 0.75rem; margin-top: 0.15rem; background: var(--bg2); border: 1px solid var(--stroke); color: var(--text); border-radius: 4px;">
+                </label>
+                <label style="margin: 0; font-size: 0.75rem;">
+                    Ordem
+                    <input type="number" id="layer-order-${layer.id_layer}" value="${layer.ordem}" style="width: 100%; padding: 0.25rem; font-size: 0.75rem; margin-top: 0.15rem; background: var(--bg2); border: 1px solid var(--stroke); color: var(--text); border-radius: 4px;">
+                </label>
+                <label style="margin: 0; font-size: 0.75rem; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; cursor: pointer; padding-bottom: 0.3rem;">
+                    <input type="checkbox" id="layer-public-${layer.id_layer}" ${layer.publica ? 'checked' : ''} ${isBaseLayer ? 'disabled' : ''} style="cursor: pointer; width: auto;">
+                    <span style="font-size: 0.65rem; margin-top: 0.2rem;">Pública?</span>
+                </label>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem;">
+                <img src="${layer.imagem_url}" style="width: 40px; height: 30px; object-fit: cover; border-radius: 4px; border: 1px solid var(--stroke);">
+                <label style="margin: 0; font-size: 0.7rem; flex: 1;">
+                    Alterar imagem de fundo
+                    <input type="file" id="layer-file-${layer.id_layer}" accept="image/*" style="width: 100%; font-size: 0.7rem; margin-top: 0.1rem; padding: 0.1rem; border: none; background: transparent; color: var(--muted);">
+                </label>
+            </div>
+        `;
+        container.appendChild(row);
+    });
+}
+
+function openLayerManagement() {
+    renderLayersList();
+    const modal = document.getElementById('layerManagementModal');
+    if (modal) modal.hidden = false;
+}
+
+function closeLayerManagement() {
+    const modal = document.getElementById('layerManagementModal');
+    if (modal) modal.hidden = true;
+}
+
+function submitAddLayer(e) {
+    e.preventDefault();
+    const form = document.getElementById('addLayerForm');
+    const formData = new FormData(form);
+    
+    fetch('/wiki/mapa/camadas/adicionar/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.ok) {
+            showToast('Nova camada adicionada com sucesso!', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.error || 'Erro ao criar camada.', 'error');
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        showToast('Falha na comunicação com o servidor.', 'error');
+    });
+}
+
+function saveLayerChanges(layerId, btn) {
+    const nome = document.getElementById(`layer-name-${layerId}`).value.trim();
+    const ordem = document.getElementById(`layer-order-${layerId}`).value;
+    const publicaCheckbox = document.getElementById(`layer-public-${layerId}`);
+    const publica = publicaCheckbox ? publicaCheckbox.checked : true;
+    const fileInput = document.getElementById(`layer-file-${layerId}`);
+    const file = fileInput ? fileInput.files[0] : null;
+    
+    if (!nome) {
+        showToast('Nome da camada é obrigatório.', 'error');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('nome', nome);
+    formData.append('ordem', ordem);
+    formData.append('publica', publica ? 'true' : 'false');
+    if (file) {
+        formData.append('imagem', file);
+    }
+    
+    // Add CSRF
+    const csrfToken = document.querySelector('#addLayerForm [name=csrfmiddlewaretoken]').value;
+    formData.append('csrfmiddlewaretoken', csrfToken);
+    
+    const originalText = btn.innerText;
+    btn.innerText = 'Salvando...';
+    btn.disabled = true;
+    
+    fetch(`/wiki/mapa/camadas/${layerId}/editar/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.ok) {
+            showToast('Alterações salvas com sucesso!', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.error || 'Erro ao salvar alterações.', 'error');
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        showToast('Falha na comunicação com o servidor.', 'error');
+        btn.innerText = originalText;
+        btn.disabled = false;
+    });
+}
+
+function deleteLayer(layerId) {
+    if (!confirm('Tem certeza que deseja excluir esta camada? Todos os marcadores e territórios nela serão reassociados à Superfície (camada 0) e esta ação NÃO pode ser desfeita.')) {
+        return;
+    }
+    
+    const formData = new FormData();
+    const csrfToken = document.querySelector('#addLayerForm [name=csrfmiddlewaretoken]').value;
+    formData.append('csrfmiddlewaretoken', csrfToken);
+    
+    fetch(`/wiki/mapa/camadas/${layerId}/excluir/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.ok) {
+            showToast('Camada excluída com sucesso!', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.error || 'Erro ao excluir camada.', 'error');
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        showToast('Falha na comunicação com o servidor.', 'error');
+    });
+}
+
+// ============================================================================
+// EDITOR DE DESENHOS (staff) — linhas/rotas e imagens sobrepostas — WP2
+// ============================================================================
+if (canEditWiki) {
+  const CSRF_TOKEN = '{{ csrf_token }}';
+  const ANCHOR_TOLERANCE_PX = 22; // proximidade (px) p/ ancorar linha em um pino
+
+  // Estado da linha em edição/criação.
+  let linhaDraft = null;   // { id|null, layer, dados, isNew }
+  let imagemDraft = null;  // { id|null, layer, dados, isNew }
+
+  function postJson(url, body) {
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+      body: JSON.stringify(body)
+    }).then(async r => {
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || !data.ok) throw new Error(data.error || ('HTTP ' + r.status));
+      return data;
+    });
+  }
+
+  // ---- Registro local: adiciona/atualiza/remove um desenho no cache e re-renderiza.
+  function upsertDesenhoLocal(d) {
+    desenhoRegistry.set(d.id, { data: d, leafletLayer: null });
+    renderDesenhos();
+  }
+  function removeDesenhoLocal(id) {
+    const entry = desenhoRegistry.get(id);
+    if (entry && entry.leafletLayer) desenhosLayer.removeLayer(entry.leafletLayer);
+    desenhoRegistry.delete(id);
+  }
+
+  // ---- Detecção de ancoragem: dado um LatLng, retorna o id do marker mais próximo
+  // dentro da tolerância (em pixels), considerando só markers da camada ativa.
+  function findAnchorMarker(latlng) {
+    const target = map.latLngToContainerPoint(latlng);
+    let best = null, bestDist = ANCHOR_TOLERANCE_PX;
+    leafletMarkers.forEach(m => {
+      const d = m._bonfireData;
+      if (!d || d.id === null || d.id === undefined) return;
+      if ((d.camada || 0) !== activeLayer) return;
+      const p = map.latLngToContainerPoint(m.getLatLng());
+      const dist = target.distanceTo(p);
+      if (dist < bestDist) { bestDist = dist; best = d.id; }
+    });
+    return best;
+  }
+
+  // ===================== LINHAS =====================
+
+  function openLinhaStylePanel() {
+    document.getElementById('linhaStylePanel').hidden = false;
+    document.getElementById('imagemStylePanel').hidden = true;
+  }
+  window.closeLinhaStylePanel = function () {
+    document.getElementById('linhaStylePanel').hidden = true;
+    if (linhaDraft && linhaDraft.layer) {
+      if (linhaDraft.layer.pm && linhaDraft.layer.pm.enabled()) linhaDraft.layer.pm.disable();
+    }
+    linhaDraft = null;
+    renderDesenhos(); // restaura a versão viewer (não-interativa)
+  };
+
+  function syncLinhaPanelFromDraft() {
+    if (!linhaDraft) return;
+    const dd = linhaDraft.dados;
+    document.getElementById('linhaColorInput').value = dd.cor || '#ffffff';
+    document.getElementById('linhaWeightInput').value = dd.espessura || 3;
+    document.getElementById('linhaWeightOut').textContent = dd.espessura || 3;
+    document.getElementById('linhaDashInput').checked = !!dd.tracejado;
+    document.getElementById('linhaNomeInput').value = linhaDraft.nome || '';
+    document.getElementById('linhaDescricaoInput').value = dd.descricao || '';
+    document.getElementById('linhaDeleteBtn').hidden = !!linhaDraft.isNew;
+    document.getElementById('linhaDuplicateBtn').hidden = !!linhaDraft.isNew;
+    updateLinhaAnchorInfo();
+  }
+
+  function updateLinhaAnchorInfo() {
+    const el = document.getElementById('linhaAnchorInfo');
+    if (!linhaDraft) { el.textContent = ''; return; }
+    const dd = linhaDraft.dados;
+    const nameOf = (id) => {
+      if (id === null || id === undefined) return null;
+      const m = enrichedMarkers.find(x => x.id == id);
+      return m ? m.nome : ('#' + id);
+    };
+    const ini = nameOf(dd.liga_marker_inicio);
+    const fim = nameOf(dd.liga_marker_fim);
+    if (ini || fim) {
+      el.innerHTML = 'Ancorada: início → <b>' + escapeHtml(ini || 'livre') +
+                     '</b>, fim → <b>' + escapeHtml(fim || 'livre') + '</b>';
+    } else {
+      el.textContent = 'Sem ancoragem em pinos.';
+    }
+  }
+
+  // Aplica o estilo atual do painel à camada Leaflet do rascunho (feedback vivo).
+  function applyLinhaStyleToLayer() {
+    if (!linhaDraft || !linhaDraft.layer) return;
+    const dd = linhaDraft.dados;
+    linhaDraft.layer.setStyle({
+      color: dd.cor || '#ffffff',
+      weight: dd.espessura || 3,
+      dashArray: dd.tracejado ? '10, 8' : null
+    });
+  }
+
+  // Lê os vértices atuais da polyline e recalcula ancoragens nas pontas.
+  function refreshLinhaDadosFromLayer() {
+    if (!linhaDraft || !linhaDraft.layer) return;
+    let latlngs = linhaDraft.layer.getLatLngs();
+    // polyline simples => array de LatLng
+    if (Array.isArray(latlngs) && latlngs.length && Array.isArray(latlngs[0])) latlngs = latlngs[0];
+    const pts = latlngs.map(ll => [ll.lat, ll.lng]);
+    linhaDraft.dados.pontos = pts;
+    if (pts.length >= 2) {
+      linhaDraft.dados.liga_marker_inicio = findAnchorMarker(L.latLng(pts[0][0], pts[0][1]));
+      linhaDraft.dados.liga_marker_fim = findAnchorMarker(L.latLng(pts[pts.length - 1][0], pts[pts.length - 1][1]));
+    }
+    updateLinhaAnchorInfo();
+  }
+
+  window.startDrawLinha = function () {
+    if (linhaDraft) { showToast('Finalize a linha atual primeiro.', 'info'); return; }
+    showToast('Clique para traçar a linha. Duplo-clique/Enter finaliza. Pontas perto de um pino ancoram.', 'info');
+    isEditMode = true;
+    updateAdminEditState();
+    document.getElementById('btnLinha')?.classList.add('primary-active');
+
+    map.pm.enableDraw('Line', { snappable: true, snapDistance: 20 });
+
+    const cleanup = () => {
+      map.off('pm:drawend', cleanup);
+      isEditMode = false;
+      updateAdminEditState();
+      document.getElementById('btnLinha')?.classList.remove('primary-active');
+    };
+    map.on('pm:drawend', cleanup);
+
+    map.once('pm:create', (e) => {
+      const layer = e.layer;
+      // Remove a layer crua do Geoman; passamos a gerir pelo desenhosLayer.
+      map.removeLayer(layer);
+
+      let latlngs = layer.getLatLngs();
+      if (Array.isArray(latlngs) && latlngs.length && Array.isArray(latlngs[0])) latlngs = latlngs[0];
+      const pts = latlngs.map(ll => [ll.lat, ll.lng]);
+      if (pts.length < 2) { showToast('Linha precisa de ao menos 2 pontos.', 'error'); return; }
+
+      const dados = {
+        pontos: pts,
+        cor: document.getElementById('linhaColorInput').value || '#ffffff',
+        espessura: parseInt(document.getElementById('linhaWeightInput').value) || 3,
+        tracejado: document.getElementById('linhaDashInput').checked,
+        liga_marker_inicio: findAnchorMarker(L.latLng(pts[0][0], pts[0][1])),
+        liga_marker_fim: findAnchorMarker(L.latLng(pts[pts.length - 1][0], pts[pts.length - 1][1])),
+        descricao: ''
+      };
+
+      const editLayer = L.polyline(pts, {
+        pane: 'desenhosPane', color: dados.cor, weight: dados.espessura,
+        dashArray: dados.tracejado ? '10, 8' : null, interactive: true
+      }).addTo(map);
+
+      linhaDraft = { id: null, layer: editLayer, dados: dados, isNew: true, nome: '' };
+      if (editLayer.pm) {
+        editLayer.pm.enable({ allowSelfIntersection: true });
+        editLayer.on('pm:edit', refreshLinhaDadosFromLayer);
+        editLayer.on('pm:markerdragend', refreshLinhaDadosFromLayer);
+      }
+      openLinhaStylePanel();
+      syncLinhaPanelFromDraft();
+    });
+  };
+
+  // Editar uma linha já salva: instancia versão interativa + painel.
+  function editExistingLinha(id) {
+    if (linhaDraft) closeLinhaStylePanel();
+    const entry = desenhoRegistry.get(id);
+    if (!entry) return;
+    const d = entry.data;
+    // remove a versão viewer
+    if (entry.leafletLayer) { desenhosLayer.removeLayer(entry.leafletLayer); entry.leafletLayer = null; }
+    const dados = JSON.parse(JSON.stringify(d.dados_json || {}));
+    const pts = (dados.pontos || []).map(p => [p[0], p[1]]);
+    const editLayer = L.polyline(pts, {
+      pane: 'desenhosPane', color: dados.cor || '#ffffff', weight: dados.espessura || 3,
+      dashArray: dados.tracejado ? '10, 8' : null, interactive: true
+    }).addTo(map);
+    linhaDraft = { id: id, layer: editLayer, dados: dados, isNew: false, nome: d.nome || '' };
+    if (editLayer.pm) {
+      editLayer.pm.enable({ allowSelfIntersection: true });
+      editLayer.on('pm:edit', refreshLinhaDadosFromLayer);
+      editLayer.on('pm:markerdragend', refreshLinhaDadosFromLayer);
+    }
+    openLinhaStylePanel();
+    syncLinhaPanelFromDraft();
+  }
+
+  // Duplica uma linha já salva (por id): cria uma cópia com pequeno deslocamento nos
+  // pontos e já entra em edição de vértices da cópia (mesma ideia de duplicateImagem).
+  // Usada tanto pelo botão "Duplicar" do painel de edição quanto pela lista de desenhos.
+  window.duplicateLinhaById = function (id) {
+    const entry = desenhoRegistry.get(id);
+    if (!entry || entry.data.tipo !== 'linha') return;
+    // Se a própria linha está com rascunho aberto, usa os dados vivos (com edições não salvas).
+    const isDraftAtivo = linhaDraft && linhaDraft.id === id;
+    if (isDraftAtivo) refreshLinhaDadosFromLayer();
+    const srcDados = JSON.parse(JSON.stringify(isDraftAtivo ? linhaDraft.dados : (entry.data.dados_json || {})));
+    const srcNome = (isDraftAtivo ? linhaDraft.nome : entry.data.nome) || '';
+    const pts = srcDados.pontos || [];
+    if (pts.length < 2) { showToast('Linha sem pontos válidos.', 'error'); return; }
+    // Desloca ~5% do comprimento total (bbox) para a cópia não ficar por cima do original.
+    let minLat = pts[0][0], maxLat = pts[0][0], minLng = pts[0][1], maxLng = pts[0][1];
+    pts.forEach(p => {
+      if (p[0] < minLat) minLat = p[0]; if (p[0] > maxLat) maxLat = p[0];
+      if (p[1] < minLng) minLng = p[1]; if (p[1] > maxLng) maxLng = p[1];
+    });
+    const dLat = (maxLat - minLat) * 0.05 || 0.0005;
+    const dLng = (maxLng - minLng) * 0.05 || 0.0005;
+    const novosPontos = pts.map(p => [p[0] + dLat, p[1] + dLng]);
+    const dados = {
+      pontos: novosPontos,
+      cor: srcDados.cor || '#ffffff',
+      espessura: srcDados.espessura || 3,
+      tracejado: !!srcDados.tracejado,
+      liga_marker_inicio: null,
+      liga_marker_fim: null,
+      descricao: srcDados.descricao || ''
+    };
+    const nomeCopia = srcNome ? (srcNome + ' (cópia)') : '';
+    const payload = { id: null, tipo: 'linha', camada: activeLayer, nome: nomeCopia, dados_json: dados };
+    postJson('/wiki/mapa/desenhos/salvar/', payload).then(data => {
+      const saved = { id: data.id, tipo: 'linha', camada: activeLayer, nome: nomeCopia, ordem: 0, dados_json: dados };
+      upsertDesenhoLocal(saved);
+      showToast('Cópia da linha criada. Ajuste os vértices.', 'success');
+      editExistingLinha(data.id);
+    }).catch(err => showToast('Erro ao duplicar: ' + err.message, 'error'));
+  };
+  // Atalho usado pelo botão do painel de edição (opera sobre a linha em edição no momento).
+  window.duplicateLinha = function () {
+    if (!linhaDraft || linhaDraft.isNew) return;
+    duplicateLinhaById(linhaDraft.id);
+  };
+
+  window.saveCurrentLinha = function () {
+    if (!linhaDraft) return;
+    refreshLinhaDadosFromLayer();
+    const btn = document.getElementById('linhaSaveBtn');
+    btn.disabled = true; const prev = btn.textContent; btn.textContent = 'Salvando...';
+    const nome = document.getElementById('linhaNomeInput').value.trim();
+    linhaDraft.dados.descricao = document.getElementById('linhaDescricaoInput').value.trim();
+    const payload = {
+      id: linhaDraft.id, tipo: 'linha', camada: activeLayer,
+      nome: nome, dados_json: linhaDraft.dados
+    };
+    postJson('/wiki/mapa/desenhos/salvar/', payload).then(data => {
+      const saved = {
+        id: data.id, tipo: 'linha', camada: activeLayer, nome: nome, ordem: 0,
+        dados_json: linhaDraft.dados
+      };
+      if (linhaDraft.layer) { map.removeLayer(linhaDraft.layer); linhaDraft.layer = null; }
+      linhaDraft = null;
+      document.getElementById('linhaStylePanel').hidden = true;
+      upsertDesenhoLocal(saved);
+      showToast('Linha salva.', 'success');
+    }).catch(err => {
+      showToast('Erro ao salvar linha: ' + err.message, 'error');
+    }).finally(() => { btn.disabled = false; btn.textContent = prev; });
+  };
+
+  window.deleteCurrentLinha = function () {
+    if (!linhaDraft || linhaDraft.isNew || linhaDraft.id === null) { closeLinhaStylePanel(); return; }
+    if (!confirm('Excluir esta linha?')) return;
+    const id = linhaDraft.id;
+    postJson('/wiki/mapa/desenhos/excluir/', { id: id }).then(() => {
+      if (linhaDraft && linhaDraft.layer) map.removeLayer(linhaDraft.layer);
+      linhaDraft = null;
+      document.getElementById('linhaStylePanel').hidden = true;
+      removeDesenhoLocal(id);
+      showToast('Linha excluída.', 'success');
+    }).catch(err => showToast('Erro ao excluir: ' + err.message, 'error'));
+  };
+
+  // Inputs do painel de linha reagem ao vivo.
+  document.getElementById('linhaColorInput').addEventListener('input', (e) => {
+    if (!linhaDraft) return; linhaDraft.dados.cor = e.target.value; applyLinhaStyleToLayer();
+  });
+  document.getElementById('linhaWeightInput').addEventListener('input', (e) => {
+    document.getElementById('linhaWeightOut').textContent = e.target.value;
+    if (!linhaDraft) return; linhaDraft.dados.espessura = parseInt(e.target.value); applyLinhaStyleToLayer();
+  });
+  document.getElementById('linhaDashInput').addEventListener('change', (e) => {
+    if (!linhaDraft) return; linhaDraft.dados.tracejado = e.target.checked; applyLinhaStyleToLayer();
+  });
+  document.getElementById('linhaNomeInput').addEventListener('input', (e) => {
+    if (!linhaDraft) return; linhaDraft.nome = e.target.value;
+  });
+  document.getElementById('linhaDescricaoInput').addEventListener('input', (e) => {
+    if (!linhaDraft) return; linhaDraft.dados.descricao = e.target.value;
+  });
+
+  // ===================== IMAGENS =====================
+
+  window.closeImagemStylePanel = function () {
+    document.getElementById('imagemStylePanel').hidden = true;
+    if (imagemDraft && imagemDraft.layer) map.removeLayer(imagemDraft.layer);
+    imagemDraft = null;
+    renderDesenhos();
+  };
+
+  function openImagemStylePanel() {
+    document.getElementById('imagemStylePanel').hidden = false;
+    document.getElementById('linhaStylePanel').hidden = true;
+  }
+
+  window.startAddImagem = function () {
+    if (imagemDraft) { showToast('Finalize a imagem atual primeiro.', 'info'); return; }
+    document.getElementById('imagemFileInput').value = '';
+    document.getElementById('imagemFileInput').click();
+  };
+
+  document.getElementById('imagemFileInput').addEventListener('change', function () {
+    const file = this.files[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('imagem', file);
+    fd.append('csrfmiddlewaretoken', CSRF_TOKEN);
+    showToast('Enviando imagem...', 'info');
+    fetch('/wiki/mapa/desenhos/upload-imagem/', {
+      method: 'POST', body: fd, headers: { 'X-CSRFToken': CSRF_TOKEN, 'X-Requested-With': 'XMLHttpRequest' }
+    }).then(async r => {
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || !data.ok) throw new Error(data.error || ('HTTP ' + r.status));
+      imagemDraft = {
+        id: null, isNew: true, layer: null, nome: '',
+        dados: { url: data.url, bounds: null, opacidade: 1, descricao: '' }
+      };
+      openImagemStylePanel();
+      document.getElementById('imagemStyleHint').textContent = 'Desenhe um retângulo no mapa para posicionar a imagem.';
+      document.getElementById('imagemOpacityInput').value = 1;
+      document.getElementById('imagemOpacityOut').textContent = '1';
+      document.getElementById('imagemNomeInput').value = '';
+      document.getElementById('imagemDescricaoInput').value = '';
+      beginRectForImagem();
+    }).catch(err => showToast('Erro no upload: ' + err.message, 'error'));
+  });
+
+  // Ativa o desenho de retângulo (Geoman) que define os bounds da imagem.
+  function beginRectForImagem() {
+    showToast('Desenhe um retângulo: ele será os limites da imagem.', 'info');
+    isEditMode = true; updateAdminEditState();
+    map.pm.enableDraw('Rectangle', { snappable: false });
+    const cleanup = () => { map.off('pm:drawend', cleanup); isEditMode = false; updateAdminEditState(); };
+    map.on('pm:drawend', cleanup);
+    map.once('pm:create', (e) => {
+      const rect = e.layer;
+      const b = rect.getBounds();
+      map.removeLayer(rect);
+      const bounds = [[b.getSouth(), b.getWest()], [b.getNorth(), b.getEast()]];
+      imagemDraft.dados.bounds = bounds;
+      renderImagemDraft();
+      document.getElementById('imagemStyleHint').textContent = 'Arraste a imagem para mover. Ajuste a opacidade, redesenhe a area ou salve.';
+      document.getElementById('imagemSaveBtn').hidden = false;
+      document.getElementById('imagemRedrawBtn').hidden = false;
+    });
+  }
+
+  window.redrawImagemBounds = function () {
+    if (!imagemDraft) return;
+    if (imagemDraft.layer) { map.removeLayer(imagemDraft.layer); imagemDraft.layer = null; }
+    beginRectForImagem();
+  };
+
+  function renderImagemDraft() {
+    if (!imagemDraft || !imagemDraft.dados.bounds) return;
+    if (imagemDraft.layer) map.removeLayer(imagemDraft.layer);
+    imagemDraft.layer = L.imageOverlay(imagemDraft.dados.url, imagemDraft.dados.bounds, {
+      pane: 'desenhosPane', opacity: imagemDraft.dados.opacidade, interactive: true
+    }).addTo(map);
+    enableImagemDraftDragging(imagemDraft.layer);
+  }
+
+  function imagemBoundsToJson(bounds) {
+    return [
+      [bounds.getSouth(), bounds.getWest()],
+      [bounds.getNorth(), bounds.getEast()]
+    ];
+  }
+
+  function imagemPointerPoint(event) {
+    const original = event.touches?.[0] || event.changedTouches?.[0] || event;
+    return map.mouseEventToContainerPoint(original);
+  }
+
+  function enableImagemDraftDragging(layer) {
+    if (!layer || layer._bonfireDragEnabled) return;
+    layer._bonfireDragEnabled = true;
+
+    const bind = () => {
+      const el = layer.getElement();
+      if (!el || el._bonfireImageDragBound) return;
+      el._bonfireImageDragBound = true;
+      el.style.cursor = 'move';
+      el.style.outline = '2px solid rgba(255, 183, 77, 0.85)';
+      el.style.outlineOffset = '2px';
+
+      const startDrag = (event) => {
+        if (!imagemDraft || imagemDraft.layer !== layer) return;
+        L.DomEvent.stop(event);
+        const startPoint = imagemPointerPoint(event);
+        const startBounds = layer.getBounds();
+        const mapWasDragging = map.dragging.enabled();
+        if (mapWasDragging) map.dragging.disable();
+
+        const move = (moveEvent) => {
+          L.DomEvent.preventDefault(moveEvent);
+          const currentPoint = imagemPointerPoint(moveEvent);
+          const startLatLng = map.containerPointToLatLng(startPoint);
+          const currentLatLng = map.containerPointToLatLng(currentPoint);
+          const dLat = currentLatLng.lat - startLatLng.lat;
+          const dLng = currentLatLng.lng - startLatLng.lng;
+          const nextBounds = L.latLngBounds(
+            [startBounds.getSouth() + dLat, startBounds.getWest() + dLng],
+            [startBounds.getNorth() + dLat, startBounds.getEast() + dLng]
+          );
+          layer.setBounds(nextBounds);
+          imagemDraft.dados.bounds = imagemBoundsToJson(nextBounds);
+        };
+
+        const stop = () => {
+          L.DomEvent.off(document, 'mousemove', move);
+          L.DomEvent.off(document, 'mouseup', stop);
+          L.DomEvent.off(document, 'touchmove', move);
+          L.DomEvent.off(document, 'touchend', stop);
+          L.DomEvent.off(document, 'touchcancel', stop);
+          if (mapWasDragging) map.dragging.enable();
+        };
+
+        L.DomEvent.on(document, 'mousemove', move);
+        L.DomEvent.on(document, 'mouseup', stop);
+        L.DomEvent.on(document, 'touchmove', move);
+        L.DomEvent.on(document, 'touchend', stop);
+        L.DomEvent.on(document, 'touchcancel', stop);
+      };
+
+      L.DomEvent.on(el, 'mousedown', startDrag);
+      L.DomEvent.on(el, 'touchstart', startDrag);
+    };
+
+    bind();
+    layer.on('load', bind);
+  }
+
+  document.getElementById('imagemOpacityInput').addEventListener('input', (e) => {
+    document.getElementById('imagemOpacityOut').textContent = e.target.value;
+    if (!imagemDraft) return;
+    imagemDraft.dados.opacidade = parseFloat(e.target.value);
+    if (imagemDraft.layer) imagemDraft.layer.setOpacity(imagemDraft.dados.opacidade);
+  });
+  document.getElementById('imagemNomeInput').addEventListener('input', (e) => {
+    if (!imagemDraft) return; imagemDraft.nome = e.target.value;
+  });
+  document.getElementById('imagemDescricaoInput').addEventListener('input', (e) => {
+    if (!imagemDraft) return; imagemDraft.dados.descricao = e.target.value;
+  });
+
+  window.saveCurrentImagem = function () {
+    if (!imagemDraft || !imagemDraft.dados.bounds) { showToast('Desenhe a área da imagem primeiro.', 'error'); return; }
+    const btn = document.getElementById('imagemSaveBtn');
+    btn.disabled = true; const prev = btn.textContent; btn.textContent = 'Salvando...';
+    const nome = document.getElementById('imagemNomeInput').value.trim();
+    imagemDraft.dados.descricao = document.getElementById('imagemDescricaoInput').value.trim();
+    const payload = {
+      id: imagemDraft.id, tipo: 'imagem', camada: activeLayer, nome: nome,
+      dados_json: imagemDraft.dados
+    };
+    postJson('/wiki/mapa/desenhos/salvar/', payload).then(data => {
+      const saved = {
+        id: data.id, tipo: 'imagem', camada: activeLayer, nome: nome, ordem: 0,
+        dados_json: imagemDraft.dados
+      };
+      if (imagemDraft.layer) { map.removeLayer(imagemDraft.layer); imagemDraft.layer = null; }
+      imagemDraft = null;
+      document.getElementById('imagemStylePanel').hidden = true;
+      upsertDesenhoLocal(saved);
+      showToast('Imagem salva.', 'success');
+    }).catch(err => {
+      showToast('Erro ao salvar imagem: ' + err.message, 'error');
+    }).finally(() => { btn.disabled = false; btn.textContent = prev; });
+  };
+
+  window.deleteCurrentImagem = function () {
+    if (!imagemDraft || imagemDraft.isNew || imagemDraft.id === null) { closeImagemStylePanel(); return; }
+    if (!confirm('Excluir esta imagem?')) return;
+    const id = imagemDraft.id;
+    postJson('/wiki/mapa/desenhos/excluir/', { id: id }).then(() => {
+      if (imagemDraft && imagemDraft.layer) map.removeLayer(imagemDraft.layer);
+      imagemDraft = null;
+      document.getElementById('imagemStylePanel').hidden = true;
+      removeDesenhoLocal(id);
+      showToast('Imagem excluída.', 'success');
+    }).catch(err => showToast('Erro ao excluir: ' + err.message, 'error'));
+  };
+
+  function editExistingImagem(id) {
+    if (imagemDraft) closeImagemStylePanel();
+    const entry = desenhoRegistry.get(id);
+    if (!entry) return;
+    const d = entry.data;
+    if (entry.leafletLayer) { desenhosLayer.removeLayer(entry.leafletLayer); entry.leafletLayer = null; }
+    const dados = JSON.parse(JSON.stringify(d.dados_json || {}));
+    imagemDraft = { id: id, isNew: false, layer: null, dados: dados, nome: d.nome || '' };
+    renderImagemDraft();
+    openImagemStylePanel();
+    document.getElementById('imagemStyleHint').textContent = 'Arraste a imagem para mover. Ajuste a opacidade, redesenhe a area ou exclua.';
+    document.getElementById('imagemOpacityInput').value = dados.opacidade || 1;
+    document.getElementById('imagemOpacityOut').textContent = dados.opacidade || 1;
+    document.getElementById('imagemNomeInput').value = d.nome || '';
+    document.getElementById('imagemDescricaoInput').value = dados.descricao || '';
+    document.getElementById('imagemSaveBtn').hidden = false;
+    document.getElementById('imagemRedrawBtn').hidden = false;
+    document.getElementById('imagemDeleteBtn').hidden = false;
+  }
+
+  // Abre o editor certo para um desenho existente (usado pelo clique no canvas E pela lista).
+  function editDesenho(id) {
+    const entry = desenhoRegistry.get(id);
+    if (!entry) return;
+    if (entry.data.tipo === 'linha') editExistingLinha(id);
+    else if (entry.data.tipo === 'imagem') editExistingImagem(id);
+  }
+
+  // Expor edição de desenhos existentes: clique no próprio desenho.
+  // Agora funciona porque desenhosLayer é um featureGroup (propaga o clique das filhas);
+  // antes era layerGroup e este handler nunca disparava.
+  desenhosLayer.on('click', (e) => {
+    const id = e.layer && e.layer._bonfireDesenhoId;
+    if (id === undefined || id === null) return;
+    if (e.originalEvent) L.DomEvent.stop(e.originalEvent);
+    editDesenho(id);
+  });
+
+  // ===================== PAINEL-LISTA (descoberta/gerência) =====================
+
+  // Centraliza o mapa num desenho (bounds da imagem ou pontos da linha) e pisca a layer.
+  window.locateDesenho = function (id) {
+    const entry = desenhoRegistry.get(id);
+    if (!entry) return;
+    const d = entry.data;
+    const dados = d.dados_json || {};
+    let bounds = null;
+    if (d.tipo === 'imagem' && Array.isArray(dados.bounds) && dados.bounds.length === 2) {
+      bounds = L.latLngBounds(dados.bounds[0], dados.bounds[1]);
+    } else if (d.tipo === 'linha') {
+      const pts = linhaEffectivePoints(dados);
+      if (pts && pts.length) bounds = L.latLngBounds(pts);
+    }
+    if (bounds && bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [60, 60], maxZoom: map.getZoom() });
+    }
+    const layer = entry.leafletLayer;
+    if (layer && layer.setStyle) {
+      const prev = d.tipo === 'linha' ? (dados.cor || '#ffffff') : null;
+      layer.setStyle({ color: '#ffd75e' });
+      setTimeout(() => { if (entry.leafletLayer === layer && prev) layer.setStyle({ color: prev }); }, 900);
+    }
+  };
+
+  // Duplica uma imagem: cria um NOVO desenho reusando a MESMA url (sem re-upload),
+  // deslocado um pouco, e já abre em edição para reposicionar (feedback do Gaz).
+  window.duplicateImagem = function (id) {
+    const entry = desenhoRegistry.get(id);
+    if (!entry || entry.data.tipo !== 'imagem') return;
+    const src = JSON.parse(JSON.stringify(entry.data.dados_json || {}));
+    if (!Array.isArray(src.bounds) || src.bounds.length !== 2) {
+      showToast('Imagem sem área definida.', 'error'); return;
+    }
+    // Desloca ~15% da própria altura/largura para a cópia não ficar exatamente por cima.
+    const dLat = (src.bounds[1][0] - src.bounds[0][0]) * 0.15;
+    const dLng = (src.bounds[1][1] - src.bounds[0][1]) * 0.15;
+    const dados = {
+      url: src.url,
+      opacidade: (src.opacidade === undefined || src.opacidade === null) ? 1 : src.opacidade,
+      descricao: src.descricao || '',
+      bounds: [
+        [src.bounds[0][0] + dLat, src.bounds[0][1] + dLng],
+        [src.bounds[1][0] + dLat, src.bounds[1][1] + dLng]
+      ]
+    };
+    const nomeBase = entry.data.nome || '';
+    const nomeCopia = nomeBase ? (nomeBase + ' (cópia)') : '';
+    const payload = { id: null, tipo: 'imagem', camada: activeLayer, nome: nomeCopia, dados_json: dados };
+    postJson('/wiki/mapa/desenhos/salvar/', payload).then(data => {
+      const saved = { id: data.id, tipo: 'imagem', camada: activeLayer, nome: payload.nome, ordem: 0, dados_json: dados };
+      upsertDesenhoLocal(saved);
+      showToast('Cópia da imagem criada. Reposicione-a.', 'success');
+      editExistingImagem(data.id);
+    }).catch(err => showToast('Erro ao duplicar: ' + err.message, 'error'));
+  };
+
+  // Exclui direto pela lista (sem precisar abrir o painel de edição antes).
+  window.deleteDesenhoById = function (id) {
+    const entry = desenhoRegistry.get(id);
+    if (!entry) return;
+    const label = entry.data.tipo === 'imagem' ? 'esta imagem' : 'esta linha';
+    if (!confirm('Excluir ' + label + '?')) return;
+    // Se o item estiver em edição no momento, encerra o rascunho para não deixar layer órfã.
+    if (linhaDraft && linhaDraft.id === id) { if (linhaDraft.layer) map.removeLayer(linhaDraft.layer); linhaDraft = null; document.getElementById('linhaStylePanel').hidden = true; }
+    if (imagemDraft && imagemDraft.id === id) { if (imagemDraft.layer) map.removeLayer(imagemDraft.layer); imagemDraft = null; document.getElementById('imagemStylePanel').hidden = true; }
+    postJson('/wiki/mapa/desenhos/excluir/', { id: id }).then(() => {
+      removeDesenhoLocal(id);
+      renderDesenhoList();
+      showToast('Desenho excluído.', 'success');
+    }).catch(err => showToast('Erro ao excluir: ' + err.message, 'error'));
+  };
+
+  window.toggleDesenhoListPanel = function (force) {
+    const panel = document.getElementById('desenhoListPanel');
+    if (!panel) return;
+    const show = (force === undefined) ? panel.hidden : !!force;
+    panel.hidden = !show;
+    document.getElementById('btnDesenhoList')?.classList.toggle('primary-active', show);
+    if (show) renderDesenhoList();
+  };
+
+  // (Re)desenha a lista de desenhos ATIVOS da camada atual.
+  function renderDesenhoList() {
+    const panel = document.getElementById('desenhoListPanel');
+    const body = document.getElementById('desenhoListBody');
+    if (!panel || !body || panel.hidden) return;
+    const itens = [];
+    desenhoRegistry.forEach(entry => {
+      const d = entry.data;
+      if ((d.camada || 0) === activeLayer) itens.push(d);
+    });
+    itens.sort((a, b) => (a.ordem || 0) - (b.ordem || 0) || (a.id || 0) - (b.id || 0));
+    if (!itens.length) {
+      body.innerHTML = '<p class="desenho-style-hint">Nenhum desenho nesta camada.</p>';
+      return;
+    }
+    const iconLinha = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19L19 5M5 19a2 2 0 100-4 2 2 0 000 4zm14-14a2 2 0 100 4 2 2 0 000-4z"/></svg>';
+    const iconImg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>';
+    const iconEye = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+    const iconEdit = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+    const iconCopy = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';
+    const iconDel = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m2 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>';
+    body.innerHTML = itens.map(d => {
+      const nome = (d.nome && d.nome.trim()) ? escapeHtml(d.nome) : '<i>(sem nome)</i>';
+      const tipoIcon = d.tipo === 'imagem' ? iconImg : iconLinha;
+      const dupBtn = d.tipo === 'imagem'
+        ? '<button type="button" class="desenho-list-act" title="Duplicar imagem" onclick="duplicateImagem(' + d.id + ')">' + iconCopy + '</button>'
+        : '<button type="button" class="desenho-list-act" title="Duplicar linha" onclick="duplicateLinhaById(' + d.id + ')">' + iconCopy + '</button>';
+      return '<div class="desenho-list-item" data-id="' + d.id + '">' +
+        '<span class="desenho-list-icon">' + tipoIcon + '</span>' +
+        '<span class="desenho-list-name">' + nome + '</span>' +
+        '<span class="desenho-list-acts">' +
+          '<button type="button" class="desenho-list-act" title="Localizar/zoom" onclick="locateDesenho(' + d.id + ')">' + iconEye + '</button>' +
+          '<button type="button" class="desenho-list-act" title="Editar" onclick="editDesenho(' + d.id + ')">' + iconEdit + '</button>' +
+          dupBtn +
+          '<button type="button" class="desenho-list-act danger" title="Excluir" onclick="deleteDesenhoById(' + d.id + ')">' + iconDel + '</button>' +
+        '</span>' +
+      '</div>';
+    }).join('');
+  }
+  // editDesenho precisa ser global (usado no onclick inline da lista).
+  window.editDesenho = editDesenho;
+
+  // Torna os desenhos clicáveis SÓ para staff (viewer normal permanece interactive:false):
+  // reconstruímos o render staff com interactive:true. Também mantém a lista em dia.
+  const _origRenderDesenhos = renderDesenhos;
+  renderDesenhos = function () {
+    desenhoRegistry.forEach(entry => {
+      const d = entry.data;
+      if (entry.leafletLayer) { desenhosLayer.removeLayer(entry.leafletLayer); entry.leafletLayer = null; }
+      // Não re-renderiza o item que está sendo editado (tem sua própria layer viva).
+      if (linhaDraft && linhaDraft.id === d.id) return;
+      if (imagemDraft && imagemDraft.id === d.id) return;
+      if ((d.camada || 0) !== activeLayer) return;
+      const layer = buildDesenhoLayer(d, true); // interactive p/ staff poder clicar e editar
+      if (layer) {
+        layer._bonfireDesenhoId = d.id;
+        if (d.tipo === 'linha') layer.on('mouseover', () => layer.setStyle && layer.setStyle({ opacity: 1 }));
+        desenhosLayer.addLayer(layer);
+        entry.leafletLayer = layer;
+      }
+    });
+    // Mantém a lista sincronizada (troca de camada, criar/editar/excluir chamam renderDesenhos).
+    renderDesenhoList();
+  };
+  renderDesenhos();
+}
+
+</script>
+{% endblock %}

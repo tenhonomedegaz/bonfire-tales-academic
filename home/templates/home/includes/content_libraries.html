@@ -1,0 +1,4 @@
+{% load static %}
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"{% if defer_scripts %} defer{% endif %}></script>
+<script src="{% static 'js/markdown.js' %}?v=14"{% if defer_scripts %} defer{% endif %}></script>
+<script src="{% static 'js/options-widget.js' %}?v=5"{% if defer_scripts %} defer{% endif %}></script>

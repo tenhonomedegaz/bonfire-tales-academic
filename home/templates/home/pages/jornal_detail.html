@@ -1,0 +1,176 @@
+{% extends 'home/base.html' %}
+{% load static %}
+{% block body_class %}bft-journal bft-journal-reader{% endblock %}
+{% block main_class %}flex-1 w-full min-w-0{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/jornal_detail.css' %}?v=14">
+<link rel="stylesheet" href="{% static 'css/pages/journal-redesign.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'css/pages/journal-newspaper.css' %}?v=1">
+<script defer src="{% static 'js/journal-reading.js' %}?v=1"></script>
+
+{% endblock %}
+
+{% block content %}
+<div class="journal-reader-shell{% if artigo.layout == 'atlas' %} is-atlas{% endif %}">
+{% include 'home/partials/journal_preview_notice.html' %}
+<nav class="journal-breadcrumb" aria-label="Caminho da reportagem"><a href="{% url 'mundo_jornal' %}">← Jornal de Cinéria</a><span>Reportagem{% if artigo.destaque %} · Em destaque{% endif %}</span></nav>
+<div class="journal-reading-grid">
+<article class="artigo-layout{% if artigo.layout == 'colunas' %} artigo-layout--colunas{% endif %}{% if artigo.layout == 'atlas' %} artigo-layout--atlas{% endif %}" data-artigo-layout="{{ artigo.layout }}">
+{% include 'home/partials/journal_imprint.html' %}
+{% if artigo.layout != 'atlas' %}
+<header class="artigo-hero{% if not artigo.safe_image_url %} artigo-hero--text{% endif %}">
+  <span class="artigo-eyebrow">{% if artigo.destaque %}Em destaque{% else %}Reportagem{% endif %} <span aria-hidden="true">◆</span> Cinéria</span>
+  <h1 class="artigo-title">{{ artigo.titulo }}</h1>
+  <div class="artigo-meta">
+    <span class="author">{{ artigo.autor.username|default:"Redação" }}</span>
+    <span>&middot;</span>
+    <span>{{ artigo.data_publicacao|date:"d \d\e F \d\e Y" }}</span>
+    {% if has_recorded_edit %}
+    <span>&middot;</span>
+    <span>Editado em {{ artigo.data_edicao|date:"d/m/Y" }}</span>
+    {% endif %}
+  </div>
+  {% if artigo.resumo %}<p class="journal-article-summary">{{ artigo.resumo }}</p>{% endif %}
+</header>
+{% if artigo.safe_image_url %}<figure class="journal-article-figure"><img class="journal-print-image" src="{{ artigo.safe_image_url }}" alt="Ilustração da reportagem: {{ artigo.titulo }}"></figure>{% endif %}
+{% endif %}
+
+  {% if artigo.layout == 'atlas' %}
+  <header class="artigo-atlas-meta">
+    <span class="artigo-atlas-kicker">Jornal de Cinéria</span>
+    <h1>{{ artigo.titulo }}</h1>
+    <p>Por {{ artigo.autor.username|default:"Redação" }} · {{ artigo.data_publicacao|date:"d/m/Y" }}{% if has_recorded_edit %} · Editado em {{ artigo.data_edicao|date:"d/m/Y" }}{% endif %}</p>
+    {% if artigo.resumo %}<p class="journal-article-summary">{{ artigo.resumo }}</p>{% endif %}
+  </header>
+  {% endif %}
+  <div class="artigo-body{% if artigo.layout == 'colunas' %} artigo-body--colunas{% endif %}{% if artigo.layout == 'atlas' %} artigo-body--atlas{% endif %}">
+    <div class="bonfire-markdown{% if artigo.layout == 'atlas' %} atlas-markdown{% endif %}" data-jornal-markdown data-markdown-source data-markdown-manual="true"{% if artigo.layout == 'atlas' %} data-atlas-mode="true"{% endif %}>{{ artigo.conteudo_markdown|escape }}</div>
+  </div>
+
+  <a href="{% url 'mundo_jornal' %}" class="artigo-back">
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+    Voltar ao Jornal
+  </a>
+
+  {% if can_edit_wiki %}
+  <div class="artigo-edit-tools">
+    <button type="button" class="artigo-edit-btn" id="btnEditArticle" aria-controls="articleForm" aria-expanded="false">Editar Artigo</button>
+  </div>
+  <form id="articleForm" class="wiki-inline-editor" aria-label="Editar artigo" data-editor-version="{{ editor_version }}">
+    {% csrf_token %}
+    <label>Título <input name="titulo" value="{{ artigo.titulo }}"></label>
+    <label>Resumo <input name="resumo" value="{{ artigo.resumo|default:'' }}"></label>
+    <label>URL da Imagem <input name="imagem_url" value="{{ artigo.imagem_url|default:'' }}"></label>
+    <label>Layout
+      <select name="layout">
+        <option value="padrao" {% if artigo.layout == 'padrao' %}selected{% endif %}>Padrão</option>
+        <option value="colunas" {% if artigo.layout == 'colunas' %}selected{% endif %}>Colunas</option>
+        <option value="atlas" {% if artigo.layout == 'atlas' %}selected{% endif %}>Atlas (Jornal)</option>
+      </select>
+    </label>
+    <label>Alterar data de publicação (deixe vazio para manter)
+      <input type="datetime-local" name="data_publicacao">
+    </label>
+    <p id="articleSaveError" role="alert" tabindex="-1" hidden></p>
+    <label>
+      <span>Destaque</span>
+      <input type="checkbox" name="destaque" {% if artigo.destaque %}checked{% endif %} style="width: auto;">
+    </label>
+    <label>Conteúdo Markdown <textarea name="conteudo_markdown">{{ artigo.conteudo_markdown|default:'' }}</textarea></label>
+    <div class="wiki-inline-actions">
+      <button type="button" class="wiki-inline-cancel" id="btnCancelArticle">Cancelar</button>
+      <button type="submit" class="wiki-inline-save">Salvar</button>
+    </div>
+  </form>
+  <script>
+  (function() {
+    const form = document.getElementById('articleForm');
+    const openButton = document.getElementById('btnEditArticle');
+    const cancelButton = document.getElementById('btnCancelArticle');
+    const saveButton = form.querySelector('.wiki-inline-save');
+    const error = document.getElementById('articleSaveError');
+    function closeEditor() {
+      if (saveButton.disabled) return;
+      form.reset();
+      error.hidden = true;
+      form.classList.remove('is-open');
+      openButton.setAttribute('aria-expanded', 'false');
+      openButton.focus();
+    }
+    openButton.addEventListener('click', () => {
+      form.classList.add('is-open');
+      openButton.setAttribute('aria-expanded', 'true');
+      form.querySelector('[name="titulo"]').focus();
+    });
+    cancelButton.addEventListener('click', closeEditor);
+    form.addEventListener('keydown', event => {
+      if (event.key !== 'Escape' || saveButton.disabled) return;
+      event.preventDefault();
+      closeEditor();
+    });
+    form?.addEventListener('submit', async e => {
+      e.preventDefault();
+      if (saveButton.disabled) return;
+      error.hidden = true;
+      const fd = new FormData(form);
+      const body = {
+        titulo: fd.get('titulo'),
+        resumo: fd.get('resumo'),
+        imagem_url: fd.get('imagem_url'),
+        layout: fd.get('layout'),
+        data_publicacao: fd.get('data_publicacao'),
+        conteudo_markdown: fd.get('conteudo_markdown'),
+        destaque: !!fd.get('destaque'),
+        expected_edit: form.dataset.editorVersion,
+      };
+      const csrf = form.querySelector('[name="csrfmiddlewaretoken"]').value;
+      saveButton.disabled = true;
+      cancelButton.disabled = true;
+      form.setAttribute('aria-busy', 'true');
+      let saved = false;
+      try {
+        const res = await fetch('{% url "jornal_update" slug=artigo.slug %}', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+          body: JSON.stringify(body),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) throw new Error(data.error || 'Não foi possível salvar o artigo.');
+        saved = true;
+        window.location.reload();
+      } catch (err) {
+        error.textContent = err.message || 'Não foi possível salvar o artigo.';
+        error.hidden = false;
+        error.focus();
+      } finally {
+        if (!saved) {
+          saveButton.disabled = false;
+          cancelButton.disabled = false;
+          form.removeAttribute('aria-busy');
+        }
+      }
+    });
+  })();
+  </script>
+  {% endif %}
+<footer class="journal-paper-footer"><span>Bonfire Tales RPG</span><span aria-hidden="true">◆</span><span>Jornal de Cinéria</span></footer>
+</article>
+<aside class="journal-reading-aside" aria-label="Apoio à leitura"><div class="journal-reading-time"><span class="journal-kicker">Tempo de leitura</span><p id="journalReadingTime">Reportagem</p></div><details class="journal-toc" id="journalToc" hidden open><summary>Nesta reportagem <span aria-hidden="true">⌄</span></summary><nav id="journalTocLinks" aria-label="Seções da reportagem"></nav></details><div class="journal-explore"><span class="journal-kicker">O mundo além da notícia</span><a href="{% url 'mundo_regioes' %}">Regiões e Territórios <span aria-hidden="true">→</span></a><a href="{% url 'mapa' %}">Mapa de Cinéria <span aria-hidden="true">↗</span></a><a href="{% url 'mundo_cronicas' %}">Crônicas do mundo <span aria-hidden="true">→</span></a></div></aside>
+</div>
+</div>
+<script>
+  (() => {
+    const article = document.querySelector('[data-jornal-markdown]');
+    if (!article) return;
+    const source = article.textContent;
+    if (typeof sanitizeBonfireMarkdownHtml === 'function' &&
+        typeof renderBonfireMarkdown === 'function' &&
+        (article.dataset.atlasMode !== 'true' || typeof renderAtlasLayout === 'function')) {
+      const html = article.dataset.atlasMode === 'true'
+        ? renderAtlasLayout(source) : renderBonfireMarkdown(source);
+      article.innerHTML = sanitizeBonfireMarkdownHtml(html);
+    }
+  })();
+</script>
+{% endblock %}

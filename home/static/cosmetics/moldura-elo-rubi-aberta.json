@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "slug": "moldura-elo-rubi-aberta",
+  "type": "moldura",
+  "scope": "ambos",
+  "layers": [
+    {
+      "slot": "avatar",
+      "file": "rank-rubi-open-base-v1.webp",
+      "fallback": "rank-rubi-open-base-v1.png",
+      "width": 512,
+      "height": 512,
+      "sprite": "full",
+      "motion": "none",
+      "aperture": {
+        "cx": 52.734,
+        "cy": 50,
+        "diameter": 55.859
+      }
+    }
+  ]
+}

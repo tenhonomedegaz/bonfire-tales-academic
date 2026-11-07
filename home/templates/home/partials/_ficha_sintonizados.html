@@ -1,0 +1,16 @@
+{% comment %}Bloco informativo "Itens Sintonizados" da aba Ficha (entre PV e Ataques).
+Só leitura — sintonizar/dessintonizar vive na Mochila. O contêiner externo existe sempre
+(mesmo vazio) para o fetch da Mochila conseguir trocar este bloco sem reload.
+Espera no contexto: mochila.{% endcomment %}
+<div data-attuned-block>
+  {% if mochila.sintonizados %}
+  <div class="ficha-panel">
+    <div class="ficha-section-title">Itens Sintonizados <span class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--muted)]">{{ mochila.sintonizados_usados }}/{{ mochila.sintonizacao_maxima }}</span></div>
+    <ul data-attuned-list>
+      {% for it in mochila.sintonizados %}
+        <li class="line-row"><span class="name text-[var(--text)]">{{ it.nome }}</span><span class="pill attuned">sintonizado</span></li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+</div>

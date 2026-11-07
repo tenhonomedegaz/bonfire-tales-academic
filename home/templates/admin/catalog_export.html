@@ -1,0 +1,22 @@
+{% extends 'admin/base_site.html' %}
+{% load static %}
+{% block content_title %}{% endblock %}
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/admin/catalog-export.css' %}?v=1">{% endblock %}
+{% block content %}
+<div id="catalog-export" class="export-layout" data-max-tables="{{ max_tables }}">
+  <header class="export-header"><div><h1>Exportar dados</h1><p>Catálogos do site · Excel (.xlsx)</p></div><a href="{% url 'admin:server_logs' %}">Voltar ao console</a></header>
+  <form id="export-form" method="post" action="{% url 'admin:catalog_export' %}">
+    {% csrf_token %}
+    <div class="export-toolbar"><label for="export-search">Tabelas <input id="export-search" type="search" placeholder="Buscar tabela ou catálogo"></label><span id="selected-count" aria-live="polite">0 selecionadas</span></div>
+    <div class="export-workspace">
+      <aside class="export-tables" id="export-tables" aria-label="Tabelas disponíveis"></aside>
+      <div class="export-editor" id="export-editor"><p class="export-empty">Nenhuma tabela selecionada.</p></div>
+    </div>
+    <div class="export-actions"><button type="button" id="preview-export">Conferir seleção</button><button type="button" id="download-export" disabled>Baixar Excel</button><span id="export-status" role="status"></span></div>
+    <p id="export-error" class="errornote" role="alert" hidden></p>
+  </form>
+  <section id="export-preview" hidden><h2>Prévia</h2><div id="export-summary"></div></section>
+</div>
+{{ export_schema|json_script:'export-schema' }}
+<script src="{% static 'js/catalog-export.js' %}?v=1" defer></script>
+{% endblock %}

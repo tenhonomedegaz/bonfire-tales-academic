@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "slug": "moldura-elo-ambar-aberta",
+  "type": "moldura",
+  "scope": "ambos",
+  "layers": [
+    {
+      "slot": "avatar",
+      "file": "rank-ambar-open-base-v1.webp",
+      "fallback": "rank-ambar-open-base-v1.png",
+      "width": 512,
+      "height": 512,
+      "sprite": "full",
+      "motion": "none",
+      "aperture": {
+        "cx": 49.902,
+        "cy": 50,
+        "diameter": 54.883
+      }
+    }
+  ]
+}

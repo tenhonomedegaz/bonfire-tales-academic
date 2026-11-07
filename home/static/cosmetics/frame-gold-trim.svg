@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <defs><linearGradient id="gold" x1="24" y1="12" x2="170" y2="190" gradientUnits="userSpaceOnUse"><stop stop-color="#fff2b8"/><stop offset=".3" stop-color="#ba7925"/><stop offset=".52" stop-color="#ffe8a0"/><stop offset=".77" stop-color="#a56722"/><stop offset="1" stop-color="#f4cd70"/></linearGradient><g id="scroll" stroke="url(#gold)" stroke-width="2"><path d="M74 17Q83 5 94 14L100 8L106 14Q117 5 126 17M73 18Q84 28 92 20M127 18Q116 28 108 20"/><path d="M100 6L107 16L100 25L93 16Z" fill="#eac46c"/><path d="M100 11L103 16L100 20L97 16Z" fill="#fff6cb" stroke="none"/></g></defs>
+  <circle cx="100" cy="100" r="87" stroke="#503820" stroke-width="11"/>
+  <circle cx="100" cy="100" r="92" stroke="url(#gold)" stroke-width="3"/>
+  <circle cx="100" cy="100" r="81" stroke="url(#gold)" stroke-width="4"/>
+  <circle cx="100" cy="100" r="86" stroke="#f8de93" stroke-width="1.5" stroke-dasharray="2 5"/>
+  <circle cx="100" cy="100" r="77" stroke="#ffefbb" stroke-opacity=".7"/>
+  <use href="#scroll"/><use href="#scroll" transform="rotate(90 100 100)"/><use href="#scroll" transform="rotate(180 100 100)"/><use href="#scroll" transform="rotate(270 100 100)"/>
+  <g fill="#fff1bb" stroke="#996221" stroke-width="1.5"><path d="M34 31L42 34L37 43L29 38Z"/><path d="M166 31L171 38L163 43L158 34Z"/><path d="M34 169L29 162L37 157L42 166Z"/><path d="M166 169L158 166L163 157L171 162Z"/></g>
+</svg>

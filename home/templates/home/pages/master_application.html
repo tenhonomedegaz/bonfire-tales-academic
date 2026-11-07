@@ -1,0 +1,9 @@
+{% extends 'home/pages/master_shell.html' %}
+{% block master_content %}
+<header class="mh-compact-head"><h1>Participação como mestre</h1></header>
+<form method="post" class="mh-panel" action="{% url 'master_request' %}">
+  {% csrf_token %}{{ application_form.non_field_errors }}
+  {% for field in application_form %}<div class="mh-field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% endfor %}
+  <div class="mh-actions"><a class="mh-text-link" href="{% url 'profile' %}?aba=mestre">Voltar ao perfil</a><button class="mh-button" type="submit">Enviar solicitação</button></div>
+</form>
+{% endblock %}

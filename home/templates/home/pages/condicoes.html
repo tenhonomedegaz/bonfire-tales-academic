@@ -1,0 +1,45 @@
+{% extends 'home/base.html' %}
+{% load static %}
+{% block body_class %}bft-conditions{% endblock %}
+{% block main_class %}co-main{% endblock %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/pages/conditions.css' %}?v=1"><script defer src="{% static 'js/conditions.js' %}?v=3"></script>{% endblock %}
+{% block content %}
+<section class="co-page" aria-labelledby="co-title">
+  <header class="co-heading">
+    <div class="co-heading-copy"><span class="co-heading-symbol">{% include 'home/partials/condition_symbol.html' %}</span><div><p class="co-eyebrow">Referência do sistema · Estados em jogo</p><h1 id="co-title">Condições</h1><p>O que muda na sua vez, nos seus testes e nos seus movimentos.</p></div></div>
+    <div class="co-heading-actions"><span>{{ condicoes|length }} condições</span>{% if is_staff %}<a class="co-button" href="{% url 'condicao_criar' %}">+ Nova condição</a>{% endif %}</div>
+  </header>
+  {% if msg == 'criada' %}<p class="co-notice" role="status">Condição criada!</p>{% elif msg == 'editada' %}<p class="co-notice" role="status">Condição atualizada!</p>{% elif msg == 'excluida' %}<p class="co-notice" role="status">Condição excluída.</p>{% endif %}
+  <details class="co-guide"><summary><span class="co-guide-label">Guia rápido</span><span>Como consultar uma condição</span><span aria-hidden="true">⌄</span></summary><div><section><h2>Encontre o estado</h2><p>Busque pelo nome, pela tradução ou por palavras do efeito, como movimento ou Concentração.</p></section><section><h2>Leia cada efeito</h2><p>Uma criatura pode estar sob várias condições. Os blocos abaixo separam os efeitos de cada uma.</p></section><section><h2>Consulte as referências</h2><p>Os links de condições citadas ajudam a conferir a regra completa. A página não aplica condições à ficha.</p></section></div></details>
+  <div class="co-workspace">
+    <aside class="co-catalog" aria-label="Catálogo de condições">
+      <form method="get" action="{{ request.path }}" class="co-filter-form">
+        <input type="hidden" id="co-active" name="condicao" value="{{ request.GET.condicao|default:'' }}">
+        <label for="co-search" class="co-eyebrow">Encontrar condição</label>
+        <div class="co-search-field"><input type="search" name="q" id="co-search" value="{{ request.GET.q|default:'' }}" placeholder="Nome ou efeito…" maxlength="160" autocomplete="off"><button type="submit" aria-label="Buscar condições"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg></button></div>
+        <label for="co-category" class="co-category-label" hidden>Categoria</label><select id="co-category" name="categoria" disabled hidden><option value="">Todas as categorias</option></select>
+      </form>
+      <div class="co-list-head"><p><strong id="co-count">{{ condicoes|length }}</strong> de {{ condicoes|length }} condições</p><a href="{% url 'mestre_condicoes' %}" class="co-clear"{% if not request.GET.q %} hidden{% endif %}>Limpar busca</a></div>
+      <nav class="co-list" id="co-list" aria-label="Escolher condição">
+        {% for c in condicoes %}<a href="{% url 'mestre_condicoes' %}#cond-{{ c.slug }}" class="co-item{% if forloop.first %} is-active{% endif %}" data-target="cond-{{ c.slug }}" data-category="{{ c.categoria }}" data-search="{{ c.nome }} {{ c.nome_en|default:'' }} {{ c.resumo|default:'' }} {{ c.definicao|default:'' }} {% for effect in c.efeitos_json %}{{ effect.titulo }} {{ effect.texto }} {% endfor %}" aria-controls="cond-{{ c.slug }}"{% if forloop.first %} aria-current="true"{% endif %}><span class="co-list-symbol">{% include 'home/partials/condition_symbol.html' with kind=c.slug %}</span><span><strong>{{ c.nome }}</strong>{% if c.categoria != '5e' %}<small>{{ c.categoria|title }}</small>{% endif %}</span><span class="co-list-arrow" aria-hidden="true">›</span></a>{% endfor %}
+      </nav>
+      <p id="co-list-empty" class="co-list-empty"{% if condicoes %} hidden{% endif %}>Nenhuma condição encontrada.</p>
+      <footer class="co-catalog-footer"><a href="{% url 'sistemas_glossario' %}#glo-condicoes">Glossário do sistema ↗</a><a href="#co-reader">Ir para a leitura ↓</a></footer>
+    </aside>
+    <div id="co-reader" class="co-reader" role="region" aria-label="Condição selecionada" tabindex="-1">
+      {% for c in condicoes %}
+      <article class="co-panel" id="cond-{{ c.slug }}" aria-labelledby="co-name-{{ c.slug }}"{% if not forloop.first %} hidden{% endif %}>
+        <header class="co-panel-header"><div><p class="co-eyebrow">{{ c.categoria|title }}</p><h2 id="co-name-{{ c.slug }}">{{ c.nome }}</h2>{% if c.nome_en %}<p class="co-english">{{ c.nome_en }}</p>{% endif %}</div><span class="co-panel-symbol">{% include 'home/partials/condition_symbol.html' with kind=c.slug %}</span></header>
+        <div class="co-panel-body">
+          {% if c.resumo %}<section class="co-summary" aria-label="Resumo"><h3>Em poucas palavras</h3><p>{{ c.resumo }}</p></section>{% endif %}
+          {% if c.definicao %}<p class="co-definition">{{ c.definicao|linebreaksbr }}</p>{% endif %}
+          {% if c.efeitos_json %}<section class="co-effects" aria-label="Efeitos da condição">{% for effect in c.efeitos_json %}<div class="co-effect">{% if effect.titulo %}<h3>{{ effect.titulo }}</h3>{% endif %}<p>{{ effect.texto|linebreaksbr }}</p></div>{% endfor %}</section>{% elif not c.definicao %}<p class="co-missing">Os efeitos ainda não foram informados no cadastro.</p>{% endif %}
+        </div>
+        {% if is_staff %}<footer class="co-editor-actions"><a href="{% url 'condicao_editar' c.id_condicao %}">Editar condição</a><form method="post" action="{% url 'condicao_excluir' c.id_condicao %}" onsubmit="return confirm('Excluir {{ c.nome|escapejs }}?');">{% csrf_token %}<button type="submit">Excluir</button></form></footer>{% endif %}
+      </article>
+      {% endfor %}
+      <div class="co-reader-empty" id="co-reader-empty"{% if condicoes %} hidden{% endif %}><span>{% include 'home/partials/condition_symbol.html' %}</span><h2>{% if condicoes %}Nenhuma condição encontrada{% else %}O catálogo está aguardando condições{% endif %}</h2><p>{% if condicoes %}Tente outro nome, uma palavra do efeito ou a tradução em inglês.{% else %}As condições cadastradas aparecerão aqui com seus efeitos completos.{% endif %}</p><a href="{% url 'mestre_condicoes' %}" class="co-button co-clear"{% if not request.GET.q %} hidden{% endif %}>Limpar busca</a></div>
+    </div>
+  </div><p id="co-announcement" class="co-sr-only" role="status" aria-live="polite"></p>
+</section>
+{% endblock %}

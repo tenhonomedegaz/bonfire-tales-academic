@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "purpose": "approved-public-art-proposals-only",
+  "collections": {"luas":"As Três Luas","vigilia":"Vigília das Lanternas"},
+  "proposals": [
+    {"slug":"efeito-lua-vermelha","collection":"luas","tipo":"efeito","nome":"Lua Vermelha","escopo":"ambos","class":""},
+    {"slug":"efeito-lua-negra","collection":"luas","tipo":"efeito","nome":"Lua Negra","escopo":"ambos","class":""},
+    {"slug":"efeito-lua-cristal","collection":"luas","tipo":"efeito","nome":"Lua de Cristal","escopo":"ambos","class":""},
+    {"slug":"moldura-lua-vermelha","collection":"luas","tipo":"moldura","nome":"Moldura da Lua Vermelha","escopo":"ambos","class":"frame-lua-vermelha"},
+    {"slug":"moldura-lua-negra","collection":"luas","tipo":"moldura","nome":"Moldura da Lua Negra","escopo":"ambos","class":"frame-lua-negra"},
+    {"slug":"moldura-lua-cristal","collection":"luas","tipo":"moldura","nome":"Moldura da Lua de Cristal","escopo":"ambos","class":"frame-lua-cristal"},
+    {"slug":"moldura-vigilia-das-lanternas","collection":"vigilia","tipo":"moldura","nome":"Moldura Vigília das Lanternas","escopo":"ambos","class":"frame-vigilia-das-lanternas"},
+    {"slug":"efeito-vigilia-das-lanternas","collection":"vigilia","tipo":"efeito","nome":"Vigília das Lanternas","escopo":"ambos","class":""}
+  ]
+}

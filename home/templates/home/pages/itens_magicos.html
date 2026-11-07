@@ -1,0 +1,40 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block body_class %}bft-mundane-market bft-market-game bft-magic-market{% endblock %}
+{% block main_class %}bft-market-main{% endblock %}
+
+{% block title %}{{ title }} | Bonfire Tales{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/mercado_loja.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/pages/mundane-market-redesign.css' %}?v=7">
+<link rel="stylesheet" href="{% static 'css/pages/mundane-market-game.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/pages/magic-market.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'css/pages/market-transaction-review.css' %}?v=1">
+<script src="{% static 'js/mercado_loja.js' %}?v=16" defer></script>
+<script src="{% static 'js/mundane-market-presentation.js' %}?v=3" defer></script>
+<script src="{% static 'js/magic-market.js' %}?v=4" defer></script>
+{% endblock %}
+
+{% block content %}
+<div class="mundane-market">
+  {% include 'home/partials/magic_market_symbols.html' %}
+  <div class="market-breadcrumb"><a href="{% url 'home' %}">Bonfire Tales</a><span>/</span><span>Itens Mágicos</span></div>
+  <header class="market-game-header"><div><h1>Itens Mágicos</h1><p>Consulte as lojas do catálogo e compre itens com preço para sua ficha.</p></div><a class="magic-mundane-link" href="{% url 'mercado_itens_mundanos' %}">Mercado Mundano ↗</a></header>
+  {% if market_preview %}<p class="market-game-local">Prévia local · compras e vendas afetam somente as fichas de demonstração.</p>{% endif %}
+  <nav class="magic-shops" aria-label="Escolher loja">
+    {% for shop in grupos_filtro %}<button type="button" data-magic-shop="{{ shop.value }}" aria-pressed="false"><svg aria-hidden="true"><use href="#magic-gem"></use></svg><span><strong>{{ shop.label }}</strong><small>Itens do catálogo</small></span><em>{{ shop.a_venda }} com preço</em></button>{% endfor %}
+  </nav>
+  <section class="magic-caravan {% if caravan.active %}is-present{% endif %}" aria-label="Caravana mercante">
+    <svg aria-hidden="true"><use href="#magic-caravan"></use></svg>
+    <div><h2>Caravana mercante <span>{% if caravan.active %}Presente{% elif caravan.configured %}Na estrada{% else %}Indisponível{% endif %}</span></h2><p>{% if caravan.active %}{{ caravan_count }} achados desta visita · parte em {{ caravan.next_change|date:'d/m, H:i' }} (Brasília).{% elif caravan.configured %}Próxima chegada: {{ caravan.next_change|date:'d/m, H:i' }} (Brasília). O estoque permanente continua disponível.{% else %}O calendário e o estoque da caravana ainda não estão disponíveis. Consulte o estoque permanente das lojas.{% endif %}</p></div>
+    {% if caravan.active %}<button type="button" data-magic-caravan>Ver estoque</button>{% endif %}
+    {% if caravan.configured %}<details><summary>Como funciona?</summary><div><p>Uma semana presente, uma semana na estrada. Chegadas e partidas acontecem às sextas-feiras, no horário configurado.</p><p>A visita abastece Forja, Joalheria e Itens Mágicos com 2 incomuns menores, 4 incomuns maiores, 2 raros menores, 1 raro maior e 1 muito raro menor{% if caravan.calendar.per_shop %} em cada loja{% else %} no total{% endif %}.</p><p>{% if caravan.calendar.units_per_item %}Cada oferta possui {{ caravan.calendar.units_per_item }} unidade(s) compartilhada(s) pelo servidor.{% else %}Os itens da visita podem ser comprados por vários jogadores enquanto a caravana está presente.{% endif %} Atualizar a página não refaz o sorteio.</p></div></details>{% endif %}
+  </section>
+  <div id="content-container">
+    {% include 'home/partials/itens_magicos_content.html' %}
+  </div>
+  <p class="market-game-footer-note">Compras de itens com preço seguem o catálogo e as validações atuais do servidor. Itens sem preço ficam disponíveis apenas para consulta. A caravana ainda não está configurada nesta integração.</p>
+</div>
+{% endblock %}

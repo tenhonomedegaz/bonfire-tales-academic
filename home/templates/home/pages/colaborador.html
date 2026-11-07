@@ -1,0 +1,49 @@
+{% extends 'home/base.html' %}{% load static commerce_presentation %}
+{% block body_class %}bft-commerce{% endblock %}
+{% block main_class %}co-main flex-1 w-full min-w-0{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/commerce.css' %}?v=4"><script src="{% static 'js/commerce.js' %}?v=3" defer></script>{% endblock %}
+{% block content %}
+{% include 'home/partials/commerce_nav.html' with section='support' %}
+{% if user.is_authenticated %}<p><a class="co-text-link" href="{% url 'subscription_management' %}">Consultar minha assinatura</a></p><aside class="co-notice" data-nav-addition><div><strong>Confira a conta que receberá sua compra.</strong><p>Revise seu e-mail e o Discord vinculado antes de escolher um plano ou token.</p></div><a class="co-btn co-btn-secondary" href="{% url 'profile' %}">Conferir conta →</a></aside>{% endif %}
+<header class="co-hero co-hero-support">
+  <div><p class="co-eyebrow">Uma comunidade. Incontáveis histórias.</p><h1>Mantenha a fogueira <em>acesa.</em></h1><p>O Bonfire é gratuito para jogar. Seu apoio ajuda a manter o servidor e traz benefícios para sua jornada em Cinéria.</p><a class="co-text-link" href="#co-plans">Conheça os planos <span aria-hidden="true">↓</span></a></div>
+  <div class="co-hero-seal" aria-hidden="true"><img src="{% static 'brand/icon.png' %}" alt=""><span>Histórias que nos unem.<br>Lendas que permanecem.</span></div>
+</header>
+{% if checkout_feedback %}<div class="co-notice co-feedback-{{ checkout_feedback.0 }}" role="status">{{ checkout_feedback.1 }}</div>{% endif %}
+{% if not checkout_account_ready %}<aside class="co-notice co-account"><p>{% if user.is_authenticated %}Adicione um e-mail ou vincule o Discord para receber a compra na conta correta.{% else %}Entre na sua conta para que a compra fique vinculada ao seu perfil.{% endif %}</p><a class="co-btn co-btn-secondary" href="{% if user.is_authenticated %}{% url 'profile' %}{% else %}/login/?next={% url 'colaborador' %}{% endif %}">{% if user.is_authenticated %}Configurar conta{% else %}Entrar na conta{% endif %}</a></aside>{% endif %}
+<section id="co-plans" aria-labelledby="co-plans-title">
+  <div class="co-section-head"><div><p class="co-eyebrow">Escolha como apoiar</p><h2 id="co-plans-title">Pacotes de Colaborador</h2></div><p>Assinatura mensal no cartão ou pagamento único.<br>Você escolhe a modalidade antes de pagar.</p></div>
+  <div class="co-plans">
+  {% for tier in tiers %}<article class="co-plan {% if tier.destaque %}co-plan-featured{% endif %}">
+    <header><span class="co-plan-seal" aria-hidden="true">{% with icon=tier.product_code|collaborator_icon %}{% if icon %}<img class="co-collaborator-icon" src="{{ icon }}" width="64" height="64" alt="" decoding="async">{% else %}{% include 'home/partials/commerce_symbol.html' with kind='titulo' %}{% endif %}{% endwith %}</span><p class="co-eyebrow">{% if tier.destaque %}Mais completo{% else %}Colaborador Bonfire{% endif %}</p><h3>{{ tier.titulo }}</h3><p class="co-price"><span>R$</span> {{ tier.preco_mes }} <small>/mês</small></p></header>
+    <ul class="co-benefits">{% for emoji, texto in tier.beneficios %}<li><span aria-hidden="true">✦</span><span>{{ texto }}</span></li>{% endfor %}</ul>
+    <div class="co-plan-actions">
+    {% if checkout_account_ready %}
+      <form action="{% url 'colaborador_checkout' %}" method="post" target="_blank" data-purchase-review data-subscription-plan data-tier="{{ tier.titulo }}" data-product="{{ tier.titulo }} · 1 mês" data-amount="R$ {{ tier.preco_mes }}" data-mode="Pagamento único" data-note="Pagamento pelo Asaas. O benefício vai para a conta vinculada após a confirmação do pagamento.">
+        {% csrf_token %}
+        <label for="plan-{{ tier.key }}">Período</label>
+        <select id="plan-{{ tier.key }}" name="product" data-co-plan>
+          <option value="{{ tier.product_code }}" data-price="{{ tier.preco_mes }}" data-period="1 mês" data-recurring="true">1 mês · R$ {{ tier.preco_mes }}</option>
+          {% for plano in tier.planos %}<option value="{{ plano.product_code }}" data-price="{{ plano.preco }}" data-period="{{ plano.label }}">{{ plano.label }} · R$ {{ plano.preco }} · {{ plano.off }}</option>{% endfor %}
+        </select>
+        <fieldset class="co-payment-modes"><legend>Modalidade</legend>
+          <label><input type="radio" name="mode" value="single" checked> Pagamento único · Pix ou cartão</label>
+          <label data-co-recurring><input type="radio" name="mode" value="recurring"> Assinatura mensal · cartão</label>
+        </fieldset>
+        <p class="co-selected-total" data-co-total>R$ {{ tier.preco_mes }} · pagamento único</p>
+        <button class="co-btn" type="submit">Continuar <span aria-hidden="true">↗</span></button>
+      </form>
+    {% else %}<a class="co-btn" href="{% if user.is_authenticated %}{% url 'profile' %}{% else %}/login/?next={% url 'colaborador' %}{% endif %}">Vincular conta para comprar</a>{% endif %}
+    <p class="co-micro">Assinatura: renovação mensal. Pagamento único: sem recorrência.</p>
+    {% if not checkout_account_ready %}<div class="co-long-plans">{% for plano in tier.planos %}<div class="co-long-disabled"><span>{{ plano.label }} · {{ plano.off }}</span><strong>R$ {{ plano.preco }}</strong></div>{% endfor %}</div>{% endif %}</div>
+  </article>{% endfor %}
+  </div>
+  <p class="co-micro">O benefício de Missão Especial concede um token para solicitar missão; a participação não é automática.</p>
+</section>
+<section class="co-token-section" aria-labelledby="co-tokens-title"><div class="co-section-head"><div><p class="co-eyebrow">Apoio pontual</p><h2 id="co-tokens-title">Tokens avulsos</h2></div><p>Uma compra única, independente dos planos.</p></div><div class="co-tokens">
+{% for token in tokens %}<article class="co-token"><span class="co-token-symbol" aria-hidden="true">{% with icon=token.product_code|collaborator_icon %}{% if icon %}<img class="co-collaborator-icon" src="{{ icon }}" width="64" height="64" alt="" loading="lazy" decoding="async">{% else %}{% include 'home/partials/commerce_symbol.html' with kind='token' %}{% endif %}{% endwith %}</span><div><h3>{{ token.nome }}</h3><p>{% if token.product_code == 'token-missao' %}Token para solicitar uma Missão Especial, sem participação automática.{% else %}{{ token.desc }}{% endif %}</p></div><strong>R$ {{ token.preco }}</strong>
+{% if checkout_account_ready %}<form action="{% url 'colaborador_checkout' %}" method="post" target="_blank" data-purchase-review data-product="{{ token.nome }}" data-amount="R$ {{ token.preco }}" data-mode="Pagamento único" data-note="{% if token.product_code == 'token-missao' %}Token para solicitar Missão Especial pela conta vinculada; nenhuma missão é marcada automaticamente.{% else %}Token para a conta vinculada.{% endif %} Pix ou cartão pelo Asaas; abre em outra aba. A entrega depende da confirmação do pagamento.">{% csrf_token %}<input type="hidden" name="product" value="{{ token.product_code }}"><input type="hidden" name="mode" value="single"><button class="co-btn co-btn-secondary" type="submit">Comprar token</button></form>
+{% else %}<a class="co-btn co-btn-secondary" href="{% if user.is_authenticated %}{% url 'profile' %}{% else %}/login/?next={% url 'colaborador' %}{% endif %}">Vincular conta</a>{% endif %}</article>{% endfor %}</div></section>
+<section class="co-how" aria-labelledby="co-how-title"><h2 id="co-how-title">Do apoio à sua aventura</h2><ol><li><span>01</span><div><h3>Escolha sua modalidade</h3><p>Confira os benefícios, o período e se a cobrança é única ou recorrente.</p></div></li><li><span>02</span><div><h3>Pague pelo Asaas</h3><p>Sua conta e seu e-mail seguem vinculados ao checkout. Não há resgate manual por e-mail.</p></div></li><li><span>03</span><div><h3>Receba na conta vinculada</h3><p>Tokens e benefícios são creditados no Discord vinculado após a confirmação do pagamento pelo Asaas.</p></div></li></ol><p>Dúvidas sobre planos ou entrega? <a href="https://discord.gg/eyqe7rj2AX" target="_blank" rel="noopener noreferrer">Fale com a staff no Discord ↗</a></p></section>
+{% include 'home/partials/commerce_review.html' %}
+{% endblock %}

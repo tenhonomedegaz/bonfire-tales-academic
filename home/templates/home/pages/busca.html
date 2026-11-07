@@ -1,0 +1,19 @@
+{% extends 'home/base.html' %}{% load static %}
+{% block body_class %}bft-complementary{% endblock %}{% block main_class %}cp-main flex-1 w-full min-w-0{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/complementary.css' %}?v=1">{% endblock %}
+{% block content %}
+<section class="cp-search-page" aria-labelledby="cp-title">
+<header class="cp-hero cp-hero-compact"><div><p class="cp-eyebrow">Biblioteca Bonfire · Encontre seu caminho</p><h1 id="cp-title">O que você procura?</h1><p>Regras, personagens e histórias de Cinéria em uma só busca.</p></div><span class="cp-hero-icon">{% include 'home/partials/complementary_icon.html' with kind='search' %}</span></header>
+<form method="get" action="{% url 'busca' %}" class="cp-search-form"><label for="cp-query">Buscar no Bonfire</label><div><input id="cp-query" name="q" type="search" value="{{ q }}" autofocus placeholder="Magias, talentos, itens, criaturas, regras…"><button type="submit" class="cp-button">Buscar <span aria-hidden="true">→</span></button></div><p id="cp-query-help">Digite pelo menos 2 caracteres. A busca mostra até 8 resultados por categoria.</p></form>
+{% if grupos %}
+<div class="cp-result-summary" role="status"><strong>{{ total }} resultado{{ total|pluralize:"s" }}</strong><span>para “{{ q }}”</span><a href="{% url 'busca' %}">Nova busca</a></div>
+<div class="cp-search-layout"><nav class="cp-result-nav" aria-label="Categorias encontradas"><p class="cp-eyebrow">Nesta busca</p>{% for g in grupos %}<a href="#cp-result-{{ forloop.counter }}"><span>{{ g.categoria }}</span><small>{{ g.itens|length }}</small></a>{% endfor %}</nav><div class="cp-results">
+{% for g in grupos %}<section class="cp-result-group" id="cp-result-{{ forloop.counter }}" aria-labelledby="cp-result-title-{{ forloop.counter }}"><header><h2 id="cp-result-title-{{ forloop.counter }}">{{ g.categoria }}</h2><span>{{ g.itens|length }} resultado{{ g.itens|length|pluralize:"s" }}</span></header><ul>{% for it in g.itens %}<li><a href="{{ it.url|default:'#' }}{% if g.categoria == 'Itens Mundanos' %}?busca={{ it.nome|urlencode }}{% elif g.categoria == 'Itens Mágicos' %}?busca={{ it.nome|urlencode }}&amp;estoque=catalogo{% elif g.categoria == 'Bestiário' or g.categoria == 'Antecedentes' or g.categoria == 'Armadilhas' or g.categoria == 'Glossário' or g.categoria == 'Talentos' or g.categoria == 'Idiomas' or g.categoria == 'Opções' %}?q={{ it.nome|urlencode }}{% endif %}"><span class="cp-result-name">{{ it.nome }}{% if it.sub %}<small>{{ it.sub }}</small>{% endif %}</span><span class="cp-result-arrow" aria-hidden="true">↗</span></a></li>{% endfor %}</ul></section>{% endfor %}
+</div></div>
+{% elif q|length < 2 %}
+<div class="cp-empty cp-search-intro"><span class="cp-empty-icon">{% include 'home/partials/complementary_icon.html' with kind='book' %}</span><h2>{% if q %}Só mais um pouco…{% else %}Toda aventura começa com uma pergunta.{% endif %}</h2><p>Digite ao menos 2 caracteres para buscar em magias, talentos, raças, classes, itens, bestiário, condições, regiões e mais.</p><div class="cp-quick-links"><a href="{% url 'magias_listas' %}">Magias →</a><a href="{% url 'sistemas_glossario' %}">Glossário →</a><a href="{% url 'bestiario' %}">Bestiário →</a></div></div>
+{% else %}
+<div class="cp-empty"><span class="cp-empty-icon">{% include 'home/partials/complementary_icon.html' with kind='search' %}</span><h2>Nenhum resultado para “{{ q }}”.</h2><p>Tente parte do nome, confira a grafia ou use um termo mais simples.</p><a class="cp-button cp-button-secondary" href="{% url 'busca' %}">Começar uma nova busca</a></div>
+{% endif %}
+</section>
+{% endblock %}

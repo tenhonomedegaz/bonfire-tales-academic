@@ -1,0 +1,59 @@
+{% extends 'home/gestao/shell.html' %}
+{% load static %}
+{% block gestao_content %}
+<nav class="gestao-breadcrumb" aria-label="Caminho"><a href="{{ people_url }}">Pessoas</a><span aria-hidden="true">/</span><a href="{{ person_url }}">{{ target.username }}</a><span aria-hidden="true">/</span><span>Conceder cosmético</span></nav>
+<header class="gestao-heading"><div class="gestao-identity"><h1>Conceder cosmético</h1><p>{{ target.get_full_name|default:target.username }} <span class="gestao-muted">@{{ target.username }}</span></p>{% if target.profile.discord_username %}<p class="gestao-muted">Discord: {{ target.profile.discord_username }}</p>{% endif %}</div></header>
+{% if form.errors %}<div class="gestao-errors" role="alert"><h2>Não foi possível continuar</h2>{{ form.non_field_errors }}{{ form.cosmetic_id.errors }}{{ form.reason.errors }}</div>{% endif %}
+{% if preview %}
+<section class="gestao-section" aria-labelledby="confirmation-title">
+  <h2 id="confirmation-title">Conferir concessão</h2>
+  <dl class="gestao-details gestao-confirmation">
+    <div><dt>Pessoa</dt><dd>{{ preview.target.get_full_name|default:preview.target.username }}<span class="gestao-subline">@{{ preview.target.username }}</span>{% if preview.target.profile.discord_username %}<span class="gestao-subline">Discord: {{ preview.target.profile.discord_username }}</span>{% endif %}{% if preview.target.profile.discord_user_id %}<span class="gestao-subline">{{ preview.target.profile.discord_user_id }}</span>{% endif %}</dd></div>
+    <div><dt>Cosmético</dt><dd>{{ preview.cosmetic.nome }}<span class="gestao-subline">{{ preview.cosmetic.get_tipo_display }} · {{ preview.cosmetic.get_origem_display }}</span></dd></div>
+    <div><dt>Motivo</dt><dd class="gestao-reason">{{ preview.reason }}</dd></div>
+    <div><dt>Estado atual</dt><dd>{% if preview.already_owned %}<span class="gestao-status muted">Já possui</span>{% else %}<span class="gestao-status warning">Não possui</span>{% endif %}</dd></div>
+    <div><dt>Resultado previsto</dt><dd>{% if preview.blocked_reason %}Concessão bloqueada{% elif preview.already_owned %}Registrar o recibo sem alterar o direito existente{% else %}Conceder o cosmético e registrar o recibo{% endif %}</dd></div>
+  </dl>
+  {% if preview.blocked_reason %}<p class="gestao-notice warning" role="alert">{{ preview.blocked_reason }}</p>{% endif %}
+  <div class="gestao-actions">
+    {% if preview.can_apply %}
+    <form method="post" data-grant-confirm>{% csrf_token %}{{ confirmation_form.ticket }}<input type="hidden" name="cosmetic_id" value="{{ preview.cosmetic.pk }}"><input type="hidden" name="reason" value="{{ preview.reason }}"><button class="gestao-button gestao-primary" type="submit" name="action" value="confirm">{% if preview.already_owned %}Confirmar registro{% else %}Confirmar concessão{% endif %}</button></form>
+    {% endif %}
+    <form method="post">{% csrf_token %}<input type="hidden" name="cosmetic_id" value="{{ preview.cosmetic.pk }}"><input type="hidden" name="reason" value="{{ preview.reason }}"><button class="gestao-button" type="submit" name="action" value="edit">Alterar seleção ou motivo</button></form>
+    <a class="gestao-button" href="{{ person_url }}">Cancelar</a>
+  </div>
+</section>
+{% else %}
+{% if not target.is_active %}<p class="gestao-notice warning" role="status">Esta conta está inativa. A concessão está bloqueada.</p>{% endif %}
+<form class="gestao-filters" method="get" data-catalog-filters>
+  <input type="hidden" name="people_q" value="{{ request.GET.people_q }}"><input type="hidden" name="people_page" value="{{ request.GET.people_page }}">
+  <div class="gestao-field gestao-grow"><label for="{{ filter_form.q.id_for_label }}">{{ filter_form.q.label }}</label>{{ filter_form.q }}{{ filter_form.q.errors }}</div>
+  <div class="gestao-field"><label for="{{ filter_form.type.id_for_label }}">Tipo</label>{{ filter_form.type }}{{ filter_form.type.errors }}</div>
+  <button class="gestao-button" type="submit">Filtrar</button>
+</form>
+<form method="post" id="gestao-grant-form" data-grant-selection>
+  {% csrf_token %}
+  <fieldset class="gestao-section gestao-catalog-fieldset" id="results">
+    <legend><h2>Selecionar cosmético <span class="gestao-muted">({{ page_obj.paginator.count }})</span></h2></legend>
+    {% if selected_cosmetic and not selected_on_page %}
+    <label class="gestao-current-selection"><input type="radio" name="cosmetic_id" value="{{ selected_cosmetic.pk }}" checked><span>Seleção atual: <strong>{{ selected_cosmetic.nome }}</strong></span></label>
+    {% endif %}
+    {% if catalog_rows %}
+    <div class="gestao-catalog">
+      {% for row in catalog_rows %}
+      <label class="gestao-catalog-item{% if not row.cosmetic.ativo %} is-inactive{% endif %}">
+        <input type="radio" name="cosmetic_id" value="{{ row.cosmetic.pk }}"{% if row.selected %} checked{% endif %}{% if not row.cosmetic.ativo %} disabled{% endif %}>
+        <span class="gestao-thumbnail">{% if row.thumbnail_url %}<img src="{{ row.thumbnail_url }}" alt="" loading="lazy" decoding="async" width="56" height="56">{% else %}<img class="gestao-placeholder" src="{% static 'icons/lucide/image.svg' %}" alt="" loading="lazy" width="24" height="24">{% endif %}</span>
+        <span class="gestao-catalog-copy"><strong>{{ row.cosmetic.nome }}</strong><span class="gestao-subline">{{ row.cosmetic.get_tipo_display }} · {{ row.cosmetic.get_origem_display }}</span>{% if row.cosmetic.descricao %}<span class="gestao-subline">{{ row.cosmetic.descricao }}</span>{% endif %}{% if not row.cosmetic.ativo %}<span class="gestao-status warning">Inativo</span>{% endif %}</span>
+      </label>
+      {% endfor %}
+    </div>
+    {% else %}<p class="gestao-empty">Nenhum cosmético encontrado.</p>{% endif %}
+  </fieldset>
+  <section class="gestao-section" aria-labelledby="reason-title">
+    <div class="gestao-field"><h2 id="reason-title"><label for="{{ form.reason.id_for_label }}">{{ form.reason.label }}</label></h2>{{ form.reason }}</div>
+    <div class="gestao-actions"><button class="gestao-button gestao-primary" type="submit" name="action" value="preview"{% if not target.is_active %} disabled{% endif %}>Conferir concessão</button><a class="gestao-button" href="{{ person_url }}">Cancelar</a></div>
+  </section>
+</form>
+{% endif %}
+{% endblock %}

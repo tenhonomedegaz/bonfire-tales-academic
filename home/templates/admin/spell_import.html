@@ -1,0 +1,118 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/pages/spell_import.css' %}?v=4">
+<script defer src="{% static 'js/admin/spell_import_focus.js' %}?v=1"></script>
+{% endblock %}
+
+{% block content %}
+<div id="content-main" class="spell-import-shell">
+  {% if errors %}
+  <section class="spell-import-card">
+    <h2 id="spell-import-errors" tabindex="-1">Problemas encontrados</h2>
+    <ul class="messagelist">
+      {% for error in errors %}
+        <li class="warning">{{ error }}</li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {% if result %}
+  <section class="spell-import-card spell-import-result" role="status">
+    <h2 id="spell-import-result" tabindex="-1">Resultado do lote</h2>
+    <p>{{ result.created }} criadas, {{ result.updated }} atualizadas e {{ result.skipped }} ignoradas.</p>
+    <p>A importacao atualizou o cadastro de magias; publicacao de revisoes e uma etapa separada.</p>
+    <a class="button" href="{% url 'admin:home_tbmagia_changelist' %}">Ver magias no Admin</a>
+  </section>
+  {% endif %}
+
+  <section class="spell-import-card">
+    <h2>Arquivo Excel</h2>
+    <form method="post" enctype="multipart/form-data" class="spell-import-grid" novalidate>
+      {% csrf_token %}
+      {{ form.as_p }}
+      <div class="submit-row">
+        <input type="submit" value="Ler arquivo e revisar" class="default">
+        <a class="button cancel-link" href="{% url 'admin:home_tbmagia_changelist' %}">Cancelar</a>
+      </div>
+    </form>
+  </section>
+
+  {% if preview %}
+  <section class="spell-import-card">
+    <h2 id="spell-import-preview" tabindex="-1">Previa da importacao: {{ preview|length }} magias</h2>
+    <p class="help">Confira todos os campos antes de confirmar. Atualizar substitui os campos abaixo no cadastro; Ignorar mantem a magia existente.</p>
+    <div class="results">
+      <table class="spell-import-preview">
+        <thead>
+          <tr>
+            <th>Operacao</th>
+            <th>Nome</th>
+            <th>Nivel</th>
+            <th>Campos da planilha</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for magia in preview %}
+          <tr>
+            <td>{{ magia.import_action }}</td>
+            <td>{{ magia.nome }}</td>
+            <td>{{ magia.nivel_display }}</td>
+            <td>
+              <details class="spell-import-details">
+                <summary>Revisar campos de {{ magia.nome }}</summary>
+                <dl>
+                  <dt>Escola</dt><dd>{{ magia.escola|default:"-" }}</dd>
+                  <dt>Conjuracao</dt><dd>{{ magia.casting_time|default:"-" }}</dd>
+                  <dt>Ritual</dt><dd>{% if magia.ritual %}Sim{% else %}Nao{% endif %}</dd>
+                  <dt>Duracao</dt><dd>{{ magia.duracao|default:"-" }}</dd>
+                  <dt>Concentracao</dt><dd>{% if magia.concentracao %}Sim{% else %}Nao{% endif %}</dd>
+                  <dt>Alcance</dt><dd>{{ magia.alcance|default:"-" }}</dd>
+                  <dt>Componentes</dt><dd>{{ magia.componentes|default:"-" }}</dd>
+                  <dt>Classes</dt><dd>{{ magia.classes|default:"-" }}</dd>
+                  <dt>Tags geradas</dt><dd>{{ magia.tags_json|join:", "|default:"-" }}</dd>
+                  <dt>Descricao completa</dt><dd class="spell-import-long-text">{{ magia.descricao|default:"-" }}</dd>
+                  <dt>Em niveis superiores</dt><dd class="spell-import-long-text">{{ magia.em_niveis_superiores|default:"-" }}</dd>
+                </dl>
+              </details>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if payload and not errors %}<form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="confirmar" value="1">
+      <input type="hidden" name="payload" value="{{ payload|escape }}">
+      <div class="submit-row">
+        <input type="submit" class="default" value="Confirmar importacao">
+        <a class="button cancel-link" href="{% url 'admin:home_tbmagia_changelist' %}">Cancelar</a>
+      </div>
+    </form>{% endif %}
+  </section>
+  {% endif %}
+
+  <section class="spell-import-card">
+    <h2>Colunas aceitas</h2>
+    <p class="help">A primeira linha precisa conter cabecalhos na aba "Versao Final pra Import". A tabela final e PostgreSQL: <code>spells</code>.</p>
+    <ul class="spell-columns">
+      <li>Nome</li>
+      <li>Nivel/lvl: aceita 1-9 ou C para truque. C e salvo como 0.</li>
+      <li>Casting Time/cating time: aceita Acao, Reacao, Bonus, minutos etc.</li>
+      <li>Ritual: TRUE/FALSE ou Sim/Nao.</li>
+      <li>Duracao: se contiver Concentracao, salva Concentracao=true.</li>
+      <li>Escola</li>
+      <li>Alcance</li>
+      <li>Componentes</li>
+      <li>Classes ou classes (nome do bonfas)</li>
+      <li>Descricao</li>
+      <li>Em Niveis Superiores / higher lvls</li>
+    </ul>
+  </section>
+</div>
+{% endblock %}

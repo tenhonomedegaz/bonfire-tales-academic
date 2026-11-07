@@ -1,0 +1,100 @@
+/* Glossário: leitura contínua, índice consultável e identidade Bonfire. */
+body.bft-glossary{background:#0a0a0a;color:#f2eee8}
+.bft-glossary .bft-glossary-main{flex:1;width:100%;max-width:1320px;margin:0 auto;padding:24px 28px 56px;min-width:0}
+.bft-glossary .glo-page{font-family:'Open Sans',Arial,sans-serif;min-width:0}
+.bft-glossary .glo-hero{position:relative;display:flex;align-items:center;justify-content:space-between;min-height:190px;padding:25px 32px;overflow:hidden;border:1px solid #713039;border-top:2px solid #b31515;background:linear-gradient(105deg,#301318,#1a1114 62%,#101011)}
+.bft-glossary .glo-hero::after{content:'';position:absolute;right:-85px;top:-125px;width:430px;height:430px;pointer-events:none;background:url('../../brand/facets.svg') center/contain no-repeat;opacity:.23}
+.bft-glossary .glo-hero-copy{position:relative;z-index:1;max-width:750px}
+.bft-glossary .glo-eyebrow,.bft-glossary .glo-section-eyebrow{margin:0 0 6px;color:#f09670;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.bft-glossary .glo-hero h1{margin:0;color:#f4e9df;font:500 clamp(31px,3.4vw,44px)/1.1 'Frank Ruhl Libre',Georgia,serif;letter-spacing:-.02em}
+.bft-glossary .glo-intro{max-width:66ch;margin:11px 0 0;color:#cbbab5;font-size:14px;line-height:1.7}
+.bft-glossary .glo-hero-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.bft-glossary .glo-hero-meta span{display:inline-flex;padding:4px 9px;border:1px solid #71413e;background:#260f13;color:#ecc6b2;font-size:11px;line-height:1.4}
+.bft-glossary .glo-hero-symbol{position:relative;z-index:1;flex:0 0 115px;display:grid;place-items:center;margin-left:20px;color:#cf5b4d;opacity:.55}
+.bft-glossary .glo-hero-symbol svg{width:100px;height:100px;stroke:currentColor;stroke-width:1}
+.bft-glossary .glo-toolbar{position:sticky;top:var(--bft-header-height,72px);z-index:35;display:flex;align-items:end;justify-content:space-between;gap:22px;margin:0 0 25px;padding:14px 18px 15px;border:1px solid #623039;border-top:0;background:#171113f7;box-shadow:0 8px 20px #0006;backdrop-filter:blur(9px)}
+.bft-glossary .glo-search{flex:1;min-width:0;max-width:680px}
+.bft-glossary .glo-search label{display:block;margin:0 0 5px;color:#e6b59c;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
+.bft-glossary .glo-search-field{position:relative}
+.bft-glossary .glo-search-field svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:#d29072;stroke:currentColor;stroke-width:1.7;pointer-events:none}
+.bft-glossary .glo-search input{display:block;width:100%;min-height:42px;margin:0;padding:9px 12px 9px 41px;border:1px solid #7b3d40;border-radius:3px;background:#0c0b0c;color:#f2eee8;font:400 13px/1.5 'Open Sans',Arial,sans-serif;box-shadow:none;appearance:auto}
+.bft-glossary .glo-search input::placeholder{color:#a79a98;opacity:1}
+.bft-glossary .glo-search input:focus{outline:2px solid #ffad80;outline-offset:1px;border-color:#ff6a00}
+.bft-glossary .glo-result-count{flex:0 0 auto;margin:0 0 10px;color:#c6b4ac;font-size:12px;white-space:nowrap}
+.bft-glossary .glo-result-count span{color:#ffc39f;font-weight:700}
+.bft-glossary .glo-layout{display:grid;grid-template-columns:230px minmax(0,1fr);gap:30px;align-items:start;min-width:0}
+.bft-glossary .glo-sidebar{position:sticky;top:calc(var(--bft-header-height,72px) + 108px);min-width:0;max-height:calc(100dvh - var(--bft-header-height,72px) - 128px);border:1px solid #502a30;background:#121012;overflow:hidden}
+.bft-glossary .glo-sidebar:not(:has(a:not(.hidden))){display:none}
+.bft-glossary .glo-index-panel{min-width:0}
+.bft-glossary .glo-index-panel summary{display:flex;justify-content:space-between;gap:8px;padding:13px 15px;color:#efc7b4;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;list-style:none;border-bottom:1px solid #5b3034}
+.bft-glossary .glo-index-panel summary::-webkit-details-marker{display:none}
+.bft-glossary .glo-index-panel summary span{display:none}
+.bft-glossary .glo-index{max-height:calc(100dvh - var(--bft-header-height,72px) - 179px);overflow-y:auto;overscroll-behavior:contain;scrollbar-color:#74343d #121012;scrollbar-width:thin;padding:6px 9px 15px}
+.bft-glossary .glo-index-group:not(:has(a:not(.hidden))){display:none}
+.bft-glossary .glo-index-group+.glo-index-group{margin-top:13px;padding-top:11px;border-top:1px solid #45272c}
+.bft-glossary .glo-index-heading{display:flex;justify-content:space-between;gap:8px;margin:5px 6px 8px;color:#e3b4a0;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.bft-glossary .glo-index-heading span{color:#a8948d;letter-spacing:0}
+.bft-glossary .glo-index a{display:block;padding:7px 9px;border-left:2px solid transparent;color:#c6b7b0;font-size:12px;line-height:1.45;text-decoration:none;overflow-wrap:anywhere}
+.bft-glossary .glo-index a.hidden{display:none}
+.bft-glossary .glo-index a:hover,.bft-glossary .glo-index a[aria-current=location]{border-left-color:#ff6a00;background:#31171c;color:#fff0e5}
+.bft-glossary .glo-reading{min-width:0}
+.bft-glossary .glo-section+.glo-section{margin-top:43px}
+.bft-glossary .glo-section-head{display:flex;justify-content:space-between;align-items:end;gap:15px;margin:0 0 15px;padding:0 0 12px;border-bottom:1px solid #653038}
+.bft-glossary .glo-section-head h2{margin:0;color:#f2ded0;font:500 30px/1.2 'Frank Ruhl Libre',Georgia,serif}
+.bft-glossary .glo-section-total{padding-bottom:3px;color:#ae9d97;font-size:11px;white-space:nowrap}
+.bft-glossary .glo-section-intro{margin:0 0 19px;color:#bcb0aa;font-size:13px;line-height:1.7}
+.bft-glossary .glo-section-intro a{color:#ffaf87;text-decoration:underline;text-underline-offset:3px}
+.bft-glossary .glo-entry-list{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+.bft-glossary .glo-item{position:relative;min-width:0;padding:17px 20px 18px;border:1px solid #463038;border-left:2px solid #a84643;background:linear-gradient(110deg,#1b1417,#131113);overflow-wrap:anywhere;scroll-margin-top:112px}
+.bft-glossary .glo-item:target{border-color:#b7674e;border-left-color:#ff6a00;background:#26171a;box-shadow:inset 0 0 0 1px #a547362b}
+.bft-glossary .glo-item:focus{outline:none}
+.bft-glossary .glo-item-head{margin-bottom:10px}
+.bft-glossary .glo-item-labels{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:5px}
+.bft-glossary .glo-type{color:#f5a480;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase}
+.bft-glossary .glo-category{padding:2px 6px;border:1px solid #6a3436;color:#d7afa3;font-size:10px;line-height:1.25}
+.bft-glossary .glo-item h3{display:flex;align-items:baseline;gap:7px;margin:0;color:#f3e5d9;font:500 23px/1.25 'Frank Ruhl Libre',Georgia,serif}
+.bft-glossary .glo-permalink{font:400 15px/1 'Open Sans',Arial,sans-serif;color:#ad7066;text-decoration:none;opacity:.6}
+.bft-glossary .glo-permalink:hover{color:#ffc09e;opacity:1}
+.bft-glossary .glo-translation{margin:3px 0 0;color:#bb9c94;font-size:11px;line-height:1.45}
+.bft-glossary .glo-definition{margin:0;color:#d2c7c2;font-size:14px;line-height:1.8;max-width:87ch}
+.bft-glossary .glo-definition p{margin:0 0 9px;color:inherit;font-size:inherit;line-height:inherit}
+.bft-glossary .glo-definition p:last-child{margin-bottom:0}
+.bft-glossary .glo-definition :is(h1,h2,h3,h4){color:#f2d5c3;font-size:16px;margin:13px 0 6px}
+.bft-glossary .glo-condition{border-left-color:#d37751;background:linear-gradient(110deg,#24171a,#161113)}
+.bft-glossary .glo-condition .glo-type{color:#ffb38a}
+.bft-glossary .glo-effects{display:grid;gap:0;margin-top:13px;border-top:1px solid #57383b}
+.bft-glossary .glo-effects p{margin:0;padding:9px 0;border-bottom:1px solid #483036;color:#cfc1bb;font-size:13px;line-height:1.7}
+.bft-glossary .glo-effects strong{color:#f0d0bc;font-weight:700}
+.bft-glossary .glo-more{display:inline-flex;align-items:center;gap:13px;margin-top:12px;color:#ffc09b;font-size:12px;font-weight:700;text-decoration:none}
+.bft-glossary .glo-more:hover{text-decoration:underline;text-underline-offset:3px}
+.bft-glossary .glo-empty{padding:24px;border:1px dashed #8d4745;background:#211518;color:#e7c5b2;font-size:14px;text-align:center;line-height:1.7}
+.bft-glossary .glo-page :is(a,summary):focus-visible{outline:2px solid #ffad80;outline-offset:3px}
+.bft-glossary .glo-page :is(.glo-item,.glo-section){min-width:0}
+@media(max-width:900px){
+  .bft-glossary .glo-layout{grid-template-columns:minmax(0,1fr);gap:0}
+  .bft-glossary .glo-sidebar{position:relative;top:auto;max-height:none;margin-bottom:19px;z-index:20;overflow:visible}
+  .bft-glossary .glo-index-panel summary{min-height:46px;align-items:center;cursor:pointer;font-size:12px}
+  .bft-glossary .glo-index-panel summary span{display:inline-block;color:#ee9b76;font-size:18px;line-height:1}
+  .bft-glossary .glo-index-panel[open] summary span{transform:rotate(180deg)}
+  .bft-glossary .glo-index{max-height:45dvh}
+  .bft-glossary .glo-item{scroll-margin-top:115px}
+}
+@media(max-width:600px){
+  .bft-glossary .bft-glossary-main{padding:14px 14px 40px}
+  .bft-glossary .glo-hero{min-height:0;padding:21px 19px}
+  .bft-glossary .glo-hero h1{font-size:32px}
+  .bft-glossary .glo-intro{font-size:13px}
+  .bft-glossary .glo-hero-symbol{position:absolute;right:2px;top:5px;margin:0;opacity:.12}
+  .bft-glossary .glo-hero-meta{gap:5px;margin-top:14px}
+  .bft-glossary .glo-hero-meta span{font-size:10px;padding:4px 6px}
+  .bft-glossary .glo-toolbar{display:block;margin-bottom:15px;padding:10px 11px 9px}
+  .bft-glossary .glo-search label{font-size:10px}
+  .bft-glossary .glo-search input{min-height:40px;font-size:13px}
+  .bft-glossary .glo-result-count{margin:6px 1px 0;font-size:11px}
+  .bft-glossary .glo-section-head h2{font-size:26px}
+  .bft-glossary .glo-item{padding:16px 16px 18px}
+  .bft-glossary .glo-item h3{font-size:22px}
+  .bft-glossary .glo-definition{font-size:14px}
+}
+@media(prefers-reduced-motion:reduce){.bft-glossary .glo-page *{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+@media print{.bft-glossary .glo-toolbar,.bft-glossary .glo-sidebar,.bft-glossary .glo-hero-symbol,.bft-glossary .glo-permalink{display:none!important}.bft-glossary .glo-layout{display:block}.bft-glossary .glo-item{break-inside:avoid}}

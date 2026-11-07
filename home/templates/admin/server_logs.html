@@ -1,0 +1,417 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .console-grid {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: minmax(340px, 0.8fr) minmax(420px, 1.2fr);
+        margin-top: 20px;
+    }
+
+    .console-panel {
+        background: #1e1e1e;
+        border: 1px solid #333;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .console-panel h2 {
+        border-bottom: 1px solid #333;
+        color: #f27007;
+        font-family: monospace;
+        margin: 0 0 14px;
+        padding-bottom: 10px;
+    }
+
+    .console-form-row {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+    .console-form-row select,
+    .console-form-row input,
+    .console-form-row textarea {
+        background: #0b0b0b;
+        border: 1px solid #444;
+        border-radius: 4px;
+        box-sizing: border-box;
+        color: #f5f5f5;
+        font-family: "Courier New", Courier, monospace;
+        padding: 10px;
+        width: 100%;
+    }
+
+    .console-command textarea {
+        min-height: 90px;
+        resize: vertical;
+    }
+
+    .console-env textarea {
+        min-height: 360px;
+        resize: vertical;
+    }
+
+    .console-output,
+    .log-content,
+    .history-output {
+        background: #000;
+        border: 1px solid #222;
+        border-radius: 4px;
+        color: #0f0;
+        font-family: "Courier New", Courier, monospace;
+        font-size: 13px;
+        line-height: 1.4;
+        overflow: auto;
+        padding: 14px;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    .console-output {
+        max-height: 420px;
+    }
+
+    .log-content {
+        height: 360px;
+    }
+
+    .history-list {
+        display: grid;
+        gap: 12px;
+        max-height: 760px;
+        overflow: auto;
+        padding-right: 4px;
+    }
+
+    .history-item {
+        background: #121212;
+        border: 1px solid #333;
+        border-radius: 6px;
+        padding: 12px;
+    }
+
+    .history-meta {
+        color: #bbb;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+
+    .history-command {
+        color: #fff;
+        font-family: "Courier New", Courier, monospace;
+        margin-bottom: 8px;
+    }
+
+    .history-output {
+        max-height: 180px;
+    }
+
+    .console-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 20px 0 0;
+    }
+
+    .console-tabs a,
+    .console-button {
+        background: #f27007;
+        border: none;
+        border-radius: 4px;
+        color: white !important;
+        cursor: pointer;
+        display: inline-block;
+        font-weight: 700;
+        padding: 9px 14px;
+        text-decoration: none;
+    }
+
+    .console-button.secondary {
+        background: #444;
+    }
+
+    .console-note {
+        color: #cfcfcf;
+        margin: 0 0 12px;
+    }
+
+    .auth-container {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        margin: 50px auto;
+        max-width: 400px;
+        padding: 30px;
+    }
+
+    .auth-container h2 {
+        color: #333;
+        margin-top: 0;
+    }
+
+    .auth-container p {
+        color: #555;
+    }
+
+    .auth-container input[type="password"] {
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+        margin: 15px 0;
+        padding: 10px;
+        width: 100%;
+    }
+
+    @media (max-width: 1100px) {
+        .console-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    body.theme-dark .auth-container {
+        background: #2b2b2b;
+    }
+
+    body.theme-dark .auth-container h2 {
+        color: #fff;
+    }
+
+    body.theme-dark .auth-container input[type="password"] {
+        background: #1e1e1e;
+        border-color: #444;
+        color: #fff;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    {% if request.user.is_superuser %}<p><a class="console-button secondary" href="{% url 'admin:catalog_export' %}">Exportar dados (Excel)</a></p>{% endif %}
+    {% if not is_authenticated %}
+    <div class="auth-container">
+        <h2>Autenticacao Segura</h2>
+        <p>Para visualizar logs, executar comandos e editar envs, informe a senha mestre.</p>
+        <p>A liberacao vale por 15 minutos (renovada a cada uso).</p>
+        <form method="post" autocomplete="off">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="authenticate">
+            <label for="server-password">Senha do servidor</label>
+            <input id="server-password" type="password" name="server_password" placeholder="Senha do Servidor" required autofocus autocomplete="new-password">
+            <button type="submit" class="console-button">Acessar Console</button>
+        </form>
+    </div>
+    {% else %}
+    <p class="console-note">
+        Console administrativo para executar comandos nas pastas do site e do bot, acompanhar logs e alterar os arquivos <code>.env</code>.
+        Alteracoes de env geralmente exigem reiniciar o processo afetado.
+    </p>
+
+    <div class="console-grid">
+        <section class="console-panel console-command">
+            <h2>Comando</h2>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="run_command">
+                <div class="console-form-row">
+                    <label for="target">Pasta</label>
+                    <select id="target" name="target">
+                        {% for key, target in targets.items %}
+                        <option value="{{ key }}" {% if key == selected_target %}selected{% endif %}>{{ target.label }} - {{ target.path }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="console-form-row">
+                    <label for="command">Comando</label>
+                    <textarea id="command" name="command" spellcheck="false" placeholder="Ex.: git status">{{ command_text }}</textarea>
+                </div>
+                <button type="submit" class="console-button">Executar</button>
+                <button type="submit" name="action" value="refresh" class="console-button secondary">Atualizar logs</button>
+            </form>
+
+            {% if command_result %}
+            <h2 style="margin-top:20px;">Resposta</h2>
+            <p class="console-note">
+                {{ command_result.target_label }} | codigo: {{ command_result.return_code }}
+            </p>
+            <div class="console-output">{{ command_result.output }}</div>
+            {% endif %}
+        </section>
+
+        <section class="console-panel">
+            <h2>Historico</h2>
+            <div class="history-list">
+                {% for item in history %}
+                <article class="history-item">
+                    <div class="history-meta">
+                        <span>{{ item.created_at }}</span>
+                        <span>{{ item.target_label }}</span>
+                        <span>codigo: {{ item.return_code }}</span>
+                    </div>
+                    <div class="history-command">$ {{ item.command }}</div>
+                    <div class="history-output">{{ item.output }}</div>
+                </article>
+                {% empty %}
+                <p class="console-note">Nenhum comando executado por aqui ainda.</p>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+
+    {% if op_result %}
+    <div class="console-grid">
+        <section class="console-panel">
+            <h2>{{ op_result.titulo }}</h2>
+            <div class="console-output">{{ op_result.output }}</div>
+        </section>
+    </div>
+    {% endif %}
+
+    <div class="console-grid">
+        <section class="console-panel">
+            <h2>Backup completo</h2>
+            <p class="console-note">Inclui TODAS as tabelas do site (catalogo + personagens/missoes/mercado) E o login (usuarios/grupos). Baixe ANTES de restaurar ou mesclar.</p>
+            <p><a class="console-button secondary" href="{% url 'admin:download_backup' %}">Baixar backup completo (.json)</a></p>
+
+            <h2 style="margin-top:24px;">Restaurar backup</h2>
+            <p class="console-note">Carrega um .json de backup completo (upsert por PK). <strong>Sobrescreve</strong> os dados existentes pelos do arquivo. NAO use para fixtures de conteudo do dev (restore_consolidado/conteudo.json) — para esses use o painel 'Merge de conteudo' ao lado.</p>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="restore_backup">
+                <div class="console-form-row"><label for="backup-file">Arquivo de backup</label><input id="backup-file" type="file" name="arquivo" accept=".json" required></div>
+                <div class="console-form-row"><label for="backup-confirm">Confirmação da restauração</label><input id="backup-confirm" type="text" name="confirmar" placeholder="Digite RESTAURAR para confirmar" autocomplete="off"></div>
+                <button type="submit" class="console-button">Restaurar backup</button>
+            </form>
+
+            <h2 style="margin-top:24px;">Restaurar geometria do mapa</h2>
+            <p class="console-note">Aceita apenas um patch de <code>home.tbterritorio</code> e atualiza somente <code>CoordenadasPoligono</code>. Usuarios, missoes, catalogo, lore e demais campos nao sao alterados.</p>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="restore_map_geometry">
+                <div class="console-form-row"><label for="map-file">Arquivo de geometria</label><input id="map-file" type="file" name="arquivo" accept=".json" required></div>
+                <div class="console-form-row"><label for="map-confirm">Confirmação da restauração do mapa</label><input id="map-confirm" type="text" name="confirmar" placeholder="Digite RESTAURAR MAPA para confirmar" autocomplete="off"></div>
+                <button type="submit" class="console-button">Restaurar geometria</button>
+            </form>
+        </section>
+
+        <section class="console-panel">
+            <h2>Merge de conteudo (dev &rarr; producao)</h2>
+            <h3>Fixture instalado no servidor</h3>
+            <p class="console-note">A previa compara o fixture instalado ao catalogo atual. A aplicacao exige backup PostgreSQL verificado, rejeita exclusoes e preserva usuarios e personagens.</p>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="catalog_preview">
+                <button type="submit" class="console-button secondary">Conferir previa do catalogo</button>
+            </form>
+            {% if catalog_preview %}
+            <p>Backup pronto: {{ catalog_preview.backup_ready|yesno:"sim,nao" }}; exclusoes pendentes: {{ catalog_preview.unsafe_deletions }}.</p>
+            <table>
+                <thead><tr><th>Modelo</th><th>Atual</th><th>Pacote</th><th>Novos</th><th>Alterados</th><th>Remocoes</th></tr></thead>
+                <tbody>
+                {% for name, diff in catalog_preview.models.items %}
+                    <tr><td>{{ name }}</td><td>{{ diff.current|default_if_none:"-" }}</td><td>{{ diff.incoming|default_if_none:"-" }}</td><td>{{ diff.new|default_if_none:"-" }}</td><td>{{ diff.changed_records|default_if_none:"-" }}</td><td>{{ diff.would_remove|default_if_none:"-" }}</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            {% if catalog_preview.backup_ready and not catalog_preview.unsafe_deletions %}
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="catalog_apply">
+                <button type="submit" class="console-button">Aplicar pacote conferido com backup</button>
+            </form>
+            {% endif %}
+            {% endif %}
+            {% if catalog_sync_result %}
+            <p>Backup: {{ catalog_sync_result.backup_file }}. Registros atualizados: {{ catalog_sync_result.updated }}; inseridos: {{ catalog_sync_result.inserted }}; substituidos: {{ catalog_sync_result.replaced }}. Memoria preservada: {{ catalog_sync_result.memory_preserved|yesno:"sim,nao" }}.</p>
+            {% endif %}
+            <h3>Upload manual de conteudo</h3>
+            <p class="console-note">Suba o <code>conteudo.json</code> gerado no dev (<code>manage.py dump_conteudo</code>). Sincroniza o catalogo por CHAVE NATURAL (slug/nome), <strong>preservando usuarios, personagens e missoes</strong> — o mesmo sync do deploy. Faca um backup completo antes.</p>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="merge_conteudo">
+                <input type="hidden" name="merge_stage" value="preview">
+                <div class="console-form-row"><label for="merge-preview-file">Arquivo de conteúdo para prévia</label><input id="merge-preview-file" type="file" name="arquivo" accept=".json" required></div>
+                <button type="submit" class="console-button secondary">Conferir previa do arquivo</button>
+            </form>
+            {% if manual_catalog_preview %}
+            <p>Backup pronto: {{ manual_catalog_preview.backup_ready|yesno:"sim,nao" }}; exclusoes pendentes: {{ manual_catalog_preview.unsafe_deletions }}.</p>
+            <table>
+                <thead><tr><th>Modelo</th><th>Atual</th><th>Pacote</th><th>Novos</th><th>Alterados</th><th>Remocoes</th></tr></thead>
+                <tbody>{% for name, diff in manual_catalog_preview.models.items %}
+                    <tr><td>{{ name }}</td><td>{{ diff.current|default_if_none:"-" }}</td><td>{{ diff.incoming|default_if_none:"-" }}</td><td>{{ diff.new|default_if_none:"-" }}</td><td>{{ diff.changed_records|default_if_none:"-" }}</td><td>{{ diff.would_remove|default_if_none:"-" }}</td></tr>
+                {% endfor %}</tbody>
+            </table>
+            {% if manual_catalog_preview.backup_ready and not manual_catalog_preview.unsafe_deletions %}
+            <p class="console-note">Selecione novamente o mesmo arquivo para confirmar. O servidor confere o hash e a versao do catalogo antes de aplicar.</p>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="merge_conteudo">
+                <input type="hidden" name="merge_stage" value="apply">
+                <div class="console-form-row"><label for="merge-apply-file">Arquivo de conteúdo conferido</label><input id="merge-apply-file" type="file" name="arquivo" accept=".json" required></div>
+                <button type="submit" class="console-button">Aplicar arquivo conferido com backup</button>
+            </form>
+            {% endif %}
+            {% endif %}
+            {% if manual_sync_result %}
+            <p>Backup: {{ manual_sync_result.backup_file }}. Memoria preservada: {{ manual_sync_result.memory_preserved|yesno:"sim,nao" }}.</p>
+            {% endif %}
+        </section>
+    </div>
+
+    <div class="console-grid">
+        <section class="console-panel">
+            <h2>Log do Site</h2>
+            <div class="log-content" id="site-log">{{ site_log }}</div>
+        </section>
+
+        <section class="console-panel">
+            <h2>Log do Bot</h2>
+            <div class="log-content" id="bot-log">{{ bot_log }}</div>
+        </section>
+    </div>
+
+    <div class="console-grid">
+        <section class="console-panel console-env">
+            <h2>.env do Site</h2>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save_env">
+                <input type="hidden" name="env_target" value="site">
+                <div class="console-form-row">
+                    <label for="site-env">Conteúdo do .env do site</label>
+                    <textarea id="site-env" name="env_content" spellcheck="false">{{ site_env_content }}</textarea>
+                </div>
+                <button type="submit" class="console-button">Salvar .env do site</button>
+            </form>
+        </section>
+
+        <section class="console-panel console-env">
+            <h2>.env do Bot</h2>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save_env">
+                <input type="hidden" name="env_target" value="bot">
+                <div class="console-form-row">
+                    <label for="bot-env">Conteúdo do .env do bot</label>
+                    <textarea id="bot-env" name="env_content" spellcheck="false">{{ bot_env_content }}</textarea>
+                </div>
+                <button type="submit" class="console-button">Salvar .env do bot</button>
+            </form>
+        </section>
+    </div>
+
+    <script>
+        for (const id of ['site-log', 'bot-log']) {
+            const element = document.getElementById(id);
+            if (element) element.scrollTop = element.scrollHeight;
+        }
+    </script>
+    {% endif %}
+</div>
+{% endblock %}

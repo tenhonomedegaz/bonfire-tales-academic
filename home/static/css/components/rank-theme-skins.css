@@ -1,0 +1,8 @@
+/* Each rank uses its own raster border, matching the supplied metal insignia. */
+.skin-rank-obsidiana{--lunar-edge:url('../../cosmetics/themes/rank-obsidiana-panel-metal-v1.webp');--lunar-accent:#b8b6d4;--lunar-secondary:#8c8ba4;--lunar-surface:#1b1c25;--lunar-deep:#11121a;--lunar-halo:#b8b6d41a}
+.skin-rank-ametista{--lunar-edge:url('../../cosmetics/themes/rank-ametista-panel-metal-v1.webp');--lunar-accent:#c9ace5;--lunar-secondary:#a47ec7;--lunar-surface:#211a2a;--lunar-deep:#15111d;--lunar-halo:#c9ace51a}
+.skin-rank-topazio{--lunar-edge:url('../../cosmetics/themes/rank-topazio-panel-metal-v1.webp');--lunar-accent:#e6c87e;--lunar-secondary:#b4964f;--lunar-surface:#242116;--lunar-deep:#17150f;--lunar-halo:#e6c87e1a}
+.skin-rank-esmeralda{--lunar-edge:url('../../cosmetics/themes/rank-esmeralda-panel-metal-v1.webp');--lunar-accent:#add4a9;--lunar-secondary:#79a787;--lunar-surface:#19241e;--lunar-deep:#101813;--lunar-halo:#add4a91a}
+.skin-rank-ambar{--lunar-edge:url('../../cosmetics/themes/rank-ambar-panel-metal-v1.webp');--lunar-accent:#e9ad74;--lunar-secondary:#c8824b;--lunar-surface:#291f19;--lunar-deep:#19130f;--lunar-halo:#e9ad741a}
+.skin-rank-rubi{--lunar-edge:url('../../cosmetics/themes/rank-rubi-panel-metal-v1.webp');--lunar-accent:#eaa2a8;--lunar-secondary:#be6978;--lunar-surface:#291b21;--lunar-deep:#1b1117;--lunar-halo:#eaa2a81a}
+.skin-rank-diamante{--lunar-edge:url('../../cosmetics/themes/rank-diamante-panel-metal-v1.webp');--lunar-accent:#c7dff5;--lunar-secondary:#91b6d6;--lunar-surface:#1a222c;--lunar-deep:#111720;--lunar-halo:#c7dff51a}

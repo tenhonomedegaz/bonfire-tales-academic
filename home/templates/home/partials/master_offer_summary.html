@@ -1,0 +1,9 @@
+{% if offer.paid %}<section class="mh-panel mc-offer" aria-labelledby="offer-title">
+<p class="mh-eyebrow">Mesa particular paga{% if offer.demonstration %} · preço ilustrativo{% endif %}</p><h2 id="offer-title">Sua contratação, sem surpresas</h2>
+<p class="mc-offer-price">R$ {{ offer.total|floatformat:2 }} <small>{{ offer.unit|lower }} · total da contratação</small></p>
+<dl class="mh-detail-facts"><div><dt>Preço de referência</dt><dd>R$ {{ offer.reference|floatformat:2 }} · {{ offer.model|lower }}</dd></div><div><dt>Sessões incluídas</dt><dd>{{ offer.sessions }} contratada{{ offer.sessions|pluralize:'s' }}{% if offer.courtesy %} + {{ offer.courtesy }} de cortesia{% endif %}</dd></div><div><dt>Comissão Bonfire</dt><dd>Zero. Tarifas do provedor serão informadas antes de ativar cobranças.</dd></div></dl>
+<h3>O que está incluído</h3><div class="mh-reading">{{ table.inclusoes|linebreaks }}</div><h3>Condições desta oferta</h3><div class="mh-reading">{{ table.condicoes|linebreaks }}</div>
+<p class="mh-footnote">Regras gerais: cancelamento do jogador com pelo menos 24 horas de antecedência prevê devolução conforme o regulamento aceito. Cancelamento ou falta do mestre prevê devolução, salvo remarcação acordada. Disputas bloqueiam o repasse. Cortesias não geram cobrança ou repasse adicional. Versão {{ offer.regulation }}.</p>
+<button class="mh-button" type="button" disabled>Contratação ainda não ativada</button><p class="mh-footnote">Você não será cobrado por esta demonstração. O fluxo financeiro depende da configuração e validação do responsável e do desenvolvedor.</p>
+</section>{% endif %}
+{% if offer.invalid %}<p class="mh-notice">Esta oferta paga está incompleta ou inconsistente. Revise preço, formato, sessões e condições antes de enviar para divulgação. Nenhuma contratação foi liberada.</p>{% endif %}

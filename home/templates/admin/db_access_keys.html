@@ -1,0 +1,120 @@
+{% extends "admin/base_site.html" %}
+{% block title %}Chaves de API | Bonfire{% endblock %}
+{% block content %}
+<style>
+  #key-form { display: grid; gap: 1rem; max-width: 48rem; margin: 1.5rem 0; }
+  #key-form .key-field { display: grid; gap: .35rem; }
+  #key-form input[type="text"] { box-sizing: border-box; width: 100%; max-width: 32rem; }
+  #key-form fieldset { display: flex; flex-wrap: wrap; gap: .75rem 1.5rem; padding: .75rem; }
+  #key-form fieldset label { white-space: nowrap; }
+  #key-form button { width: fit-content; min-width: 10rem; }
+  #secret-box pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .key-table-wrap { max-width: 100%; overflow-x: auto; }
+</style>
+<h1>Chaves de API</h1>
+<p>Somente superusers podem criar, rotacionar e revogar chaves. O segredo aparece uma vez após a operação.</p>
+<form id="key-form" autocomplete="off">
+  {% csrf_token %}
+  <label class="key-field">Nome <input id="key-name" type="text" maxlength="100" required></label>
+  <fieldset><legend>Escopos</legend>
+    <label><input id="key-read" type="checkbox" checked> Leitura</label>
+    <label><input id="key-write" type="checkbox"> Escrita</label>
+    <label><input id="key-publish" type="checkbox"> Publicação</label>
+  </fieldset>
+  <label class="key-field">Expiração (ISO 8601 com fuso, opcional)
+    <input id="key-expiry" type="text" placeholder="2026-12-31T23:59:00-03:00">
+  </label>
+  <button type="submit" class="button default">Criar chave</button>
+</form>
+<p id="key-message" role="status"></p>
+<div id="secret-box" hidden>
+  <strong>Copie agora. Este segredo não será mostrado novamente.</strong>
+  <pre id="new-secret"></pre>
+  <button id="hide-secret" type="button">Ocultar segredo</button>
+</div>
+<h2>Chaves cadastradas</h2>
+<div class="key-table-wrap"><table><thead><tr><th>Nome</th><th>Prefixo</th><th>Escopos</th><th>Expiração</th><th>Estado</th><th>Ações</th></tr></thead><tbody id="key-rows"></tbody></table></div>
+<script>
+(() => {
+  const endpoint = "{% url 'managed_api_keys' %}";
+  const csrf = document.querySelector('#key-form input[name=csrfmiddlewaretoken]').value;
+  const message = document.getElementById('key-message');
+  const secretBox = document.getElementById('secret-box');
+  const secretNode = document.getElementById('new-secret');
+  const rows = document.getElementById('key-rows');
+  function hideSecret() { secretNode.textContent = ''; secretBox.hidden = true; }
+  document.getElementById('hide-secret').addEventListener('click', hideSecret);
+  async function request(url, data) {
+    const options = data === undefined ? {} : {
+      method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+      body: JSON.stringify(data)
+    };
+    const response = await fetch(url, {credentials: 'same-origin', ...options});
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error?.message || 'Falha na operação.');
+    return result;
+  }
+  function showSecret(value) {
+    hideSecret();
+    secretNode.textContent = value;
+    secretBox.hidden = false;
+  }
+  function cell(row, value) {
+    const td = document.createElement('td');
+    td.textContent = value == null ? '—' : String(value);
+    row.appendChild(td);
+    return td;
+  }
+  async function refresh() {
+    const result = await request(endpoint);
+    rows.replaceChildren();
+    for (const key of result.items) {
+      const tr = document.createElement('tr');
+      cell(tr, key.name);
+      cell(tr, key.prefix);
+      cell(tr, key.scopes.join(', '));
+      cell(tr, key.expires_at || 'Sem expiração');
+      cell(tr, key.revoked_at ? 'Revogada' : 'Ativa');
+      const actions = document.createElement('td');
+      if (!key.revoked_at) {
+        for (const action of ['rotate', 'revoke']) {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.textContent = action === 'rotate' ? 'Rotacionar' : 'Revogar';
+          button.addEventListener('click', async () => {
+            if (!window.confirm(action === 'rotate' ? 'Rotacionar esta chave?' : 'Revogar esta chave?')) return;
+            try {
+              const result = await request(`${endpoint}${key.id}/${action}/`, {});
+              if (result.secret) showSecret(result.secret);
+              else hideSecret();
+              message.textContent = 'Operação concluída.';
+              await refresh();
+            } catch (error) { message.textContent = error.message; }
+          });
+          actions.appendChild(button);
+        }
+      }
+      tr.appendChild(actions);
+      rows.appendChild(tr);
+    }
+  }
+  document.getElementById('key-form').addEventListener('submit', async event => {
+    event.preventDefault();
+    const scopes = [];
+    if (document.getElementById('key-read').checked) scopes.push('read');
+    if (document.getElementById('key-write').checked) scopes.push('write');
+    if (document.getElementById('key-publish').checked) scopes.push('publish');
+    const expiry = document.getElementById('key-expiry').value.trim();
+    const body = {name: document.getElementById('key-name').value.trim(), scopes};
+    if (expiry) body.expires_at = expiry;
+    try {
+      const result = await request(endpoint, body);
+      showSecret(result.secret);
+      message.textContent = 'Chave criada.';
+      await refresh();
+    } catch (error) { message.textContent = error.message; }
+  });
+  refresh().catch(error => { message.textContent = error.message; });
+})();
+</script>
+{% endblock %}

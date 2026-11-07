@@ -1,0 +1,14 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<p>PK, inventarios e direitos serao preservados. Ofertas ativas bloqueiam o lote.</p>
+<p>Selecoes de destino preenchidas serao mantidas como conflitos; a origem voltara ao padrao.</p>
+<ul>{% for item in queryset %}<li>{{ item.slug }} ({{ item.get_tipo_display }})</li>{% endfor %}</ul>
+<form method="post">{% csrf_token %}
+  {{ form.as_p }}
+  {% for item in queryset %}<input type="hidden" name="{{ action_checkbox_name }}" value="{{ item.pk }}">{% endfor %}
+  <input type="hidden" name="action" value="reclassificar">
+  <input type="hidden" name="select_across" value="{{ select_across }}">
+  <input type="submit" name="apply" value="Confirmar reclassificacao">
+  <a href="{% url 'admin:home_tbcosmetico_changelist' %}">Cancelar</a>
+</form>
+{% endblock %}

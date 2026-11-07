@@ -1,0 +1,68 @@
+{% extends 'home/base.html' %}{% load static %}
+{% block body_class %}bft-slots{% endblock %}
+{% block main_class %}flex-1 w-full min-w-0{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/character-slots.css' %}?v=3"><link rel="stylesheet" href="{% static 'css/pages/character-archive-review.css' %}?v=1"><script src="{% static 'js/character-archive-review.js' %}?v=1" defer></script><script src="{% static 'js/character-slot-redemption-review.js' %}?v=1" defer></script>{% endblock %}
+{% block content %}
+<section class="bf-slots" aria-labelledby="slots-title">
+  <a class="bs-back" href="{% url 'personagens' %}">← Meus Personagens</a>
+  <header class="bs-heading"><div><p class="bs-eyebrow">Histórias que continuam</p><h1 id="slots-title">Meus slots de personagem</h1><p>Consulte a capacidade reconhecida pela sua conta e as fichas que você preserva.</p></div><div class="bs-capacity"><strong>{% if slot_details.ilimitado %}∞{% else %}{{ slot_limit }}{% endif %}</strong><span>fichas ativas permitidas</span></div></header>
+  {% for message in messages %}<p class="bs-notice{% if message.tags == 'error' %} is-error{% endif %}" role="{% if message.tags == 'error' %}alert{% else %}status{% endif %}">{{ message }}</p>{% endfor %}
+  <div class="bs-layout">
+    <div>
+      <section class="bs-panel" aria-labelledby="bs-rights-title">
+        <h2 id="bs-rights-title">De onde vêm seus slots</h2>
+        <ul class="bs-rights">
+          <li><span>Conta Bonfire</span><strong>{{ slot_details.base }} incluído</strong></li>
+          <li><span>Rank Esmeralda</span><strong>{% if slot_details.esmeralda %}+1 ativo{% elif esmeralda_review_pending %}Nível 13 em revisão{% else %}Não ativo{% endif %}</strong></li>
+          <li><span>Marcos de nível 13 por ficha</span><strong>{{ slot_details.slots_ficha_13 }} registrado{{ slot_details.slots_ficha_13|pluralize }}</strong></li>
+          <li><span>Colaboração ativa</span><strong>{% if slot_details.colaborador %}+1 temporário{% else %}Não ativa{% endif %}</strong></li>
+          <li><span>Compra vitalícia Mestre Ouro</span><strong>{% if slot_details.mestre_ouro %}+1 permanente{% elif slot_legacy_pending %}Histórico em revisão{% else %}Sem direito registrado{% endif %}</strong></li>
+        </ul>
+        <p class="bs-help">O direito vitalício já registrado continua valendo sem novo débito. Um novo resgate de 5.000 MM só debita seu saldo após confirmação. O primeiro slot de nível 13 coincide com o Esmeralda histórico; outros marcos novos de fichas distintas acrescentam slots.</p>
+        {% if esmeralda_review_pending %}<p class="bs-notice">Há progresso de nível 13 a conferir. Suas fichas continuam preservadas; este slot só entra no limite quando o direito for comprovado.</p>{% endif %}
+      </section>
+      <section class="bs-panel" aria-labelledby="bs-milestones-title">
+        <h2 id="bs-milestones-title">Benefícios de progressão definidos</h2>
+        <ul class="bs-rights">
+          <li><span>Nível 5</span><strong>1 token de quest</strong></li>
+          <li><span>Nível 9</span><strong>1 token de item raro</strong></li>
+          <li><span>Nível 13</span><strong>1 token de item muito raro e 1 slot</strong></li>
+        </ul>
+        <p class="bs-help">Para novos marcos, cada benefício é devido uma vez por ficha que atingir o nível. Os tokens pertencem à ficha original e servem para solicitar missões. A publicação da missão privada virá depois. Abrir esta página não concede direitos.</p>
+      </section>
+      <section class="bs-panel" aria-labelledby="bs-selection-title">
+        <h2 id="bs-selection-title">Suas fichas</h2>
+        <p class="bs-help">{{ retained_count }} fichas preservadas · {{ active_count }} ativas{% if not slot_details.ilimitado %} de {{ slot_limit }} permitidas{% endif %}.</p>
+        <ul class="bs-rights">
+          {% for character in characters %}
+          <li class="bs-character-row">
+            <span class="bs-character-info"><a href="{% url 'ficha_detail' character.pk %}">{{ character.nome }}</a><strong>Nível {{ character.nivel }} · {% if character.arquivado %}No cofre{% else %}Ativa{% endif %}</strong></span>
+            {% if character.arquivado %}
+              {% if slot_details.ilimitado or active_count < slot_limit %}
+              <form method="post" action="{% url 'personagem_restaurar' character.pk %}" data-character-archive-action="restore" data-character-name="{{ character.nome }}">{% csrf_token %}<button type="submit">Restaurar ficha</button></form>
+              {% else %}<span class="bs-character-limit">Arquive uma ficha ativa para liberar espaço.</span>{% endif %}
+            {% else %}
+              <form method="post" action="{% url 'personagem_arquivar' character.pk %}" data-character-archive-action="archive" data-character-name="{{ character.nome }}">{% csrf_token %}<button type="submit">Arquivar ficha</button></form>
+            {% endif %}
+          </li>
+          {% empty %}<li>Você ainda não possui personagens.</li>{% endfor %}
+        </ul>
+        <p class="bs-help">Arquivar retira a ficha da publicação e preserva seus dados. Ao confirmar uma ação, você volta para <a href="{% url 'personagens' %}">Meus Personagens</a>, onde pode continuar a gestão.</p>
+      </section>
+    </div>
+    <aside class="bs-panel bs-acquire" aria-labelledby="bs-acquire-title"><span class="bs-eyebrow">Direito vitalício</span><h2 id="bs-acquire-title">Mais um personagem.<br>Para sempre.</h2><p>O antigo Mestre Ouro concede um slot permanente. A compra é única e não é uma assinatura.</p><div class="bs-price"><strong>{{ slot_price_mm }} MM</strong><span>Seu saldo: {{ saldo_mm }} MM</span></div>
+      {% if slot_details.mestre_ouro %}<p class="bs-notice">Você já possui este direito permanente. Nenhuma nova compra é necessária.</p>
+      {% elif slot_legacy_pending %}<p class="bs-notice">Há histórico legado de Mestre Ouro a reconciliar. Sua compra fica suspensa para evitar um débito duplicado.</p>
+      {% elif slot_purchase_eligible %}<form method="post" action="{% url 'buy_character_slot' %}">{% csrf_token %}<button class="bs-button"{% if saldo_mm < slot_price_mm %} disabled{% endif %}>Confirmar resgate por 5.000 MM</button></form>{% if saldo_mm < slot_price_mm %}<p class="bs-help" role="status">Seu saldo ainda não cobre este resgate. Consulte suas MM e aventuras no <a href="{% url 'mestre_mercado' %}">Mercado de Mestre</a>.</p>{% else %}<p class="bs-help">O saldo é debitado somente após sua confirmação. Uma repetição do pedido não cria outro débito.</p>{% endif %}
+      {% else %}<p class="bs-notice">O resgate com MM exige acesso ao Mercado de Mestre.</p>{% endif %}
+      <p class="bs-help">Este resgate usa MM da sua conta; não inicia pagamento em reais.</p>
+    </aside>
+  </div>
+  {% include 'home/partials/character_archive_review.html' %}
+  {% if slot_purchase_eligible %}<dialog class="character-archive-review" data-slot-redemption-dialog aria-labelledby="slot-redemption-title" aria-describedby="slot-redemption-description">
+    <h2 id="slot-redemption-title">Revisar resgate permanente</h2>
+    <p id="slot-redemption-description">Sua conta receberá mais um slot ativo permanente por {{ slot_price_mm }} MM. Saldo exibido: {{ saldo_mm }} MM. Confira antes de enviar; o servidor validará novamente o saldo e o direito.</p>
+    <div class="character-archive-review-actions"><button type="button" data-slot-redemption-cancel>Voltar sem resgatar</button><button type="button" data-slot-redemption-confirm>Resgatar slot por {{ slot_price_mm }} MM</button></div>
+  </dialog>{% endif %}
+</section>
+{% endblock %}

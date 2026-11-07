@@ -1,0 +1,1052 @@
+# -*- coding: utf-8 -*-
+"""Regressão do LEVEL-UP em lote (endpoints JSON novos).
+
+Cobre a refatoração que extraiu os 8 handlers PRG do level-up em funções puras
+`_lvl_aplicar_*` e as expôs por dois endpoints JSON no padrão do criador:
+
+  - `personagem_levelup_aplicar`  — aplica um LOTE [{tipo, payload}] numa única
+     transação (ordem estável), ressincroniza uma vez e devolve {ok, ficha, pendencias}.
+  - `personagem_levelup_preview`  — aplica o mesmo lote em transação REVERTIDA e devolve
+     o derive previsto SEM persistir (padrão `criar_personagem_preview_view`).
+
+Reaproveita o `_CriadorBase` de test_criador.py (mesma fixture `conteudo.json` real).
+"""
+import json
+
+from django.urls import reverse
+from django.utils.html import conditional_escape, strip_tags
+
+from home import views
+from home.models import (
+    TbClasse, TbSubclasse, TbPersonagem, TbPersonagemClasse,
+    TbPersonagemAtributoBonus, TbPersonagemTalento,
+    TbMagia, TbPersonagemMagia, TbPersonagemEscolha, TbEssencia, TbRaca, TbTalento,
+)
+from home.test_criador import _CriadorBase
+
+
+class LevelUpLoteBase(_CriadorBase):
+    def _guerreiro_no_nivel(self, nivel, apelido='lvl'):
+        """Cria um Guerreiro N1 REAL (todas as escolhas de N1) e o promove ao `nivel`
+        pedido, com aventuras suficientes para o teto não travar o próximo nível."""
+        user = self._novo_usuario('%s-guerreiro-%d' % (apelido, nivel), staff=True)
+        resp = self._post_criar(user, self._payload('guerreiro'))
+        self.assertEqual(resp.status_code, 200, resp.content)
+        p = TbPersonagem.objects.get(pk=resp.json()['id'])
+        pc = p.classes.first()
+        pc.nivel = nivel
+        pc.save(update_fields=['nivel'])
+        p.nivel = nivel
+        p.aventuras = 500  # teto = 20 (min(nivel_por_aventuras, 20)); não trava a subida
+        p.save(update_fields=['nivel', 'aventuras'])
+        return p
+
+    def _promover(self, p, nivel):
+        """Sobe o nível da classe (e do personagem) sem resolver as escolhas intermediárias,
+        com aventuras de sobra para o teto não travar a próxima subida."""
+        pc = p.classes.first()
+        pc.nivel = nivel
+        pc.save(update_fields=['nivel'])
+        p.nivel = nivel
+        p.aventuras = 500
+        p.save(update_fields=['nivel', 'aventuras'])
+        return p
+
+    def _ek(self, nivel=7, apelido='ek', com_conhecida=True):
+        """Guerreiro REAL (criador N1) promovido a `nivel` e apontado para a subclasse
+        Cavaleiro Arcano — caster CONHECIDO (swap por inferência de `prepara:conhecidas`).
+        Com `com_conhecida`, materializa 1 magia na estante e devolve (p, pc, old, new):
+        `old` é a conhecida (candidata a sair), `new` uma da lista da classe ainda não sabida."""
+        p = self._guerreiro_no_nivel(nivel, apelido=apelido)
+        pc = p.classes.first()
+        sub = TbSubclasse.objects.get(id_classe=pc.id_classe, nome__icontains='Arcano')
+        pc.id_subclasse = sub
+        pc.save(update_fields=['id_subclasse'])
+        old = new = None
+        if com_conhecida:
+            pend = views._pendencias_magias(p)
+            self.assertTrue(pend and pend['swap_level_up'],
+                            'Cavaleiro Arcano deveria permitir troca ao subir de nível')
+            magias = [m['slug'] for m in pend['lista_magias']]
+            self.assertGreaterEqual(len(magias), 2, 'pool de magias insuficiente para a troca')
+            old, new = magias[0], magias[1]
+            mg = TbMagia.objects.get(slug=old)
+            TbPersonagemMagia.objects.create(
+                id_personagem=p, id_magia=mg, nivel=mg.nivel, nome=mg.nome,
+                preparada=True, origem=pc.id_classe.nome)
+        return p, pc, old, new
+
+    def _zerar_pendencias(self, p):
+        """Resolve as pendências abertas (o talento racial de marco N1 do anão é a sticky,
+        e o talento 'Artesão Primoroso' embute um pick:ferramenta:2 que também precisa ser
+        escolhido) para exercitar o caminho 'sem pendências'."""
+        from home import picks as _picks
+        for _ in range(6):
+            tr = views._pendencias_talento_racial(p)
+            if not tr:
+                break
+            for bloco in tr:
+                views._lvl_aplicar_talento_racial(
+                    p, {'nivel': bloco['nivel'], 'talento': bloco['opcoes'][0]['nome']})
+        # Demais escolhas pendentes (perícia/ferramenta/opção de qualquer origem — inclui a
+        # ferramenta embutida num talento racial já escolhido): resolve pelo registry genérico,
+        # pegando as primeiras opções livres de cada grupo. Grupo de DOIS NÍVEIS (universo com
+        # sub-opções, ex.: arma+maestria) fica de fora — um valor solto não completa o par,
+        # e é o mesmo corte que o painel do wizard faz.
+        for _ in range(8):
+            grupos = [g for g in _picks.resolve_personagem(p, kinds=views._OPCAO_PANEL_KINDS)
+                      if not views._grupo_em_dois_niveis(g) and g['pendentes'] >= 1]
+            if not grupos:
+                break
+            for g in grupos:
+                escolhidos = {str(e.get('valor')) for e in g['escolhidas']}
+                escolhidos |= {str(e.get('id_opcao')) for e in g['escolhidas']}
+                livres = [u for u in g['universo']
+                          if str(u['slug']) not in escolhidos
+                          and str(u.get('id')) not in escolhidos]
+                vals = [(str(u['id']) if u.get('id') is not None else u['slug'])
+                        for u in livres[:g['pendentes']]]
+                if vals:
+                    g['slot_base'] = g['prox_slot']
+                    _picks.registry_entry(g['kind'])['persist'](p, g, vals)
+        return p
+
+
+class LevelUpAplicarLoteTests(LevelUpLoteBase):
+    """O batch aplica subir-nível + escolhas num único POST JSON transacional."""
+
+    def test_talento_armadura_media_elegivel_no_wizard_persiste_e_prereq_invalido_reverte(self):
+        talento = TbTalento.objects.get(slug='maestria-em-armaduras-medias')
+        bloqueado = TbTalento.objects.get(slug='duelista-defensivo')
+        p = self._guerreiro_no_nivel(3, apelido='armadura-media-asi')
+        p.destreza = 10
+        p.save(update_fields=['destreza'])
+        pc = p.classes.first()
+        self.client.force_login(p.dono)
+        page = self.client.get(reverse('personagem_subir_nivel', args=[p.pk]))
+        self.assertEqual(page.status_code, 200)
+        options = {row['id']: row for row in page.context['talentos_normais']}
+        self.assertTrue(options[talento.pk]['elegivel'])
+        self.assertFalse(options[bloqueado.pk]['elegivel'])
+
+        actions = [{'tipo': 'subir_nivel', 'payload': {'classe': pc.id_classe_id}},
+                   {'tipo': 'asi', 'payload': {'modo': 'talento',
+                                             'talento': talento.pk,
+                                             'talento_attr': 'FOR'}}]
+        preview = self.client.post(
+            reverse('personagem_levelup_preview', args=[p.pk]),
+            data=json.dumps({'acoes': actions}), content_type='application/json')
+        self.assertEqual(preview.status_code, 200, preview.content)
+        self.assertTrue(preview.json()['ready'], preview.content)
+        self.assertFalse(preview.json()['erros'], preview.content)
+        self.assertFalse(TbPersonagemTalento.objects.filter(
+            id_personagem=p, id_talento=talento).exists())
+
+        applied = self.client.post(
+            reverse('personagem_levelup_aplicar', args=[p.pk]),
+            data=json.dumps({'acoes': actions}), content_type='application/json')
+        self.assertEqual(applied.status_code, 200, applied.content)
+        self.assertTrue(applied.json()['ok'])
+        p.refresh_from_db()
+        self.assertEqual(p.nivel, 4)
+        self.assertTrue(TbPersonagemTalento.objects.filter(
+            id_personagem=p, id_talento=talento, categoria='asi-nivel',
+            nivel=4, detalhes='asi_attr:FOR').exists())
+        self.assertTrue(TbPersonagemAtributoBonus.objects.filter(
+            id_personagem=p, origem_tipo='talento-asi', atributo='FOR', valor=1).exists())
+        reopened = self.client.get(reverse('personagem_subir_nivel', args=[p.pk]))
+        self.assertEqual(reopened.status_code, 200)
+        selected = next(row for row in reopened.context['talentos_normais']
+                        if row['id'] == talento.pk)
+        self.assertFalse(selected['elegivel'])
+        self.assertEqual(selected['estado'], 'Já escolhido')
+
+        invalid = self._guerreiro_no_nivel(3, apelido='duelista-rejeitado')
+        invalid.destreza = 10
+        invalid.save(update_fields=['destreza'])
+        invalid_pc = invalid.classes.first()
+        self.client.force_login(invalid.dono)
+        rejected = self.client.post(
+            reverse('personagem_levelup_aplicar', args=[invalid.pk]),
+            data=json.dumps({'acoes': [
+                {'tipo': 'subir_nivel', 'payload': {'classe': invalid_pc.id_classe_id}},
+                {'tipo': 'asi', 'payload': {'modo': 'talento',
+                                           'talento': bloqueado.pk,
+                                           'talento_attr': 'DES'}},
+            ]}), content_type='application/json')
+        self.assertEqual(rejected.status_code, 400, rejected.content)
+        invalid.refresh_from_db()
+        self.assertEqual(invalid.nivel, 3)
+        self.assertFalse(TbPersonagemTalento.objects.filter(
+            id_personagem=invalid, id_talento=bloqueado).exists())
+
+    def test_batch_subir_nivel_subclasse_e_asi_num_lote(self):
+        # Guerreiro N3 -> N4: o N4 libera o slot de ASI; a subclasse (N3) ainda está aberta.
+        p = self._guerreiro_no_nivel(3)
+        pc = p.classes.first()
+        sub = TbSubclasse.objects.filter(id_classe=pc.id_classe).order_by('id_subclasse').first()
+        self.assertIsNotNone(sub)
+        acoes = [
+            {'tipo': 'subir_nivel', 'payload': {'classe': pc.id_classe_id}},
+            {'tipo': 'subclasse', 'payload': {'subclasse': sub.id_subclasse}},
+            {'tipo': 'asi', 'payload': {'modo': 'atributos',
+                                        'asi_attr_1': 'FOR', 'asi_attr_2': 'FOR'}},
+        ]
+        self.client.force_login(p.dono)
+        resp = self.client.post(
+            reverse('personagem_levelup_aplicar', args=[p.pk]),
+            data=json.dumps({'acoes': acoes}), content_type='application/json')
+        self.assertEqual(resp.status_code, 200, resp.content)
+        body = resp.json()
+        self.assertTrue(body['ok'], body)
+
+        # persistiu de verdade: nível, subclasse e o +2 de FOR do ASI
+        p.refresh_from_db()
+        pc.refresh_from_db()
+        self.assertEqual(p.nivel, 4)
+        self.assertEqual(pc.id_subclasse_id, sub.id_subclasse)
+        self.assertTrue(TbPersonagemAtributoBonus.objects.filter(
+            id_personagem=p, origem_tipo='asi-classe', atributo='FOR', valor=2).exists())
+
+        # a resposta traz o derive atualizado (N4) e as pendências recalculadas
+        self.assertEqual(body['ficha']['nivel'], 4)
+        self.assertFalse(body['pendencias']['subclasse'])
+        self.assertEqual(body['pendencias']['asi_pendentes'], 0)
+
+    def test_batch_ordem_estavel_subir_antes_de_asi(self):
+        # Mesmo que o ASI venha ANTES do subir-nível no payload, a ordem estável aplica
+        # subir-nível primeiro — sem isso o slot de ASI (N4) não existiria e o ASI falharia.
+        p = self._guerreiro_no_nivel(3)
+        pc = p.classes.first()
+        acoes = [
+            {'tipo': 'asi', 'payload': {'modo': 'atributos',
+                                        'asi_attr_1': 'CON', 'asi_attr_2': 'DES'}},
+            {'tipo': 'subir_nivel', 'payload': {'classe': pc.id_classe_id}},
+        ]
+        self.client.force_login(p.dono)
+        resp = self.client.post(
+            reverse('personagem_levelup_aplicar', args=[p.pk]),
+            data=json.dumps({'acoes': acoes}), content_type='application/json')
+        self.assertEqual(resp.status_code, 200, resp.content)
+        self.assertTrue(resp.json()['ok'], resp.content)
+        p.refresh_from_db()
+        self.assertEqual(p.nivel, 4)
+        self.assertTrue(TbPersonagemAtributoBonus.objects.filter(
+            id_personagem=p, origem_tipo='asi-classe').exists())
+
+    def test_resposta_oferece_continuar_quando_ainda_ha_nivel_disponivel(self):
+        p = self._guerreiro_no_nivel(1, apelido='encadeado')
+        self._zerar_pendencias(p)
+        pc = p.classes.first()
+        self.client.force_login(p.dono)
+        resp = self.client.post(
+            reverse('personagem_levelup_aplicar', args=[p.pk]),
+            data=json.dumps({'acoes': [
+                {'tipo': 'subir_nivel', 'payload': {'classe': pc.id_classe_id}},
+            ]}),
+            content_type='application/json')
+        self.assertEqual(resp.status_code, 200, resp.content)
+        body = resp.json()
+        self.assertTrue(body['continuar'], body)
+        self.assertEqual(body['proximo_nivel'], 3)
+
+        proxima_etapa = self.client.get(
+            reverse('personagem_subir_nivel', args=[p.pk]),
+            {'classe': pc.id_classe_id},
+        )
+        self.assertEqual(proxima_etapa.status_code, 200)
+        self.assertContains(proxima_etapa, 'sn-leveljump')
+        self.assertContains(proxima_etapa, '>3<', html=False)
+
+    def test_batch_invalido_reverte_tudo(self):
+        # Um lote com uma ação inválida (subclasse inexistente) devolve 400 e NÃO grava
+        # NADA — nem o subir-nível que veio junto (transação atômica).
+        p = self._guerreiro_no_nivel(3)
+        pc = p.classes.first()
+        acoes = [
+            {'tipo': 'subir_nivel', 'payload': {'classe': pc.id_classe_id}},
+            {'tipo': 'subclasse', 'payload': {'subclasse': 999999}},
+        ]
+        self.client.force_login(p.dono)
+        resp = self.client.post(
+            reverse('personagem_levelup_aplicar', args=[p.pk]),
+            data=json.dumps({'acoes': acoes}), content_type='application/json')
+        self.assertEqual(resp.status_code, 400, resp.content)
+        self.assertFalse(resp.json().get('ok', True))
+        p.refresh_from_db()
+        self.assertEqual(p.nivel, 3)  # rollback: o subir-nível não sobreviveu
+
+    def test_teto_de_aventuras_intacto_no_batch(self):
+        # Gate de progressão NÃO afrouxa: com 0 aventuras (teto=1) o subir-nível é recusado.
+        p = self._guerreiro_no_nivel(1)
+        p.aventuras = 0
+        p.save(update_fields=['aventuras'])
+        pc = p.classes.first()
+        self.client.force_login(p.dono)
+        resp = self.client.post(
+            reverse('personagem_levelup_aplicar', args=[p.pk]),
+            data=json.dumps({'acoes': [
+                {'tipo': 'subir_nivel', 'payload': {'classe': pc.id_classe_id}}]}),
+            content_type='application/json')
+        self.assertEqual(resp.status_code, 400, resp.content)
+        self.assertTrue(any('aventuras' in e.lower() for e in resp.json()['erros']), resp.content)
+        p.refresh_from_db()
+        self.assertEqual(p.nivel, 1)
+
+    def test_permissao_de_terceiro_negada(self):
+        # Mesma permissão dos endpoints legados: quem não é dono/staff leva 404.
+        p = self._guerreiro_no_nivel(3)
+        outro = self._novo_usuario('intruso')  # não-staff, não-dono
+        self.client.force_login(outro)
+        resp = self.client.post(
+            reverse('personagem_levelup_aplicar', args=[p.pk]),
+            data=json.dumps({'acoes': []}), content_type='application/json')
+        self.assertEqual(resp.status_code, 404)
+
+
+class EditarFichaRenderTests(LevelUpLoteBase):
+    """O level-up saiu do editar_ficha para a página dedicada (personagem_subir_nivel GET).
+    Na onda C a própria editar_ficha virou PAINEL DA STAFF: o ponto de entrada do level-up
+    (e o do Mercado) passou a viver na FICHA, que é do jogador."""
+
+    def test_editar_sem_secao_de_levelup_com_link_pro_fluxo(self):
+        p = self._guerreiro_no_nivel(4)
+        self.client.force_login(p.dono)
+        resp = self.client.get(reverse('editar_ficha', args=[p.pk]))
+        self.assertEqual(resp.status_code, 200)
+        html = resp.content.decode('utf-8')
+        # a seção de level-up embutida (lote/prévia/pendências) foi REMOVIDA
+        for gone in ('id="lvl-actionbar"', 'id="lvl-preview"', 'data-lvl-queue="subir_nivel"',
+                     'data-lvl-card="asi"', 'js/levelup.js'):
+            self.assertNotIn(gone, html, gone)
+        # a loja também saiu (onda C) — compra/venda vivem no Mercado
+        self.assertNotIn(reverse('personagem_comprar_item', args=[p.pk]), html)
+        # e o LINK/BOTÃO destacado para a experiência dedicada está na ficha
+        ficha = self.client.get(reverse('ficha_detail', args=[p.pk])).content.decode('utf-8')
+        self.assertIn(reverse('personagem_subir_nivel', args=[p.pk]), ficha)
+
+    def test_editar_sem_form_legado_de_troca_de_magia(self):
+        # Caster CONHECIDO com magia na estante: ANTES o form legado de troca vivia aqui;
+        # agora a etapa é do wizard dedicado (o endpoint `personagem_trocar_magia` segue por compat).
+        p, pc, old, new = self._ek(apelido='editveto')
+        self.client.force_login(p.dono)
+        html = self.client.get(reverse('editar_ficha', args=[p.pk])).content.decode('utf-8')
+        self.assertNotIn(reverse('personagem_trocar_magia', args=[p.pk]), html)
+        self.assertNotIn('Trocar magia conhecida', html)
+        # e o wizard dedicado segue alcançável pela ficha
+        ficha = self.client.get(reverse('ficha_detail', args=[p.pk])).content.decode('utf-8')
+        self.assertIn(reverse('personagem_subir_nivel', args=[p.pk]), ficha)
+
+    def test_ficha_no_teto_mostra_proximo_nivel(self):
+        # Sem folga de aventuras e sem pendências: nenhum botão de subir, só o aviso discreto.
+        p = self._guerreiro_no_nivel(1)
+        self._zerar_pendencias(p)
+        p.aventuras = 0
+        p.save(update_fields=['aventuras'])
+        self.assertTrue(views._levelup_pendencias(p)['sem_pendencias'])
+        self.client.force_login(p.dono)
+        html = self.client.get(reverse('ficha_detail', args=[p.pk])).content.decode('utf-8')
+        self.assertIn('Próximo nível em', html)
+
+
+class SubirNivelPageTests(LevelUpLoteBase):
+    """A EXPERIÊNCIA DEDICADA de level-up (GET /subir-nivel/): gate de permissão, stepper +
+    prévia + confirmar, e os cartões de escolha derivados do NÍVEL-ALVO."""
+
+    def test_get_200_dono_e_staff_terceiro_404(self):
+        p = self._guerreiro_no_nivel(3)
+        url = reverse('personagem_subir_nivel', args=[p.pk])
+        # dono
+        self.client.force_login(p.dono)
+        self.assertEqual(self.client.get(url).status_code, 200)
+        # staff (não-dono)
+        staff = self._novo_usuario('staff-sn', staff=True)
+        self.client.force_login(staff)
+        self.assertEqual(self.client.get(url).status_code, 200)
+        # terceiro (não-dono, não-staff) -> 404
+        outro = self._novo_usuario('intruso-sn')
+        self.client.force_login(outro)
+        self.assertEqual(self.client.get(url).status_code, 404)
+
+    def test_conclui_pick_global_legado_sem_aventura_e_sem_subir_nivel(self):
+        """Regressão de produção: uma escolha de Essência aberta no N1 deve aparecer
+        mesmo com o wizard focado na classe e com zero aventuras. Confirmá-la apenas
+        completa o estado atual; não concede o N2."""
+        user = self._novo_usuario('aarly-pendencia')
+        clerigo = TbClasse.objects.get(slug='clerigo')
+        essencia = TbEssencia.objects.get(slug='draconica')
+        raca = TbRaca.objects.get(pk=33)
+        p = TbPersonagem.objects.create(
+            dono=user, nome='Aarly', nivel=1, aventuras=0,
+            id_raca=raca, id_essencia=essencia,
+            forca=8, destreza=14, constituicao=14,
+            inteligencia=10, sabedoria=15, carisma=10,
+        )
+        TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=clerigo, nivel=1, principal=True)
+        TbPersonagemEscolha.objects.create(
+            id_personagem=p, origem='Ordem Sagrada', tipo='ordem_sagrada',
+            slot=0, valor='taumaturgo')
+
+        globais = views._opcao_grupos(p, clerigo.id_classe)
+        alento = next(g for g in globais if g['slug'] == 'alento_elemental')
+        self.assertIsNone(alento['classe_id'])
+        self.assertEqual(alento['pendentes'], 1)
+        self.assertTrue(alento['disponiveis'])
+
+        self.client.force_login(user)
+        url = reverse('personagem_subir_nivel', args=[p.pk])
+        response = self.client.get(url, {'classe': clerigo.id_classe})
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context['pode_subir'])
+        self.assertFalse(response.context['sem_pendencias'])
+        self.assertContains(response, 'Concluir escolhas de nível')
+        self.assertContains(response, 'Alento Elemental')
+        self.assertNotContains(response, 'Ainda não é hora de subir')
+
+        opcao = alento['disponiveis'][0]
+        aplicar = self.client.post(
+            reverse('personagem_levelup_aplicar', args=[p.pk]),
+            data=json.dumps({'acoes': [{
+                'tipo': 'opcao',
+                'payload': {
+                    'classe': '',
+                    'slug': alento['slug'],
+                    'val': opcao['val'],
+                },
+            }]}),
+            content_type='application/json',
+        )
+        self.assertEqual(aplicar.status_code, 200, aplicar.content)
+        self.assertTrue(aplicar.json()['ok'])
+        self.assertEqual(aplicar.json()['pendencias']['opcoes_pendentes'], 0)
+        p.refresh_from_db()
+        self.assertEqual(p.nivel, 1)
+        self.assertEqual(p.aventuras, 0)
+        self.assertTrue(TbPersonagemEscolha.objects.filter(
+            id_personagem=p, tipo='alento_elemental').exists())
+
+    def test_pick_global_abre_magias_concedidas_e_wizard_conclui_em_dois_passos(self):
+        """Regressão do Rhogar: um talento global pode abrir outra escolha dependente.
+
+        O primeiro lote salva a Veste Lunar sem conceder nível; o wizard permanece aberto
+        e o segundo lote valida as duas magias contra o ``spell_selection`` da própria tag.
+        """
+        p = self._guerreiro_no_nivel(1, apelido='tres-luas')
+        p.aventuras = 0
+        p.save(update_fields=['aventuras'])
+        talento = TbTalento.objects.get(nome__icontains='Três Luas')
+        TbPersonagemTalento.objects.create(
+            id_personagem=p, id_talento=talento, categoria='origem', nivel=1,
+            nome=talento.nome,
+        )
+
+        # O truque independente já estava escolhido na ficha real; deixa somente a
+        # dependência da Veste Lunar para reproduzir o estado salvo em produção.
+        primeiro = views._criador_magias_pendentes(p)[0]
+        TbPersonagemEscolha.objects.create(
+            id_personagem=p, tipo='magia-concedida', origem=primeiro['fonte'],
+            slot=primeiro['slot'], valor=primeiro['opcoes'][0]['slug'],
+        )
+        views._sync_magias_concedidas(p)
+
+        classe_id = p.classes.first().id_classe_id
+        veste = next(g for g in views._opcao_grupos(p, classe_id)
+                     if g['slug'] == 'veste_lunar')
+        self.client.force_login(p.dono)
+        aplicar_veste = self.client.post(
+            reverse('personagem_levelup_aplicar', args=[p.pk]),
+            data=json.dumps({'acoes': [{
+                'tipo': 'opcao',
+                'payload': {'classe': '', 'slug': veste['slug'],
+                            'val': veste['disponiveis'][0]['val']},
+            }]}), content_type='application/json')
+        self.assertEqual(aplicar_veste.status_code, 200, aplicar_veste.content)
+        body = aplicar_veste.json()
+        self.assertTrue(body['continuar'])
+        self.assertTrue(body['continuar_pendencias'])
+        self.assertEqual(body['pendencias']['magias_concedidas_pend'], 2)
+        p.refresh_from_db()
+        self.assertEqual(p.nivel, 1)
+
+        pagina = self.client.get(reverse('personagem_subir_nivel', args=[p.pk]))
+        self.assertContains(pagina, 'data-lvl-card="magias_concedidas"')
+        bloco = pagina.context['magias_concedidas_pend'][0]
+        escolhidas = [row['slug'] for row in bloco['opcoes'][:2]]
+        aplicar_magias = self.client.post(
+            reverse('personagem_levelup_aplicar', args=[p.pk]),
+            data=json.dumps({'acoes': [{
+                'tipo': 'magias_concedidas',
+                'payload': {'fonte': bloco['fonte'], 'slot': bloco['slot'],
+                            'magias': escolhidas},
+            }]}), content_type='application/json')
+        self.assertEqual(aplicar_magias.status_code, 200, aplicar_magias.content)
+        self.assertEqual(aplicar_magias.json()['pendencias']['magias_concedidas_pend'], 0)
+        self.assertTrue(set(escolhidas).issubset(set(
+            p.magias.values_list('id_magia__slug', flat=True))))
+
+    def test_catalogo_mostra_talentos_bloqueados_e_servidor_os_recusa(self):
+        """Talentos com pré-requisito não somem: ficam visíveis e desabilitados.
+
+        A apresentação não enfraquece o gate do servidor.
+        """
+        p = self._guerreiro_no_nivel(3, apelido='talentos-bloqueados')
+        p.forca = 8
+        p.destreza = 8
+        p.aventuras = 500
+        p.save(update_fields=['forca', 'destreza', 'aventuras'])
+        self.client.force_login(p.dono)
+
+        pagina = self.client.get(reverse('personagem_subir_nivel', args=[p.pk]))
+        self.assertEqual(pagina.status_code, 200)
+        html = pagina.content.decode('utf-8')
+        relatados_pela_staff = (
+            'Mestre de Armas Versáteis',
+            'Mestre de Armas Duplas',
+            'Mestre de Armas de Haste',
+            'Mestre da Ambidestria',
+            'Investida',
+            'Luchador',
+            'Senhor da Guerra de Escamas',
+            'Sentinela',
+            'Adepto Marcial',
+            'Estigma Dracônico',
+            'Ritualista',
+            'Atleta',
+            'Observador',
+            'Curandeiro de Batalha',
+            'Mente Afiada',
+        )
+        for nome in relatados_pela_staff:
+            self.assertIn(nome, html)
+        marcas_avancadas = TbTalento.objects.filter(tipo__iexact='geral').filter(
+            nome__startswith='Marca Arcana Superior',
+        ).values_list('nome', flat=True)
+        marcas_avancadas = list(marcas_avancadas) + list(
+            TbTalento.objects.filter(
+                tipo__iexact='geral', nome='Marca Anômala Maior',
+            ).values_list('nome', flat=True)
+        )
+        self.assertGreater(len(marcas_avancadas), 1)
+        for nome in marcas_avancadas:
+            self.assertIn(nome, html)
+        self.assertIn('Pré-requisito não atendido', html)
+
+        bloqueado = TbTalento.objects.get(slug='mestre-de-armas-de-haste')
+        opcao = next(row for row in pagina.context['talentos_normais']
+                     if row['id'] == bloqueado.pk)
+        self.assertFalse(opcao['elegivel'])
+        self.assertEqual(opcao['estado'], 'Pré-requisito não atendido')
+
+        resposta = self.client.post(
+            reverse('personagem_levelup_aplicar', args=[p.pk]),
+            data=json.dumps({'acoes': [{
+                'tipo': 'asi',
+                'payload': {'modo': 'talento', 'talento': bloqueado.pk,
+                            'talento_attr': 'FOR'},
+            }]}), content_type='application/json')
+        self.assertEqual(resposta.status_code, 400)
+        self.assertFalse(TbPersonagemTalento.objects.filter(
+            id_personagem=p, id_talento=bloqueado).exists())
+
+    def test_linguista_exibe_requisito_de_nivel(self):
+        p = self._guerreiro_no_nivel(3, apelido='linguista-requisito')
+        p.aventuras = 500
+        p.save(update_fields=['aventuras'])
+        self.client.force_login(p.dono)
+        pagina = self.client.get(reverse('personagem_subir_nivel', args=[p.pk]))
+        linguista = next(row for row in pagina.context['talentos_normais']
+                         if row['nome'] == 'Linguista')
+        self.assertEqual(linguista['pre'], 'Nível 4+.')
+        self.assertTrue(
+            linguista['elegivel'],
+            'o requisito de nível deve considerar a prévia do N4, não o N3 persistido',
+        )
+        self.assertContains(pagina, 'Linguista (Nível 4+.)')
+
+    def test_prerequisitos_com_ou_aceitam_uma_alternativa(self):
+        p = self._guerreiro_no_nivel(3, apelido='talentos-ou')
+        p.forca = 13
+        p.destreza = 8
+        p.inteligencia = 13
+        p.sabedoria = 8
+        p.carisma = 8
+        p.aventuras = 500
+        p.save(update_fields=[
+            'forca', 'destreza', 'inteligencia', 'sabedoria', 'carisma', 'aventuras',
+        ])
+        self.client.force_login(p.dono)
+        pagina = self.client.get(reverse('personagem_subir_nivel', args=[p.pk]))
+        catalogo = {row['nome']: row for row in pagina.context['talentos_normais']}
+
+        self.assertTrue(catalogo['Mestre de Armas de Haste']['elegivel'])
+        self.assertTrue(catalogo['Ritualista']['elegivel'])
+        self.assertTrue(
+            catalogo['Senhor da Guerra de Escamas']['elegivel'],
+            'proficiência marcial satisfaz a alternativa sem exigir Porta-Estandarte',
+        )
+
+    def test_prerequisito_qualificado_exige_a_escolha_correta(self):
+        p = self._guerreiro_no_nivel(3, apelido='talentos-qualificados')
+        p.aventuras = 500
+        p.save(update_fields=['aventuras'])
+        iniciado = TbTalento.objects.get(slug='iniciado-no-juramento-das-tres-luas')
+        TbPersonagemTalento.objects.create(
+            id_personagem=p, id_talento=iniciado, categoria='origem', nivel=1,
+            nome=iniciado.nome,
+        )
+        self.client.force_login(p.dono)
+
+        def catalogo():
+            pagina = self.client.get(reverse('personagem_subir_nivel', args=[p.pk]))
+            return {row['nome']: row for row in pagina.context['talentos_normais']}
+
+        self.assertFalse(catalogo()['Adepto da Veste Negra']['elegivel'])
+        TbPersonagemEscolha.objects.create(
+            id_personagem=p, origem=iniciado.nome, tipo='veste_lunar', slot=0,
+            valor='lua_negra',
+        )
+        atualizado = catalogo()
+        self.assertTrue(atualizado['Adepto da Veste Negra']['elegivel'])
+        self.assertFalse(atualizado['Adepto da Veste Branca']['elegivel'])
+        self.assertFalse(atualizado['Adepto da Veste Vermelha']['elegivel'])
+
+    def test_mestre_de_escudo_exige_proficiencia_real(self):
+        p = self._guerreiro_no_nivel(3, apelido='talento-escudo')
+        p.aventuras = 500
+        p.save(update_fields=['aventuras'])
+        self.client.force_login(p.dono)
+        pagina = self.client.get(reverse('personagem_subir_nivel', args=[p.pk]))
+        mestre = next(row for row in pagina.context['talentos_normais']
+                      if row['nome'] == 'Mestre de Escudo')
+        self.assertEqual(mestre['pre'], 'Nível 4+, proficiência com Escudos.')
+        self.assertTrue(mestre['elegivel'])
+
+    def test_qualquer_marca_superior_exige_uma_marca_possuida(self):
+        p = self._guerreiro_no_nivel(3, apelido='talento-marca-potente')
+        p.aventuras = 500
+        p.save(update_fields=['aventuras'])
+        self.client.force_login(p.dono)
+
+        def marca_potente():
+            pagina = self.client.get(reverse('personagem_subir_nivel', args=[p.pk]))
+            return next(row for row in pagina.context['talentos_normais']
+                        if row['nome'] == 'Marca Potente')
+
+        self.assertFalse(marca_potente()['elegivel'])
+        superior = TbTalento.objects.get(nome='Marca Arcana Superior da Busca')
+        TbPersonagemTalento.objects.create(
+            id_personagem=p, id_talento=superior, categoria='geral', nivel=4,
+            nome=superior.nome,
+        )
+        self.assertTrue(marca_potente()['elegivel'])
+
+    def test_estrutura_da_pagina_e_alvo(self):
+        # Guerreiro N3 -> alvo N4: o N4 abre ASI (etapa) e o cabeçalho mostra 3 ➜ 4.
+        p = self._guerreiro_no_nivel(3)
+        self.client.force_login(p.dono)
+        html = self.client.get(reverse('personagem_subir_nivel', args=[p.pk])).content.decode('utf-8')
+        # esqueleto BG3: stepper + prévia ao vivo + confirmar/cancelar
+        for needle in ('id="sn-stepper"', 'id="sn-preview"', 'data-sn-confirm',
+                       'data-sn-next', 'data-sn-prev', 'data-prev-attrs',
+                       'data-step="ganhos"', 'data-step="revisar"'):
+            self.assertIn(needle, html, needle)
+        # escolha derivada do nível-ALVO (N4 = slot de ASI) aparece como etapa
+        self.assertIn('data-step="asi"', html)
+        self.assertIn('data-lvl-card="asi"', html)
+        # cabeçalho com o salto de nível 3 -> 4
+        self.assertIn('sn-leveljump', html)
+        self.assertIn('>4<', html)
+        # wiring dos endpoints em lote + assets
+        self.assertIn(reverse('personagem_levelup_aplicar', args=[p.pk]), html)
+        self.assertIn(reverse('personagem_levelup_preview', args=[p.pk]), html)
+        self.assertIn('js/subir_nivel.js', html)
+        self.assertIn('css/pages/subir_nivel.css', html)
+
+    def test_opcao_exibe_descricao_completa_e_enfileira_na_selecao(self):
+        u = self._novo_usuario('sn-opcao-direta')
+        classe = TbClasse.objects.get(slug='feiticeiro')
+        p = TbPersonagem.objects.create(
+            dono=u, nome='Feiticeiro das Opções', nivel=2, aventuras=500,
+            forca=8, destreza=14, constituicao=14,
+            inteligencia=10, sabedoria=12, carisma=16)
+        TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=classe, nivel=2, principal=True)
+        self.client.force_login(u)
+        response = self.client.get(
+            reverse('personagem_subir_nivel', args=[p.pk]))
+        html = response.content.decode('utf-8')
+        self.assertIn('data-lvl-auto-queue="opcao"', html)
+        self.assertIn('data-desc="', html)
+        self.assertNotIn('data-lvl-queue="opcao"', html)
+        opcao = next(
+            o
+            for grupo in response.context['opcao_grupos']
+            for o in grupo['disponiveis']
+            if o.get('descricao')
+        )
+        descricao_completa = str(conditional_escape(strip_tags(opcao['descricao'])))
+        self.assertIn(descricao_completa, html)
+
+    def test_escolhas_simples_nao_exigem_botao_escolher(self):
+        p = self._guerreiro_no_nivel(2, apelido='sn-direto')
+        self.client.force_login(p.dono)
+        html = self.client.get(
+            reverse('personagem_subir_nivel', args=[p.pk])).content.decode('utf-8')
+        self.assertIn('data-lvl-auto-queue="subclasse"', html)
+        self.assertNotIn('data-lvl-queue="subclasse"', html)
+
+    def test_asi_sem_botao_escolher_com_um_cartao_por_pendencia(self):
+        # Leva 4, item 7: o cartão de ASI perdeu o botão "Escolher" — a seleção nos
+        # controles já enfileira. Como a escolha passou a ser delimitada pelo CARTÃO,
+        # o passo rende um cartão por aprimoramento pendente (N3 -> N4 abre exatamente 1).
+        p = self._guerreiro_no_nivel(3, apelido='sn-asi-direto')
+        self.client.force_login(p.dono)
+        response = self.client.get(reverse('personagem_subir_nivel', args=[p.pk]))
+        html = response.content.decode('utf-8')
+        self.assertNotIn('data-lvl-queue="asi"', html)
+        self.assertNotIn('>Escolher</button>', html)
+        self.assertEqual(response.context['asi_slots'], [0])
+        self.assertEqual(html.count('data-lvl-card="asi"'), 1)
+        self.assertIn('data-lvl-card="asi" data-need="1" data-slot="0"', html)
+
+    def test_asi_multiplo_rende_um_cartao_por_slot_com_radios_independentes(self):
+        # Guerreiro N7 -> N8 acumula VÁRIOS ASI não aplicados: um cartão por slot, cada um
+        # com seu próprio grupo de rádios (senão marcar "talento" num vazaria nos outros).
+        p = self._guerreiro_no_nivel(7, apelido='sn-asi-multi')
+        self.client.force_login(p.dono)
+        response = self.client.get(reverse('personagem_subir_nivel', args=[p.pk]))
+        html = response.content.decode('utf-8')
+        pendentes = response.context['pend']['asi_pendentes']
+        self.assertGreater(pendentes, 1, 'cenário precisa de mais de um ASI pendente')
+        self.assertEqual(response.context['asi_slots'], list(range(pendentes)))
+        self.assertEqual(html.count('data-lvl-card="asi"'), pendentes)
+        for slot in range(pendentes):
+            self.assertIn('data-slot="%d"' % slot, html)
+            self.assertIn('name="lvl-asi-modo-%d"' % slot, html)
+        self.assertNotIn('data-lvl-queue="asi"', html)
+
+    def test_botao_aparece_quando_elegivel(self):
+        # Elegível (teto folgado): a ficha traz o botão destacado de subir de nível.
+        p = self._guerreiro_no_nivel(3)
+        self.client.force_login(p.dono)
+        html = self.client.get(reverse('ficha_detail', args=[p.pk])).content.decode('utf-8')
+        self.assertIn('data-levelup-btn', html)
+        self.assertIn(reverse('personagem_subir_nivel', args=[p.pk]), html)
+
+    def test_botao_some_no_teto(self):
+        # No teto e sem pendências: nada de botão; só o aviso "Próximo nível em X".
+        p = self._guerreiro_no_nivel(1)
+        self._zerar_pendencias(p)
+        p.aventuras = 0
+        p.save(update_fields=['aventuras'])
+        self.client.force_login(p.dono)
+        html = self.client.get(reverse('ficha_detail', args=[p.pk])).content.decode('utf-8')
+        self.assertNotIn('data-levelup-btn', html)
+        self.assertIn('banner-nextlvl', html)
+
+    def test_fluxo_completo_um_nivel_com_escolhas_em_lote(self):
+        # Abre a página (N3->N4), monta o lote como o front faria (subir + subclasse + ASI)
+        # e confirma num ÚNICO POST; o estado final bate.
+        p = self._guerreiro_no_nivel(3)
+        pc = p.classes.first()
+        sub = TbSubclasse.objects.filter(id_classe=pc.id_classe).order_by('id_subclasse').first()
+        self.client.force_login(p.dono)
+        self.assertEqual(self.client.get(reverse('personagem_subir_nivel', args=[p.pk])).status_code, 200)
+        acoes = [
+            {'tipo': 'subir_nivel', 'payload': {'classe': pc.id_classe_id}},
+            {'tipo': 'subclasse', 'payload': {'subclasse': sub.id_subclasse}},
+            {'tipo': 'asi', 'payload': {'modo': 'atributos', 'asi_attr_1': 'FOR', 'asi_attr_2': 'FOR'}},
+        ]
+        resp = self.client.post(
+            reverse('personagem_levelup_aplicar', args=[p.pk]),
+            data=json.dumps({'acoes': acoes}), content_type='application/json')
+        self.assertEqual(resp.status_code, 200, resp.content)
+        self.assertTrue(resp.json()['ok'], resp.content)
+        p.refresh_from_db(); pc.refresh_from_db()
+        self.assertEqual(p.nivel, 4)
+        self.assertEqual(pc.id_subclasse_id, sub.id_subclasse)
+        self.assertTrue(TbPersonagemAtributoBonus.objects.filter(
+            id_personagem=p, origem_tipo='asi-classe', atributo='FOR', valor=2).exists())
+
+    def test_multiclasse_exibe_e_aplica_subclasse_na_classe_escolhida(self):
+        user = self._novo_usuario('rhogar-subclasse', staff=True)
+        paladino = TbClasse.objects.get(slug='paladino')
+        feiticeiro = TbClasse.objects.get(slug='feiticeiro')
+        p = TbPersonagem.objects.create(
+            dono=user, nome='Caelyra Thar', nivel=8, aventuras=500,
+            forca=14, destreza=10, constituicao=14,
+            inteligencia=10, sabedoria=12, carisma=16)
+        pc_paladino = TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=paladino, nivel=6, principal=True)
+        pc_feiticeiro = TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=feiticeiro, nivel=2, principal=False)
+        sub = TbSubclasse.objects.filter(id_classe=feiticeiro).order_by(
+            'id_subclasse').first()
+        self.assertIsNotNone(sub)
+
+        self.client.force_login(user)
+        url = reverse('personagem_subir_nivel', args=[p.pk])
+        html = self.client.get(
+            url, {'classe': feiticeiro.id_classe}).content.decode('utf-8')
+        self.assertIn('data-step="subclasse"', html)
+        self.assertIn('value="%s"' % sub.id_subclasse, html)
+
+        resp = self.client.post(
+            reverse('personagem_levelup_aplicar', args=[p.pk]),
+            data=json.dumps({'acoes': [
+                {'tipo': 'subir_nivel',
+                 'payload': {'classe': feiticeiro.id_classe}},
+                {'tipo': 'subclasse',
+                 'payload': {'classe': feiticeiro.id_classe,
+                             'subclasse': sub.id_subclasse}},
+            ]}),
+            content_type='application/json')
+        self.assertEqual(resp.status_code, 200, resp.content)
+        pc_paladino.refresh_from_db()
+        pc_feiticeiro.refresh_from_db()
+        self.assertIsNone(pc_paladino.id_subclasse_id)
+        self.assertEqual(pc_feiticeiro.nivel, 3)
+        self.assertEqual(pc_feiticeiro.id_subclasse_id, sub.id_subclasse)
+
+    def test_magias_de_outra_classe_nao_preenchem_cota_do_feiticeiro(self):
+        user = self._novo_usuario('rhogar-magias', staff=True)
+        paladino = TbClasse.objects.get(slug='paladino')
+        feiticeiro = TbClasse.objects.get(slug='feiticeiro')
+        p = TbPersonagem.objects.create(
+            dono=user, nome='Caelyra Magias', nivel=8, aventuras=500,
+            forca=14, destreza=10, constituicao=14,
+            inteligencia=10, sabedoria=12, carisma=16)
+        TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=paladino, nivel=6, principal=True)
+        TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=feiticeiro, nivel=2, principal=False)
+        for magia in TbMagia.objects.order_by('nivel', 'id_magia')[:8]:
+            TbPersonagemMagia.objects.create(
+                id_personagem=p, id_magia=magia, nivel=magia.nivel,
+                nome=magia.nome, preparada=True, origem=paladino.nome)
+
+        pend = views._pendencias_magias(
+            p, classe_id=feiticeiro.id_classe)
+        self.assertIsNotNone(pend)
+        self.assertGreater(pend['cantrips_pend'], 0)
+        self.assertGreater(pend['known_pend'], 0)
+        repetida = pend['lista_truques'][0]
+        magia_repetida = TbMagia.objects.get(slug=repetida['slug'])
+        TbPersonagemMagia.objects.create(
+            id_personagem=p, id_magia=magia_repetida,
+            nivel=magia_repetida.nivel, nome=magia_repetida.nome,
+            preparada=True, origem=paladino.nome)
+        pend = views._pendencias_magias(
+            p, classe_id=feiticeiro.id_classe)
+        self.assertIn(
+            repetida['slug'],
+            {magia['slug'] for magia in pend['lista_truques']},
+            'a mesma magia em outra origem deve continuar disponível',
+        )
+
+        truques = [m['slug'] for m in pend['lista_truques']][
+            :pend['cantrips_pend']]
+        magias = [m['slug'] for m in pend['lista_magias']][
+            :pend['known_pend']]
+        erros = views._lvl_aplicar_aprender_magias(p, {
+            'classe': feiticeiro.id_classe,
+            'truques': truques,
+            'magias': magias,
+        })
+        self.assertEqual(erros, [])
+        aprendidas = p.magias.filter(origem=feiticeiro.nome)
+        self.assertEqual(aprendidas.filter(nivel=0).count(), len(truques))
+        self.assertEqual(aprendidas.filter(nivel__gte=1).count(), len(magias))
+
+    def test_multiclasse_exige_requisito_da_classe_atual_e_da_nova(self):
+        user = self._novo_usuario('multiclasse-dois-lados', staff=True)
+        paladino = TbClasse.objects.get(slug='paladino')
+        mago = TbClasse.objects.get(slug='mago')
+        p = TbPersonagem.objects.create(
+            dono=user, nome='Paladino sem requisito', nivel=1, aventuras=500,
+            forca=8, destreza=10, constituicao=12,
+            inteligencia=15, sabedoria=10, carisma=8)
+        TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=paladino, nivel=1, principal=True)
+
+        erros = views._lvl_aplicar_adicionar_classe(
+            p, {'classe': mago.id_classe})
+
+        self.assertTrue(any('requisito' in erro.lower() for erro in erros), erros)
+        self.assertFalse(p.classes.filter(id_classe=mago).exists())
+
+    def test_multiclasse_expoe_apenas_picks_do_bloco_multiclass_prof(self):
+        from home import picks
+        user = self._novo_usuario('multiclasse-picks', staff=True)
+        paladino = TbClasse.objects.get(slug='paladino')
+        artifice = TbClasse.objects.get(slug='artifice')
+        p = TbPersonagem.objects.create(
+            dono=user, nome='Artífice secundário', nivel=2, aventuras=500,
+            forca=13, destreza=10, constituicao=12,
+            inteligencia=15, sabedoria=10, carisma=13)
+        TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=paladino, nivel=1, principal=True)
+        TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=artifice, nivel=1, principal=False)
+
+        groups = [
+            group for group in picks.resolve_personagem(p)
+            if group['classe_id'] == artifice.id_classe
+        ]
+
+        self.assertEqual(
+            [(group['kind'], group['n']) for group in groups],
+            [('pericia', 1)],
+        )
+
+    def test_paineis_de_preparo_incluem_cada_classe_preparada(self):
+        from home.character_engine import derive
+        user = self._novo_usuario('multiclasse-preparo', staff=True)
+        druida = TbClasse.objects.get(slug='druida')
+        mago = TbClasse.objects.get(slug='mago')
+        p = TbPersonagem.objects.create(
+            dono=user, nome='Dois preparadores', nivel=10, aventuras=500,
+            forca=10, destreza=12, constituicao=14,
+            inteligencia=16, sabedoria=16, carisma=10)
+        TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=druida, nivel=5, principal=True)
+        TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=mago, nivel=5, principal=False)
+
+        infos = views._magias_preparadas_infos(p, derive(p))
+
+        self.assertEqual(
+            {info['classe'] for info in infos},
+            {druida.nome, mago.nome},
+        )
+
+
+class LevelUpPreviewTests(LevelUpLoteBase):
+    """O preview roda o mesmo lote numa transação revertida: mostra o resultado previsto
+    mas NÃO persiste nada."""
+
+    def test_preview_nao_persiste(self):
+        p = self._guerreiro_no_nivel(3)
+        pc = p.classes.first()
+        acoes = [
+            {'tipo': 'subir_nivel', 'payload': {'classe': pc.id_classe_id}},
+            {'tipo': 'asi', 'payload': {'modo': 'atributos',
+                                        'asi_attr_1': 'FOR', 'asi_attr_2': 'FOR'}},
+        ]
+        self.client.force_login(p.dono)
+        resp = self.client.post(
+            reverse('personagem_levelup_preview', args=[p.pk]),
+            data=json.dumps({'acoes': acoes}), content_type='application/json')
+        self.assertEqual(resp.status_code, 200, resp.content)
+        body = resp.json()
+        self.assertTrue(body['ok'] and body['ready'], body)
+
+        # a PRÉVIA já reflete o nível previsto (N4)...
+        self.assertEqual(body['preview']['nivel'], 4)
+        # ...mas o banco continua intacto (nada persistido pelo preview)
+        p.refresh_from_db()
+        self.assertEqual(p.nivel, 3)
+        self.assertFalse(TbPersonagemAtributoBonus.objects.filter(
+            id_personagem=p, origem_tipo='asi-classe').exists())
+        self.assertFalse(TbPersonagemTalento.objects.filter(
+            id_personagem=p, categoria='asi-nivel').exists())
+
+    def test_preview_bate_com_o_apply(self):
+        # O derive do preview é IDÊNTICO ao do apply do mesmo lote (mesma lógica pura).
+        acoes_de = lambda pc: [
+            {'tipo': 'subir_nivel', 'payload': {'classe': pc.id_classe_id}},
+            {'tipo': 'asi', 'payload': {'modo': 'atributos',
+                                        'asi_attr_1': 'FOR', 'asi_attr_2': 'FOR'}},
+        ]
+        # preview
+        pv = self._guerreiro_no_nivel(3, apelido='prev')
+        self.client.force_login(pv.dono)
+        rprev = self.client.post(
+            reverse('personagem_levelup_preview', args=[pv.pk]),
+            data=json.dumps({'acoes': acoes_de(pv.classes.first())}),
+            content_type='application/json')
+        prev = rprev.json()['preview']
+
+        # apply num personagem equivalente
+        ap = self._guerreiro_no_nivel(3, apelido='appl')
+        self.client.force_login(ap.dono)
+        rap = self.client.post(
+            reverse('personagem_levelup_aplicar', args=[ap.pk]),
+            data=json.dumps({'acoes': acoes_de(ap.classes.first())}),
+            content_type='application/json')
+        aplicado = rap.json()['ficha']
+
+        self.assertEqual(prev['nivel'], aplicado['nivel'])
+        self.assertEqual(prev['pv'], aplicado['pv'], 'PV diverge preview×apply')
+        self.assertEqual(prev['ca'], aplicado['ca'], 'CA diverge preview×apply')
+        by_sig_prev = {a['sig']: a for a in prev['atributos']}
+        by_sig_ap = {a['sig']: a for a in aplicado['atributos']}
+        for sig in by_sig_ap:
+            self.assertEqual(by_sig_prev[sig]['valor'], by_sig_ap[sig]['valor'], 'valor %s' % sig)
+
+
+class SubirNivelTrocaMagiaTests(LevelUpLoteBase):
+    """A ETAPA de trocar magia no wizard dedicado (queixa do Rhogar: a opção não aparecia ao
+    subir de nível). Só o caster CONHECIDO com magia na estante a vê; o PREPARADO (Mago) não;
+    quando a troca do nível já foi usada, o wizard mostra o aviso no lugar do seletor; e o
+    `trocar_magia` entra no LOTE junto do `subir_nivel` (o orquestrador aplica os dois)."""
+
+    def test_ek_elegivel_ve_o_passo_de_troca(self):
+        # Cavaleiro Arcano elegível: a etapa e o cartão de troca aparecem com os data-* do lote.
+        p, pc, old, new = self._ek()
+        self.client.force_login(p.dono)
+        html = self.client.get(reverse('personagem_subir_nivel', args=[p.pk])).content.decode('utf-8')
+        for needle in ('data-step="troca_magia"', 'data-lvl-card="trocar_magia"',
+                       'data-lvl-queue="trocar_magia"', 'data-lvl-field="remover"',
+                       'data-lvl-field="adicionar"', 'data-sn-skip'):
+            self.assertIn(needle, html, needle)
+        # swap disponível → é o SELETOR, não o aviso
+        self.assertNotIn('data-sn-swap-usada', html)
+        # a magia conhecida aparece como opção a desaprender
+        self.assertIn('value="%s"' % old, html)
+
+    def test_mago_preparado_nao_ve_o_passo(self):
+        # Mago (prepara:preparadas) NÃO troca ao subir — a etapa nem existe no wizard.
+        user = self._novo_usuario('mago-troca', staff=True)
+        resp = self._post_criar(user, self._payload('mago'))
+        self.assertEqual(resp.status_code, 200, resp.content)
+        p = TbPersonagem.objects.get(pk=resp.json()['id'])
+        self._promover(p, 7)
+        self.client.force_login(p.dono)
+        html = self.client.get(reverse('personagem_subir_nivel', args=[p.pk])).content.decode('utf-8')
+        self.assertNotIn('data-step="troca_magia"', html)
+        self.assertNotIn('data-lvl-card="trocar_magia"', html)
+
+    def test_swap_ja_usada_mostra_o_aviso(self):
+        # Troca já registrada no NÍVEL-ALVO (7->8 → nivel_total-alvo = 8): swap_disponivel=False.
+        # A seção existe (é caster conhecido), mas mostra o AVISO no lugar do seletor.
+        p, pc, old, new = self._ek(apelido='usada')
+        TbPersonagemEscolha.objects.create(
+            id_personagem=p, origem='swap', tipo='troca_magia', slot=8, valor='8')
+        self.client.force_login(p.dono)
+        html = self.client.get(reverse('personagem_subir_nivel', args=[p.pk])).content.decode('utf-8')
+        self.assertIn('data-step="troca_magia"', html)
+        self.assertIn('data-sn-swap-usada', html)
+        self.assertNotIn('data-lvl-card="trocar_magia"', html)
+
+    def test_lote_subir_nivel_e_trocar_magia_aplica_ambos(self):
+        # O front monta o lote [subir_nivel, trocar_magia]; o orquestrador sobe o nível PRIMEIRO
+        # (ordem estável) e então aplica a troca no nível novo — ambos persistem num POST só.
+        p, pc, old, new = self._ek(apelido='lote')
+        self.client.force_login(p.dono)
+        acoes = [
+            {'tipo': 'subir_nivel', 'payload': {'classe': pc.id_classe_id}},
+            {'tipo': 'trocar_magia', 'payload': {'remover': old, 'adicionar': new}},
+        ]
+        resp = self.client.post(
+            reverse('personagem_levelup_aplicar', args=[p.pk]),
+            data=json.dumps({'acoes': acoes}), content_type='application/json')
+        self.assertEqual(resp.status_code, 200, resp.content)
+        self.assertTrue(resp.json()['ok'], resp.content)
+        p.refresh_from_db()
+        self.assertEqual(p.nivel, 8)                                     # subiu de nível
+        self.assertFalse(p.magias.filter(id_magia__slug=old).exists())   # a antiga saiu
+        self.assertTrue(p.magias.filter(id_magia__slug=new).exists())    # a nova entrou
+        self.assertTrue(TbPersonagemEscolha.objects.filter(              # troca registrada no nível 8
+            id_personagem=p, tipo='troca_magia', valor='8').exists())

@@ -1,0 +1,53 @@
+{% comment %}BALCÃO do Mercado — o mesmo nas duas vitrines.
+
+Redesign master-detail: o balcão deixou de ser uma coluna lateral e virou a BARRA DO TOPO,
+porque a coluna da direita agora é do painel de destaque do item. Aqui ficam o PERSONAGEM
+ATIVO (seletor persistente: só personagens do usuário, escolha guardada em sessão), a
+CARTEIRA composta (PO/PP/PC) e o retorno das compras/vendas.
+
+Espera no contexto: mercado_logado, mercado_personagens, mercado_ativo, mercado_carteira,
+balcao_titulo.{% endcomment %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/components/market-character-picker.css' %}?v=1">
+<script src="{% static 'js/market-character-picker.js' %}?v=1" defer></script>
+<header class="mkt-bar" data-shop-counter>
+  <div class="mkt-bar-id">
+    <span class="mkt-bar-eyebrow">Balcão</span>
+    <h2 class="mkt-bar-title">{{ balcao_titulo|default:"Mercado" }}</h2>
+  </div>
+
+  {% if not mercado_logado %}
+    <p class="mkt-note"><a href="{% url 'login' %}">Entre na sua conta</a> para comprar e vender com seus personagens. A vitrine fica aberta para consulta.</p>
+  {% elif not mercado_personagens %}
+    <p class="mkt-note">Você ainda não tem personagens. <a href="{% url 'criacao_ficha' %}">Crie um</a> para abrir a bolsa no balcão.</p>
+  {% else %}
+    <form method="get" class="mkt-picker" data-shop-picker>
+      <div data-character-fallback><label for="shop-personagem">Personagem</label>
+      <select id="shop-personagem" name="personagem" data-shop-personagem>
+        {% for c in mercado_personagens %}
+          <option value="{{ c.id_personagem }}"{% if c.id_personagem == mercado_ativo.id_personagem %} selected{% endif %}>{{ c.nome }}</option>
+        {% endfor %}
+      </select>
+      </div>
+      <fieldset class="market-characters" data-market-characters hidden>
+        <legend>Personagem</legend>
+        {% for c in mercado_personagens %}
+        <label class="market-character">
+          <input type="radio" name="personagem" value="{{ c.id_personagem }}" data-market-character {% if c.id_personagem == mercado_ativo.id_personagem %}checked{% endif %} disabled>
+          {% if c.market_picker_avatar %}<img src="{{ c.market_picker_avatar }}" alt="" width="40" height="40" loading="lazy" decoding="async" data-market-payer-avatar>{% endif %}
+          <span data-market-character-label><strong>{{ c.nome }}</strong><small>{{ c.market_picker_wallet|default:'Consultar carteira' }}</small></span>
+        </label>
+        {% endfor %}
+      </fieldset>
+      <button type="submit" class="mkt-picker-go">Trocar</button>
+    </form>
+
+    <div class="mkt-wallet">
+      <span class="mkt-wallet-label">Carteira</span>
+      <strong class="mkt-wallet-value" data-shop-carteira>{{ mercado_carteira }}</strong>
+    </div>
+    {% if mundano_redesign and mercado_ativo %}<a class="market-sheet-link" data-market-sheet-link data-market-sheet-pattern="{% url 'ficha_detail' 0 %}" href="{% url 'ficha_detail' mercado_ativo.pk %}?aba=mochila">Ver mochila <span aria-hidden="true">↗</span></a>{% endif %}
+  {% endif %}
+
+  <p class="mkt-feedback" data-shop-feedback hidden aria-live="polite"></p>
+</header>

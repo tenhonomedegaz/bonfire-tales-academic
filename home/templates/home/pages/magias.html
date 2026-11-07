@@ -1,0 +1,48 @@
+{% extends 'home/base.html' %}
+{% load static %}
+{% block body_class %}bft-spells{% endblock %}
+{% block main_class %}flex-1 w-full bft-spells-main{% endblock %}
+{% block title %}Magias - Bonfire Tales RPG{% endblock %}
+{% block extra_head %}<script src="{% static 'js/magias.js' %}?v=8" defer></script>{% endblock %}
+{% block content %}
+<section class="spell-page" aria-labelledby="spellsTitle">
+{% include 'home/components/spell_school_symbols.html' %}
+<header class="spell-masthead"><div><nav class="spell-breadcrumb" aria-label="Localização"><a href="{% url 'home' %}">Bonfire Tales</a><span aria-hidden="true">/</span><span>Livro do jogador</span></nav><h1 id="spellsTitle">Magias</h1><p>Seu grimório, uma carta de cada vez. <span>Escolha uma magia na lista para consultar suas regras.</span></p></div><div class="spell-masthead-sigil" aria-hidden="true"><svg viewBox="0 0 120 120" fill="none"><circle cx="60" cy="60" r="51"/><circle cx="60" cy="60" r="40"/><path d="M60 4 108 88H12ZM60 116 12 32h96ZM9 60h102M60 9v102"/><path d="m60 39 7 14 14 7-14 7-7 14-7-14-14-7 14-7Z"/></svg></div></header>
+<div class="spell-workspace">
+  <button type="button" id="mgMobileMenuButton" class="spell-mobile-button" aria-controls="mgList" aria-expanded="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M3 6h1M3 12h1M3 18h1"/></svg>Escolher magia<span id="mgMobileFilterCount" hidden></span></button>
+  <button type="button" id="mgMobileBackdrop" class="spell-backdrop" aria-label="Fechar lista" aria-hidden="true" tabindex="-1" hidden></button>
+  <aside id="mgList" class="spell-sidebar" aria-labelledby="mgFilterTitle" tabindex="-1">
+    <header class="spell-sidebar-heading"><h2 id="mgFilterTitle">Magias</h2><span id="mgSidebarCount">{{ magias|length }}</span><button type="button" id="mgCloseFilters" aria-label="Fechar lista de magias" hidden>×</button></header>
+    <label for="mg-busca" class="sr-only">Buscar nome ou texto</label><div class="spell-search-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg><input id="mg-busca" type="search" placeholder="Buscar nome ou efeito…" autocomplete="off" disabled></div>
+    <details id="mgFilterDisclosure" class="spell-filter-disclosure">
+      <summary><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Filtros<span id="mgFilterCount" hidden></span></span><span class="spell-filter-chevron" aria-hidden="true">⌄</span></summary>
+      <div id="mgSearchBar" class="spell-filter-fields">
+        <div class="spell-filter-pair"><div><label for="mg-classe">Classe</label><select id="mg-classe" disabled><option value="">Todas</option>{% for classe in classes_magia %}<option value="{{ classe }}">{{ classe }}</option>{% endfor %}</select></div><div><label for="mg-nivel">Círculo</label><select id="mg-nivel" disabled><option value="">Todos</option>{% for n in niveis %}<option value="{{ n }}">{% if n == 0 %}Truque{% else %}{{ n }}º círculo{% endif %}</option>{% endfor %}</select></div></div>
+        <label for="mg-escola">Escola</label><select id="mg-escola" disabled><option value="">Todas as escolas</option>{% for e in escolas %}<option value="{{ e }}">{{ e }}</option>{% endfor %}</select>
+        <div class="spell-filter-checks"><label><input id="mg-conc" type="checkbox" disabled>Concentração</label><label><input id="mg-ritual" type="checkbox" disabled>Ritual</label></div>
+        <div class="spell-school-choices" aria-label="Filtrar por escola">{% for escola in escolas %}<button type="button" data-school="{{ escola|slugify }}" data-school-filter="{{ escola }}" aria-pressed="false" disabled><svg viewBox="0 0 40 40" aria-hidden="true" focusable="false"><use href="#spell-school-{{ escola|slugify }}"></use></svg>{{ escola }}</button>{% endfor %}</div>
+      </div>
+    </details>
+    <div class="spell-list-status"><span id="mgListHint">Por círculo e nome</span><button id="mg-clear-filters" type="button" hidden>Limpar filtros</button></div>
+    <nav id="mgResults" class="spell-name-list" aria-label="Lista de magias">{% for magia in magias %}<a href="?magia={{ magia.slug|urlencode }}" data-slug="{{ magia.slug }}" data-school="{{ magia.escola|slugify }}"{% if request.GET.magia == magia.slug %} aria-current="true"{% endif %}><span class="spell-name-marker" aria-hidden="true"></span><span class="spell-name-copy">{{ magia.nome }}</span><small title="{{ magia.nivel_label }}">{{ magia.nivel }}</small></a>{% empty %}<p class="spell-list-empty">Nenhuma magia cadastrada.</p>{% endfor %}</nav>
+    <button type="button" id="mgApplyMobile" class="spell-apply-mobile" hidden>Ver carta <span id="mgDrawerCount" class="sr-only">{{ magias|length }}</span></button>
+  </aside>
+
+  <section class="spell-library" aria-labelledby="mgDeckTitle">
+    <header class="spell-library-heading"><h2 id="mgDeckTitle" tabindex="-1">{% if request.GET.magia %}Carta selecionada{% else %}Carta-guia{% endif %}</h2><p class="spell-result-count" role="status" aria-live="polite"><strong id="mg-count">{{ magias|length }}</strong> <span id="mg-count-label">{{ magias|length|pluralize:'magia,magias' }}</span></p></header>
+    <p id="mg-active-filters" class="spell-active-filters" hidden></p><p id="mgLinkNotice" class="spell-link-notice" role="status" hidden></p>
+    <noscript><p class="spell-noscript">A busca e os filtros exigem JavaScript. Escolha um nome na lista para abrir a carta completa.</p></noscript>
+    <div id="mgDetail">
+      <nav class="spell-reader-nav" aria-label="Navegação das cartas"><a id="mgBackToDeck" href="{% url 'magias_listas' %}">Como ler a carta</a><div><button type="button" id="mgPreviousSpell" aria-label="Magia anterior" disabled>←</button><button type="button" id="mgNextSpell" aria-label="Próxima magia" disabled>→</button></div></nav>
+      <div id="mgCardMount">{% if request.GET.magia %}{% for magia in magias %}{% if magia.slug == request.GET.magia %}{% include 'home/partials/spell_card.html' with magia=magia only %}{% endif %}{% endfor %}{% else %}{% include 'home/partials/spell_card_guide.html' %}{% endif %}</div>
+    </div>
+  </section>
+</div>
+<template id="mgGuideTemplate">{% include 'home/partials/spell_card_guide.html' %}</template>
+</section>
+{{ magias|json_script:"mg-data" }}
+{{ classes_catalogo|json_script:"mg-classes" }}
+{{ escolas|json_script:"mg-schools" }}
+{{ spell_display|json_script:"mg-display" }}
+<script>var CAN_EDIT = {{ can_edit|yesno:"true,false" }};</script>
+{% endblock %}

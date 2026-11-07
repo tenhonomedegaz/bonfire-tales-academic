@@ -1,0 +1,43 @@
+{% extends 'home/gestao/shell.html' %}
+{% block gestao_content %}
+<header class="gestao-heading"><h1>{% if can_view_people %}Pessoas e recompensas{% else %}Conciliacao de historico{% endif %}</h1></header>
+{% if can_view_people %}
+<section class="gestao-section" aria-labelledby="people-search-title">
+  <h2 id="people-search-title">Localizar pessoa</h2>
+  <form class="gestao-filters" method="get" action="{% url 'gestao:people' %}">
+    <div class="gestao-field gestao-grow"><label for="{{ search_form.q.id_for_label }}">{% if can_view_email %}Usuário, nome, Discord ou e-mail{% else %}Usuário, nome ou Discord{% endif %}</label>{{ search_form.q }}</div>
+    <button class="gestao-button gestao-primary" type="submit">Buscar pessoa</button>
+    <a class="gestao-button" href="{% url 'gestao:people' %}">Ver pessoas</a>
+  </form>
+</section>
+{% endif %}
+{% if can_view_cosmetics %}
+<section class="gestao-section" aria-labelledby="recent-title">
+  <div class="gestao-section-heading"><h2 id="recent-title">Suas últimas concessões</h2></div>
+  {% if recent_receipts %}
+  <ul class="gestao-activity">
+    {% for receipt in recent_receipts %}
+    <li>
+      <div><a href="{% url 'gestao:person' receipt.user_id %}?tab=history">{{ receipt.user.get_full_name|default:receipt.user.username }}</a><span class="gestao-muted">@{{ receipt.user.username }}</span></div>
+      <span>{{ receipt.cosmetico.nome }}</span>
+      <span class="gestao-status {% if receipt.outcome == 'granted' %}success{% else %}muted{% endif %}">{% if receipt.outcome == 'granted' %}Concedido{% else %}Já possuía{% endif %}</span>
+      <time datetime="{{ receipt.criado_em|date:'c' }}">{{ receipt.criado_em|date:'d/m/Y H:i' }}</time>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}<p class="gestao-empty">Nenhuma concessão registrada por você.</p>{% endif %}
+</section>
+{% endif %}
+{% if user.is_superuser %}
+<section class="gestao-section" aria-labelledby="bot-history-title">
+  <h2 id="bot-history-title">Histórico de personagens</h2>
+  <a class="gestao-button" href="{% url 'gestao:character_logs' %}">Fichas do bot</a>
+</section>
+{% endif %}
+{% if can_review_history %}
+<section class="gestao-section" aria-labelledby="history-review-title">
+  <h2 id="history-review-title">Conciliacao de historico</h2>
+  <a class="gestao-button" href="{% url 'gestao:character_log_reviews' %}">Revisar registros de personagens</a>
+</section>
+{% endif %}
+{% endblock %}

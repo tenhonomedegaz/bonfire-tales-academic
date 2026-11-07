@@ -1,0 +1,1 @@
+{% load cosmetic_packages %}{% if rank.nome %}{% cosmetic_package 'moldura' rank.open_frame_key owner 'ficha' as earned_frame %}{% include 'home/partials/_cosmetic_preview.html' with layers=earned_frame.avatar slot='avatar' %}{% endif %}

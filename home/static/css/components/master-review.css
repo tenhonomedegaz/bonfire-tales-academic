@@ -1,0 +1,5 @@
+.bft-master-review-link{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;line-height:1.5}
+.bft-review-count{display:inline-flex;align-items:center;justify-content:center;min-width:24px;min-height:24px;padding:1px 6px;border-radius:4px;background:#ad252b;color:#fff;font:700 12px/1.5 'Open Sans',Arial,sans-serif;white-space:nowrap}
+.bft-review-notice{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px 16px;padding:10px 16px;background:#291518;border-bottom:1px solid #71353b;color:#f2ddd0;font-size:13px}
+.bft-review-notice a{color:#ffba92;text-decoration:underline;text-underline-offset:3px;min-height:28px}
+.bft-master-review-link:focus-visible,.bft-review-notice a:focus-visible{outline:2px solid #ffac81;outline-offset:3px}

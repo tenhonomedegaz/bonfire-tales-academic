@@ -1,0 +1,16 @@
+{% extends 'home/base.html' %}{% load static editorial_images %}
+{% block title %}{{ character.nome }} · Lenda de Cinéria · Bonfire Tales RPG{% endblock %}
+{% block main_class %}bf-legacy-main flex-1 w-full min-w-0{% endblock %}
+{% block content %}
+<article class="bf-legacy" aria-labelledby="legacy-name">
+  {% if legend_demo %}<p class="bf-legacy-note" role="status">Demonstração local · personagem e feitos fictícios. Nenhum título foi concedido.</p>{% endif %}
+  {% if preview %}<p class="bf-legacy-note" role="status">Prévia do dono. Esta página só fica pública enquanto a ficha estiver publicada e ativa.</p>{% endif %}
+  <a class="bf-legacy-back" href="{% url 'sistemas_missoes' %}#ranks">← Patentes e o título Lenda</a>
+  <header class="bf-legacy-hero">
+    <div class="bf-legacy-portrait">{% if character.foto_url|safe_profile_image %}<img src="{{ character.foto_url|safe_profile_image }}" alt="Retrato de {{ character.nome }}">{% else %}<span aria-hidden="true">{{ character.nome|first }}</span>{% endif %}</div>
+    <div><p class="bf-legacy-kicker">Memorial de Cinéria · Imortalização</p><span class="bf-legacy-seal">Lenda</span><h1 id="legacy-name">{{ character.nome }}</h1><p>{{ character.raca }}{% if character.classe %} · {{ character.classe }}{% endif %}</p><p class="bf-legacy-owner">Personagem de <a href="{% url 'public_profile' character.dono %}">@{{ character.dono }}</a></p>{% include 'home/partials/rank_badge.html' %}</div>
+  </header>
+  <div class="bf-legacy-layout"><section class="bf-legacy-story"><p class="bf-legacy-kicker">Uma história que permanece</p><h2>O legado</h2>{% if character.descricao %}{{ character.descricao|linebreaks }}{% else %}<p>A apresentação pública deste personagem ainda não foi escrita.</p>{% endif %}<p class="bf-legacy-note">Lenda é um título conquistado pela jornada do personagem, não um tema visual nem um cosmético à venda.</p><a class="bf-legacy-link" href="{% url 'ficha_publica' character.pk %}{% if preview %}?preview=1{% endif %}">Conhecer a ficha pública →</a></section>
+  <section class="bf-legacy-feats" aria-labelledby="legacy-feats"><p class="bf-legacy-kicker">Marcas deixadas no mundo</p><h2 id="legacy-feats">Feitos imortalizados</h2><ol>{% for feito in feitos %}<li><span class="bf-legacy-dot" aria-hidden="true"></span>{% if feito.data %}<time datetime="{{ feito.data|date:'Y-m-d' }}">{{ feito.data|date:'d/m/Y' }}</time>{% endif %}<h3>{{ feito.titulo }}</h3>{{ feito.descricao|linebreaks }}</li>{% empty %}<li class="bf-legacy-empty"><h3>A história merece ser registrada.</h3><p>Os feitos aparecerão aqui depois de registrados e publicados pela administração. Notas privadas e recompensas de aventuras não são publicadas automaticamente.</p></li>{% endfor %}</ol></section></div>
+</article>
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends 'home/gestao/shell.html' %}
+{% load static %}
+{% block gestao_content %}
+<nav class="gestao-breadcrumb" aria-label="Caminho"><a href="{{ people_url }}">Pessoas</a><span aria-hidden="true">/</span><span>{{ target.username }}</span></nav>
+<header class="gestao-heading">
+  <div class="gestao-identity"><h1>{{ target.get_full_name|default:target.username }}</h1><p class="gestao-muted">@{{ target.username }}{% if target.profile.discord_username %} · Discord: {{ target.profile.discord_username }}{% endif %}</p></div>
+  {% if can_grant_cosmetics %}<a class="gestao-button gestao-primary" href="{{ grant_url }}">Conceder cosmético</a>{% endif %}
+</header>
+<nav class="gestao-tabs" aria-label="Pessoa">
+  <a href="{{ person_url }}"{% if active_tab == 'overview' %} aria-current="page"{% endif %}>Resumo e cargos</a>
+  {% if can_view_cosmetics %}
+  <a href="{{ inventory_url }}"{% if active_tab == 'inventory' %} aria-current="page"{% endif %}>Cosméticos <span>{{ inventory_count }}</span></a>
+  <a href="{{ history_url }}"{% if active_tab == 'history' %} aria-current="page"{% endif %}>Histórico <span>{{ receipt_count }}</span></a>
+  {% endif %}
+</nav>
+{% if active_tab == 'overview' %}
+<section class="gestao-section" aria-labelledby="account-title">
+  <h2 id="account-title">Conta</h2>
+  <dl class="gestao-details">
+    <div><dt>Usuário</dt><dd>@{{ target.username }}</dd></div>
+    <div><dt>Estado</dt><dd><span class="gestao-status {% if target.is_active %}success{% else %}warning{% endif %}">{% if target.is_active %}Ativa{% else %}Inativa{% endif %}</span></dd></div>
+    <div><dt>Discord</dt><dd>{{ target.profile.discord_username|default:'Não vinculado' }}{% if target.profile.discord_user_id %}<span class="gestao-subline">{{ target.profile.discord_user_id }}</span>{% endif %}</dd></div>
+    <div><dt>E-mail confirmado</dt><dd>{{ target.profile.email_verified|yesno:'Sim,Não,Não' }}</dd></div>
+    {% if can_view_email %}<div><dt>E-mail</dt><dd>{{ target.email|default:'Não informado' }}</dd></div>{% endif %}
+    <div><dt>Conta criada</dt><dd>{{ target.date_joined|date:'d/m/Y H:i' }} <span class="gestao-muted">(Brasília)</span></dd></div>
+  </dl>
+</section>
+<section class="gestao-section" aria-labelledby="roles-title">
+  <h2 id="roles-title">Cargos</h2>
+  <div class="gestao-tags">
+    {% if target.is_superuser %}<span class="gestao-status admin">Administrador</span>{% endif %}
+    {% for group in target.groups.all %}<span class="gestao-status muted">{{ group.name }}</span>{% empty %}{% if not target.is_superuser %}<span class="gestao-muted">Sem cargo de equipe.</span>{% endif %}{% endfor %}
+  </div>
+</section>
+{% elif active_tab == 'inventory' %}
+<section class="gestao-section" id="results" aria-labelledby="inventory-title">
+  <div class="gestao-section-heading"><h2 id="inventory-title">Inventário e direitos</h2></div>
+  {% if inventory_rows %}
+  <div class="gestao-table-wrap"><table class="gestao-table gestao-inventory-table">
+    <thead><tr><th scope="col">Cosmético</th><th scope="col">Origem e comprovantes</th><th scope="col">Estado</th><th scope="col">No inventário desde</th></tr></thead>
+    <tbody>{% for row in inventory_rows %}
+    <tr>
+      <td data-label="Cosmético"><div class="gestao-item-identity"><span class="gestao-thumbnail">{% if row.thumbnail_url %}<img src="{{ row.thumbnail_url }}" alt="" loading="lazy" decoding="async" width="56" height="56">{% else %}<img class="gestao-placeholder" src="{% static 'icons/lucide/image.svg' %}" alt="" loading="lazy" width="24" height="24">{% endif %}</span><div><strong>{{ row.cosmetic.nome }}</strong><span class="gestao-subline">{{ row.cosmetic.get_tipo_display }}</span></div></div></td>
+      <td data-label="Origem"><ul class="gestao-sources">{% for source in row.sources %}<li>{{ source }}</li>{% endfor %}</ul></td>
+      <td data-label="Estado"><span class="gestao-status {{ row.tone }}">{{ row.status }}</span>{% if row.inventory_suspended_at %}<span class="gestao-subline">Linha de inventário suspensa em {{ row.inventory_suspended_at|date:'d/m/Y' }}</span>{% endif %}</td>
+      <td data-label="Data">{% if row.granted_at %}<time datetime="{{ row.granted_at|date:'c' }}">{{ row.granted_at|date:'d/m/Y H:i' }}</time>{% else %}<span class="gestao-muted">Sem linha de inventário</span>{% endif %}</td>
+    </tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {% else %}<p class="gestao-empty">Nenhum cosmético registrado neste inventário.</p>{% endif %}
+</section>
+{% elif active_tab == 'history' %}
+<section class="gestao-section" id="results" aria-labelledby="history-title">
+  <div class="gestao-section-heading"><h2 id="history-title">Recibos de concessão manual</h2><span class="gestao-muted">Horário de Brasília</span></div>
+  {% if page_obj.object_list %}
+  <ol class="gestao-receipts">
+    {% for receipt in page_obj %}
+    <li>
+      <div class="gestao-receipt-heading"><strong>{{ receipt.cosmetico.nome }}</strong><span class="gestao-status {% if receipt.outcome == 'granted' %}success{% else %}muted{% endif %}">{% if receipt.outcome == 'granted' %}Concedido{% else %}Já possuía · sem nova concessão{% endif %}</span><time datetime="{{ receipt.criado_em|date:'c' }}">{{ receipt.criado_em|date:'d/m/Y H:i' }}</time></div>
+      <p class="gestao-reason">{{ receipt.motivo }}</p>
+      <p class="gestao-muted">Por {{ receipt.actor.get_full_name|default:receipt.actor.username }}</p>
+      <details class="gestao-receipt-details"><summary>Identificador do recibo</summary><code>{{ receipt.request_id }}</code></details>
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}<p class="gestao-empty">Nenhuma concessão manual registrada.</p>{% endif %}
+</section>
+{% endif %}
+{% endblock %}

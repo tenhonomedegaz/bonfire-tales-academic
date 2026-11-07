@@ -1,0 +1,39 @@
+{% extends 'home/base.html' %}{% load static %}
+{% block title %}Cosméticos de evento · Bonfire Tales RPG{% endblock %}
+{% block body_class %}bft-commerce bft-cosmetic-shop{% endblock %}{% block main_class %}co-main flex-1 w-full min-w-0{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/commerce.css' %}?v=2"><link rel="stylesheet" href="{% static 'css/pages/cosmetic-shop.css' %}?v=1"><link rel="stylesheet" href="{% static 'css/components/event-payer.css' %}?v=1"><script src="{% static 'js/commerce.js' %}?v=3" defer></script>{% endblock %}
+{% block content %}
+{% include 'home/partials/commerce_nav.html' with section='events' %}
+<header class="co-hero"><div><p class="co-eyebrow">Ateliê de Cinéria</p><h1>Cosméticos de evento</h1><p>Resgates gratuitos ou por braseiros de um personagem seu.</p></div></header>
+{% if error %}<p role="alert" class="co-notice co-feedback-error">{{ error }}</p>{% endif %}
+{% if redemption %}<p role="status" class="co-notice co-feedback-success">{% if redemption.cost_braseiros %}{{ redemption.cosmetico.nome }} desbloqueado por {{ redemption.cost_braseiros }} braseiros de {{ redemption.character.nome }}. Saldo após o resgate: {{ redemption.balance_after }}.{% else %}{{ redemption.cosmetico.nome }} desbloqueado gratuitamente na sua conta.{% endif %}</p>{% endif %}
+{% if not characters and has_unowned_paid_offer %}<p class="co-notice">Para ofertas com custo, crie um personagem para usar seus braseiros. As ofertas gratuitas não exigem saldo.</p>{% endif %}
+<div class="co-store" data-co-store>
+  <aside class="co-filters" aria-label="Filtrar cosméticos de evento"><label for="co-search">Encontre sua lembrança</label><input id="co-search" type="search" placeholder="Buscar cosmético…" autocomplete="off" data-co-search><label for="co-kind">Tipo de cosmético</label><select id="co-kind" data-co-kind><option value="">Todos os tipos</option><option value="tema">Temas</option><option value="moldura">Molduras</option><option value="efeito">Efeitos</option><option value="titulo">Títulos</option><option value="badge">Insígnias</option><option value="banner_preset">Banners</option></select><button type="button" class="co-reset" data-co-reset>Limpar filtros</button><div class="co-filter-note"><strong>Braseiros do personagem</strong><p>O custo sai apenas do personagem selecionado. O cosmético é desbloqueado para sua conta.</p><a href="{% url 'cosmetic_checkout' %}{% if commerce_demo %}?demo=1{% endif %}">Ver ofertas em reais →</a></div></aside>
+  <section aria-labelledby="co-catalog-title"><div class="co-section-head co-catalog-head"><h2 id="co-catalog-title">Cosméticos de evento</h2><p data-co-count role="status" aria-live="polite">{{ cards|length }} oferta{{ cards|length|pluralize:'s' }}</p></div><div class="co-product-grid">
+  {% for card in cards %}<article class="co-product {% if card.owned %}co-owned{% endif %}" id="event-offer-{{ card.offer.pk }}" data-co-item data-kind="{{ card.offer.cosmetico.tipo }}" data-name="{{ card.offer.cosmetico.nome }}">
+    {% include 'home/partials/cosmetic_shop_preview.html' with cosmetic=card.offer.cosmetico preview=card.shop_preview badge_image=card.badge_image badge_glyph=card.badge_glyph %}
+    <div class="co-product-body"><p class="co-eyebrow">{{ card.offer.cosmetico.get_tipo_display }} · {{ card.offer.cosmetico.get_escopo_display }}</p><h3>{{ card.offer.cosmetico.nome }}</h3><p class="co-description">{{ card.offer.cosmetico.descricao|default:'Uma lembrança para acompanhar suas histórias.' }}</p>{% if not card.owned or 'Resgate de evento' in card.ownership_sources %}<p class="co-event-window">Evento {{ card.offer.event_key }}{% if card.offer.ends_at %} · até {{ card.offer.ends_at|date:'d/m/Y H:i' }}{% endif %}</p>{% endif %}<div class="co-product-price"><strong>{% if card.offer.cost_braseiros %}{{ card.offer.cost_braseiros }} braseiros{% else %}Grátis{% endif %}</strong><span>Resgate para a conta</span></div>
+    {% if card.owned %}<p class="co-owned-label">✓ Você já possui este cosmético.</p>{% if card.ownership_sources %}<p class="co-micro">Origem: {{ card.ownership_sources|join:', ' }}.</p>{% endif %}<a class="co-text-link" href="{% if card.offer.cosmetico.escopo == 'ficha' %}{% url 'personagens' %}{% elif card.offer.cosmetico.tipo == 'titulo' or card.offer.cosmetico.tipo == 'badge' %}{% url 'profile' %}#perfil-insignias{% else %}{% url 'profile' %}#perfil-aparencia{% endif %}">{% if card.offer.cosmetico.escopo == 'ficha' %}Escolher ficha{% else %}Personalizar perfil{% endif %} →</a>
+    {% elif not card.offer.cost_braseiros or card.eligible_characters %}
+    <form method="post" data-purchase-review data-product="{{ card.offer.cosmetico.nome }}" data-amount="{% if card.offer.cost_braseiros %}{{ card.offer.cost_braseiros }} braseiros{% else %}Grátis{% endif %}" data-mode="Resgate de evento" data-note="{% if card.offer.cost_braseiros %}O custo será descontado do personagem selecionado. {% endif %}O cosmético será desbloqueado para sua conta. Confira o custo antes de confirmar.">
+      {% csrf_token %}<input type="hidden" name="offer" value="{{ card.offer.pk }}"><input type="hidden" name="request_id" value="{{ card.request_id }}"><input type="hidden" name="quoted_cost" value="{{ card.offer.cost_braseiros }}">
+      {% if card.offer.cost_braseiros %}{% include 'home/includes/event_payer.html' with characters=card.eligible_characters offer_id=card.offer.pk %}{% endif %}
+      <button type="submit" class="co-btn">{% if card.offer.cost_braseiros %}Resgatar cosmético{% else %}Resgatar gratuitamente{% endif %}<span aria-hidden="true">→</span></button>
+    </form>{% elif characters %}<p class="co-insufficient">Nenhum personagem tem {{ card.offer.cost_braseiros }} braseiros para este resgate.</p>{% endif %}
+    </div>
+  </article>{% empty %}<div class="co-empty"><h3>Nenhuma oferta de evento disponível.</h3><p>Novas lembranças poderão aparecer aqui quando a equipe abrir um evento.</p><a class="co-btn co-btn-secondary" href="{% url 'cosmetic_checkout' %}{% if commerce_demo %}?demo=1{% endif %}">Ver loja de cosméticos</a></div>{% endfor %}
+  <div class="co-empty" data-co-empty hidden><h3>Nenhum cosmético encontrado</h3><p>Tente outro nome ou tipo.</p><button type="button" class="co-btn co-btn-secondary" data-co-reset>Limpar filtros</button></div>
+  </div></section>
+</div>
+{% include 'home/partials/commerce_review.html' %}
+<section class="co-page-section" aria-labelledby="event-redemption-history">
+  <h2 id="event-redemption-history">Meus resgates de evento</h2>
+  {% if redemption_history %}<ol class="co-history">
+    {% for claim in redemption_history %}<li><strong>{{ claim.cosmetico.nome }}</strong> · {{ claim.created_at|date:'d/m/Y H:i' }} · {% if claim.cost_braseiros %}{{ claim.cost_braseiros }} braseiros{% else %}Grátis{% endif %}{% if claim.character %} · {{ claim.character.nome }}{% endif %}</li>{% endfor %}
+  </ol>{% if redemption_history.has_other_pages %}<nav aria-label="Páginas dos resgates">
+    {% if redemption_history.has_previous %}<a class="co-text-link" href="?pagina={{ redemption_history.previous_page_number }}">Mais recentes</a>{% endif %}
+    {% if redemption_history.has_next %}<a class="co-text-link" href="?pagina={{ redemption_history.next_page_number }}">Mais antigos</a>{% endif %}
+  </nav>{% endif %}{% else %}<p>Você ainda não resgatou cosméticos de evento.</p>{% endif %}
+</section>
+{% endblock %}

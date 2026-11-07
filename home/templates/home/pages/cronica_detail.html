@@ -1,0 +1,170 @@
+{% extends 'home/base.html' %}
+{% load static %}
+{% block body_class %}bft-chronicles bft-chronicles-reader{% endblock %}
+{% block main_class %}flex-1 w-full min-w-0{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/cronica_detail.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/pages/chronicles-redesign.css' %}?v=1">
+<script defer src="{% static 'js/chronicle-reading.js' %}?v=2"></script>
+
+{% endblock %}
+
+{% block content %}
+<div class="chronicles-shell chronicles-reader-shell">
+{% include 'home/partials/chronicles_preview_notice.html' %}
+<nav class="chronicles-breadcrumb" aria-label="Caminho da crônica"><a href="{% url 'mundo_cronicas' %}">← Arquivo de Crônicas</a><span>Bonfire Tales RPG · Relatos de aventureiros</span></nav>
+<div class="cronica-hero">
+  {% if cronica.safe_image_url %}<img class="cronica-hero-cover" src="{{ cronica.safe_image_url }}" alt="">{% endif %}
+  <p class="chronicles-kicker">Crônicas de Cinéria{% if cronica.destaque_editorial %} · Destaque editorial{% endif %}</p>
+  <span class="cronica-eyebrow">{{ cronica.territorio_label }}{% if cronica.regiao_label %} &middot; {{ cronica.regiao_label }}{% endif %}</span>
+  <h1 class="cronica-title">{{ cronica.titulo }}</h1>
+  <div class="cronica-meta">
+    <span class="author">{{ cronica.autor.username }}</span>
+    {% if cronica.personagem_nome %}
+    <span>&middot;</span>
+    <span class="personagem">como {{ cronica.personagem_nome }}</span>
+    {% endif %}
+    <span>&middot;</span>
+    <span>{{ cronica.data_publicacao|default:cronica.data_submissao|date:"d \d\e F \d\e Y" }}</span>
+  </div>
+  {% if cronica.resumo %}<p class="chronicles-reader-summary">{{ cronica.resumo }}</p>{% endif %}
+</div>
+
+<div class="chronicles-reading-grid">
+<div class="cronica-layout">
+  {% if perms.home.change_tbcronica and cronica.status == 'aprovada' %}
+  <form method="post" action="{% url 'cronica_destaque' cronica.id_cronica %}">
+    {% csrf_token %}
+    <input type="hidden" name="destaque" value="{% if cronica.destaque_editorial %}false{% else %}true{% endif %}">
+    <button type="submit">{% if cronica.destaque_editorial %}Remover destaque editorial{% else %}Destacar editorialmente{% endif %}</button>
+  </form>
+  {% endif %}
+  {% if revisao_edicao.estado == 'pendente' %}
+  <div class="cronica-status-banner pendente">Uma edição desta crônica aguarda revisão. {% if cronica.status == 'oculta' %}A crônica continua oculta pela moderação.{% else %}O texto publicado permanece visível.{% endif %}</div>
+  {% elif revisao_edicao.estado == 'reprovada' %}
+  <div class="cronica-status-banner reprovada">A edição proposta foi devolvida para ajustes. {{ revisao_edicao.feedback }} <a href="{% url 'cronica_edit' slug=cronica.slug %}">Editar</a></div>
+  {% endif %}
+  {% if cronica.status == 'oculta' %}
+  <div class="cronica-status-banner reprovada" role="status">Esta crônica está oculta pela moderação.</div>
+  {% elif cronica.status == 'pendente' %}
+  <div class="cronica-status-banner pendente">
+    <h4>⏳ Aguardando Aprovação</h4>
+    <p>Esta crônica está em análise pela equipe de staff. Você será notificado quando ela for aprovada ou receberá feedback para ajustes.</p>
+  </div>
+  {% elif cronica.status == 'reprovada' %}
+  <div class="cronica-status-banner reprovada">
+    <h4>✗ Crônica Reprovada</h4>
+    {% if cronica.feedback_staff %}
+    <p><strong>Feedback:</strong> {{ cronica.feedback_staff }}</p>
+    {% else %}
+    <p>Esta crônica foi reprovada. Você pode editá-la e resubmeter.</p>
+    {% endif %}
+    <a href="{% url 'cronica_edit' slug=cronica.slug %}" style="color: var(--ember); font-weight: 700; font-size: .78rem; margin-top: .5rem; display: inline-block;">Editar e Resubmeter →</a>
+  </div>
+  {% endif %}
+
+  <div class="cronica-body">
+    <div class="bonfire-markdown" data-chronicle-source data-markdown-source data-markdown-options="false">{{ cronica.conteudo_markdown|escape }}</div>
+    <div class="chronicles-endmark" aria-hidden="true">◆</div>
+  </div>
+
+  {% if cronica.status == 'aprovada' %}
+  <div class="cronica-reactions">
+    {% if request.user.is_authenticated and request.user.pk != cronica.autor_id %}
+    <form id="cronica-like-form" action="{% url 'cronica_curtir' cronica.id_cronica %}" method="post">
+      {% csrf_token %}
+      <input type="hidden" name="curtido" value="{% if curtiu_cronica %}false{% else %}true{% endif %}">
+      <button type="submit" aria-pressed="{% if curtiu_cronica %}true{% else %}false{% endif %}">
+        <span id="cronica-like-label">{% if curtiu_cronica %}Descurtir{% else %}Curtir{% endif %}</span>
+      </button>
+    </form>
+    {% elif not request.user.is_authenticated %}
+    <a href="{% url 'login' %}?next={{ request.path|urlencode }}">Entre para curtir</a>
+    {% endif %}
+    <span id="cronica-like-count" aria-live="polite">{{ curtidas_count }} curtida{{ curtidas_count|pluralize }}</span>
+    <span id="cronica-like-error" role="alert" hidden></span>
+  </div>
+  <section class="cronica-comments" aria-labelledby="comments-heading">
+    <h2 id="comments-heading">Comentários</h2>
+    {% for comment in comentarios %}
+      {% include 'home/partials/_cronica_comment.html' with comment=comment %}
+      {% for reply in comment.thread_replies %}
+        <div class="cronica-comment-reply">{% include 'home/partials/_cronica_comment.html' with comment=reply %}</div>
+      {% endfor %}
+    {% empty %}
+      <p>Ainda não há comentários.</p>
+    {% endfor %}
+    {% if comentarios_page.has_other_pages %}
+    <nav class="cronica-comments-pages" aria-label="Páginas de comentários">
+      {% if comentarios_page.has_previous %}<a href="?comentarios_page={{ comentarios_page.previous_page_number }}#comments-heading">Mais recentes</a>{% endif %}
+      <span>Página {{ comentarios_page.number }} de {{ comentarios_page.paginator.num_pages }}</span>
+      {% if comentarios_page.has_next %}<a href="?comentarios_page={{ comentarios_page.next_page_number }}#comments-heading">Mais antigos</a>{% endif %}
+    </nav>
+    {% endif %}
+    {% if request.user.is_authenticated %}
+    <form method="post" action="{% url 'cronica_comentar' cronica.id_cronica %}">
+      {% csrf_token %}
+      <input type="hidden" name="chave_operacao" value="{{ comment_operation_key }}">
+      <label for="cronica-new-comment">Escrever comentário</label>
+      <textarea id="cronica-new-comment" name="texto" minlength="1" maxlength="2000" required></textarea>
+      <button type="submit">Publicar comentário</button>
+    </form>
+    {% if request.user.pk != cronica.autor_id %}<details class="cronica-report">
+      <summary>Denunciar crônica</summary>
+      <form method="post" action="{% url 'cronica_denunciar' cronica.id_cronica %}">
+        {% csrf_token %}
+        <label>Motivo <input name="motivo" minlength="3" maxlength="500" required></label>
+        <button type="submit">Enviar denúncia</button>
+      </form>
+    </details>{% endif %}
+    {% else %}
+    <a href="{% url 'login' %}?next={{ request.path|urlencode }}">Entre para comentar</a>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  <a href="{% url 'mundo_cronicas' %}" class="cronica-back">
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+    Voltar às Crônicas
+  </a>
+</div>
+<aside class="chronicles-reading-aside" aria-label="Apoio à leitura"><div class="chronicles-reading-time"><span class="chronicles-kicker">Tempo de leitura</span><p id="chroniclesReadingTime">Crônica</p></div><details class="chronicles-toc" id="chroniclesToc" hidden open><summary>Capítulos do relato <span aria-hidden="true">⌄</span></summary><nav id="chroniclesTocLinks" aria-label="Seções da crônica"></nav></details><div class="chronicles-world-links"><span class="chronicles-kicker">Explore o cenário</span><a href="{% url 'mundo_regioes' %}">Regiões e Territórios <span aria-hidden="true">→</span></a><a href="{% url 'mapa' %}">Mapa de Cinéria <span aria-hidden="true">↗</span></a></div></aside>
+</div>
+</div>
+<script>
+(() => {
+  const form = document.getElementById('cronica-like-form');
+  if (!form) return;
+  const button = form.querySelector('button');
+  const count = document.getElementById('cronica-like-count');
+  const label = document.getElementById('cronica-like-label');
+  const error = document.getElementById('cronica-like-error');
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    button.disabled = true;
+    error.hidden = true;
+    try {
+      const response = await fetch(form.action, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+        body: JSON.stringify({curtido: button.getAttribute('aria-pressed') !== 'true'}),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Não foi possível atualizar a curtida.');
+      button.setAttribute('aria-pressed', String(data.curtido));
+      label.textContent = data.curtido ? 'Descurtir' : 'Curtir';
+      count.textContent = `${data.curtidas} curtida${data.curtidas === 1 ? '' : 's'}`;
+    } catch (failure) {
+      error.textContent = failure.message || 'Não foi possível atualizar a curtida.';
+      error.hidden = false;
+    } finally {
+      button.disabled = false;
+    }
+  });
+})();
+</script>
+{% endblock %}

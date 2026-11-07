@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "slug": "moldura-elo-ametista-aberta",
+  "type": "moldura",
+  "scope": "ambos",
+  "layers": [
+    {
+      "slot": "avatar",
+      "file": "rank-ametista-open-base-v1.webp",
+      "fallback": "rank-ametista-open-base-v1.png",
+      "width": 512,
+      "height": 512,
+      "sprite": "full",
+      "motion": "none",
+      "aperture": {
+        "cx": 50.391,
+        "cy": 50,
+        "diameter": 54.688
+      }
+    }
+  ]
+}

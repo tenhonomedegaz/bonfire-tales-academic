@@ -1,0 +1,50 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block body_class %}bft-conditions{% endblock %}
+{% block main_class %}co-main{% endblock %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/pages/conditions.css' %}?v=1">{% endblock %}
+{% block content %}
+<section class="co-editor animate-fade-in">
+  <header class="mb-3 border-b border-[var(--stroke)] pb-2.5">
+    <a class="co-back" href="{% url 'mestre_condicoes' %}">← Condições</a>
+    <h1 class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">{% if editar %}Editar Condição{% else %}Nova Condição{% endif %}</h1>
+    <p class="mt-1 text-sm text-[var(--muted)]">Defina os sub-efeitos como <code>Título | texto</code> (um por linha).</p>
+  </header>
+  {% if conditions_local_preview %}<p class="co-local-note">Prévia visual do formulário. Nenhuma criação ou edição é salva no catálogo oficial.</p>{% endif %}
+  {% if request.GET.e == 'nome' %}<p class="mb-2.5 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-2.5 py-1.5 text-sm text-[var(--flame)]">Informe um nome.</p>{% endif %}
+
+  <form method="post" action="{% if editar %}{% url 'condicao_editar' condicao_id %}{% else %}{% url 'condicao_criar' %}{% endif %}" class="space-y-3">
+    {% csrf_token %}
+    <h2>Identificação</h2>
+    <div class="grid gap-2 sm:grid-cols-2">
+      <label class="text-xs text-[var(--muted)]">Nome
+        <input name="nome" required value="{{ pf.nome|default:'' }}" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]"></label>
+      <label class="text-xs text-[var(--muted)]">Nome (EN)
+        <input name="nome_en" value="{{ pf.nome_en|default:'' }}" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]"></label>
+      <label class="text-xs text-[var(--muted)]">Categoria
+        <select name="categoria" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]">
+          <option value="5e" {% if pf.categoria == '5e' or not pf %}selected{% endif %}>5e</option>
+          <option value="homebrew" {% if pf.categoria == 'homebrew' %}selected{% endif %}>homebrew</option></select></label>
+      <label class="text-xs text-[var(--muted)]">Ordem
+        <input name="ordem" type="number" value="{{ pf.ordem|default:0 }}" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]"></label>
+      <label class="text-xs text-[var(--muted)] sm:col-span-2">Slug (opcional)
+        <input name="slug" value="{{ pf.slug|default:'' }}" {% if editar %}readonly{% endif %} placeholder="auto a partir do nome" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)] {% if editar %}opacity-60{% endif %}"></label>
+    </div>
+
+    <h2>Texto de referência</h2>
+    <label class="block text-xs text-[var(--muted)]">Resumo
+      <input name="resumo" value="{{ pf.resumo|default:'' }}" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]"></label>
+    <label class="block text-xs text-[var(--muted)]">Definição / introdução
+      <textarea name="definicao" rows="4" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]">{{ pf.definicao|default:'' }}</textarea></label>
+    <h2>Efeitos da condição</h2>
+    <label class="block text-xs text-[var(--muted)]">Sub-efeitos <span class="text-[var(--muted)]">(um por linha — <code>Título | texto</code>)</span>
+      <textarea name="efeitos" rows="8" placeholder="Velocidade | Seu deslocamento é 0 e você não pode se beneficiar de bônus de deslocamento." class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]">{{ efeitos_texto|default:'' }}</textarea></label>
+
+    <div class="flex gap-1.5">
+      <button type="submit"{% if conditions_local_preview %} disabled{% endif %} class="co-button rounded bg-bonfire-gradient px-3 py-2 text-sm font-bold text-white hover:opacity-90">{% if editar %}Salvar alterações{% else %}Criar condição{% endif %}</button>
+      <a href="{% url 'mestre_condicoes' %}" class="rounded border border-[var(--stroke)] px-3 py-2 text-sm text-[var(--muted)] hover:text-[var(--text)]">Cancelar</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

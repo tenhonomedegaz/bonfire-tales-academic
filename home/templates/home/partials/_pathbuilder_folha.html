@@ -1,0 +1,46 @@
+{% comment %}PREVIA DO PATHBUILDER = A FICHA. Este arquivo nao tem markup proprio de folha:
+ele so embrulha os MESMOS partials da aba Ficha (_ficha_banner / _ficha_folha /
+_ficha_folha_defesas) com `folha_readonly=True` e `pode_editar=False`. Qualquer melhoria na
+folha real aparece aqui de graca; nenhum drift possivel.
+
+O fragmento e devolvido por `pathbuilder_preview` (render_to_string DENTRO da transacao
+marcada para rollback) e injetado no laboratorio. Marcadores para o JS/testes:
+`data-pb-folha`, e os proprios ganchos da ficha (`data-ficha-pv`, `data-ficha-ca`,
+`.attr-stack`, `.feat-card`).{% endcomment %}
+<section class="ficha pb-folha" data-pb-folha>
+
+  {% include 'home/partials/_ficha_banner.html' %}
+
+  <div class="pb-folha-ribbon">
+    <span class="pb-folha-ribbon-tag">Simulação</span>
+    <span class="pb-folha-ribbon-txt">Derivada pelo motor real da ficha, em transação desfeita. Nenhum personagem foi salvo.</span>
+    <span class="pb-folha-ribbon-lvl">Nível {{ ficha.nivel_total }}</span>
+  </div>
+
+  {% include 'home/partials/_ficha_folha.html' %}
+
+  {% include 'home/partials/_ficha_folha_defesas.html' %}
+
+  {% if magias_info.lista %}
+  <div class="ficha-panel">
+    <div class="ficha-section-title">Magias <span class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--muted)]">{{ magias_info.lista|length }}</span></div>
+    {% if magias_info.spellcasters %}
+    <div class="pb-casters">
+      {% for c in magias_info.spellcasters %}
+      <div class="pb-caster"><strong>{{ c.classe }}</strong><span>{{ c.ability }}</span><span>CD {{ c.cd }}</span><span>Ataque {% if c.ataque >= 0 %}+{% endif %}{{ c.ataque }}</span></div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% if magias_info.slots %}
+    <div class="pb-slots">
+      {% for s in magias_info.slots %}<span class="pb-slot"><small>{{ s.nivel }}º</small><strong>{{ s.total }}</strong></span>{% endfor %}
+    </div>
+    {% endif %}
+    <ul class="pb-spell-list">
+      {% for m in magias_info.lista %}
+      <li class="line-row"><span class="name text-[var(--text)]">{{ m.nome }}</span><span class="val">{% if m.nivel == 0 %}truque{% else %}{{ m.nivel }}º{% endif %}{% if m.escola %} · {{ m.escola }}{% endif %}</span></li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+</section>

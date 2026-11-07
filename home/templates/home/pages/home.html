@@ -1,0 +1,108 @@
+{% extends 'home/base.html' %}
+{% load static %}
+{% block body_class %}bft-home{% endblock %}
+{% block main_class %}bft-home-main{% endblock %}
+{% block mobile_ad_top %}{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/home.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/pages/home-platform.css' %}?v=1">
+{% endblock %}
+{% block content %}
+<section class="bft-hero" aria-labelledby="hero-title">
+  {% if hero_image_url %}
+  <img class="bft-hero-art" src="{{ hero_image_url }}" alt="" fetchpriority="high">
+  {% else %}
+  <picture class="bft-hero-art"><source media="(max-width:600px)" srcset="{% static 'brand/arrival-mobile.webp' %}"><img src="{% static 'brand/arrival.webp' %}" width="1983" height="793" alt="" fetchpriority="high"></picture>
+  {% endif %}
+  <div class="bft-hero-shade"></div>
+  <div class="bft-width bft-hero-content">
+    <p class="bft-eyebrow"><span class="bft-ember-dot" aria-hidden="true"></span> RPG ONLINE GRATUITO <span class="bft-eyebrow-slash" aria-hidden="true">/</span> AVENTURAS POR VOZ</p>
+    <h1 id="hero-title">{% if hero.titulo and hero.titulo != 'Bonfire Tales' %}{{ hero.titulo }}{% else %}Jogue quando puder.<br><em>Sua história</em><br>continua.{% endif %}</h1>
+    <p class="bft-hero-description">{% if hero.subtitulo and hero.titulo != 'Bonfire Tales' %}{{ hero.subtitulo }}{% else %}Um mundo de RPG, ferramentas para jogar e pessoas para compartilhar a jornada. Comece gratuitamente em Cinéria.{% endif %}</p>
+    <div class="bft-hero-buttons">
+      <a class="bft-button" href="{{ hero_cta_url }}">{{ hero.cta_texto|default:'Entrar na fogueira' }} <span aria-hidden="true">↗</span></a>
+      {% if request.user.is_authenticated %}
+      <a id="home-primary-action" href="{% url 'criacao_ficha' %}" class="bft-button bft-button-ghost">Criar personagem <span aria-hidden="true">↗</span></a>
+      {% else %}
+      <a id="home-primary-action" href="{% url 'register' %}" class="bft-button bft-button-ghost">Criar conta para jogar <span aria-hidden="true">↗</span></a>
+      {% endif %}
+      <a class="bft-hero-explain" href="#como-jogar">Entenda como jogar <span aria-hidden="true">↓</span></a>
+    </div>
+    <p class="bft-hero-detail">Base D&D 5.5 · Raças, classes e talentos modificados</p>
+  </div>
+  <span class="bft-scene-note">O próximo capítulo começa com um encontro.</span>
+  <div class="bft-width bft-hero-bottom"><span>Onde aventureiros descansam e histórias começam.</span><a href="#sua-jornada">Explore o Bonfire <span aria-hidden="true">↓</span></a></div>
+</section>
+
+{% if request.user.is_authenticated %}
+<section class="bft-player-section" aria-label="Acesso rápido à sua jornada"><div class="bft-width bft-player-inner">
+  <div><span class="bft-eyebrow">SUA JORNADA</span><h2>Volte para a aventura</h2></div>
+  <nav aria-label="Seus personagens e atividades">
+    {% for personagem in meus_personagens %}<a href="{% url 'ficha_detail' pk=personagem.pk %}">{{ personagem.nome }} <span aria-hidden="true">↗</span></a>{% empty %}<a href="{% url 'criacao_ficha' %}">Criar meu primeiro personagem ↗</a>{% endfor %}
+    <a href="{% url 'personagens' %}">Todos os meus personagens</a><a href="{% url 'mundo_cronicas' %}?feed=seguindo">Crônicas de quem sigo</a>
+  </nav>
+</div></section>
+{% endif %}
+
+{% include 'home/partials/home_atlas.html' %}
+<div class="bft-promises"><div class="bft-width bft-promises-grid"><div><span>{% include 'home/components/brand_icon.html' with kind='clock' %}</span><p>No seu ritmo<small>Escolha as sessões que cabem na sua rotina</small></p></div><div><span>{% include 'home/components/brand_icon.html' with kind='compass' %}</span><p>Um mundo compartilhado<small>Aventuras diferentes. Consequências que ficam.</small></p></div><div><span>{% include 'home/components/brand_icon.html' with kind='users' %}</span><p>Um lugar para chegar<small>Iniciantes e veteranos ao redor do mesmo fogo</small></p></div></div></div>
+
+<section class="bft-width bft-section bft-journey" id="sua-jornada" tabindex="-1" aria-labelledby="journey-title">
+  <div class="bft-section-intro"><span class="bft-eyebrow">SUA VIDA MUDA. SUA AVENTURA CONTINUA.</span><h2 id="journey-title">Você não precisa de uma agenda perfeita.<br><em>Só de vontade de jogar.</em></h2><p>O Bonfire é uma comunidade brasileira de RPG em um mundo compartilhado. Diferentes mestres, novas companhias e um personagem que segue com você.</p></div>
+  <div class="bft-journey-layout">
+    <figure class="bft-journey-image"><img src="{% static 'brand/campfire.webp' %}" width="1672" height="941" alt="Um grupo descansa ao redor do fogo entre ruínas, protegido da escuridão." loading="lazy"><figcaption>A fogueira é a pausa. E o ponto de partida.</figcaption></figure>
+    <div class="bft-reasons" data-bft-tabs>
+      <div class="bft-tabs" aria-label="Por que jogar no Bonfire" hidden><button type="button" id="reason-tab-0" aria-controls="reason-panel-0">Seu tempo</button><button type="button" id="reason-tab-1" aria-controls="reason-panel-1">Seu personagem</button><button type="button" id="reason-tab-2" aria-controls="reason-panel-2">Sua comunidade</button></div>
+      <div id="reason-panel-0" class="bft-reason-panel"><span class="bft-reason-symbol">{% include 'home/components/brand_icon.html' with kind='clock' %}</span><h3>A aventura se encaixa na sua vida.</h3><p>Rotina corrida? Escolha entre sessões em horários diferentes, conforme as aventuras publicadas. Você participa quando pode e continua a mesma história.</p></div>
+      <div id="reason-panel-1" class="bft-reason-panel"><span class="bft-reason-symbol">{% include 'home/components/brand_icon.html' with kind='compass' %}</span><h3>Uma sessão termina. Você continua.</h3><p>Leve o mesmo personagem a novas aventuras. Suas escolhas, conquistas e encontros fazem parte de uma jornada que cresce com você.</p></div>
+      <div id="reason-panel-2" class="bft-reason-panel"><span class="bft-reason-symbol">{% include 'home/components/brand_icon.html' with kind='users' %}</span><h3>Você chega sem grupo. Encontra companhia.</h3><p>Conheça jogadores e mestres, compartilhe descobertas e encontre seu lugar ao redor da fogueira. Há espaço para quem está começando e para quem já tem histórias.</p></div>
+      <p class="bft-journey-note">O nome desse formato é <strong>West Marches.</strong><br>A liberdade de escolher quando jogar é o que importa.</p>
+    </div>
+  </div>
+</section>
+
+<section class="bft-how bft-section" id="como-jogar" tabindex="-1" aria-labelledby="how-title"><div class="bft-width">
+  <div class="bft-heading-row"><div><span class="bft-eyebrow">DO PRIMEIRO OLÁ À PRIMEIRA SESSÃO</span><h2 id="how-title">{% if jornada.titulo and jornada.titulo != 'Comece a jogar' %}{{ jornada.titulo }}{% else %}Chegue. Crie. <em>Viva a história.</em>{% endif %}</h2></div><p>{{ jornada.subtitulo|default:'O caminho até a aventura, um passo de cada vez.' }}</p></div>
+  <ol class="bft-steps"><li><span>01</span><h3>Entre na comunidade</h3><p>Acesse o Discord, conheça os canais de boas-vindas e leia as regras de convivência.</p></li><li><span>02</span><h3>Dê vida ao personagem</h3><p>Crie sua conta no site, vincule seu Discord e siga o guia para montar e validar sua ficha.</p></li><li><span>03</span><h3>Escolha sua aventura</h3><p>Confira os anúncios de missões, os requisitos e as vagas. Inscreva-se em um horário que funcione para você.</p></li><li><span>04</span><h3>Volte com uma história</h3><p>Jogue por voz e leve seu personagem ao próximo encontro.</p></li></ol>
+  <details class="bft-onboarding-guide"><summary>Veja as orientações de criação e progressão <span aria-hidden="true">⌄</span></summary>
+    {% if jornada.conteudo_markdown %}<div class="bonfire-markdown" data-markdown-source>{{ jornada.conteudo_markdown }}</div>{% else %}<ol><li>Crie sua conta e vincule seu Discord para o site reconhecer você nas missões.</li><li>Monte a ficha no criador, escolhendo raça, classe, antecedente e talentos.</li><li>Procure uma missão publicada e abra o anúncio original no Discord para participar.</li><li>Registre a aventura com a equipe e acompanhe progressão, inventário e próximos níveis na ficha.</li></ol>{% endif %}
+  </details>
+  <div class="bft-how-action">
+    {% if request.user.is_authenticated %}{% if meus_personagens %}<a id="home-next-step" href="{% url 'sistemas_missoes' %}" class="bft-button">Encontrar missão <span aria-hidden="true">↗</span></a>{% else %}<a id="home-next-step" href="{% url 'criacao_ficha' %}" class="bft-button">Criar personagem <span aria-hidden="true">↗</span></a>{% endif %}{% else %}<a id="home-next-step" href="{{ jornada_cta_url }}" class="bft-button">{{ jornada_cta_texto }} <span aria-hidden="true">↗</span></a>{% endif %}
+    <span>Gratuito para jogar <i aria-hidden="true">·</i> Por voz no Discord</span>
+  </div>
+</div></section>
+
+<section class="bft-width bft-section bft-characters" id="personagens" tabindex="-1" aria-labelledby="characters-title">
+  <div class="bft-heading-row"><div><span class="bft-eyebrow">ANTES DA LENDA, EXISTE UMA ESCOLHA.</span><h2 id="characters-title">Quem você quer ser<br><em>além da fogueira?</em></h2></div><div><p>Escolha sua origem, descubra sua classe e dê ao seu personagem uma razão para partir.</p><a class="bft-text-link" href="{% url 'criacao_ficha' %}">Conheça a criação de personagem →</a></div></div>
+  <div class="bft-character-grid">
+    <a class="bft-character-card" href="{% url 'racas' %}"><img src="{% static 'brand/human.webp' %}" width="941" height="1672" alt="Estudo visual de um aventureiro humano com capa usada e lanterna." loading="lazy"><div class="bft-character-content"><span class="bft-eyebrow">01 / ORIGEM</span><h3>Uma origem.<br>Muitas jornadas.</h3><p>Linhagens, culturas e histórias para construir quem você é.</p><span class="bft-character-link">Explore as raças <span aria-hidden="true">↗</span></span></div></a>
+    <a class="bft-character-card" href="{% url 'classes' %}"><img src="{% static 'brand/dwarf.webp' %}" width="941" height="1672" alt="Estudo visual de um anão robusto com equipamento envelhecido." loading="lazy"><div class="bft-character-content"><span class="bft-eyebrow">02 / CAMINHO</span><h3>Seu jeito de enfrentar o mundo.</h3><p>Classes e arquétipos que dão forma ao seu estilo de jogo.</p><span class="bft-character-link">Descubra as classes <span aria-hidden="true">↗</span></span></div></a>
+    <a class="bft-character-card" href="{% url 'jogador_antecedentes' %}"><img src="{% static 'brand/draconic.webp' %}" width="941" height="1672" alt="Estudo visual de um humanoide com essência dracônica localizada." loading="lazy"><div class="bft-character-content"><span class="bft-eyebrow">03 / IDENTIDADE</span><h3>Uma história<br>só sua.</h3><p>Antecedentes e talentos que fazem a sua escolha importar.</p><span class="bft-character-link">Encontre seu antecedente <span aria-hidden="true">↗</span></span></div></a>
+  </div><p class="bft-character-footnote">Estudos visuais da identidade Bonfire Tales, não personagens canônicos. Sua jornada começa com as suas escolhas.</p>
+</section>
+
+{% include 'home/partials/home_identity.html' %}
+
+<section class="bft-width bft-section bft-community" aria-labelledby="home-community-title">
+  <div class="bft-heading-row"><div><span class="bft-eyebrow">UM MUNDO ESCRITO POR QUEM JOGA</span><h2 id="home-community-title">Sua aventura encontra<br><em>outras histórias.</em></h2></div><a class="bft-text-link" href="{% url 'mundo_cronicas' %}">Todas as crônicas →</a></div>
+  <div class="bft-community-paths"><article><h3>Compartilhe crônicas</h3><p>Publique relatos para a comunidade ler; a equipe revisa antes de mostrá-los publicamente.</p><a class="bft-text-link" href="{% url 'mundo_cronicas' %}">Explorar crônicas →</a></article><article><h3>{{ atlas.titulo|default:'Atlas interativo de Cinéria' }}</h3><p>{{ atlas.subtitulo|default:'Abra o mapa, alterne entre as camadas liberadas e selecione marcadores para conhecer territórios, regiões e pontos de interesse.' }}</p><a class="bft-text-link" href="{% url 'mapa' %}">Abrir atlas →</a></article><article><h3>Encontre missões</h3><p>Leve seu personagem a novas aventuras. Cada anúncio informa horários, requisitos e disponibilidade.</p><a class="bft-text-link" href="{% url 'sistemas_missoes' %}">Ver missões →</a></article></div>
+  {% if ultimas_cronicas %}<div class="bft-chronicles"><h3>Histórias que já passaram pela fogueira</h3><div class="bft-chronicle-grid">{% for cronica in ultimas_cronicas %}<article><time datetime="{{ cronica.data_publicacao|date:'c' }}">{{ cronica.data_publicacao|date:'d/m/Y' }}</time><h4><a href="{% url 'cronica_detail' slug=cronica.slug %}">{{ cronica.titulo }}</a></h4><span>Por {{ cronica.autor.username }}</span>{% if cronica.resumo %}<p>{{ cronica.resumo }}</p>{% endif %}<a class="bft-text-link" href="{% url 'cronica_detail' slug=cronica.slug %}">Ler crônica →</a></article>{% endfor %}</div></div>{% else %}<p class="bft-empty-stories">A comunidade escreve os próximos capítulos. Enquanto isso, conheça o cenário no <a href="{% url 'mundo_jornal' %}">jornal de Cinéria →</a></p>{% endif %}
+</section>
+
+<section class="bft-width bft-section bft-faq" id="duvidas" tabindex="-1" aria-labelledby="faq-title">
+  <div><span class="bft-eyebrow">ANTES DE SENTAR À FOGUEIRA</span><h2 id="faq-title">Pode chegar<br><em>com perguntas.</em></h2><p>A aventura pode ser um mistério.<br>Começar a jogar não precisa ser.</p><a class="bft-text-link" href="{{ hero_cta_url }}">Converse com a comunidade ↗</a></div>
+  <div class="bft-faq-list">
+    <details open><summary>Nunca joguei RPG. Posso participar?<span aria-hidden="true">+</span></summary><p>Pode, sim. O Bonfire recebe iniciantes e veteranos. Você pode conhecer a comunidade, consultar o guia de criação de personagem e tirar dúvidas no Discord antes da primeira aventura. Não precisa decorar todas as regras para chegar.</p></details>
+    <details><summary>Preciso pagar para jogar?<span aria-hidden="true">+</span></summary><p>Jogar no Bonfire Tales é gratuito. A colaboração é opcional e ajuda a manter o projeto. Você não precisa ser colaborador para criar seu personagem e participar das aventuras disponíveis.</p></details>
+    <details><summary>Preciso jogar toda semana?<span aria-hidden="true">+</span></summary><p>Não. Os mestres publicam aventuras em dias e horários variados, e você escolhe aquelas que cabem na sua rotina. Cada sessão tem começo e fim, mas seu personagem e as consequências continuam no mesmo mundo. Confira os requisitos e a disponibilidade de vagas em cada anúncio.</p></details>
+    <details><summary>Como acontecem as sessões?<span aria-hidden="true">+</span></summary><p>As aventuras são jogadas online, por voz no Discord. Tenha uma conexão estável e um microfone para participar. O anúncio de cada sessão informa o horário, os requisitos e as ferramentas que o mestre vai usar.</p></details>
+    <details><summary>Qual sistema vocês usam?<span aria-hidden="true">+</span></summary><p>Usamos D&D 5.5 como base, com modificações próprias em raças, classes e talentos. O cenário compartilhado é Cinéria. A biblioteca do site reúne as opções e as regras do Bonfire para consulta.</p></details>
+    <details><summary>O que faço depois de entrar no Discord?<span aria-hidden="true">+</span></summary><p>Conheça os canais de boas-vindas e as regras da comunidade. Crie sua conta no site, vincule seu Discord e siga as orientações para montar e validar a ficha. Depois, confira as missões anunciadas e inscreva-se em uma aventura compatível com seu personagem e seu horário.</p><a class="bft-text-link" href="{% url 'criacao_ficha' %}">Ver o guia de criação →</a></details>
+  </div>
+</section>
+
+<aside class="bft-support"><div class="bft-width bft-support-inner"><div><span class="bft-eyebrow">COLABORAÇÃO OPCIONAL</span><h2>{{ apoio.titulo|default:'Mantenha a chama acesa' }}</h2><p>{{ apoio.subtitulo|default:'Jogar é gratuito. Quem colabora ajuda a manter o servidor, o bot e o site. Os benefícios e condições estão descritos na página de colaboração.' }}</p></div><a class="bft-text-link" href="{{ apoio_cta_url }}">{{ apoio.cta_texto|default:'Conheça a colaboração' }} ↗</a></div></aside>
+
+<section class="bft-final" aria-labelledby="final-title"><div class="bft-width"><img src="{% static 'brand/icon.png' %}" alt="" width="66" height="76" loading="lazy"><span class="bft-eyebrow">UM FOGO ACESO. UMA HISTÓRIA POR COMEÇAR.</span><h2 id="final-title">Tem lugar para você<br><em>na nossa fogueira.</em></h2><p>Chegue com uma ideia, uma pergunta ou só a vontade de jogar.<br>O primeiro capítulo começa com um olá.</p><a class="bft-button" href="{{ hero_cta_url }}">Entrar na fogueira <span aria-hidden="true">↗</span></a><span class="bft-final-detail">RPG online gratuito · Comunidade brasileira · Por voz no Discord</span>{% if request.user.is_authenticated %}<a class="bft-final-account" href="{% url 'personagens' %}">Continue sua jornada →</a>{% else %}<a class="bft-final-account" href="{% url 'register' %}">Já conheceu a comunidade? Crie sua conta →</a>{% endif %}</div></section>
+{% endblock %}

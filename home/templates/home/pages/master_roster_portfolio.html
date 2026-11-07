@@ -1,0 +1,48 @@
+{% extends 'home/pages/master_shell.html' %}
+{% load static %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/pages/master-roster.css' %}?v=3">{% endblock %}
+{% block master_content %}
+<a class="mh-text-link" href="{% url 'masters_directory' %}">Voltar aos mestres</a>
+<header class="mh-compact-head"><p class="mh-eyebrow">Fogueira {{ identity.numero|stringformat:'02d' }}</p><h1>{{ identity.nome }}</h1>
+{% if master_user %}<a class="mh-text-link" href="{% url 'public_profile' master_user.username %}">Perfil de {{ master_user.username }}</a>{% endif %}
+{% if community.apresentacao %}<p>{{ community.apresentacao }}</p>{% endif %}</header>
+<section class="mh-section"><h2>Portfólio</h2><div class="mh-grid">{% for card in portfolio_cards %}{% include 'home/partials/master_work_card.html' with work=card.item %}{% empty %}<p>Nenhum trabalho publicado neste portfólio.</p>{% endfor %}</div></section>
+<section class="mh-section mr-history-section" id="historico-missoes" tabindex="-1"><h2>Missões mestradas</h2><p>{{ mission_count }} missões registradas · {{ known_adventures }} aventuras com quantidade registrada{% if unknown_adventures %} · {{ unknown_adventures }} missões sem quantidade registrada{% endif %}</p>
+{% if bot_unavailable %}<p role="status">Os dados atuais do bot estão indisponíveis. O histórico legado continua abaixo.</p>{% endif %}
+<form method="get" action="#historico-missoes" class="mh-filter mr-origin-filter">
+<label for="mission-origin">Origem do registro</label>
+<select id="mission-origin" name="origem">
+<option value="">Todas</option>
+<option value="system"{% if history_origin == 'system' %} selected{% endif %}>Sistêmica · bot</option>
+<option value="manual"{% if history_origin == 'manual' %} selected{% endif %}>Manual · planilha</option>
+</select><button type="submit" class="mh-button mh-button-small">Filtrar</button>
+</form>
+<div class="mr-history" tabindex="0" role="region" aria-label="Histórico de missões"><table><thead><tr><th scope="col">Missão</th><th scope="col">Data</th><th scope="col">Aventuras</th><th scope="col">MM</th><th scope="col">Registro</th></tr></thead><tbody>
+{% for mission in missions_page %}<tr>
+<td><span class="mr-mission-title">{{ mission.title }}</span>
+<small class="mr-origin" data-origin="{{ mission.entry_origin }}">{{ mission.entry_origin_label }}</small>{% if mission.entry_origin == 'system' and mission.has_spreadsheet_source %}<small class="mr-provenance">Também consta na planilha</small>{% endif %}
+{% if mission.has_details %}<details class="mr-details"><summary>Relato e participantes</summary><div class="mr-details-body">
+{% if mission.details.summary %}<p class="mr-summary">{{ mission.details.summary }}</p>{% endif %}
+{% if mission.details.participants %}<h3>Participantes</h3><ul>{% for name in mission.details.participants %}<li>{{ name }}</li>{% endfor %}</ul>{% endif %}
+{% if mission.details.source_url %}<a class="mh-text-link" href="{{ mission.details.source_url }}" target="_blank" rel="noopener noreferrer">Fonte no Discord</a>{% endif %}
+</div></details>{% endif %}</td>
+<td data-label="Data">{{ mission.date|date:'d/m/Y'|default:'Não registrada' }}</td>
+<td data-label="Aventuras">{% if mission.adventures != None %}{{ mission.adventures }}{% else %}Não registrada{% endif %}
+{% if mission.adventures_source %}<small class="mr-provenance">{{ mission.adventures_source }}</small>{% endif %}
+{% if mission.reward_context.multiplier %}<small class="mr-boost">{% if mission.reward_context.base_adventures != None %}Base: {{ mission.reward_context.base_adventures }} · {% endif %}Multiplicador: {{ mission.reward_context.multiplier }}x</small>{% endif %}
+{% if mission.reward_context.reason %}<small class="mr-provenance">{{ mission.reward_context.reason }}</small>{% endif %}</td>
+<td data-label="MM">{% if mission.master_mm != None %}{{ mission.master_mm }} MM{% else %}Não registrado{% endif %}
+{% if mission.mm_source %}<small class="mr-provenance">{{ mission.mm_source }}</small>{% endif %}
+{% if mission.reward_context.base_mm != None %}<small class="mr-provenance">Base: {{ mission.reward_context.base_mm }} MM</small>{% endif %}
+{% if mission.reward_context.dedicated_bonus_mm != None %}<small class="mr-provenance">Bônus dedicado: {{ mission.reward_context.dedicated_bonus_mm }} MM</small>{% endif %}
+{% if mission.reward_context.source %}<small class="mr-provenance">{{ mission.reward_context.source }}</small>{% endif %}</td>
+<td data-label="Registro">{{ mission.status }}</td>
+</tr>{% empty %}<tr><td colspan="5">Nenhuma missão registrada.</td></tr>{% endfor %}
+</tbody></table></div>
+<div class="mr-history-footer"><p class="mr-range">Mostrando {{ missions_page.start_index }}-{{ missions_page.end_index }} de {{ mission_count }} missões</p>
+{% if missions_page.paginator.num_pages > 1 %}<nav class="mr-pagination" aria-label="Páginas do histórico">
+{% if missions_page.has_previous %}<a class="mr-page mr-page-step" rel="prev" href="?{% if history_origin %}origem={{ history_origin|urlencode }}&amp;{% endif %}pagina={{ missions_page.previous_page_number }}#historico-missoes"><img src="{% static 'icons/lucide/chevron-left.svg' %}" alt="">Anterior</a>{% else %}<span class="mr-page mr-page-step" aria-disabled="true"><img src="{% static 'icons/lucide/chevron-left.svg' %}" alt="">Anterior</span>{% endif %}
+<div class="mr-page-numbers">{% for number in mission_page_numbers %}{% if number == missions_page.paginator.ELLIPSIS %}<span class="mr-page-ellipsis" aria-hidden="true">{{ number }}</span>{% elif number == missions_page.number %}<span class="mr-page" aria-current="page" aria-label="Página {{ number }}">{{ number }}</span>{% else %}<a class="mr-page" href="?{% if history_origin %}origem={{ history_origin|urlencode }}&amp;{% endif %}pagina={{ number }}#historico-missoes" aria-label="Página {{ number }}">{{ number }}</a>{% endif %}{% endfor %}</div>
+{% if missions_page.has_next %}<a class="mr-page mr-page-step" rel="next" href="?{% if history_origin %}origem={{ history_origin|urlencode }}&amp;{% endif %}pagina={{ missions_page.next_page_number }}#historico-missoes">Próxima<img src="{% static 'icons/lucide/chevron-right.svg' %}" alt=""></a>{% else %}<span class="mr-page mr-page-step" aria-disabled="true">Próxima<img src="{% static 'icons/lucide/chevron-right.svg' %}" alt=""></span>{% endif %}
+</nav>{% endif %}</div></section>
+{% endblock %}

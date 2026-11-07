@@ -1,0 +1,906 @@
+{
+  "schema": 1,
+  "source_sha256": "b4a6d5cbc0376f121f4349f49c10faa84c08c7990a761dd551a279bc03373967",
+  "progression": [
+    {
+      "level": 1,
+      "proficiency": 2,
+      "features": "Marca do Caçador, Conjuração",
+      "prepared_spells": 2,
+      "favored_enemies": 0,
+      "hunter_die": "d6",
+      "slots": [
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "level": 2,
+      "proficiency": 2,
+      "features": "Preparos de Caçada, Segredos do Caçador, Inimigo Favorito",
+      "prepared_spells": 3,
+      "favored_enemies": 1,
+      "hunter_die": "d6",
+      "slots": [
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "level": 3,
+      "proficiency": 2,
+      "features": "Ordem do Caçador, Instinto de Caçador",
+      "prepared_spells": 4,
+      "favored_enemies": 1,
+      "hunter_die": "d6",
+      "slots": [
+        3,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "level": 4,
+      "proficiency": 2,
+      "features": "Aprimoramento de Atributo ou Talento",
+      "prepared_spells": 5,
+      "favored_enemies": 1,
+      "hunter_die": "d6",
+      "slots": [
+        3,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "level": 5,
+      "proficiency": 3,
+      "features": "Ataque Extra, Território de Caça",
+      "prepared_spells": 6,
+      "favored_enemies": 1,
+      "hunter_die": "d8",
+      "slots": [
+        4,
+        2,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "level": 6,
+      "proficiency": 3,
+      "features": "Habilidade da Ordem",
+      "prepared_spells": 6,
+      "favored_enemies": 1,
+      "hunter_die": "d8",
+      "slots": [
+        4,
+        2,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "level": 7,
+      "proficiency": 3,
+      "features": "Caçador Implacável",
+      "prepared_spells": 7,
+      "favored_enemies": 1,
+      "hunter_die": "d8",
+      "slots": [
+        4,
+        3,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "level": 8,
+      "proficiency": 3,
+      "features": "Aprimoramento de Atributo ou Talento",
+      "prepared_spells": 7,
+      "favored_enemies": 2,
+      "hunter_die": "d8",
+      "slots": [
+        4,
+        3,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "level": 9,
+      "proficiency": 4,
+      "features": "Instinto Afiado",
+      "prepared_spells": 9,
+      "favored_enemies": 2,
+      "hunter_die": "d8",
+      "slots": [
+        4,
+        3,
+        2,
+        0,
+        0
+      ]
+    },
+    {
+      "level": 10,
+      "proficiency": 4,
+      "features": "Habilidade da Ordem",
+      "prepared_spells": 9,
+      "favored_enemies": 2,
+      "hunter_die": "d8",
+      "slots": [
+        4,
+        3,
+        2,
+        0,
+        0
+      ]
+    },
+    {
+      "level": 11,
+      "proficiency": 4,
+      "features": "Predador Astuto",
+      "prepared_spells": 10,
+      "favored_enemies": 2,
+      "hunter_die": "d10",
+      "slots": [
+        4,
+        3,
+        3,
+        0,
+        0
+      ]
+    },
+    {
+      "level": 12,
+      "proficiency": 4,
+      "features": "Aprimoramento de Atributo ou Talento",
+      "prepared_spells": 10,
+      "favored_enemies": 2,
+      "hunter_die": "d10",
+      "slots": [
+        4,
+        3,
+        3,
+        0,
+        0
+      ]
+    },
+    {
+      "level": 13,
+      "proficiency": 5,
+      "features": "Passos Invisíveis",
+      "prepared_spells": 11,
+      "favored_enemies": 2,
+      "hunter_die": "d10",
+      "slots": [
+        4,
+        3,
+        3,
+        1,
+        0
+      ]
+    },
+    {
+      "level": 14,
+      "proficiency": 5,
+      "features": "Habilidade da Ordem",
+      "prepared_spells": 11,
+      "favored_enemies": 3,
+      "hunter_die": "d10",
+      "slots": [
+        4,
+        3,
+        3,
+        1,
+        0
+      ]
+    },
+    {
+      "level": 15,
+      "proficiency": 5,
+      "features": "Vontade Inabalável",
+      "prepared_spells": 12,
+      "favored_enemies": 3,
+      "hunter_die": "d10",
+      "slots": [
+        4,
+        3,
+        3,
+        2,
+        0
+      ]
+    },
+    {
+      "level": 16,
+      "proficiency": 5,
+      "features": "Aprimoramento de Atributo ou Talento",
+      "prepared_spells": 12,
+      "favored_enemies": 3,
+      "hunter_die": "d10",
+      "slots": [
+        4,
+        3,
+        3,
+        2,
+        0
+      ]
+    },
+    {
+      "level": 17,
+      "proficiency": 6,
+      "features": "Instinto Predatório",
+      "prepared_spells": 14,
+      "favored_enemies": 3,
+      "hunter_die": "d12",
+      "slots": [
+        4,
+        3,
+        3,
+        3,
+        1
+      ]
+    },
+    {
+      "level": 18,
+      "proficiency": 6,
+      "features": "Habilidade da Ordem",
+      "prepared_spells": 14,
+      "favored_enemies": 3,
+      "hunter_die": "d12",
+      "slots": [
+        4,
+        3,
+        3,
+        3,
+        1
+      ]
+    },
+    {
+      "level": 19,
+      "proficiency": 6,
+      "features": "Aprimoramento de Atributo ou Talento",
+      "prepared_spells": 15,
+      "favored_enemies": 3,
+      "hunter_die": "d12",
+      "slots": [
+        4,
+        3,
+        3,
+        3,
+        2
+      ]
+    },
+    {
+      "level": 20,
+      "proficiency": 6,
+      "features": "Domínio da Caçada",
+      "prepared_spells": 15,
+      "favored_enemies": 3,
+      "hunter_die": "d12",
+      "slots": [
+        4,
+        3,
+        3,
+        3,
+        2
+      ]
+    }
+  ],
+  "orders": [
+    "Ordem da Aliança Selvagem",
+    "Ordem do Crepúsculo",
+    "Ordem do Despertar",
+    "Ordem do Enxame",
+    "Ordem dos Exorcistas",
+    "Ordem dos Exterminadores",
+    "Ordem dos Mutantes",
+    "Ordem dos Viajantes Primordiais"
+  ],
+  "features": [
+    {
+      "id": "006-nivel-1-marca-do-cacador",
+      "name": "Marca do Caçador",
+      "level": 1,
+      "order": "",
+      "text": "Marcar um alvo não é apontar pra ele; é decidir, em silêncio, que ele já perdeu. Anoto no diário o rosto, o cheiro e o jeito de pisar, porque a partir daí cada rastro que a criatura deixa vira uma página escrita com o meu nome guardado no fim. Você sempre tem a magia Marca do Caçador [Hunter's Mark] preparada, e ela não conta contra seu total de magias preparadas. Como Caçador, você manifesta uma versão otimizada da magia diretamente como traço de classe. Marcar o Alvo (Conjuração Otimizada) Como uma Ação Bônus , você conjura Marca do Caçador [Hunter's Mark] sem gastar espaço de magia e sem exigir Concentração, marcando uma criatura que possa ver a até 27 metros [90 pés] como sua Presa Marcada. Ainda que não exija Concentração, a Marca dura o mesmo tempo que a magia duraria sob Concentração, encerrando-se também se a criatura morrer, se você aplicar a Marca em outra criatura ou se você ficar Incapacitado por mais de 1 minuto. Dado de Caçador Seus ataques com arma contra a Presa Marcada causam dano adicional do mesmo tipo da arma, igual a uma rolagem do seu Dado de Caçador, o dado escalonado da sua classe. Quando você conjura Marca do Caçador [Hunter's Mark] , o dado base da magia é substituído pelo seu Dado de Caçador. O Dado de Caçador começa como 1d6 e cresce conforme você sobe de nível: torna-se 1d8 no 5º nível de Caçador, 1d10 no 11º nível e 1d12 no 17º nível. Apenas Uma Marca Ativa Você só pode ter uma Marca do Caçador ativa por vez. Conjurar a magia novamente encerra a Marca anterior imediatamente, antes que a nova seja aplicada. Sentido da Presa Enquanto a sua Presa Marcada estiver no mesmo plano de existência que você, você conhece a direção geral dela e sente uma vibração leve sempre que ela é ferida. Efeito Mágico A Marca do Caçador é considerada um efeito mágico para fins de dissipar magia. Ela é tratada como conjurada de um espaço de magia de Círculo igual à metade do seu nível de Caçador, arredondada para baixo, até um máximo de 9º Círculo."
+    },
+    {
+      "id": "012-nivel-1-conjuracao",
+      "name": "Conjuração",
+      "level": 1,
+      "order": "",
+      "text": "Aprendi as palavras certas em segredo, deitado no escuro com um livro velho. Não é a magia dos salões nem a dos templos: é a que se colhe observando o mato, o sangue e o céu, e hoje uso ela como uso uma faca — pouco, mas sempre bem. Você aprende a moldar magias práticas para a caça, feitiços de exploração, controle e revelação. Você pode conjurar magias da Lista de Magias do Caçador. Espaços de Magia A Tabela do Caçador mostra quantos espaços de magia você tem para conjurar suas magias de 1º Círculo ou superior. Para conjurar uma dessas magias, você gasta um espaço de magia de Círculo igual ou superior ao da magia. Você recupera todos os espaços gastos ao terminar um Descanso Longo. Magias Preparadas Você prepara a lista de magias de 1º Círculo ou superior que pode conjurar com esta característica. Para isso, escolha da Lista de Magias do Caçador um número de magias igual ao indicado na coluna Magias Preparadas da Tabela do Caçador. As magias escolhidas devem pertencer a um Círculo para o qual você tenha espaços de magia. Sempre que terminar um Descanso Longo, você pode substituir qualquer quantidade das magias preparadas por outras magias da Lista de Magias do Caçador. Habilidade de Conjuração Ao alcançar o 1º nível, escolha Inteligência ou Sabedoria como sua habilidade de conjuração. Essa escolha define o foco do seu estudo, livros e investigação para Inteligência ou instinto e leitura do mundo para Sabedoria, e é permanente. Você usa esse atributo sempre que uma magia se referir à sua habilidade de conjuração, e o emprega ao determinar a CD dos seus testes de resistência de magia e o seu modificador de ataque mágico: CD de Resistência de Magia = 8 + bônus de proficiência + modificador de Inteligência ou Sabedoria Modificador de Ataque Mágico = bônus de proficiência + modificador de Inteligência ou Sabedoria Conjuração Ritual Você pode conjurar como ritual qualquer magia de Caçador que tenha a propriedade Ritual, desde que ela esteja entre as magias que você preparou. Foco de Conjuração Você usa um foco druídico ou um diário de caça como foco de conjuração para suas magias de Caçador."
+    },
+    {
+      "id": "018-nivel-2-preparos-de-cacada",
+      "name": "Preparos de Caçada",
+      "level": 2,
+      "order": "",
+      "text": "O segredo da boa caça é a véspera; quem chega armado já chegou na metade. Passo a manhã afiando, reembalando e conferindo cada peça, porque no mato o erro que mata quase nunca é o do combate — é o da preguiça da noite anterior, que eu me recuso a cometer. Você passa cada manhã afiando, reembalando e conferindo seu equipamento. Seu corpo e suas armas estão sempre prontos para a próxima caçada. Estilo de Luta Você aprende um Estilo de Luta da lista de Estilos de Luta do Caçador. Você não pode aprender o mesmo Estilo de Luta mais de uma vez, mesmo que outra habilidade lhe permita escolher um, e precisa cumprir os pré-requisitos do Estilo para aprendê-lo. Sempre que ganhar um nível de Caçador, você pode substituir este Estilo de Luta por outro disponível ao Caçador. Armas de Caçada Você ganha o benefício de Maestria de Armas (Weapon Mastery) de três armas com as quais seja proficiente. Ao terminar um Descanso Longo, você pode trocar uma dessas Maestrias pela de outra arma."
+    },
+    {
+      "id": "021-nivel-2-segredos-do-cacador",
+      "name": "Segredos do Caçador",
+      "level": 2,
+      "order": "",
+      "text": "Não tem nada de mágico nos meus truques; são só truques que ninguém mais quis aprender. Guardo cada um neste caderno gasto, ao lado de fórmulas, armadilhas e sinais, e vou provando qual serve para qual presa até o método virar reflexo que a mão executa sozinha. Você adquire Segredos do Caçador, técnicas práticas, alquímicas ou esotéricas reunidas ao longo dos seus anos de aprendizado. Os Segredos estão organizados em três Linhas temáticas: Alquimia e Poções , com frascos, óleos, elixires e granadas que você prepara entre caçadas; Armadilhas e Emboscadas , com redes, ganchos, estrepes, minas e técnicas de controle de terreno; e Conhecimentos Ancestrais (Sinais) , com gestos, palavras e símbolos esotéricos que dobram a realidade contra a presa. A lista completa de Segredos está a seguir. Linha Mestra Ao escolher sua Ordem no 3º nível, você define qual das três Linhas é a sua Linha Mestra. Você conhece todos os Segredos da sua Linha Mestra dentro dos Graus que já desbloqueou, e eles estão sempre disponíveis para uso, sem precisar de preparação. Graus de Segredos Cada Linha tem quatro Graus internos de poder, que você desbloqueia à medida que sobe de nível. O 1º Grau está disponível no 2º nível, o 2º Grau no 5º nível, o 3º Grau no 9º nível e o 4º Grau no 13º nível. Segredos Preparados (Outras Linhas) Além dos Segredos da sua Linha Mestra, sempre disponíveis, você pode preparar Segredos das outras duas Linhas ao terminar um Descanso Longo. O número de Segredos que você pode preparar de outras Linhas é igual ao seu Bônus de Proficiência. Você só pode preparar Segredos de Graus que já tenha desbloqueado. Pontos de Segredo Você tem uma reserva de Pontos de Segredo igual ao seu nível de Caçador. Cada Segredo lista quantos pontos custam para ser usado. Quando um Segredo tiver um Aprimoramento e você optar por ativá-lo, o custo dele em Pontos de Segredo aumenta em 1 . Você recupera todos os Pontos de Segredo ao terminar um Descanso Longo. CD dos Segredos Quando um Segredo exigir um teste de resistência, a CD é a sua CD de Magia (8 + bônus de proficiência + modificador de Inteligência ou Sabedoria). Quando exigir uma rolagem de ataque, use o seu modificador de ataque mágico, exceto quando o Segredo substituir um ataque com arma, caso em que você usa a sua rolagem de ataque com arma. As três Linhas e os seus Segredos estão descritos a seguir; cada Segredo indica o seu custo em Pontos de Segredo . Linha: Alquimia e Poções Linha: Armadilhas e Emboscadas Linha: Conhecimentos Ancestrais (Sinais)"
+    },
+    {
+      "id": "072-nivel-2-inimigo-favorito",
+      "name": "Inimigo Favorito",
+      "level": 2,
+      "order": "",
+      "text": "Não existe inimigo igual; cada um pede um tipo diferente de ódio. Estudei os hábitos de uns tantos até conhecê-los melhor do que a mim mesmo — como se movem, do que fogem, onde sangram — e anotei tudo com cuidado para nunca mais ser surpreendido por eles. Você escolheu uma categoria de criatura para estudar com obsessão. No 2º nível, escolha um tipo de criatura dentre Aberrações, Bestas, Celestiais, Constructos, Corruptores, Dragões, Elementais, Fadas, Gigantes, Humanoides, Monstruosidades ou Mortos-Vivos. Aquela categoria é o seu Inimigo Favorito. Você ganha um Inimigo Favorito adicional ao alcançar o 8º nível e novamente no 14º nível, totalizando três. Dano de Inimigo Favorito Você adiciona o seu modificador de Inteligência ou Sabedoria, o que for sua habilidade de conjuração, com um mínimo de +1, ao dano dos seus ataques com arma contra criaturas do seu Inimigo Favorito. Esse bônus não escala com o nível, pois é a recompensa do seu estudo, não da sua força bruta. Rastreio Especializado Você tem Vantagem em testes de Sabedoria (Sobrevivência) para rastrear criaturas do seu Inimigo Favorito e em testes de Inteligência (Arcanismo, História ou Natureza) para lembrar de informações sobre elas. Análise de Sinais Com 1 minuto de estudo sobre vestígios, carcaças ou trilhas de uma criatura do seu Inimigo Favorito, você determina automaticamente a espécie específica, os hábitos básicos, o terreno preferido e quaisquer resistências, imunidades ou vulnerabilidades amplamente conhecidas."
+    },
+    {
+      "id": "076-nivel-3-ordem-do-cacador",
+      "name": "Ordem do Caçador",
+      "level": 3,
+      "order": "",
+      "text": "A primeira coisa que aprendi na Ordem foi a calar a boca; a segunda, a escutar. Só depois de provar as duas me deixaram escolher o caminho que faria da minha caçada algo maior do que sobreviver: um propósito com nome próprio, com mestres e com uma trilha só minha. Você se filia a uma Ordem do Caçador, uma tradição que define o foco e o estilo da sua caça, como a Aliança Selvagem, os Exterminadores ou o Crepúsculo. Você recebe as características de 3º nível da Ordem escolhida imediatamente e ganha características adicionais nos níveis 6º, 10º, 14º e 18º. A sua Ordem também define a sua Linha Mestra entre as três Linhas de Segredos: Aliança Selvagem, Exterminadores e Crepúsculo têm Armadilhas e Emboscadas ; Viajantes Primordiais e Exorcistas têm Conhecimentos Ancestrais (Sinais) ; e Enxame, Mutantes e Despertar têm Alquimia e Poções . Ordem da Aliança Selvagem Ordem do Crepúsculo Ordem do Despertar Ordem do Enxame Ordem dos Exorcistas Ordem dos Exterminadores Ordem dos Mutantes Ordem dos Viajantes Primordiais"
+    },
+    {
+      "id": "078-nivel-3-magias-e-segredos-da-ordem-da-alianca-selvagem",
+      "name": "Magias e Segredos da Ordem da Aliança Selvagem",
+      "level": 3,
+      "order": "Ordem da Aliança Selvagem",
+      "text": "A natureza não me ensinou apenas a convocar uma fera; ensinou a protegê-la, alimentá-la com fogo e partilhar com ela cada defesa. Nossas magias seguem o mesmo pacto: nenhuma força recebida por um de nós precisa permanecer apenas com ele. Você tem sempre preparadas as magias da tabela a seguir. Elas contam como magias de Caçador para você e não contam no seu limite de magias preparadas. Nível de Caçador Magias 3º Amizade Animal [Animal Friendship] Absorver Elementos [Absorb Elements] 5º Sopro de Dragão [Dragon's Breath] Vínculo Protetor [Warding Bond] 9º Conjurar Animais [Conjure Animals] Proteção contra Energia [Protection from Energy] 13º Dominar Fera [Dominate Beast] Escudo de Fogo [Fire Shield] 17º Comunhão com a Natureza [Commune with Nature] Despertar [Awaken] Além dessas magias, a Linha Mestra da sua Ordem é a Linha Armadilhas e Emboscadas : você conhece todos os Segredos dessa Linha cujo Grau tenha desbloqueado, e eles não contam no seu limite de Segredos preparados."
+    },
+    {
+      "id": "079-nivel-3-companheiro-primordial",
+      "name": "Companheiro Primordial",
+      "level": 3,
+      "order": "Ordem da Aliança Selvagem",
+      "text": "O pacto está selado. A forma pode mudar, mas a lealdade é absoluta. Ele é a minha sombra armada de presas, garras, escamas ou asas. Não o domei; nós nos reconhecemos e decidimos que, daquela noite em diante, caçaríamos juntos. Você aprende a magia Familiar de Batalha [Battle Familiar]. Ela conta como uma magia de Caçador para você, está sempre preparada e não conta no seu limite de magias preparadas. Seu Familiar de Batalha é um Espírito Primordial e recebe os benefícios a seguir: Invocação Primordial. Quando adquire esta característica e sempre que termina um Descanso Longo, você pode conjurar Familiar de Batalha sem gastar espaço de magia, fornecer componentes ou usar uma ação. Você também pode realizar um ritual de 1 minuto e gastar 1 Ponto de Segredo para conjurá-la novamente. Conjurada dessa forma, a magia dura até o espírito cair a 0 Pontos de Vida, você conjurá-la novamente, você morrer ou decidir dispensá-lo; ela não termina após 1 hora. Círculo Primordial. Para determinar os efeitos de Familiar de Batalha, o Círculo da magia é igual ao maior Círculo de espaço de magia concedido pela tabela do Caçador, com um mínimo de 2º Círculo. Espaços de magia recebidos de outras classes não aumentam esse Círculo. Forma Livre. O espírito pode assumir a aparência de qualquer animal, dragão, criatura fantástica ou combinação de criaturas à sua escolha. Escolha também o tipo dele entre Celestial, Dragão, Fera, Feérico ou Ínfero. A aparência e o tipo não alteram as estatísticas do familiar por si mesmos. Vínculo Primordial. O espírito adiciona dez vezes o seu nível de Caçador ao máximo de Pontos de Vida dele e o seu Bônus de Proficiência à Classe de Armadura, aos testes de habilidade e aos testes de resistência dele. O espírito também recebe os benefícios do seu Inimigo Favorito. Elo Mental. Você e o espírito podem se comunicar telepaticamente enquanto estiverem no mesmo plano de existência. Comando. Uma vez em cada um dos seus turnos, você pode usar uma Ação Bônus para ordenar que o espírito realize imediatamente uma Ação ou Ação Bônus disponível no bloco de estatísticas dele. O espírito gasta a Reação para obedecer e só pode realizar um ataque como parte dessa Reação. Vida e Morte. Quando o espírito cai a 0 Pontos de Vida, ele se dissipa e deixa para trás qualquer objeto que estivesse vestindo ou carregando. Ele retorna com todos os Pontos de Vida quando você conjura Familiar de Batalha novamente por Invocação Primordial."
+    },
+    {
+      "id": "080-nivel-3-evolucao-totemica",
+      "name": "Evolução Totêmica",
+      "level": 3,
+      "order": "Ordem da Aliança Selvagem",
+      "text": "A forma dele nunca permanece igual por muito tempo. Cada nova invocação traz outra resposta da natureza: sentidos mais aguçados, couro resistente, asas, veneno ou fogo. Escolho o que a próxima trilha exige, e o espírito desperta preparado para percorrê-la comigo. Sempre que conjura Familiar de Batalha por Companheiro Primordial, escolha as Evoluções Totêmicas manifestadas pelo espírito. Você escolhe uma evolução no 3º nível e uma evolução adicional no 6º, 10º, 14º e 18º nível de Caçador. As escolhas permanecem enquanto aquela conjuração estiver ativa e podem ser alteradas na próxima vez que você conjurar o espírito. Evoluções Totêmicas. Audição e Faro Aguçados. O espírito tem Vantagem em testes de Sabedoria (Percepção) baseados em audição ou olfato. Camuflagem Natural. O espírito tem Vantagem em testes de Destreza (Furtividade) realizados em terreno natural, Penumbra ou Escuridão. Escalada Aracnídea. O espírito recebe deslocamento de escalada igual ao deslocamento de caminhada e pode se mover por paredes e tetos sem realizar testes de habilidade. Fôlego Prolongado. O espírito pode prender a respiração por 1 hora. Anfíbio. O espírito pode respirar ar e água. Resistência Elemental. Escolha ácido, elétrico, fogo, frio ou trovejante. O espírito recebe Resistência ao tipo escolhido. Você pode selecionar esta evolução mais de uma vez, escolhendo um tipo diferente em cada seleção. Táticas de Matilha. O espírito tem Vantagem nas jogadas de ataque contra uma criatura se ao menos um aliado dele estiver a até 1,5 metro [5 pés] da criatura e não estiver Incapacitado. Alcance Estendido. O alcance dos ataques corpo a corpo do espírito aumenta em 1,5 metro [5 pés]. Ecolocalização. O espírito recebe Visão às Cegas de 9 metros [30 pés]. Ele perde essa visão enquanto estiver Surdo. Investida. Se o espírito se mover ao menos 6 metros [20 pés] em linha reta em direção a um alvo e acertá-lo com Retalhar [Rend] no mesmo turno, o ataque causa dano adicional igual a uma rolagem do seu Dado de Caçador. O alvo deve ser bem-sucedido em um teste de resistência de Força contra a sua CD de Magia ou fica Caído. Sopro Primordial. Escolha ácido, elétrico, fogo, frio, trovejante ou veneno. Uma vez por turno, quando o espírito usaria Retalhar [Rend], ele pode substituir esse ataque por um sopro num Cone de 4,5 metros [15 pés]. Cada criatura na área realiza um teste de resistência de Destreza contra a sua CD de Magia, sofrendo um número de rolagens do seu Dado de Caçador igual ao maior entre os seus modificadores de Inteligência e Sabedoria (mínimo de uma rolagem) em uma falha, ou metade em um sucesso. O dano é do tipo escolhido."
+    },
+    {
+      "id": "082-nivel-3-magias-e-segredos-da-ordem-do-crepusculo",
+      "name": "Magias e Segredos da Ordem do Crepúsculo",
+      "level": 3,
+      "order": "Ordem do Crepúsculo",
+      "text": "Aprendi a vestir a hora incerta como quem veste uma capa. Meus feitiços são de disfarce, névoa e medo, colhidos no instante entre o dia e a noite — magia que não ilumina nada, mas que faz a presa duvidar dos próprios olhos até eu já estar em cima dela. Você tem sempre preparadas as magias a seguir; elas contam como magias de Caçador para você e não contam no seu limite de magias preparadas. Nível de Caçador Magias 3º Disfarçar-se [Disguise Self] Névoa Obscurecente [Fog Cloud] 5º Escuridão [Darkness] Truque da Corda [Rope Trick] 9º Medo [Fear] Indetectabilidade [Nondetection] 13º Mortalha de Sombras [Shadow of Moil] Porta Dimensional [Dimension Door] 17º Modificar Memória [Modify Memory] Aparência [Seeming] Além das magias acima, a Linha Mestra da sua Ordem é a Linha Armadilhas e Emboscadas : você tem sempre preparados todos os Segredos dessa Linha, adquirindo cada um assim que alcança o nível de pré-requisito do Grau correspondente, e eles não contam no seu limite de Segredos preparados."
+    },
+    {
+      "id": "083-nivel-3-cacador-das-sombras",
+      "name": "Caçador das Sombras",
+      "level": 3,
+      "order": "Ordem do Crepúsculo",
+      "text": "Não corro para chegar depois. Já estou lá quando o resto decide que é hora de lutar — no primeiro olhar na direção errada, na primeira sombra que se estica. As trevas não escondem nada de você. Você ganha Visão no Escuro de 18 metros [60 pés] ; se já possuir Visão no Escuro, o alcance dela aumenta em 18 metros [60 pés] . Além disso, você enxerga normalmente através de escuridão, seja ela mágica ou não mágica. Você também aprendeu a golpear no instante exato. Sempre que faz uma Jogada de Iniciativa, você adiciona o seu modificador de Inteligência ou Sabedoria ao resultado (mínimo de +1 ). E, no seu primeiro turno de cada combate, se você usa a ação Atacar, pode fazer um ataque adicional com arma como parte da mesma ação; se esse ataque adicional acertar, causa dano extra igual ao seu nível de Caçador, do mesmo tipo da arma."
+    },
+    {
+      "id": "084-nivel-3-marca-do-crepusculo",
+      "name": "Marca do Crepúsculo",
+      "level": 3,
+      "order": "Ordem do Crepúsculo",
+      "text": "Selo a presa com um fio de trevas, e a partir dali ela caça às cegas — e eu, não. Roubo dela a vantagem dos olhos afiados e da visão que atravessa o escuro, de modo que, na penumbra, sou apenas um vazio de onde os golpes chegam sem aviso. Ao aplicar a sua Marca do Caçador, você embota os sentidos da presa contra você. Enquanto uma criatura estiver sob a sua Marca, ela não pode se beneficiar de Visão no Escuro, Visão Verdadeira nem de visão no escuro mágica para enxergar você. Além disso, enquanto você estiver em Penumbra ou Escuridão, você é considerado Invisível para as criaturas Marcadas."
+    },
+    {
+      "id": "086-nivel-3-magias-e-segredos-da-ordem-do-despertar",
+      "name": "Magias e Segredos da Ordem do Despertar",
+      "level": 3,
+      "order": "Ordem do Despertar",
+      "text": "A fera fere; o caçador também sara. Aprendi a costurar a própria carne tão depressa quanto a rasgo, e por isso os meus feitiços são de cura, vigor e restauração — porque quem solta um monstro por dentro precisa saber, antes de tudo, como remendar o que ele destrói. Você tem sempre preparadas as magias a seguir; elas contam como magias de Caçador para você e não contam no seu limite de magias preparadas. Nível de Caçador Magias 3º Comunhão Ancestral [Ancestral Communion] Golpe Iracundo [Wrathful Smite] 5º Alterar-se [Alter Self] Sentidos Animais [Beast Sense] 9º Corcel Fantasma [Phantom Steed] Pressa [Haste] 13º Dominar Fera [Dominate Beast] Chamado da Natureza [Call of the Wild] 17º Golpe do Vento de Aço [Steel Wind Strike] Despertar [Awaken] Além das magias acima, a Linha Mestra da sua Ordem é a Linha Alquimia e Poções : você tem sempre preparados todos os Segredos dessa Linha, adquirindo cada um assim que alcança o nível de pré-requisito do Grau correspondente, e eles não contam no seu limite de Segredos preparados."
+    },
+    {
+      "id": "087-nivel-3-forma-desperta",
+      "name": "Forma Desperta",
+      "level": 3,
+      "order": "Ordem do Despertar",
+      "text": "Senti os dentes crescerem primeiro, depois o resto veio junto; por um instante o mundo ficou maior, mais nítido, mais simples. Caçar. Só isso. Quando solto a coleira, não é a fera que me domina — sou eu que escolho, por um tempo, olhar o mundo com os olhos dela. Você aprendeu a despertar a fera adormecida em você sob seus próprios termos. Como uma Ação Bônus , você assume uma forma híbrida e monstruosa por até 1 hora. Você reverte à sua forma normal como uma Ação Bônus , e reverte automaticamente se cair inconsciente ou morrer. Você pode fazer isso uma vez , recuperando o uso ao terminar um Descanso Curto ou Descanso Longo. Enquanto estiver transformado, você se beneficia das seguintes características: Pele Resiliente. Você tem Resistência a dano concussivo, perfurante e cortante, seja de ataques mágicos ou não mágicos. Além disso, enquanto não estiver usando armadura pesada nem empunhando um escudo, você recebe +1 na Classe de Armadura. Força Feral. Você tem Vantagem em testes e testes de resistência de Força, e recebe +1 no dano dos seus ataques corpo a corpo. Esse bônus de dano aumenta para +2 no 11º nível de Caçador e para +3 no 18º nível. Golpes Predatórios. As suas presas e garras tornam-se armas mortais. Enquanto não estiver empunhando um escudo, os seus Golpes Desarmados causam uma rolagem do seu Dado de Caçador de dano concussivo ou cortante (à sua escolha) e podem usar Destreza, em vez de Força, nas jogadas de ataque e dano. Como uma Ação Bônus , você pode fazer um Golpe Desarmado; se o alvo estiver sob a sua Marca do Caçador, você faz dois Golpes Desarmados em vez de um. Uivo do Despertar. Como uma Ação Bônus , você gasta 2 Pontos de Segredo e solta um uivo sobrenatural. Cada criatura à sua escolha num raio de 4,5 metros [15 pés] de você faz um teste de resistência de Sabedoria contra a sua CD de Magia ou fica com Desvantagem em jogadas de ataque e em testes de resistência até o início do seu próximo turno. Você pode soltar o Uivo do Despertar no instante em que assume a Forma Desperta, como parte da mesma Ação Bônus da transformação; feito dessa maneira, ele não custa Pontos de Segredo."
+    },
+    {
+      "id": "088-nivel-3-marca-da-cacada-faminta",
+      "name": "Marca da Caçada Faminta",
+      "level": 3,
+      "order": "Ordem do Despertar",
+      "text": "Enquanto a presa respira, a fome não me solta e não me deixa cansar. A coleira só aperta de novo quando o coração dela para. É a caçada que sustenta a fera acordada dentro de mim: enquanto houver algo marcado para abater, o monstro não recua, e eu tampouco recuo com ele. A fome que dorme em você só descansa quando a caçada termina. Enquanto houver uma criatura sob a sua Marca do Caçador, a sua Forma Desperta não conta o tempo de duração: ela não expira por conta própria e dura enquanto você quiser, sem que a hora limite se esgote. Além disso, quando uma criatura sob a sua Marca morre, a fera se sacia por um instante e você recupera um uso gasto da Forma Desperta."
+    },
+    {
+      "id": "090-nivel-3-magias-e-segredos-da-ordem-do-enxame",
+      "name": "Magias e Segredos da Ordem do Enxame",
+      "level": 3,
+      "order": "Ordem do Enxame",
+      "text": "Aprendi a sussurrar na língua das asas e a espalhar o enxame como névoa, teia ou praga. Cada magia dá uma forma diferente à colônia, permitindo que milhares de corpos pequenos ocupem o espaço onde uma única lâmina jamais bastaria. Você tem sempre preparadas as magias a seguir; elas contam como magias de Caçador e não contam no seu limite de magias preparadas. Nível de Caçador Magias 3º Fadafogo [Faerie Fire] Névoa Obscurecente [Fog Cloud] 5º Teia [Web] Passo Brumoso [Misty Step] 9º Forma Gasosa [Gaseous Form] Escudo Cacofônico [Cacophonic Shield] 13º Olho Arcano [Arcane Eye] Confusão [Confusion] 17º Praga de Insetos [Insect Plague] Vínculo Telepático de Rary [Rary's Telepathic Bond] Além das magias acima, a Linha Mestra da sua Ordem é a Linha Alquimia e Poções : você tem sempre preparados todos os Segredos dessa Linha, adquirindo cada um assim que alcança o nível de pré-requisito do Grau correspondente, e eles não contam no seu limite de Segredos preparados."
+    },
+    {
+      "id": "091-nivel-3-enxame-simbiotico",
+      "name": "Enxame Simbiótico",
+      "level": 3,
+      "order": "Ordem do Enxame",
+      "text": "Eles dormem nas dobras da roupa, sob a pele e entre as tiras de couro, nunca como parasitas, mas como sentinelas. Quando acerto a presa e dou o sinal, o chão se move, o ar escurece e a colônia termina o golpe. Você abriga um enxame de espíritos da natureza ou criaturas Minúsculas, como insetos, roedores ou aves. O enxame ocupa o seu espaço, move-se com você e permanece intangível para outras criaturas até ser comandado. Uma vez em cada um dos seus turnos, imediatamente depois de acertar uma criatura com uma jogada de ataque, você pode comandar o enxame. O ataque causa dano adicional igual a uma rolagem do seu Dado de Caçador, e você escolhe um dos efeitos a seguir: Enxame Enfraquecedor. O alvo tem Desvantagem na próxima jogada de ataque que realizar antes do início do seu próximo turno. Se esse ataque ainda acertar, ele reduz o dano causado em uma quantidade igual a uma rolagem do seu Dado de Caçador. Força dos Muitos. O alvo deve ser bem-sucedido em um teste de resistência de Força contra a sua CD de Magia ou é empurrado 4,5 metros [15 pés]. Passo da Colônia. Você se move horizontalmente até 1,5 metro [5 pés] para um espaço desocupado. Esse movimento não provoca Ataques de Oportunidade. Subjugação da Horda. O alvo deve ser bem-sucedido em um teste de resistência de Força contra a sua CD de Magia. Em uma falha, o deslocamento dele é reduzido à metade e ele não pode realizar Ataques de Oportunidade até o início do seu próximo turno."
+    },
+    {
+      "id": "092-nivel-3-simbiose-do-enxame",
+      "name": "Simbiose do Enxame",
+      "level": 3,
+      "order": "Ordem do Enxame",
+      "text": "Com o tempo, deixei de pensar neles como meu enxame e passei a pensar em nós. Se escalo, milhares de patas encontram apoio; se descanso, centenas de olhos permanecem abertos; se estendo a mão, a colônia alcança primeiro. Seu corpo e o enxame passam a operar por meio de uma consciência compartilhada, concedendo os benefícios a seguir: Enxame Arcano. Você aprende o truque Mãos Mágicas [Mage Hand]. Ele conta como uma magia de Caçador para você e, quando o conjura, a mão assume a forma de uma porção do enxame. Sentidos Coletivos. Você não pode ser Surpreendido enquanto não estiver Inconsciente. Escalada Orgânica. Você ganha deslocamento de escalada igual ao seu deslocamento de caminhada. Pode atravessar superfícies verticais e tetos sem realizar testes de habilidade, desde que tenha ao menos uma mão livre. Queda Amortecida. Você está sempre sob o efeito da magia Queda Suave [Feather Fall], sem precisar conjurá-la ou manter Concentração."
+    },
+    {
+      "id": "094-nivel-3-magias-e-segredos-da-ordem-dos-exorcistas",
+      "name": "Magias e Segredos da Ordem dos Exorcistas",
+      "level": 3,
+      "order": "Ordem dos Exorcistas",
+      "text": "Sussurre o nome certo, e até o túmulo escuta. Meus feitiços detectam o mal, silenciam a cripta, falam com os mortos e banem o que não pertence a este lado — palavras de ofício que Cessira ensinou aos que aceitaram vigiar a fronteira entre os vivos e os que já morreram. Você tem sempre preparadas as magias a seguir; elas contam como magias de Caçador para você e não contam no seu limite de magias preparadas. Nível de Caçador Magias 3º Detectar Mal e Bem [Detect Evil and Good] Proteção contra o Mal e o Bem [Protection from Evil and Good] 5º Silêncio [Silence] Ver Invisíveis [See Invisibility] 9º Remover Maldição [Remove Curse] Corcel Fantasmagórico [Phantom Steed] 13º Banimento [Banishment] Assassino Fantasmagórico [Phantasmal Killer] 17º Solo Sepulcral [Grave Ground] Dissipar o Mal e o Bem [Dispel Evil and Good] Além das magias acima, a Linha Mestra da sua Ordem é a Linha Conhecimentos Ancestrais (Sinais) : você tem sempre preparados todos os Segredos dessa Linha, adquirindo cada um assim que alcança o nível de pré-requisito do Grau correspondente, e eles não contam no seu limite de Segredos preparados."
+    },
+    {
+      "id": "095-nivel-3-lanterna-do-veu",
+      "name": "Lanterna do Véu",
+      "level": 3,
+      "order": "Ordem dos Exorcistas",
+      "text": "Acendo a lanterna não para enxergar, mas para que eles saibam que eu enxergo. A minha luz revela o que rasteja invisível, cospe fogo sobre os mortos e reencena o último suspiro de um cadáver — é distintivo, arma e testemunha, tudo forjado no mesmo vidro consagrado. Você porta a sua Lanterna do Véu, o implemento sagrado que é a marca do seu ofício — assim chamada qualquer que seja a forma que ela assuma. Você ganha proficiência com Ferramentas de Exorcista e usa a lanterna como um foco de conjuração para as suas magias de Caçador. Mais que isso, você canaliza os seus Segredos do Caçador através dela: não precisa carregar os reagentes, as ferramentas e os focos que eles exigiriam, pois a lanterna os manifesta em formas espectrais no instante em que você os usa. Assim, uma Granada de Luz floresce como uma esfera de luz fria erguida pela chama da lanterna; uma Rede de Enrosco Rápido tece-se no ar em fios fantasmagóricos; um Sinal arde diante de você como um glifo de fogo azul. O efeito mecânico dos seus Segredos não muda — apenas a forma com que se manifestam. Como uma Ação Bônus , você ajusta a lanterna para que ela ilumine intensamente um raio de 1,5 a 6 metros [5 a 20 pés] e fracamente o dobro dessa distância, ou para apagá-la por completo. Enquanto a segura, você pode usar uma Ação e uma palavra de comando: se houver mortos-vivos a até 18 metros [60 pés] de você que não estejam sob cobertura total, a chama pisca em vermelho antes de voltar ao seu brilho. E, tocando a lanterna a um cadáver Grande ou menor, você faz surgir uma imagem espectral azulada que reencena em silêncio os últimos 6 segundos da vida consciente da criatura — apenas as ações dela, não a causa. Isso não afeta mortos-vivos, e cada cadáver só pode ser revelado uma vez. Você determina a forma da sua lanterna rolando na tabela a seguir ou escolhendo uma. Se a perder, pode realizar uma cerimônia de 1 hora durante um Descanso Curto ou Longo para criar magicamente uma substituta, o que destrói a anterior. 1d6 Forma da Lanterna do Véu 1 Uma lanterna de furta-fogo de ferro enegrecido, com o vidro defumado. 2 Um turíbulo de bronze que balança preso a correntes, exalando fumaça de incenso. 3 Um crânio polido, com uma chama fria ardendo nas órbitas. 4 Um relicário de prata guardando um fragmento de osso que brilha por dentro. 5 Uma vela votiva grossa sobre um castiçal retorcido, cuja chama nunca se apaga. 6 Um fogo-fátuo aprisionado dentro de um frasco de vidro grosso."
+    },
+    {
+      "id": "096-nivel-3-marca-mortuaria",
+      "name": "Marca Mortuária",
+      "level": 3,
+      "order": "Ordem dos Exorcistas",
+      "text": "Selada a presa, não há regaço, nem sombra, nem fuga — só a conta a pagar. Prendo a criatura ao limiar entre os mundos, e a partir dali ela não escorrega para o Etéreo nem se esconde na invisibilidade; carrega a minha marca como quem carrega a própria sentença. Ao aplicar a Marca do Caçador, você escolhe radiante ou frio : o dano da sua Marca passa a ser desse tipo enquanto ela durar. Você sempre sabe se a criatura Marcada está Sangrando , e quando você lhe causa o dano da Marca enquanto ela está Sangrando, ela sofre dano adicional igual ao seu Bônus de Proficiência , do mesmo tipo escolhido. Além disso, a Marca prende a presa ao limiar entre os mundos: enquanto estiver Marcada, a criatura não pode usar movimento incorpóreo, ficar Invisível ou entrar no Plano Etéreo; e, caso a criatura seja um Morto-Vivo, ela também não pode recuperar Pontos de Vida por meios sobrenaturais das próprias características, nem usar a ação Desengajar (Disengage)."
+    },
+    {
+      "id": "098-nivel-3-magias-e-segredos-da-ordem-dos-exterminadores",
+      "name": "Magias e Segredos da Ordem dos Exterminadores",
+      "level": 3,
+      "order": "Ordem dos Exterminadores",
+      "text": "Antes de escolher a arma, registro quais ritos alcançam a presa. Magia bem preparada não substitui aço nem pólvora, mas abre a guarda certa e impede que um monstro transforme uma vantagem sobrenatural em sentença de morte. Você tem sempre preparadas as magias a seguir; elas contam como magias de Caçador para você e não contam no seu limite de magias preparadas. Nível de Caçador Magias 3º Detectar Magia [Detect Magic] Detectar Venenos e Doenças [Detect Poison and Disease] 5º Ver o Invisível [See Invisibility] Detectar Pensamentos [Detect Thoughts] 9º Dissipar Magia [Dispel Magic] Proteção contra o Profano [Crooked Ward] 13º Adivinhação [Divination] Localizar Criatura [Locate Creature] 17º Imobilizar Monstro [Hold Monster] Saber Lendário [Legend Lore] Além das magias acima, a Linha Mestra da sua Ordem é a Linha Armadilhas e Emboscadas : você tem sempre preparados todos os Segredos dessa Linha, adquirindo cada um assim que alcança o nível de pré-requisito do Grau correspondente, e eles não contam no seu limite de Segredos preparados."
+    },
+    {
+      "id": "099-nivel-3-ferramentas-do-algoz",
+      "name": "Ferramentas do Algoz",
+      "level": 3,
+      "order": "Ordem dos Exterminadores",
+      "text": "Antes do primeiro golpe, observo o que a marca revela; depois dele, observo o que a dor confirma. Uma defesa catalogada deixa de ser surpresa, e uma presa ferida oferece exatamente a abertura que meu próximo ataque precisa. Inquisição. Imediatamente após aplicar sua Marca do Caçador a uma criatura, você descobre as Imunidades, Resistências e Vulnerabilidades a dano dela, além de suas imunidades a condições. Punição. Uma vez por turno, quando acerta uma Presa Marcada que não esteja com todos os Pontos de Vida, você causa dano adicional igual a uma rolagem do seu Dado de Caçador."
+    },
+    {
+      "id": "100-nivel-3-perseguidor-longinquo",
+      "name": "Perseguidor Longínquo",
+      "level": 3,
+      "order": "Ordem dos Exterminadores",
+      "text": "Dez minutos num rastro dizem mais do que dez horas correndo às cegas. Sangue, testemunhas, resíduos e hábitos formam um retrato; quando a terceira peça encaixa, já não preciso enxergar a presa para marcá-la. Marca Antecipada. Depois de passar 10 minutos investigando um local e reunir ao menos três pistas diferentes sobre uma criatura específica, você pode usar uma Ação Bônus para aplicar sua Marca do Caçador a ela sem precisar vê-la, desde que conheça o tipo da criatura e ela esteja no mesmo plano a até 8 quilômetros [5 milhas]. O uso da Marca é gasto normalmente. Se o alvo estiver fora do alcance ou em outro plano, a Marca falha e você percebe que o rastro esfriou. Olhar Treinado. Enquanto uma criatura estiver sob sua Marca, você tem Vantagem em testes de Inteligência (Arcanismo, História, Natureza ou Religião) para recordar informações sobre sua origem, seus hábitos e seus poderes. Isso não revela identidades secretas, nomes verdadeiros ou planos ocultos."
+    },
+    {
+      "id": "102-nivel-3-magias-e-segredos-da-ordem-dos-mutantes",
+      "name": "Magias e Segredos da Ordem dos Mutantes",
+      "level": 3,
+      "order": "Ordem dos Mutantes",
+      "text": "Antes de escolher a arma, registro quais ritos alcançam a presa. Magia bem preparada não substitui aço nem pólvora, mas abre a guarda certa e impede que um monstro transforme uma vantagem sobrenatural em sentença de morte. Você tem sempre preparadas as magias a seguir; elas contam como magias de Caçador para você e não contam no seu limite de magias preparadas. Nível de Caçador Magias 3º Salto [Jump] Absorver Elementos [Absorb Elements] 5º Alterar-se [Alter Self] Crescer e Encolher [Enlarge/Reduce] 9º Pressa [Haste] Proteção contra Energia [Protection from Energy] 13º Polimorfia [Polymorph] Liberdade de Movimento [Freedom of Movement] 17º Imobilizar Monstro [Hold Monster] Reencarnar [Reincarnate] Além das magias acima, a Linha Mestra da sua Ordem é a Linha Alquimia e Poções : você tem sempre preparados todos os Segredos dessa Linha, adquirindo cada um assim que alcança o nível de pré-requisito do Grau correspondente, e eles não contam no seu limite de Segredos preparados."
+    },
+    {
+      "id": "103-nivel-3-fisiologia-mutante",
+      "name": "Fisiologia Mutante",
+      "level": 3,
+      "order": "Ordem dos Mutantes",
+      "text": "Meu sangue já recebeu toxinas suficientes para reconhecer veneno como matéria-prima. O corpo ficou mais pesado, resistente e difícil de matar; não foi uma bênção, apenas o resultado inevitável de sobreviver ao laboratório tantas vezes. Seu máximo de Pontos de Vida aumenta em uma quantidade igual ao seu nível de Caçador. Sempre que você ganha outro nível nesta classe, esse máximo aumenta em 1 adicional. Além disso, você ganha Resistência a dano de veneno e imunidade à condição Envenenado."
+    },
+    {
+      "id": "104-nivel-3-formulas-mutagenicas",
+      "name": "Fórmulas Mutagênicas",
+      "level": 3,
+      "order": "Ordem dos Mutantes",
+      "text": "Toda fórmula tem duas colunas no meu diário: o que ela concede e o que ela cobra. Quem registra apenas a primeira termina morto, deformado ou pior; eu sobrevivi porque nunca esqueço de ler a segunda. Você aprende a produzir fórmulas que alteram o seu organismo. Cada fórmula apresentada a seguir possui um Efeito Benéfico e um Efeito Colateral, que são aplicados simultaneamente quando o mutagênico é consumido. Fórmulas Conhecidas. Você aprende quatro Fórmulas Mutagênicas desta característica. Você aprende uma fórmula adicional ao alcançar o 7º, 11º, 15º e 18º nível de Caçador. Sempre que aprender uma nova fórmula, pode substituir uma fórmula que conhece por outra desta lista. Preparação. Ao terminar um Descanso Curto ou Longo, você pode usar seus Suprimentos de Alquimista para preparar mutagênicos das fórmulas que conhece. Os frascos permanecem potentes até o início do seu próximo Descanso Curto ou Longo, quando qualquer frasco não utilizado se torna inerte. Limite Mutagênico. O número máximo de frascos que você pode manter preparados e de mutagênicos que podem afetá-lo simultaneamente é determinado pelo seu nível de Caçador: um no 3º nível, dois no 7º nível e três no 15º nível. Consumo e Ativação. Como uma Ação Bônus , você pode consumir ou injetar um mutagênico preparado, recebendo imediatamente o Efeito Benéfico e o Efeito Colateral da fórmula. Duração e Purgação. Os efeitos de um mutagênico duram até você iniciar um Descanso Curto ou Longo. Você também pode usar uma Ação para purgar as toxinas do seu organismo, encerrando todos os Efeitos Benéficos e Colaterais dos mutagênicos ativos em você. Toxicidade Específica. Seus mutagênicos são calibrados para a sua biologia. Outra criatura que consumir um deles não recebe o Efeito Benéfico e deve ser bem-sucedida em um teste de resistência de Constituição contra a CD dos seus Segredos ou fica Envenenada por 1 hora. Carapaça de Basilisco (requer 7º nível) Você ganha Resistência a dano cortante, perfurante e concussivo. Você não pode realizar a ação Esquivar e seu deslocamento é reduzido em 3 metros [10 pés]. Kraken Onisciente Sua Inteligência e o máximo desse atributo aumentam em 3. Esse aumento passa a 4 no 11º nível e a 5 no 18º nível, até o máximo de 22. Sua Sabedoria é reduzida em 3. Esfinge Visionária Sua Sabedoria e o máximo desse atributo aumentam em 3. Esse aumento passa a 4 no 11º nível e a 5 no 18º nível, até o máximo de 22. Sua Inteligência é reduzida em 3. Salamandra Ígnea Você ganha Resistência a dano de fogo e Vulnerabilidade a dano de frio. Raptor Sombrio Sua Destreza e o máximo desse atributo aumentam em 3. Esse aumento passa a 4 no 11º nível e a 5 no 18º nível, até o máximo de 22. Sua Força é reduzida em 3. Yeti Boreal Você ganha Resistência a dano de frio e Vulnerabilidade a dano de fogo. Vermeluz das Cavernas Você fica imune às condições Agarrado e Restringido. Você tem Desvantagem em testes de Força e não pode Agarrar criaturas. Morcego Abissal Você ganha Visão no Escuro de 18 metros [60 pés]. Se já a possuir, o alcance aumenta em 18 metros [60 pés]. Sob luz plena, você tem Desvantagem em testes de habilidade e jogadas de ataque. Lobo Alfa Você tem Vantagem em testes de Sabedoria (Percepção) baseados em audição, olfato ou visão e Desvantagem em testes de Carisma (Atuação, Enganação, Intimidação ou Persuasão). Górgona Prateada Sua Força e o máximo desse atributo aumentam em 3. Esse aumento passa a 4 no 11º nível e a 5 no 18º nível, até o máximo de 22. Sua Destreza é reduzida em 3. Guepardo das Planícies Seu deslocamento aumenta em 3 metros [10 pés], ou em 4,5 metros [15 pés] a partir do 15º nível. Você tem Desvantagem em testes de Inteligência e não pode manter Concentração em magias ou rituais. Camaleão Espectral Você pode usar seu modificador de Inteligência ou Sabedoria em testes de Carisma. Você tem Desvantagem em rolagens de Iniciativa. Lagartixa-Cicatrizante (requer 7º nível) Durante 1 hora, no início de cada um dos seus turnos, você recupera Pontos de Vida iguais ao seu Bônus de Proficiência se tiver ao menos 1 Ponto de Vida. Toda cura recebida de outra criatura tem seu valor reduzido à metade. Manticora Raivosa (requer 11º nível) Quando realiza a ação Atacar, você pode fazer um ataque adicional como uma Ação Bônus. Você tem Desvantagem em testes de resistência de Inteligência, Sabedoria e Carisma. Harpia das Montanhas (requer 11º nível) Durante 1 hora, você ganha deslocamento de voo igual ao seu deslocamento. Pela mesma duração, você tem Desvantagem em jogadas de ataque com armas. Quimera do Caos (requer 11º nível) Seus ataques com armas obtêm um acerto crítico com resultados 19 ou 20 no d20. Você tem Desvantagem em testes de resistência contra efeitos mentais, incluindo medo e encantamento."
+    },
+    {
+      "id": "122-nivel-3-magias-e-segredos-da-ordem-dos-viajantes-primordiais",
+      "name": "Magias e Segredos da Ordem dos Viajantes Primordiais",
+      "level": 3,
+      "order": "Ordem dos Viajantes Primordiais",
+      "text": "Antes de escolher a arma, registro quais ritos alcançam a presa. Magia bem preparada não substitui aço nem pólvora, mas abre a guarda certa e impede que um monstro transforme uma vantagem sobrenatural em sentença de morte. Você tem sempre preparadas as magias a seguir; elas contam como magias de Caçador para você e não contam no seu limite de magias preparadas. Nível de Caçador Magias 3º Proteção contra o Mal e o Bem [Protection from Evil and Good] Detectar o Mal e o Bem [Detect Evil and Good] 5º Passo Brumoso [Misty Step] Ver Invisíveis [See Invisibility] 9º Pressa [Haste] Piscar [Blink] 13º Banimento [Banishment] Porta Dimensional [Dimension Door] 17º Círculo de Teletransporte [Teleportation Circle] Destruição Banidora [Banishing Smite] Além das magias acima, a Linha Mestra da sua Ordem é a Linha Conhecimentos Ancestrais (Sinais) : você tem sempre preparados todos os Segredos dessa Linha, adquirindo cada um assim que alcança o nível de pré-requisito do Grau correspondente, e eles não contam no seu limite de Segredos preparados."
+    },
+    {
+      "id": "123-nivel-3-marca-do-guardiao",
+      "name": "Marca do Guardião",
+      "level": 3,
+      "order": "Ordem dos Viajantes Primordiais",
+      "text": "Uma boa marca não aponta apenas onde a presa está; ela transforma a própria fuga em caminho. Gravei o sinal na criatura e senti cada portal que ela tocou, como passos pesados percorrendo as raízes do Teixo. Quando aplica a sua Marca do Caçador, a criatura se torna uma Runa de Travessia viva. Enquanto estiver no mesmo plano que você, ela pode servir como destino para Passo Rúnico e Salto Direto a qualquer distância, levando você a um espaço desocupado a até 3 metros [10 pés] dela. Quando acerta a Presa Marcada com um ataque, você pode transformar em dano de Energia tanto o dano do ataque quanto o dano adicional da Marca do Caçador. Você também conhece sempre a direção da Presa Marcada, percebe imediatamente quando ela atravessa um portal ou muda de plano e sente portais e fendas planares ativos a até 1,5 quilômetro [1 milha]."
+    },
+    {
+      "id": "124-nivel-3-runas-de-travessia",
+      "name": "Runas de Travessia",
+      "level": 3,
+      "order": "Ordem dos Viajantes Primordiais",
+      "text": "As fadas ensinaram que distância é apenas um acordo entre dois lugares. Minhas runas quebram esse acordo por um instante, tempo bastante para que uma lâmina, uma flecha ou o próprio caçador apareça onde a presa não esperava. Como uma Ação Bônus, você cria uma Runa de Travessia em um espaço ou objeto que possa ver a até 9 metros [30 pés]. A runa é visível apenas para você, e você pode manter até duas runas ao mesmo tempo; ao criar uma terceira, a mais antiga desaparece. Passo Rúnico. Ao realizar a ação Atacar, imediatamente antes de uma jogada de ataque, você pode se teleportar para um espaço desocupado a até 3 metros [10 pés] de uma runa que possa ver. A próxima criatura que você acertar neste turno sofre dano adicional de Energia igual a uma rolagem do seu Dado de Caçador. Uma criatura só pode sofrer esse dano uma vez por turno. Salto Direto. Como uma Ação Bônus, você se teleporta para um espaço desocupado a até 3 metros [10 pés] de uma runa que possa ver. Arremesso Cintilante. Depois de resolver um ataque que arremesse uma arma ou dispare uma munição, você pode se teleportar para um espaço desocupado a até 3 metros [10 pés] do ponto onde o projétil parou. Nenhum desses teleportes pode atravessar mais de 9 metros [30 pés], independentemente da distância até a runa."
+    },
+    {
+      "id": "125-nivel-3-instinto-de-cacador",
+      "name": "Instinto de Caçador",
+      "level": 3,
+      "order": "",
+      "text": "A sabedoria que carrego não enfeita conversa; ela me mantém vivo. Anotei cedo no diário que saber uma coisa a fundo vale mais do que saber cem pela metade, então escolhi um punhado de ofícios e afiei cada um até virarem segunda natureza, tão certos quanto respirar. Escolha uma perícia baseada em Inteligência ou Sabedoria com a qual você seja proficiente. Seu bônus de proficiência é dobrado em qualquer teste de habilidade que você faça com aquela perícia. Você escolhe uma perícia adicional para este efeito ao alcançar o 9º nível."
+    },
+    {
+      "id": "126-nivel-4-aprimoramento-de-atributo-ou-talento",
+      "name": "Aprimoramento de Atributo ou Talento",
+      "level": 4,
+      "order": "",
+      "text": "Treinar não é polir espelhos; é engrossar a madeira do arco que me sustenta. Anoto cada sessão como quem corta lenha, sem pressa e sem vaidade, porque é o esforço repetido, e não o talento súbito, que aguenta o peso quando a caçada aperta de verdade contra mim. Você pode aumentar um valor de atributo em 2 , ou dois valores de atributo em 1 cada, até o máximo de 20 ; ou então escolher um Talento para o qual cumpra os pré-requisitos. Você ganha esta característica novamente nos níveis 8 , 12 , 16 e 19 ."
+    },
+    {
+      "id": "127-nivel-5-ataque-extra",
+      "name": "Ataque Extra",
+      "level": 5,
+      "order": "",
+      "text": "Onde antes eu acertava um golpe, hoje desfecho dois antes que a presa entenda o primeiro. A trilha me ensinou que uma única lâmina raramente basta contra o que persigo, então treinei o braço até o segundo ataque nascer do primeiro sozinho, sem que eu precise sequer pensar. Você pode atacar duas vezes, em vez de uma, sempre que usar a ação Atacar (Attack) no seu turno."
+    },
+    {
+      "id": "128-nivel-5-territorio-de-caca",
+      "name": "Território de Caça",
+      "level": 5,
+      "order": "",
+      "text": "Onde eu piso já não é território deles; é meu. Aprendi a ler cada floresta, montanha ou beco como se eu mesmo tivesse desenhado o mapa: sei onde a água corre, onde o vento entrega o cheiro e por onde a presa vai tentar escapar antes de falhar. Você se tornou exímio em transformar qualquer ambiente em terreno familiar. A partir do 5º nível, você ganha os benefícios a seguir enquanto estiver explorando ambientes naturais ou urbanos selvagens, como florestas, montanhas, pântanos, desertos, subterrâneos e ruínas: Movimento Desimpedido. O terreno difícil não mágico não reduz a sua velocidade nem a dos seus companheiros enquanto você os guia. Senso de Direção. Você nunca se perde por meios não mágicos. Vigilância Constante. Mesmo quando ocupado com outra atividade, como ler, cozinhar ou conversar, você permanece atento e não pode ser pego desprevenido enquanto estiver consciente, mesmo durante um Descanso Curto. Passos Silenciosos. Quando está sozinho, você pode mover-se em ritmo normal sem deixar rastros e em silêncio. Abundância. Ao forragear ou caçar para alimentar o grupo, você encontra o dobro do que normalmente encontraria. Rastreador Analítico. Ao examinar trilhas, você determina automaticamente o número aproximado de criaturas, o tamanho delas e há quanto tempo passaram."
+    },
+    {
+      "id": "129-nivel-6-habilidade-da-ordem",
+      "name": "Habilidade da Ordem",
+      "level": 6,
+      "order": "",
+      "text": "Com o tempo, o rito aprofunda e a marca cresce junto comigo; o que antes era um sussurro vira costume, e o costume vira instinto. Anoto cada camada nova como quem conta um anel no tronco: prova silenciosa de que a Ordem já não é uma escolha, e sim parte de mim. Você ganha a característica de 6º nível concedida pela sua Ordem do Caçador, a tradição que você escolheu no 3º nível. As opções estão descritas a seguir, em spoilers. Ordem da Aliança Selvagem Ordem do Crepúsculo Ordem do Despertar Ordem do Enxame Ordem dos Exorcistas Ordem dos Exterminadores Ordem dos Mutantes Ordem dos Viajantes Primordiais"
+    },
+    {
+      "id": "131-nivel-6-elo-de-caca",
+      "name": "Elo de Caça",
+      "level": 6,
+      "order": "Ordem da Aliança Selvagem",
+      "text": "Não preciso chamá-lo. Ele sente quando estou pronto para o golpe e se move antes que a palavra deixe minha boca. Há uma linha invisível entre nós, tecida de rastros, silêncios e caçadas partilhadas, que conduz cada movimento. A sua conexão com o espírito transcende comandos verbais, concedendo os benefícios a seguir: Instinto Compartilhado. Enquanto puder ver você, o espírito tem Vantagem em todos os testes de resistência. Ataque Coordenado. Quando usa a ação Atacar no seu turno, você pode substituir um dos seus ataques para usar Comando, sem gastar uma Ação Bônus."
+    },
+    {
+      "id": "133-nivel-6-reflexos-das-sombras",
+      "name": "Reflexos das Sombras",
+      "level": 6,
+      "order": "Ordem do Crepúsculo",
+      "text": "No escuro, quem hesita morre. Aprendi a me mover antes de pensar, o corpo já sabendo onde o golpe não vai me encontrar. Passei tantas noites caçando na penumbra que o instinto tomou o lugar da razão, e hoje esquivo do perigo um instante antes de ele existir. Uma vida caçando na penumbra afiou os seus reflexos além do normal. Você ganha proficiência em testes de resistência de Destreza. Se você já tiver essa proficiência, em vez disso ganha proficiência em testes de resistência de Força ou Constituição, à sua escolha."
+    },
+    {
+      "id": "135-nivel-6-vigor-da-fera",
+      "name": "Vigor da Fera",
+      "level": 6,
+      "order": "Ordem do Despertar",
+      "text": "Quanto mais sangro, mais a fera acorda, e ela cura o que o homem não aguentaria. Cada ferida só me deixa mais difícil de derrubar, porque a dor que abateria outro caçador é justamente o que desperta em mim a vitalidade monstruosa que fecha a carne no meio da luta. A vitalidade monstruosa flui mais forte em você. O seu deslocamento aumenta em 3 metros [10 pés] e a distância dos seus saltos aumenta em mais 3 metros [10 pés] . Você também pode usar o seu modificador de Destreza no lugar do de Força em testes de Atletismo, e o seu modificador de Força no lugar do de Destreza em testes de Acrobacia. Além disso, uma vez por turno, ao acertar um ataque enquanto estiver transformado e Sangrando , você recupera 1d10 + o seu modificador de Inteligência ou Sabedoria em Pontos de Vida."
+    },
+    {
+      "id": "137-nivel-6-instinto-coletivo",
+      "name": "Instinto Coletivo",
+      "level": 6,
+      "order": "Ordem do Enxame",
+      "text": "Certa vez pensei ter sido rápido o bastante para evitar uma flecha, até perceber que eles se moveram antes de mim. Desde então, já não sei onde termina o meu reflexo e começa o instinto de milhares de criaturas empenhadas em nos manter vivos. O enxame passa a agir por instinto para preservar você e as criaturas próximas, concedendo os benefícios a seguir: Barreira Viva. Uma vez por turno, quando você sofre dano, compare o dano total com o seu nível de Caçador + seu modificador de Inteligência ou Sabedoria, à sua escolha (mínimo de +1). Se o dano for igual ou menor que esse valor, ele é reduzido a 0. Caso seja maior, você sofre todo o dano. Resposta Instintiva. Quando uma criatura que você possa ver a até 9 metros [30 pés] faz uma jogada de ataque contra você ou contra um aliado a até 1,5 metro [5 pés] de você, você pode usar sua Reação para impor Desvantagem à jogada. Você também pode mover o alvo do ataque até 1,5 metro [5 pés] para um espaço desocupado. Esse movimento não provoca Ataques de Oportunidade. Você pode usar Resposta Instintiva um número de vezes igual ao seu modificador de Inteligência ou Sabedoria (mínimo de uma vez), recuperando todos os usos gastos ao terminar um Descanso Curto ou Longo."
+    },
+    {
+      "id": "139-nivel-6-forma-do-ceifador",
+      "name": "Forma do Ceifador",
+      "level": 6,
+      "order": "Ordem dos Exorcistas",
+      "text": "Quando me visto de fantasma, a morte não sabe mais por onde me pegar. Torno-me semi-incorpóreo, frio como a Penumbra, atravessando parede e criatura como se o peso do corpo fosse coisa opcional — e caço à vontade num estado que a própria morte hesita em tocar. Como uma Ação Bônus , você adota uma forma espectral e ceifadora por 1 minuto. Enquanto durar, você tem Resistência a dano necrótico e frio, e torna-se semi-incorpóreo: pode mover-se através de criaturas e objetos (sofrendo 1d10 de dano de força se terminar o turno dentro de um objeto) e fica imune às condições Agarrado , Caído e Restringido . Você adota esta forma uma vez de graça, recuperando o uso ao terminar um Descanso Longo; depois disso, pode adotá-la novamente gastando 2 Pontos de Segredo ou um espaço de magia de 2º Círculo ou superior ."
+    },
+    {
+      "id": "141-nivel-6-contramedidas-protetivas",
+      "name": "Contramedidas Protetivas",
+      "level": 6,
+      "order": "Ordem dos Exterminadores",
+      "text": "Conhecer a presa serve tanto para feri-la quanto para sobreviver a ela. Depois de registrar o alcance, o veneno e o padrão de impacto, até o ataque mais brutal perde parte da surpresa que o tornava mortal. Escolha Inteligência ou Sabedoria ao obter esta característica. Você adiciona o modificador do atributo escolhido aos testes de resistência provocados por seus Inimigos Favoritos. Além disso, sempre que sofre dano causado por um Inimigo Favorito, reduz esse dano em uma quantidade igual ao mesmo modificador (mínimo de 1)."
+    },
+    {
+      "id": "143-nivel-6-supressao-alquimica",
+      "name": "Supressão Alquímica",
+      "level": 6,
+      "order": "Ordem dos Mutantes",
+      "text": "Há um instante, depois que o mutagênico entra no sangue, em que a dor ainda pode ser separada do poder. Treinei meu corpo para encontrar esse intervalo e mantê-lo aberto enquanto a caçada exige precisão. Você ganha imunidade a dano de veneno. Enquanto estiver sob o efeito de ao menos um mutagênico, pode usar uma Ação Bônus para escolher um deles e suprimir seu Efeito Colateral por 1 minuto, mantendo o Efeito Benéfico. O mutagênico continua ativo para determinar o seu limite de toxicidade. Depois de usar esta característica, você não pode usá-la novamente até terminar um Descanso Longo, a menos que gaste 2 Pontos de Segredo para recuperar o uso."
+    },
+    {
+      "id": "145-nivel-6-ruptura-do-selo",
+      "name": "Ruptura do Selo",
+      "level": 6,
+      "order": "Ordem dos Viajantes Primordiais",
+      "text": "Quando o golpe alcança meu corpo, abro uma fissura estreita no caminho dele. Parte do impacto se perde entre os mundos; se não restar nada, fecho a passagem apontada para outra presa. Quando uma Presa Marcada ou um Inimigo Favorito acerta você com um ataque, você pode usar sua Reação para reduzir o dano em 1d10 + seu modificador de Inteligência ou Sabedoria + seu nível de Caçador. Retaliação Planar. Se o dano for reduzido a 0, escolha uma criatura hostil que possa ver a até 18 metros [60 pés]. Ela deve realizar um teste de resistência de Destreza contra a sua CD de Magia, sofrendo duas rolagens do seu Dado de Caçador de dano de Energia em uma falha, ou metade em um sucesso. Você pode usar esta característica um número de vezes igual ao seu modificador de Inteligência ou Sabedoria (mínimo de uma vez), recuperando todos os usos ao terminar um Descanso Longo."
+    },
+    {
+      "id": "146-nivel-7-cacador-implacavel",
+      "name": "Caçador Implacável",
+      "level": 7,
+      "order": "",
+      "text": "Quem corre comigo cansa; quem foge de mim cansa duas vezes. Aprendi a mover o corpo como água em correnteza — se a presa dispara, aperto o passo; se ela escala, acho onde pôr a mão — porque não existe longe demais, só distância que ainda não foi fechada. Sua mobilidade e resistência se aprimoram: Passo Alongado. Sua velocidade de caminhada aumenta em 3 metros [10 pés] . Mobilidade Adaptada. Você ganha velocidade de escalada e de natação iguais à sua velocidade de caminhada. Disparada Veloz. Você pode usar a ação Disparar (Dash) como uma Ação Bônus."
+    },
+    {
+      "id": "147-nivel-8-aprimoramento-de-atributo-ou-talento",
+      "name": "Aprimoramento de Atributo ou Talento",
+      "level": 8,
+      "order": "",
+      "text": "Fio a corda, ajusto a mira, fortaleço o braço; cada ajuste pavimenta outro centímetro de poder. Anoto no diário que não busco atalhos nem prodígios, mas o hábito teimoso de melhorar um dedo por vez, até a estrada adiante ficar larga o bastante para eu correr sem tropeçar. Você ganha a característica Aprimoramento de Atributo ou Talento , conforme descrito no 4º nível."
+    },
+    {
+      "id": "148-nivel-9-instinto-afiado",
+      "name": "Instinto Afiado",
+      "level": 9,
+      "order": "",
+      "text": "Minha mente vigia o que meu corpo não vê chegar. Percebi na pele que a caçada não se ganha só com as pernas: quando a dor pesa, é a cabeça que decide se eu caio ou continuo, então aprendi a deixá-la comandar o resto sempre que os sentidos falham. Sua mente afiada protege seu corpo. Você adiciona o seu modificador de Inteligência ou Sabedoria, o que for sua habilidade de conjuração, aos seus testes de resistência de Força, Destreza e Constituição. Você também ganha uma perícia adicional afetada pelo Instinto de Caçador do 3º nível."
+    },
+    {
+      "id": "149-nivel-10-habilidade-da-ordem",
+      "name": "Habilidade da Ordem",
+      "level": 10,
+      "order": "",
+      "text": "O rito afunda até o osso: aquilo que eu antes chamava em grito agora atende até no silêncio. Anoto que a minha trilha deixou de ser decisão do momento e virou marca de nascença — carrego o caminho por dentro, aonde quer que a caçada resolva me levar dessa vez. Você ganha a característica de 10º nível concedida pela sua Ordem do Caçador, a tradição que você escolheu no 3º nível. As opções estão descritas a seguir, em spoilers. Ordem da Aliança Selvagem Ordem do Crepúsculo Ordem do Despertar Ordem do Enxame Ordem dos Exorcistas Ordem dos Exterminadores Ordem dos Mutantes Ordem dos Viajantes Primordiais"
+    },
+    {
+      "id": "151-nivel-10-assalto-coordenado",
+      "name": "Assalto Coordenado",
+      "level": 10,
+      "order": "Ordem da Aliança Selvagem",
+      "text": "Um só golpe já não basta. Aprendemos a atacar no mesmo instante, de modo que a presa nunca sabe de qual lado virá o próximo dente. Quando tenta responder ao primeiro bote, o segundo já encontrou a abertura deixada pela marca. O espírito recebe os benefícios a seguir: Ataques Primordiais. Quando o espírito realiza Retalhar [Rend], ele pode realizar esse ataque uma vez adicional no mesmo turno. Esse benefício permite que ele faça os dois ataques quando obedece ao seu Comando, apesar do limite normal de um ataque por Reação. Marca Compartilhada. Quando Retalhar acerta uma criatura sob a sua Marca do Caçador, o ataque também causa o dano adicional da Marca."
+    },
+    {
+      "id": "152-nivel-10-forma-aumentada",
+      "name": "Forma Aumentada",
+      "level": 10,
+      "order": "Ordem da Aliança Selvagem",
+      "text": "A cada invocação, o espírito ocupa um pouco mais do mundo. Quando preciso de força em vez de discrição, ele cresce até as patas pesarem no chão e nenhuma criatura conseguir ignorar a massa primordial avançando contra ela. Quando conjura Familiar de Batalha por Companheiro Primordial, você pode fazer o espírito assumir tamanho Grande. Enquanto estiver Grande, ele tem Vantagem em testes de Força realizados para Agarrar ou Empurrar uma criatura, ou para evitar ou escapar de um Agarrão."
+    },
+    {
+      "id": "154-nivel-10-executor-umbral",
+      "name": "Executor Umbral",
+      "level": 10,
+      "order": "Ordem do Crepúsculo",
+      "text": "A penumbra ensina duas lições: um golpe errado ainda pode encontrar o caminho, e uma posição ruim só existe enquanto eu permaneço nela. Ajusto a lâmina no último instante e desapareço antes que a presa consiga responder. Seu domínio sobre as sombras aprimora a sua precisão e permite que você atravesse o campo sem ser alcançado, concedendo os benefícios a seguir: Precisão Tenebrosa. Uma vez por turno, quando você erra uma jogada de ataque com arma, pode rolar o seu Dado de Caçador e adicionar o resultado à jogada de ataque original, potencialmente transformando o erro em acerto. Movimento das Sombras. Como uma Ação Bônus , você se teletransporta para um espaço desocupado que possa ver a até 9 metros [30 pés] e que esteja em Penumbra ou Escuridão."
+    },
+    {
+      "id": "156-nivel-10-regeneracao-bestial",
+      "name": "Regeneração Bestial",
+      "level": 10,
+      "order": "Ordem do Despertar",
+      "text": "A jaula ficou maior, a coleira mais comprida. A fera fecha minhas feridas sozinha agora, e quem sente o uivo dela não se levanta mais tão rápido. Sangro no início de um turno e, no seguinte, a marca já sumiu — o monstro não conhece cansaço, e emprestou-me esse dom cru. A sua carne regenera por conta própria enquanto a fera estiver desperta. No início de cada um dos seus turnos em que estiver Sangrando com ao menos 1 Ponto de Vida, você recupera 1 + o seu modificador de Constituição em Pontos de Vida, com um mínimo de 1. Além disso, o seu uivo deixa marcas que não cicatrizam: uma criatura que falhe no teste de resistência do seu Uivo do Despertar não pode recuperar Pontos de Vida até o início do seu próximo turno."
+    },
+    {
+      "id": "158-nivel-10-enxame-evoluido",
+      "name": "Enxame Evoluído",
+      "level": 10,
+      "order": "Ordem do Enxame",
+      "text": "Começaram como um zumbido no ombro; agora avançam comigo como uma maré. Cada comando ganhou peso, cada defesa ganhou asas e até a presa mais resistente sente o campo inteiro mudar quando a colônia decide ocupar o espaço ao meu redor. A colônia cresce e aprimora as capacidades do seu Enxame Simbiótico, concedendo os benefícios a seguir: Voo Simbiótico. Você ganha deslocamento de voo igual ao seu deslocamento de escalada e pode pairar. Força Multiplicada. Quando realiza um teste de Força (Atletismo) para Agarrar ou Empurrar uma criatura, ou para evitar ou escapar de um Agarrão, você adiciona uma rolagem do seu Dado de Caçador ao resultado. Marca da Colônia. Quando usa o seu Enxame Simbiótico contra uma criatura sob a sua Marca do Caçador, você escolhe duas opções diferentes para afetá-la, em vez de uma."
+    },
+    {
+      "id": "160-nivel-10-rito-de-exorcismo",
+      "name": "Rito de Exorcismo",
+      "level": 10,
+      "order": "Ordem dos Exorcistas",
+      "text": "Primeiro o rito. Depois, se ele não quiser sair por bem, a força. Conheço as cerimônias que arrancam o espírito da carne alheia e destilo a água benta que cura os meus e queima os mortos — o ofício inteiro, do incenso à lâmina, aprendido para não recuar diante de nada. Você aprofunda os ritos da Ordem e pode conjurar Cerimônia [Ceremony] ; para você, essa magia não exige componentes materiais nem qualquer custo. Sempre que conclui a cerimônia, você pode, como parte dela, realizar um exorcismo: uma criatura possuída ou um espírito possessor a até 9 metros [30 pés] faz um teste de resistência de Carisma contra a sua CD de Magia e, em uma falha, o espírito é expelido do hospedeiro e a possessão termina. A cerimônia também destila a água benta da Ordem, guardada em um Frasco Consagrado : um pequeno vidro grosso, lacrado com cera e marcado com o selo de Cessira, contendo uma água límpida, fria e levemente luminosa que recusa qualquer mão que não seja a de um exorcista. Você mantém um número de Frascos Consagrados igual ao seu Bônus de Proficiência ; eles servem apenas às suas habilidades de classe e perdem a potência se entregues a estranhos ou comercializados. Como uma Ação Bônus , você usa um Frasco Consagrado de uma destas formas: bebendo-o, ou ungindo com ele um aliado a até 1,5 metro [5 pés] , para recuperar duas rolagens do seu Dado de Caçador mais o seu nível de Caçador em Pontos de Vida e remover um nível de Exaustão que a criatura esteja sofrendo; ou arremessando-o numa criatura a até 9 metros [30 pés] , que sofre uma rolagem do seu Dado de Caçador de dano radiante — mortos-vivos e criaturas possessoras sofrem o dobro e não podem recuperar Pontos de Vida até o fim do próximo turno deles."
+    },
+    {
+      "id": "161-nivel-10-afastar-mortos-vivos",
+      "name": "Afastar Mortos-Vivos",
+      "level": 10,
+      "order": "Ordem dos Exorcistas",
+      "text": "Há uma luz que os mortos não suportam encarar, e eu carrego uma comigo. Ergo a lanterna, digo a palavra, e o que deveria estar descansando recua diante do brilho, amedrontado e trôpego, lembrado à força de que o seu lugar não é mais entre os que ainda respiram. Como uma Ação Mágica , você ergue a sua Lanterna do Véu e censura os mortos-vivos. Cada morto-vivo à sua escolha a até 9 metros [30 pés] faz um teste de resistência de Sabedoria contra a sua CD de Magia. Em uma falha, a criatura sofre dano radiante igual a um número de d8 igual ao seu modificador de Inteligência ou Sabedoria e fica Amedrontada e Incapacitada por 1 minuto, tentando se afastar de você nos turnos dela. O efeito termina mais cedo se a criatura sofrer dano, se você ficar Incapacitado ou se você morrer. Em um sucesso, a criatura sofre apenas metade do dano. Depois de usar esta característica, você não pode usá-la novamente até terminar um Descanso Curto ou Longo, a menos que gaste 3 Pontos de Segredo para recuperar o uso."
+    },
+    {
+      "id": "163-nivel-10-marca-do-carrasco",
+      "name": "Marca do Carrasco",
+      "level": 10,
+      "order": "Ordem dos Exterminadores",
+      "text": "Depois de estudar uma espécie por tempo suficiente, basta marcar um exemplar para que todos os seus semelhantes se tornem legíveis. Um golpe bem colocado atravessa o alvo e ensina aos monstros próximos que o método serve para cada um deles. Uma criatura sob a sua Marca do Caçador também conta como um Inimigo Favorito para você. Além disso, uma vez em cada um dos seus turnos, quando acerta uma Presa Marcada, cada criatura hostil do mesmo tipo a até 3 metros [10 pés] dela sofre dano igual a uma rolagem do seu Dado de Caçador, do mesmo tipo do ataque. Se uma dessas criaturas também for um Inimigo Favorito, ela sofre ainda o dano adicional concedido por essa característica."
+    },
+    {
+      "id": "165-nivel-10-estigma-hermetico",
+      "name": "Estigma Hermético",
+      "level": 10,
+      "order": "Ordem dos Mutantes",
+      "text": "Uma presa marcada não esconde a carne de mim. Quando encontro a fissura certa, empurro para dentro dela aquilo que meu próprio corpo aprendeu a suportar e deixo que o monstro pague o preço da minha fórmula. Enquanto uma criatura estiver sob a sua Marca do Caçador, ela não pode mudar de forma por magia ou outro efeito, a menos que seja bem-sucedida em um teste de resistência de Sabedoria contra a sua CD de Magia. Além disso, quando obtém um acerto crítico com um ataque com arma ou Golpe Desarmado contra uma Presa Marcada ou um Inimigo Favorito, escolha um mutagênico ativo em você. Até o final do seu próximo turno, o alvo sofre o Efeito Colateral desse mutagênico e você o ignora. Você não pode transferir o mesmo Efeito Colateral mais de uma vez com esta característica."
+    },
+    {
+      "id": "167-nivel-10-andarilho-do-horizonte",
+      "name": "Andarilho do Horizonte",
+      "level": 10,
+      "order": "Ordem dos Viajantes Primordiais",
+      "text": "Depois de tantas travessias, já não penso em passos. Cada golpe escolhe um novo ponto do campo, e cada ponto abre outra linha de ataque; para a presa, parece que a perseguição vem de todos os lados. Salto em Travessia. Imediatamente depois de resolver uma jogada de ataque com arma no seu turno, acertando ou errando, você pode se teleportar para um espaço desocupado que possa ver a até 3 metros [10 pés]. Golpe em Cadeia. Uma vez por turno, imediatamente após esse teleporte, você pode fazer um ataque adicional contra uma criatura diferente que esteja ao alcance da sua arma. Esse ataque pode receber o dano adicional de Passo Rúnico se o alvo ainda não tiver sofrido esse dano neste turno."
+    },
+    {
+      "id": "168-nivel-11-predador-astuto",
+      "name": "Predador Astuto",
+      "level": 11,
+      "order": "",
+      "text": "Eu não preciso esperar a oportunidade; eu construo ela. Todo monstro grande demais para encarar de frente me ensinou a mesma lição: nada é invencível, só mal-entendido, e por isso, quando marco um alvo, já não vejo um corpo, e sim um mapa de falhas esperando o golpe certo. Sua identificação e perseguição da presa se afinam: Vantagem Predatória. Você tem Vantagem na primeira rolagem de ataque que fizer contra a sua Presa Marcada a cada turno. Marca Veloz. Você não precisa mais usar uma Ação Bônus para usar Marca do Caçador. Em vez disso, ao usar a ação Atacar (Attack), você pode aplicar a Marca do Caçador a um alvo como parte de um dos seus ataques, antes ou depois da rolagem de ataque, à sua escolha."
+    },
+    {
+      "id": "169-nivel-12-aprimoramento-de-atributo-ou-talento",
+      "name": "Aprimoramento de Atributo ou Talento",
+      "level": 12,
+      "order": "",
+      "text": "A chama não cresce por capricho; cresce por hábito. Corrijo o passo, alongo o fôlego e ensino a mão a não tremer, anotando cada correção com a certeza de que é a soma dessas teimosias miúdas, e não um dom repentino, que pavimenta o poder que ainda vou precisar. Você ganha a característica Aprimoramento de Atributo ou Talento , conforme descrito no 4º nível."
+    },
+    {
+      "id": "170-nivel-13-passos-invisiveis",
+      "name": "Passos Invisíveis",
+      "level": 13,
+      "order": "",
+      "text": "Eu deixo de ser um vulto na mata e passo a ser a própria mata. Já tentei copiar truque de ladino, mas o que de fato resolveu foi aprender a ouvir o lugar antes de me mexer; hoje, quando quero sumir, nem eu mesmo consigo encontrar os meus rastros. Você se move como uma sombra na natureza. Você pode tomar a ação Esconder-se (Hide) como uma Ação Bônus, e não pode ser rastreado por meios não mágicos, a menos que você queira deixar rastro."
+    },
+    {
+      "id": "171-nivel-14-habilidade-da-ordem",
+      "name": "Habilidade da Ordem",
+      "level": 14,
+      "order": "",
+      "text": "Minha presença carimba o espaço; a linhagem não é lembrança, é farol aceso. Anoto que o rito, já velho dentro de mim, agora projeta um feixe que só quem carrega o mesmo sinal enxerga — e por ele mapeio rotas onde todos os outros só conseguem ver escuridão fechada. Você ganha a característica de 14º nível concedida pela sua Ordem do Caçador, a tradição que você escolheu no 3º nível. As opções estão descritas a seguir, em spoilers. Ordem da Aliança Selvagem Ordem do Crepúsculo Ordem do Despertar Ordem do Enxame Ordem dos Exorcistas Ordem dos Exterminadores Ordem dos Mutantes Ordem dos Viajantes Primordiais"
+    },
+    {
+      "id": "173-nivel-14-comunhao-primordial",
+      "name": "Comunhão Primordial",
+      "level": 14,
+      "order": "Ordem da Aliança Selvagem",
+      "text": "O que corre nas minhas veias corre nas dele. Não existe bênção que eu aceite sozinho, porque um caçador e seu espírito são partes do mesmo pacto; quando a magia fortalece um de nós, o vínculo conduz o restante até o outro. Quando conjura uma magia que tenha apenas você como alvo e não afete uma área, você também pode afetar o seu Companheiro Primordial com a mesma magia, desde que ele esteja a até 9 metros [30 pés] de você."
+    },
+    {
+      "id": "175-nivel-14-ataques-velozes",
+      "name": "Ataques Velozes",
+      "level": 14,
+      "order": "Ordem do Crepúsculo",
+      "text": "Na hora incerta, cada respiro meu é um golpe, e a presa nunca conta os certos. Enquanto houver penumbra à minha volta, a lentidão do primeiro instante vira o ritmo de todos os outros, e o inimigo se vê aparando dois botes onde esperava aparar um só. Enquanto você se mantiver em Penumbra ou Escuridão, você pode fazer o ataque adicional do Caçador das Sombras em todos os seus turnos de combate, e não apenas no primeiro. Nos turnos após o primeiro, porém, o dano extra desse ataque é igual à metade do seu nível de Caçador, arredondada para baixo (em vez do seu nível completo)."
+    },
+    {
+      "id": "177-nivel-14-impeto-anciao",
+      "name": "Ímpeto Ancião",
+      "level": 14,
+      "order": "Ordem do Despertar",
+      "text": "Já não sei onde termina o caçador e começa a coisa antiga que mora em mim. Só sei que, quando deveria cair, eu me levanto, e o medo nos olhos da presa vira a minha arma. A fúria do seu uivo derruba os que vacilam. Quando uma criatura falha no teste de resistência do seu Uivo do Despertar , ela também fica Caída ou é empurrada 3 metros [10 pés] para longe de você (à sua escolha). Além disso, a sua vitalidade monstruosa o arranca da beira da morte. Se você cair a 0 Pontos de Vida sem morrer de imediato enquanto estiver transformado, os seus Pontos de Vida passam a ser iguais a duas vezes o seu nível de Caçador . Você pode fazer isso uma vez por Descanso Longo."
+    },
+    {
+      "id": "179-nivel-14-colmeia-instintiva",
+      "name": "Colmeia Instintiva",
+      "level": 14,
+      "order": "Ordem do Enxame",
+      "text": "Eles já não esperam por comando; sentem comigo quem precisa continuar de pé. Quando o perigo alcança um aliado, a colônia atravessa o campo como uma muralha viva, desvia o golpe e carrega a vítima para fora antes que o inimigo possa reagir. Sua Resposta Instintiva pode ser usada quando qualquer criatura a até 9 metros [30 pés] de você for alvo de uma jogada de ataque ou sofrer dano causado por um efeito que exija um teste de resistência. Quando a utiliza, aplique o benefício correspondente: Defesa contra Ataques. Você impõe Desvantagem à jogada de ataque. Se o ataque ainda acertar, o alvo recebe Resistência contra o dano desse ataque. Defesa contra Efeitos. O alvo realiza o teste de resistência normalmente e recebe Resistência contra o dano causado pelo efeito. Resgate Tático. Depois de resolver o ataque ou efeito, você pode mover a criatura protegida até 9 metros [30 pés] para um espaço desocupado. Esse movimento não provoca Ataques de Oportunidade."
+    },
+    {
+      "id": "181-nivel-14-ceifador-imortal",
+      "name": "Ceifador Imortal",
+      "level": 14,
+      "order": "Ordem dos Exorcistas",
+      "text": "Já cruzei o Véu e voltei; a morte e eu somos velhos conhecidos, e ela não me assusta mais. Aprendi a andar do outro lado e a trazer os pés de volta, de modo que cair não é mais o fim da caçada — é só mais um limiar que eu atravesso. O seu domínio sobre a morte se torna quase absoluto. Enquanto estiver na sua Forma do Ceifador, você tem Resistência a dano concussivo, perfurante e cortante; os seus Pontos de Vida não podem ser reduzidos por efeitos de mortos-vivos; e a sua Força não pode ser drenada."
+    },
+    {
+      "id": "182-nivel-14-luz-reveladora",
+      "name": "Luz Reveladora",
+      "level": 14,
+      "order": "Ordem dos Exorcistas",
+      "text": "Na minha luz, ninguém é invisível, e ninguém atravessa a parede pra fugir. A lanterna arranca segredos até dos mortos e prende na claridade tudo o que tentaria escapar incorpóreo — sob o seu brilho, o intruso descobre que a única saída é aquela que eu decidir permitir. A sua lanterna aprende a arrancar segredos dos mortos. Você conhece a magia Falar com Mortos [Speak with Dead] e pode conjurá-la por meio da sua Lanterna do Véu, sem gastar espaços de magia, um número de vezes igual ao seu modificador de Inteligência ou Sabedoria , à sua escolha (mínimo de uma vez). Você recupera todos os usos gastos ao terminar um Descanso Longo. Além disso, enquanto estiver segurando a lanterna, criaturas dentro da luz dela não podem usar movimento incorpóreo nem se beneficiar de estar Invisíveis ."
+    },
+    {
+      "id": "184-nivel-14-guarda-do-executor",
+      "name": "Guarda do Executor",
+      "level": 14,
+      "order": "Ordem dos Exterminadores",
+      "text": "O primeiro golpe mostra o ombro, o quadril e a intenção da criatura. Se ela tentar repetir o movimento, encontra minha guarda esperando no lugar certo; depois de uma abertura, o resto do padrão fica simples. Quando uma criatura acerta você com um ataque, você recebe +4 na Classe de Armadura contra todos os ataques subsequentes realizados por ela até o final do turno atual."
+    },
+    {
+      "id": "186-nivel-14-transfusao-mutagenica",
+      "name": "Transfusão Mutagênica",
+      "level": 14,
+      "order": "Ordem dos Mutantes",
+      "text": "Trocar uma fórmula durante a luta parece loucura até a presa mudar de tática. Então um frasco errado vira sentença, e a mão treinada que purga um sangue e injeta outro vale mais do que qualquer armadura. Como uma Ação Bônus, você pode encerrar um mutagênico ativo em si e consumir um novo mutagênico preparado como parte da mesma ação. O novo mutagênico aplica normalmente seus Efeitos Benéfico e Colateral. Você pode usar esta característica um número de vezes igual ao seu modificador de Inteligência ou Sabedoria (mínimo de uma vez) e recupera todos os usos ao terminar um Descanso Longo. Além disso, uma vez por turno, quando acerta uma Presa Marcada, causa 1d4 de dano adicional para cada mutagênico ativo em você, até 3d4. Escolha o tipo desse dano entre concussivo, cortante, perfurante, necrótico ou veneno."
+    },
+    {
+      "id": "188-nivel-14-veu-desfeito",
+      "name": "Véu Desfeito",
+      "level": 14,
+      "order": "Ordem dos Viajantes Primordiais",
+      "text": "Os caminhos do Teixo já não se fecham quando passo. Posso alargá-los o bastante para levar outra pessoa comigo, desde que ela confie no instante em que o chão desaparece e outro mundo toma o lugar. A distância máxima que você pode se teleportar em direção a uma Runa de Travessia aumenta para 18 metros [60 pés]. Quando usa Salto Direto, você também pode teleportar uma criatura voluntária que possa ver a até 1,5 metro [5 pés] de você para um espaço desocupado a até 1,5 metro [5 pés] do seu destino. Você pode levar uma criatura dessa forma um número de vezes igual ao seu modificador de Inteligência ou Sabedoria (mínimo de uma vez), recuperando todos os usos ao terminar um Descanso Longo."
+    },
+    {
+      "id": "189-nivel-15-vontade-inabalavel",
+      "name": "Vontade Inabalável",
+      "level": 15,
+      "order": "",
+      "text": "A caçada tomou minha mente por inteiro; já não sobra espaço para a vontade de outro. Ouvi voz demais tentando mandar em caçador — sussurro de entidade velha, promessa de demônio — e aprendi a não empurrar de volta: fico parado, calado, e deixo que ela se perca dentro de mim. A obsessão da caça blinda sua mente. Você se torna imune à condição Enfeitiçado e a efeitos de possessão e dominação, e tem Vantagem em testes de resistência contra ficar Amedrontado ."
+    },
+    {
+      "id": "190-nivel-16-aprimoramento-de-atributo-ou-talento",
+      "name": "Aprimoramento de Atributo ou Talento",
+      "level": 16,
+      "order": "",
+      "text": "Se não moldo o poder, ele me molda. Então lapido os ossos por dentro e afio a disciplina até ela brilhar, anotando cada ganho como quem registra uma alavanca nova — não procuro atalhos, procuro pontos de apoio para erguer aquilo que antes eu não conseguia sequer mover do lugar. Você ganha a característica Aprimoramento de Atributo ou Talento , conforme descrito no 4º nível."
+    },
+    {
+      "id": "191-nivel-17-instinto-predatorio",
+      "name": "Instinto Predatório",
+      "level": 17,
+      "order": "",
+      "text": "Com o tempo, parei de depender só dos olhos; comecei a notar o jeito que o ar muda quando alguém respira fundo. Em campo aberto ou em caverna escura, quando eu chego já sei onde a presa está — não há mais ponto cego em que ela possa se esconder de mim. Seus sentidos predatórios atingem o auge: Caçada Dupla. Você pode manter duas Presas Marcadas simultaneamente. Aplicar uma nova Marca enquanto duas estão ativas substitui aquela à sua escolha. Visão às Cegas. Você ganha Visão às Cegas com alcance de 9 metros [30 pés] : dentro desse raio, você percebe a localização de tudo que não esteja atrás de cobertura total, mesmo estando Cego ou na escuridão, e enxerga criaturas Invisíveis ."
+    },
+    {
+      "id": "192-nivel-18-habilidade-da-ordem",
+      "name": "Habilidade da Ordem",
+      "level": 18,
+      "order": "",
+      "text": "A linhagem abre as asas dentro de mim, e o mundo acusa o golpe. Anoto que há um contorno novo nos meus passos, uma assinatura que dobra o horizonte — o rito chegou ao ponto em que já não sou eu quem o carrega, e sim ele quem me carrega adiante. Você ganha a característica de 18º nível concedida pela sua Ordem do Caçador, a tradição que você escolheu no 3º nível. As opções estão descritas a seguir, em spoilers. Ordem da Aliança Selvagem Ordem do Crepúsculo Ordem do Despertar Ordem do Enxame Ordem dos Exorcistas Ordem dos Exterminadores Ordem dos Mutantes Ordem dos Viajantes Primordiais"
+    },
+    {
+      "id": "194-nivel-18-forma-primordial-suprema",
+      "name": "Forma Primordial Suprema",
+      "level": 18,
+      "order": "Ordem da Aliança Selvagem",
+      "text": "Conheci apenas uma vez a forma completa do espírito, e desde então reconheço o peso daquela presença em cada pegada. Quando libero todo o pacto, a criatura que caminhava ao meu lado se ergue como a própria natureza decidida a caçar. Você adquire o Segredo do Caçador exclusivo desta Ordem, chamado Forma Primordial Suprema. Custo: 4 Pontos de Segredo. Como uma Ação Bônus , você faz o seu Companheiro Primordial alcançar a forma completa por 1 hora. Pela duração, Familiar de Batalha é tratada como conjurada com um espaço de magia de 9º Círculo para determinar todas as estatísticas e características que dependam do Círculo da magia. O máximo de Pontos de Vida do espírito é recalculado conforme o novo Círculo, e ele recupera Pontos de Vida até atingir esse máximo. Além disso, o espírito se torna Enorme pela duração."
+    },
+    {
+      "id": "196-nivel-18-campo-de-caca-noturno",
+      "name": "Campo de Caça Noturno",
+      "level": 18,
+      "order": "Ordem do Crepúsculo",
+      "text": "Quando espalho meus aparatos sob a noite que carrego, o campo inteiro se transforma numa emboscada. Meus aliados enxergam apenas sombras comuns; para a presa, porém, cada passo atravessa um breu impossível e termina sob a mira de outra armadilha. Você adquire o Segredo do Caçador exclusivo desta Ordem, chamado Campo de Caça Noturno. Custo: 4 Pontos de Segredo. Como uma Ação , você ativa o Segredo Armadilha Final sem gastar Pontos de Segredo adicionais, aplicando as seguintes alterações: A área da Armadilha Final passa a ter 18 metros [60 pés] de raio. Para seus inimigos, a área é Escuridão mágica, considerada um efeito de 6º Círculo para determinar se suprime uma luz mágica. Para você e seus aliados, ela é Escuridão não mágica. O dano causado pelas armadilhas é psíquico, independentemente do tipo escolhido ao preparar Armadilha Final. Quando usa sua Reação para ativar uma armadilha contra uma criatura, você pode fazer um ataque contra ela como parte da mesma Reação. Você escolhe realizar esse ataque imediatamente antes ou depois de resolver o efeito da armadilha. O Campo de Caça Noturno segue todas as demais regras de Armadilha Final, incluindo sua duração, o gatilho das armadilhas e o teste de resistência."
+    },
+    {
+      "id": "198-nivel-18-despertar-final",
+      "name": "Despertar Final",
+      "level": 18,
+      "order": "Ordem do Despertar",
+      "text": "A fera e eu já não brigamos. Somos a mesma coisa agora, e ela vem quando chamo, cresce quando uivo, e o mundo inteiro treme. Não há mais coleira, nem jaula, nem homem e monstro separados — só um caçador que aprendeu a ser, quando precisa, a própria caçada. Você adquire o Segredo do Caçador exclusivo desta Ordem, chamado Despertar Final. Custo: 4 Pontos de Segredo. Como uma Ação Bônus , você solta a fera por completo por 1 minuto. Enquanto durar, a sua Forma Desperta torna-se Grande (se ainda não for) e você ganha Pontos de Vida Temporários iguais a duas vezes o seu nível de Caçador . Os seus Golpes Predatórios passam a fazer um Golpe Desarmado adicional quando usados como Ação Bônus . Você conta como Sangrando para os efeitos de cura da sua Forma Desperta — o Vigor da Fera e a Regeneração Bestial passam a funcionar mesmo que você esteja com os Pontos de Vida cheios — e a sua carne se refaz como a magia Regenerar [Regenerate] : se você tiver perdido qualquer parte do corpo que não seja a cabeça, ela volta a crescer ao longo da duração. Por fim, você fica imune às condições Amedrontado e Enfeitiçado ."
+    },
+    {
+      "id": "200-nivel-18-mao-da-colonia",
+      "name": "Mão da Colônia",
+      "level": 18,
+      "order": "Ordem do Enxame",
+      "text": "A mão que antes carregava uma chave agora carrega uma criatura inteira. Quando libero toda a força da colônia, milhares de corpos se comprimem numa única forma colossal, capaz de agarrar, esmagar e proteger como se o próprio enxame tivesse fechado o punho. Você adquire o Segredo do Caçador exclusivo desta Ordem, chamado Mão da Colônia. Custo: 4 Pontos de Segredo. Como uma Ação , você faz a magia Mãos Mágicas criada pela sua Simbiose do Enxame se transformar numa Mão de Bigby [Bigby's Hand]. Se a magia Mãos Mágicas não estiver conjurada, você a conjura como parte da mesma ação antes de transformá-la. A Mão de Bigby é conjurada como uma magia de 6º Círculo , dura 1 minuto e não exige Concentração. Ela assume a aparência do seu enxame e segue todas as demais regras da magia, usando a sua CD de Magia e o seu modificador de ataque de magia."
+    },
+    {
+      "id": "202-nivel-18-santuario-do-veu",
+      "name": "Santuário do Véu",
+      "level": 18,
+      "order": "Ordem dos Exorcistas",
+      "text": "Onde eu finco a minha lanterna, o Véu se fecha, e nada que não devia passar, passa. Consagro o solo com água benta e palavra antiga, transformando um lugar qualquer em fronteira selada — um posto avançado meu, do qual a morte fica do lado de fora, batendo em vão. Você adquire o Segredo do Caçador exclusivo desta Ordem, chamado Santuário do Véu. Custo: 4 Pontos de Segredo. Em um ritual, você conjura Consagração [Hallow] ou Interdição [Forbiddance] , usando um Frasco Consagrado no lugar do componente material e de qualquer custo em ouro. Você também pode vincular a sua Lanterna do Véu a um local que tenha consagrado dessa forma: enquanto o vínculo durar, o local permanece permanentemente sob o efeito da magia escolhida, sem que você precise mantê-lo. Gastando 4 Pontos de Segredo , você pode conjurar Palavra de Retorno [Word of Recall] para esse local consagrado. Ao vincular um novo local, o vínculo com o anterior se desfaz."
+    },
+    {
+      "id": "204-nivel-18-cacada-final",
+      "name": "Caçada Final",
+      "level": 18,
+      "order": "Ordem dos Exterminadores",
+      "text": "Há presas para as quais não preparo retorno, contenção ou segundo plano. Quando faço o sinal final, toda anotação converge numa única sentença: nenhuma resistência importa, nenhuma cura chega e cada golpe aproxima a execução. Você adquire o Segredo do Caçador exclusivo desta Ordem, chamado Caçada Final. Custo: 4 Pontos de Segredo. Quando aplica sua Marca do Caçador a uma criatura, pode declará-la alvo da Caçada Final. Durante 1 minuto ou até o alvo morrer, o efeito não pode ser transferido e concede os seguintes benefícios: O alvo não pode se beneficiar de Resistência contra dano causado por seus ataques, suas magias ou suas características. O alvo não pode recuperar Pontos de Vida. Quando você o acerta com um ataque com arma, ele sofre dano adicional igual a duas rolagens do seu Dado de Caçador, em vez do dano adicional normal da Marca do Caçador."
+    },
+    {
+      "id": "206-nivel-18-forma-quimerica",
+      "name": "Forma Quimérica",
+      "level": 18,
+      "order": "Ordem dos Mutantes",
+      "text": "Passei anos mantendo cada essência em seu frasco, com medo de que juntas me consumissem. Agora conheço cada reação pelo nome; quando abro todas de uma vez, o monstro resultante ainda responde à minha vontade. Você adquire o Segredo do Caçador exclusivo desta Ordem, chamado Forma Quimérica. Custo: 4 Pontos de Segredo. Como uma Ação Bônus, você ativa por 1 minuto todos os mutagênicos que tem preparados. Pela duração, recebe apenas os Efeitos Benéficos deles. Você também ganha um deslocamento de escalada, natação ou voo igual ao seu deslocamento, à sua escolha, e Resistência a dois tipos de dano à sua escolha. Quando a forma termina, todos os seus mutagênicos ficam inativos por 1 hora. Você só pode usar este Segredo novamente depois que eles voltarem a ficar ativos."
+    },
+    {
+      "id": "208-nivel-18-caminho-final",
+      "name": "Caminho Final",
+      "level": 18,
+      "order": "Ordem dos Viajantes Primordiais",
+      "text": "No alto do Teixo, cada plano parece uma folha ao alcance da mão. Escolho a rota antes de descansar e, quando a caçada chama, abro o caminho sem chave, círculo ou oferenda. Você adquire o Segredo do Caçador exclusivo desta Ordem, chamado Caminho Final. Você aprende Portal Arcano [Arcane Gate], Palavra de Retorno [Word of Recall], Etereidade [Etherealness], Mansão Magnífica de Mordenkainen [Mordenkainen's Magnificent Mansion], Teletransporte [Teleport] e Viagem Planar [Plane Shift]. Custo: 4 Pontos de Segredo. Ao terminar um Descanso Longo, escolha duas dessas magias. Elas ficam preparadas e não contam no seu limite de magias preparadas. Você pode conjurar cada magia escolhida uma vez gastando 4 Pontos de Segredo, sem gastar espaço de magia nem fornecer componentes materiais. Depois disso, não pode conjurá-la novamente por este Segredo até escolhê-la após outro Descanso Longo."
+    },
+    {
+      "id": "209-nivel-19-aprimoramento-de-atributo-ou-talento",
+      "name": "Aprimoramento de Atributo ou Talento",
+      "level": 19,
+      "order": "",
+      "text": "Cheguei às portas maiores pela soma de portas pequenas. Agora cada respiração pesa como promessa cumprida, e anoto no diário, com a mão enfim firme, que o caminho inteiro coube nesses ajustes miúdos que ninguém viu — o último parafuso apertado no motor do peito, que agora ronca puro. Você ganha a característica Aprimoramento de Atributo ou Talento , conforme descrito no 4º nível."
+    },
+    {
+      "id": "210-nivel-20-dominio-da-cacada",
+      "name": "Domínio da Caçada",
+      "level": 20,
+      "order": "",
+      "text": "Caçar nunca foi só encontrar a presa; é aceitar que ela já estava morta desde o instante em que eu a escolhi. As presas não lutam contra mim: tentam escapar de um fim que já está escrito. Anoto a última página sem pressa, porque sou eu o ponto final da trilha. A caça se torna uma extensão do seu próprio modo de existir. Os benefícios abaixo se aplicam contra qualquer criatura Marcada por você ou afetada por qualquer Segredo do Caçador, seja por armadilhas, venenos, sinais ou outra técnica: Pressão Constante. Você tem Vantagem em rolagens de ataque contra essas criaturas, e elas têm Desvantagem em rolagens de ataque contra você. Terceiro Golpe Certeiro. Ao usar a ação Atacar (Attack) contra uma dessas criaturas, você pode fazer três ataques em vez de dois, uma vez por turno. Instinto Acima de Tudo. Você tem Vantagem em qualquer teste de habilidade ou de resistência que essas criaturas forcem você a fazer."
+    }
+  ]
+}

@@ -1,0 +1,277 @@
+/* Level-up / editar-ficha — específico do fluxo de progressão em LOTE.
+   Reutiliza o design system do CRIADOR (criador.css, importado junto na página):
+   .cf-layout / .cf-main / .cf-preview / .cf-vitals / .cf-vital / .cf-attrs / .cf-attr /
+   .cf-prev-sec / .cf-prev-chips / .cf-chip / .cf-btn / .cf-btn-primary / .cf-step-err.
+   Aqui SÓ o que é exclusivo do level-up: cartão de progressão do topo, cartões de
+   pendência por tipo, badge "falta X", fila do lote e a barra de ação Aplicar/Descartar. */
+
+/* ---- Cartão de progressão (topo) -------------------------------------- */
+.lvl-topcard {
+  border: 1px solid var(--stroke);
+  border-radius: 0.6rem;
+  background: var(--bg1);
+  padding: 0.75rem 0.85rem;
+  margin-bottom: 0.85rem;
+}
+.lvl-topcard__row { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
+.lvl-level {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--flame);
+  line-height: 1;
+}
+.lvl-rank {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.35rem;
+  background: color-mix(in srgb, var(--ember) 15%, transparent);
+  color: var(--ember);
+  font-size: 0.7rem;
+  font-weight: 700;
+  vertical-align: middle;
+}
+.lvl-meta { font-size: 11.5px; color: var(--muted); line-height: 1.55; }
+.lvl-meta b { color: var(--text); font-weight: 600; }
+.lvl-progline { margin-top: 0.15rem; }
+.lvl-progline .spark { color: var(--spark); }
+.lvl-progline .flame { color: var(--flame); }
+
+/* controles de progressão (subir / multiclasse / staff) */
+.lvl-progtools { display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-end; }
+.lvl-inline { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+.lvl-note-cap { margin-top: 0.5rem; font-size: 11.5px; color: var(--flame); }
+.lvl-staffbox, .lvl-mcbox {
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid color-mix(in srgb, var(--stroke) 60%, transparent);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem;
+  font-size: 11.5px; color: var(--muted);
+}
+.lvl-staffbox .lbl { color: var(--ember); font-weight: 600; }
+.lvl-note-ok { margin-top: 0.5rem; font-size: 11.5px; color: #5bbf7a; }
+
+/* ---- Ledger de aventuras (histórico + rollback, staff) ---------------- */
+.lvl-ledger { flex: 1 1 100%; width: 100%; margin-top: 0.5rem; overflow-x: auto; }
+.lvl-ledger__table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+.lvl-ledger__table th,
+.lvl-ledger__table td {
+  padding: 0.3rem 0.5rem; text-align: left;
+  border-bottom: 1px solid color-mix(in srgb, var(--stroke) 55%, transparent);
+  white-space: nowrap;
+}
+.lvl-ledger__table th { color: var(--ember); font-weight: 600; }
+.lvl-ledger__table tr.is-reverted td { opacity: 0.5; text-decoration: line-through; }
+.lvl-revbtn {
+  border: 1px solid color-mix(in srgb, var(--flame) 55%, var(--stroke));
+  background: transparent; color: var(--flame);
+  border-radius: 5px; padding: 0.15rem 0.55rem; font-size: 11px; cursor: pointer;
+}
+.lvl-revbtn:hover { background: color-mix(in srgb, var(--flame) 16%, transparent); }
+.lvl-revbtn:focus-visible { outline: 2px solid var(--flame); outline-offset: 1px; }
+.lvl-revtag { color: var(--muted); font-style: italic; }
+
+/* ---- Onda E: missão na linha (correção + consumos + trilha) ------------ */
+.lvl-legado { color: var(--muted); font-style: italic; }
+.lvl-ledger__detail > td { white-space: normal; padding-top: 0; }
+.lvl-ledger__detail .lvl-inline { flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.35rem; }
+.lvl-missao > summary {
+  cursor: pointer; color: var(--muted); font-size: 11px; padding: 0.15rem 0;
+}
+.lvl-missao > summary:hover { color: var(--ember); }
+.lvl-missao[open] > summary { color: var(--ember); }
+.lvl-missao__list {
+  list-style: none; margin: 0.35rem 0 0; padding: 0;
+  font-size: 11px; color: var(--text);
+}
+.lvl-missao__list li { padding: 0.15rem 0; border-top: 1px dashed color-mix(in srgb, var(--stroke) 55%, transparent); }
+.lvl-missao__list--trilha li { color: var(--muted); }
+.lvl-missao__meta { color: var(--muted); font-size: 10.5px; }
+
+/* ---- Seção de pendências --------------------------------------------- */
+.lvl-sech {
+  font-family: 'Frank Ruhl Libre', serif; font-weight: 700; font-size: 1.05rem;
+  color: var(--text); margin: 0 0 0.5rem;
+}
+.lvl-secsub { font-size: 12px; color: var(--muted); margin: -0.25rem 0 0.7rem; }
+
+.lvl-empty {
+  border: 1px dashed var(--stroke);
+  background: var(--bg1);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* ---- Cartão de pendência por tipo ------------------------------------ */
+.lvl-card {
+  border: 1px solid var(--stroke);
+  border-left: 3px solid var(--ember);
+  border-radius: 0.5rem;
+  background: var(--bg1);
+  padding: 0.7rem 0.8rem;
+  margin-bottom: 0.6rem;
+  transition: border-color .15s, opacity .15s;
+}
+.lvl-card.is-done { border-left-color: var(--spark); }
+.lvl-card.is-optional { border-left-color: color-mix(in srgb, var(--muted) 55%, var(--stroke)); }
+.lvl-card.is-queued { border-color: color-mix(in srgb, var(--spark) 45%, var(--stroke)); box-shadow: inset 3px 0 0 var(--spark); }
+
+/* botão de progressão (subir/multiclasse) quando já está no lote */
+.is-queued-btn { border-color: var(--spark) !important; color: var(--spark) !important; }
+.cf-btn.is-queued-btn { background: color-mix(in srgb, var(--spark) 18%, transparent); }
+.lvl-card__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.5rem; }
+.lvl-card__title { font-family: 'Frank Ruhl Libre', serif; font-weight: 700; font-size: 0.95rem; color: var(--text); }
+.lvl-card__title .sub { margin-left: 0.35rem; font-family: 'Open Sans', sans-serif; font-size: 11px; font-weight: 400; color: var(--muted); }
+.lvl-card__hint { font-size: 11.5px; color: var(--muted); margin: 0 0 0.5rem; line-height: 1.45; }
+.lvl-card__row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+
+/* badge "falta X" */
+.lvl-badge {
+  display: inline-flex; align-items: center; gap: 0.25rem;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  font-size: 11px; font-weight: 700; letter-spacing: .02em;
+  background: color-mix(in srgb, var(--ember) 16%, transparent);
+  color: var(--ember);
+  border: 1px solid color-mix(in srgb, var(--ember) 40%, transparent);
+}
+.lvl-badge.is-ok {
+  background: color-mix(in srgb, var(--spark) 16%, transparent);
+  color: var(--spark);
+  border-color: color-mix(in srgb, var(--spark) 40%, transparent);
+}
+
+/* ---- Campos internos (selects / inputs / checkbox-grids) ------------- */
+.lvl-field {
+  border: 1px solid var(--stroke);
+  background: var(--bg0);
+  color: var(--text);
+  border-radius: 0.4rem;
+  padding: 0.4rem 0.55rem;
+  font-size: 13px;
+  min-height: 38px;
+}
+.lvl-field:focus-visible { outline: 2px solid var(--ember); outline-offset: 1px; border-color: var(--ember); }
+.lvl-field--grow { flex: 1 1 12rem; min-width: 0; }
+.lvl-checkgrid {
+  display: grid; grid-template-columns: 1fr; gap: 0.2rem;
+  max-height: 13rem; overflow-y: auto;
+  border: 1px solid var(--stroke); background: var(--bg0);
+  border-radius: 0.4rem; padding: 0.4rem;
+}
+@media (min-width: 560px) { .lvl-checkgrid { grid-template-columns: 1fr 1fr; } }
+.lvl-check { display: flex; align-items: center; gap: 0.45rem; font-size: 13px; color: var(--text); padding: 0.15rem 0.15rem; border-radius: 0.3rem; }
+.lvl-check input { accent-color: var(--ember); }
+.lvl-check:has(input:disabled) { color: var(--muted); }
+.lvl-subhdr { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; margin: 0 0 0.3rem; }
+.lvl-radio { display: flex; align-items: center; gap: 0.45rem; font-size: 13px; color: var(--text); }
+.lvl-radio input { accent-color: var(--ember); }
+
+/* ---- Fila de escolhas já enviadas (chips do lote no cartão) ----------- */
+.lvl-queued { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.5rem; }
+.lvl-chip {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  padding: 0.15rem 0.3rem 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--spark) 12%, var(--bg0));
+  border: 1px solid color-mix(in srgb, var(--spark) 45%, var(--stroke));
+  color: var(--text); font-size: 11.5px;
+}
+.lvl-chip__x {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 999px;
+  border: none; background: transparent; color: var(--flame);
+  font-size: 13px; line-height: 1; cursor: pointer;
+}
+.lvl-chip__x:hover { color: var(--ember); }
+.lvl-chip__x:focus-visible { outline: 2px solid var(--ember); outline-offset: 1px; }
+
+/* chip de escolha JÁ persistida (remover via lote), tom neutro */
+.lvl-chip.is-saved { background: var(--bg0); border-color: var(--stroke); }
+.lvl-chip.is-removing { opacity: .5; text-decoration: line-through; }
+
+/* ---- Barra de ação Aplicar / Descartar (sticky) ----------------------- */
+.lvl-actionbar {
+  position: sticky; bottom: 0; z-index: 15;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem;
+  margin: 0.9rem 0 0.2rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--ember);
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--bg1) 92%, transparent);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 -6px 18px -12px rgba(0,0,0,.7);
+}
+.lvl-actionbar[hidden] { display: none; }
+.lvl-actionbar__count { font-size: 12.5px; color: var(--text); font-weight: 600; }
+.lvl-actionbar__count b { color: var(--ember); }
+.lvl-actionbar__spacer { flex: 1 1 auto; }
+.lvl-btn-ghost {
+  min-height: 38px; padding: 0 0.85rem; border-radius: 0.45rem;
+  font-size: 13px; font-weight: 700;
+  border: 1px solid var(--stroke); background: var(--bg0); color: var(--muted); cursor: pointer;
+}
+.lvl-btn-ghost:hover { border-color: var(--flame); color: var(--flame); }
+.lvl-btn-ghost:focus-visible { outline: 2px solid var(--flame); outline-offset: 1px; }
+
+/* botão "adicionar ao lote" dentro dos cartões */
+.lvl-add {
+  min-height: 38px; padding: 0 0.8rem; border-radius: 0.45rem;
+  font-size: 12.5px; font-weight: 700;
+  border: 1px solid var(--ember); background: color-mix(in srgb, var(--ember) 10%, transparent);
+  color: var(--ember); cursor: pointer; white-space: nowrap;
+}
+.lvl-add:hover { background: color-mix(in srgb, var(--ember) 18%, transparent); }
+.lvl-add:disabled { opacity: .4; cursor: not-allowed; }
+.lvl-add:focus-visible { outline: 2px solid var(--ember); outline-offset: 1px; }
+
+/* ---- Feedback (sucesso/erro do aplicar) ------------------------------- */
+.lvl-feedback { margin: 0.7rem 0; }
+.lvl-feedback[hidden] { display: none; }
+.lvl-ok {
+  border: 1px solid color-mix(in srgb, var(--spark) 45%, transparent);
+  background: color-mix(in srgb, var(--spark) 10%, transparent);
+  color: var(--spark);
+  border-radius: 0.45rem; padding: 0.55rem 0.75rem; font-size: 12.5px;
+}
+.lvl-err {
+  border: 1px solid color-mix(in srgb, var(--flame) 50%, transparent);
+  background: color-mix(in srgb, var(--flame) 10%, transparent);
+  color: var(--flame);
+  border-radius: 0.45rem; padding: 0.55rem 0.75rem; font-size: 12.5px;
+}
+.lvl-err ul { list-style: disc; margin: 0.25rem 0 0; padding-left: 1.1rem; }
+.lvl-reload-link { margin-left: 0.4rem; color: var(--ember); text-decoration: underline; cursor: pointer; background: none; border: none; font-size: inherit; }
+
+/* ---- Preview: pendências restantes (mini) ----------------------------- */
+.lvl-prev-pend { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.lvl-prev-pend .lvl-badge { font-size: 10px; }
+.lvl-prev-ok { font-size: 11.5px; color: var(--spark); }
+
+/* ---- Nome estourando: quebra segura em toda a página ------------------ */
+.lvl-card, .lvl-topcard { overflow-wrap: anywhere; }
+
+/* ---- Mobile estreito (≈380px): empilha campo + botão em cada linha ----- */
+@media (max-width: 430px) {
+  .lvl-card__row { flex-direction: column; align-items: stretch; }
+  .lvl-card__row .lvl-field--grow { flex-basis: auto; }
+  .lvl-card__row .lvl-field,
+  .lvl-card__row .lvl-add,
+  .lvl-card__row .cf-btn { width: 100%; }
+  .lvl-actionbar { flex-wrap: wrap; }
+  .lvl-actionbar .lvl-btn-ghost,
+  .lvl-actionbar .cf-btn { flex: 1 1 auto; }
+  .lvl-topcard__row { gap: 0.5rem; }
+  .lvl-progtools { align-items: stretch; width: 100%; }
+}
+
+/* A LOJA da ficha saiu daqui na onda C (Ficha v2): compra e venda vivem nas paginas
+   do Mercado, com CSS proprio em css/pages/mercado_loja.css. */
+.lvl-field option:disabled {
+  color: #9b7f83;
+  background: #1d1618;
+}

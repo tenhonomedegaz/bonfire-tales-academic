@@ -1,0 +1,25 @@
+{% comment %}
+Cartão-prévia de seleção de tema (perfil E ficha) — SELETOR POR PRÉVIA VISUAL.
+
+Uso: {% include 'home/includes/tema_swatch.html' with key=... item=... input_name=... input_id=... selected_value=... disabled=... custom=... %}
+
+Parâmetros esperados:
+- key: valor bruto do tema (ex.: 'bonfire', 'abissal', 'custom') — vira o value do input.
+- item: dict do catálogo (label, class, definicao{accent,accent2,surface,deep,
+  gradiente,particula,vel}, estado).
+- input_name: name do radio (mesmo name que o <select> antigo usava — profile_theme/ficha_theme).
+- input_id: id único do radio (ex.: 'id_profile_theme_{{ key }}').
+- selected_value: valor atualmente selecionado (compara com `key` aqui dentro —
+  Django templates não permitem `key==x` na expressão do {% include with %}).
+- disabled: bool — bloqueado por posse (estado='bloqueado'); desenha cadeado e desabilita o input.
+- custom: dict de cores do tema Personalizado do usuário (appearance.custom). O cartão
+  'custom' NÃO tem definicao_json — ele mostra as CORES ATUAIS do usuário.
+
+Este arquivo só ESCOLHE de qual dict saem as cores; o cartão em si mora em
+`tema_swatch_card.html` (render único, zero duplicação de markup).
+{% endcomment %}
+{% if key == 'custom' and custom %}
+{% include 'home/includes/tema_swatch_card.html' with d=custom %}
+{% else %}
+{% include 'home/includes/tema_swatch_card.html' with d=item.definicao %}
+{% endif %}

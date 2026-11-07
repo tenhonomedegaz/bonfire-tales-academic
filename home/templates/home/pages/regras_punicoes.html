@@ -1,0 +1,81 @@
+{% extends 'home/base.html' %}
+{% load static %}
+{% block title %}Regras e Punições - Bonfire Tales RPG{% endblock %}
+{% block meta_description %}Conheça as regras de convivência do Bonfire Tales, o sistema de alertas e advertências e as orientações para falar com a moderação.{% endblock %}
+{% block body_class %}bft-conduct{% endblock %}
+{% block main_class %}flex-1 w-full bft-conduct-main{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/regras_punicoes.css' %}?v=1"><script src="{% static 'js/regras_punicoes.js' %}?v=1" defer></script>{% endblock %}
+{% block content %}
+<div class="conduct-page">
+  <header class="conduct-masthead">
+    <div class="conduct-masthead-copy"><nav class="conduct-breadcrumb" aria-label="Localização"><a href="{% url 'home' %}">Bonfire Tales</a><span aria-hidden="true">/</span><span>Comunidade</span></nav><p class="conduct-eyebrow">Código de Conduta</p><h1 id="conduct-title" tabindex="-1">Regras e Punições</h1><p class="conduct-subtitle">Regras básicas do servidor e como funciona o sistema de punições.</p><div class="conduct-masthead-actions"><a class="conduct-primary-link" href="#regras">Ler as regras <span aria-hidden="true">↓</span></a><a class="conduct-secondary-link" href="#punicoes">Ver punições <span aria-hidden="true">↓</span></a></div></div>
+    <div class="conduct-masthead-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m12 2 8 3v7c0 6-8 10-8 10S4 18 4 12V5Z"/><path d="m8 12 3 3 5-6"/></svg></div>
+  </header>
+
+  <section class="conduct-help" aria-labelledby="moderacao">
+    <span class="conduct-help-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m12 2 8 3v7c0 6-8 10-8 10S4 18 4 12V5Z"/><path d="m8 12 3 3 5-6"/></svg></span><div><h2 id="moderacao" tabindex="-1">Precisa de ajuda ou quer denunciar?</h2><p>Se você tiver dúvida ou precisar denunciar algo, fale com um <span>Moderador</span>.</p></div><a href="https://discord.gg/eyqe7rj2AX" target="_blank" rel="noopener noreferrer" class="conduct-discord-link" aria-label="Ir ao Discord do Bonfire Tales, abre em nova aba">Ir ao Discord <span aria-hidden="true">↗</span></a>
+  </section>
+
+  <div class="conduct-layout">
+    <aside class="conduct-sidebar" aria-label="Navegação de Regras e Punições"><p class="conduct-index-title">Nesta página</p>{% include 'home/partials/conduct_toc.html' %}<a class="conduct-index-help" href="#moderacao">Falar com a moderação <span aria-hidden="true">↗</span></a></aside>
+    <div class="conduct-reading">
+      <details class="conduct-mobile-index"><summary>Navegar nesta página <span aria-hidden="true">⌄</span></summary>{% include 'home/partials/conduct_toc.html' %}</details>
+      <section class="conduct-section" aria-labelledby="regras">
+        <header class="conduct-section-heading"><div><p class="conduct-eyebrow">01 · Convivência</p><h2 id="regras" tabindex="-1">Regras do Servidor</h2></div><span class="conduct-section-count">10 regras</span></header>
+        <p class="conduct-intro">Para manter um ambiente agradável, seguro e divertido, temos regras simples. Ao participar do servidor, você concorda com estas regras e com o sistema de punições abaixo.</p>
+        <ol class="conduct-rule-grid" role="list">
+          <li><article class="conduct-rule" aria-labelledby="regra-1"><header><span class="conduct-rule-number" aria-hidden="true">01</span><h3 id="regra-1" tabindex="-1">Respeite para ser respeitado</h3></header><div class="conduct-rule-copy"><p>Este é um servidor de comunidade. Trate as pessoas com o respeito que você espera receber.</p><p>Também crie um personagem disposto a jogar em equipe. Não importa tendência, personalidade ou motivação. Seu personagem precisa funcionar com o grupo.</p></div></article></li>
+          <li><article class="conduct-rule" aria-labelledby="regra-2"><header><span class="conduct-rule-number" aria-hidden="true">02</span><h3 id="regra-2" tabindex="-1">Conteúdo ofensivo</h3></header><div class="conduct-rule-copy"><p>É proibida qualquer manifestação de racismo, LGBTQ+fobia ou qualquer tipo de discriminação.</p><p>Isso vale para avatar do Discord, nome, mensagens, narração, comportamento em campanha e qualquer manifestação direta ou indireta dentro do servidor.</p></div></article></li>
+          <li><article class="conduct-rule" aria-labelledby="regra-3"><header><span class="conduct-rule-number" aria-hidden="true">03</span><h3 id="regra-3" tabindex="-1">Assédio</h3></header><div class="conduct-rule-copy"><p>Assédio é expressamente proibido. Isso inclui apelidos para envergonhar, ameaças, humilhação e qualquer atitude feita para causar desconforto.</p><p>Em situações graves, a pessoa pode responder civil e criminalmente conforme a legislação brasileira, além de sofrer sanções internas do servidor.</p></div></article></li>
+          <li><article class="conduct-rule" aria-labelledby="regra-4"><header><span class="conduct-rule-number" aria-hidden="true">04</span><h3 id="regra-4" tabindex="-1">Política, religião e esportes</h3></header><div class="conduct-rule-copy"><p>Evite ferir, provocar ou impor opiniões sobre assuntos polêmicos que possam gerar discórdia. Isso inclui política, religião, esportes e outros temas sensíveis.</p></div></article></li>
+          <li><article class="conduct-rule" aria-labelledby="regra-5"><header><span class="conduct-rule-number" aria-hidden="true">05</span><h3 id="regra-5" tabindex="-1">Divulgação</h3></header><div class="conduct-rule-copy"><p>Use apenas os canais específicos para divulgar campanhas, streams e artes.</p><p>No geral, não aprovamos venda de produtos ou serviços no servidor sem autorização da equipe.</p></div></article></li>
+          <li><article class="conduct-rule" aria-labelledby="regra-6"><header><span class="conduct-rule-number" aria-hidden="true">06</span><h3 id="regra-6" tabindex="-1">Conteúdo e RP +18</h3></header><div class="conduct-rule-copy"><p>É estritamente proibido conteúdo sexual, nudez, erotização, fetichização, insinuações explícitas e qualquer interação de teor sexual, mesmo em RP.</p></div></article></li>
+          <li><article class="conduct-rule" aria-labelledby="regra-7"><header><span class="conduct-rule-number" aria-hidden="true">07</span><h3 id="regra-7" tabindex="-1">Spam</h3></header><div class="conduct-rule-copy"><p>Evite spam, publicações excessivas e caps lock.</p></div></article></li>
+          <li><article class="conduct-rule" aria-labelledby="regra-8"><header><span class="conduct-rule-number" aria-hidden="true">08</span><h3 id="regra-8" tabindex="-1">Informações pessoais</h3></header><div class="conduct-rule-copy"><p>Não publique informações pessoais, como nome completo, telefone, CPF, RG e dados similares.</p></div></article></li>
+          <li><article class="conduct-rule" aria-labelledby="regra-9"><header><span class="conduct-rule-number" aria-hidden="true">09</span><h3 id="regra-9" tabindex="-1">Denúncia</h3></header><div class="conduct-rule-copy"><p>Se você quiser denunciar comportamento inapropriado, entre em contato com um <strong>Moderador</strong>.</p></div></article></li>
+          <li><article class="conduct-rule" aria-labelledby="regra-10"><header><span class="conduct-rule-number" aria-hidden="true">10</span><h3 id="regra-10" tabindex="-1">Punição</h3></header><div class="conduct-rule-copy"><p>Quem descumpre regras pode receber alertas. Se o comportamento for recorrente ou grave, punições serão aplicadas.</p></div></article></li>
+        </ol>
+      </section>
+
+      <section class="conduct-section conduct-sanctions" aria-labelledby="punicoes">
+        <header class="conduct-section-heading"><div><p class="conduct-eyebrow">02 · Moderação</p><h2 id="punicoes" tabindex="-1">Punições do Servidor</h2></div></header>
+        <p class="conduct-intro">Para manter a convivência saudável e o ambiente de jogo seguro, usamos um sistema gradual de punições. As punições podem ser:</p>
+        <nav class="conduct-penalty-jumps" aria-label="Tipos de punição"><a href="#alertas">Alertas <span aria-hidden="true">↗</span></a><a href="#advertencias">Advertências <span aria-hidden="true">↗</span></a><a href="#silencio">Silêncio <span aria-hidden="true">↗</span></a><a href="#banimento">Banimento <span aria-hidden="true">↗</span></a></nav>
+
+        <article class="conduct-penalty conduct-alerts" aria-labelledby="alertas">
+          <header class="conduct-penalty-header"><span class="conduct-penalty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m12 3 10 18H2Z"/><path d="M12 9v5m0 3h.01"/></svg></span><div><h3 id="alertas" tabindex="-1">Alertas</h3><p class="conduct-penalty-label">Aviso formal</p></div></header>
+          <div class="conduct-penalty-copy"><p>Alertas são punições leves. Eles são aplicados quando há infração de regra ou conduta nociva que ainda não é grave o suficiente para justificar uma advertência.</p><ul class="conduct-bullets "><li>Servem como aviso formal de que o comportamento precisa mudar.</li><li>A moderação analisa contexto e histórico antes de aplicar o alerta.</li><li>Alertas podem gerar advertências em caso de reincidência.</li></ul><section class="conduct-repeat" aria-labelledby="reincidencia"><h4 id="reincidencia" tabindex="-1">Regras de reincidência</h4><div class="conduct-repeat-grid"><div><p class="conduct-mini-label">Mesmo motivo</p><p>Se o jogador receber um segundo alerta em até <strong>6 meses</strong>, pelo mesmo motivo, pode receber uma advertência por reincidência.</p></div><div><p class="conduct-mini-label">Qualquer motivo</p><p>Se o jogador receber três alertas em até <strong>6 meses</strong>, por qualquer motivo, pode receber uma advertência por reincidência.</p></div></div></section></div>
+        </article>
+
+        <article class="conduct-penalty conduct-warnings" aria-labelledby="advertencias">
+          <header class="conduct-penalty-header"><span class="conduct-penalty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m8 2-6 6v8l6 6h8l6-6V8l-6-6Z"/><path d="M12 7v7m0 3h.01"/></svg></span><div><h3 id="advertencias" tabindex="-1">Advertências</h3><p class="conduct-penalty-label">Graves e cumulativas</p></div></header>
+          <div class="conduct-penalty-copy"><p>Advertências são punições mais graves e cumulativas. Representam violações de regra mais sérias ou comportamento nocivo contínuo com a comunidade.</p>
+            <ol class="conduct-warning-steps" aria-label="Consequências das advertências" role="list"><li><h4>1ª Advertência</h4><p>1 semana como Infrator</p></li><li><h4>2ª Advertência</h4><p>1 mês como Infrator</p></li><li><h4>3ª Advertência</h4><p>Banimento</p></li></ol>
+            <section class="conduct-warning-relation"><h4>Relação entre alertas e advertências:</h4><ul class="conduct-bullets "><li>Se você já tiver 1 advertência, novos alertas podem reiniciar o prazo de prescrição dessa advertência.</li><li>Dependendo da gravidade e da reincidência, dois alertas adicionais podem gerar uma nova advertência.</li><li>Se você já tiver 2 advertências, um novo alerta pode resultar na 3ª advertência, levando ao banimento.</li></ul></section>
+          </div>
+        </article>
+
+        <div class="conduct-secondary-grid">
+          <article class="conduct-penalty conduct-expiry" aria-labelledby="prescricao">
+            <header class="conduct-penalty-header"><span class="conduct-penalty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 12a9 9 0 1 0 2.6-6.4L3 8m0-5v5h5"/><path d="M12 7v5l3 2"/></svg></span><div><h3 id="prescricao" tabindex="-1">Prescrição de Advertências</h3><p class="conduct-penalty-label">Redução de advertências</p></div></header>
+            <div class="conduct-penalty-copy"><p>O servidor entende que pessoas podem mudar. Se você passar <strong>9 meses</strong> sem receber qualquer punição (alertas, advertências ou silêncio), contando a partir da data da última punição, sua quantidade de advertências diminui em 1. Esse efeito é cumulativo.</p></div>
+          </article>
+          <article class="conduct-penalty conduct-silence" aria-labelledby="silencio">
+            <header class="conduct-penalty-header"><span class="conduct-penalty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m2 2 20 20M9 9v3a3 3 0 0 0 5 2M9 5a3 3 0 0 1 6 0v4m-3 10v3m-4 0h8M5 10v2a7 7 0 0 0 12 5m2-7v2"/></svg></span><div><h3 id="silencio" tabindex="-1">Silêncio</h3><p class="conduct-penalty-label">Medida temporária</p></div></header>
+            <div class="conduct-penalty-copy"><p>Silêncio é uma punição temporária usada quando o jogador gera tumulto em canais públicos, aumenta discussões ou atrapalha o andamento das conversas.</p><ul class="conduct-bullets "><li>Durante o silêncio, o jogador não pode enviar mensagens por um período determinado.</li><li>O objetivo é evitar que o conflito cresça e permitir que a pessoa se acalme.</li><li>O silêncio pode ser aplicado junto com alertas ou advertências.</li></ul></div>
+          </article>
+        </div>
+
+        <article class="conduct-penalty conduct-ban" aria-labelledby="banimento">
+          <header class="conduct-penalty-header"><span class="conduct-penalty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="m6 6 12 12"/></svg></span><div><h3 id="banimento" tabindex="-1">Banimento Imediato</h3><p class="conduct-penalty-label">Mesmo sem histórico</p></div></header>
+          <div class="conduct-penalty-copy"><p>Banimento imediato é aplicado em condutas extremamente graves, mesmo sem histórico. Exemplos:</p>
+            <ul class="conduct-bullets conduct-ban-examples"><li>Racismo ou LGBTQ+fobia</li><li>Divulgação de dados (doxxing)</li><li>Ameaças reais ou violência</li><li>Tentativa de golpe ou fraude</li><li>Assédio pesado ou perseguição</li><li>Conteúdo sexual ilegal ou extremo</li></ul>
+            <p class="conduct-ban-note">Em casos assim, além do banimento, o ocorrido pode ser reportado à plataforma e, quando for o caso, às autoridades competentes.</p>
+          </div>
+        </article>
+      </section>
+      <footer class="conduct-closing"><p>Ao participar do servidor, você concorda com estas regras e punições. <br/> Nosso objetivo é manter um ambiente saudável, respeitoso e divertido para todos.</p><a href="#conduct-title">Voltar ao topo <span aria-hidden="true">↑</span></a></footer>
+    </div>
+  </div>
+</div>
+{% endblock %}

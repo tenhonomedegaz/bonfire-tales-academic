@@ -1,0 +1,18 @@
+{% extends 'home/base.html' %}{% load static %}
+{% block body_class %}bft-complementary{% endblock %}{% block main_class %}cp-main flex-1 w-full min-w-0{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/complementary.css' %}?v=1"><script src="{% static 'js/complementary.js' %}?v=1" defer></script>{% endblock %}
+{% block content %}
+{% include 'home/partials/notification_nav.html' with inbox_kind='chronicles' %}
+{% include 'home/partials/complementary_notice.html' %}
+<section class="cp-inbox cronica-inbox" data-cp-filter-root aria-labelledby="cp-inbox-title">
+<header class="cp-hero cp-hero-compact"><div><p class="cp-eyebrow">Crônicas de Cinéria · Sua caixa de entrada</p><h1 id="cp-inbox-title">Notificações das crônicas</h1><p>Acompanhe as novidades dos seus relatos e conversas. Abra uma notificação nova para lê-la e marcá-la como lida.</p></div><span class="cp-hero-icon">{% include 'home/partials/complementary_icon.html' with kind='bell' %}</span></header>
+<p class="cp-inbox-back cronica-inbox-back"><a href="{% url 'mundo_cronicas' %}">← Voltar às crônicas</a><span>Até 100 notificações mais recentes.</span></p>
+{% include 'home/partials/notification_tools.html' %}
+<ul class="cp-inbox-list cronica-inbox-list">
+{% for item in notificacoes %}<li class="cp-inbox-item cronica-inbox-item{% if not item.lida_em %} is-unread{% endif %}" data-cp-filter-item data-state="{% if item.lida_em %}read{% else %}unread{% endif %}">
+<span class="cp-notification-symbol">{% include 'home/partials/complementary_icon.html' with kind='book' %}</span><div class="cp-notification-body"><div class="cp-notification-meta">{% if not item.lida_em %}<strong class="cronica-inbox-state">Nova</strong>{% else %}<span class="cp-read-label">Lida</span>{% endif %}<time datetime="{{ item.criada_em|date:'c' }}">{{ item.criada_em|date:'d/m/Y H:i' }}</time></div>
+{% if not item.lida_em %}<form method="post" action="{% url 'cronica_notificacao_ler' item.pk %}">{% csrf_token %}<button class="cronica-inbox-action" type="submit" name="abrir" value="1" aria-label="Abrir e marcar como lida: {{ item.texto }}">{{ item.texto }}</button></form>{% else %}<a class="cronica-inbox-action" href="{% url 'cronica_detail' slug=item.cronica.slug %}{% if item.comentario_id %}?comentario={{ item.comentario_id }}#comentario-{{ item.comentario_id }}{% endif %}">{{ item.texto }}</a>{% endif %}<p class="cp-notification-hint">{% if not item.lida_em %}Abrir e marcar como lida{% else %}Consultar crônica{% endif %} <span aria-hidden="true">→</span></p></div>
+</li>{% empty %}<li class="cp-empty cronica-inbox-empty"><span class="cp-empty-icon">{% include 'home/partials/complementary_icon.html' with kind='book' %}</span><h2>Um intervalo entre histórias.</h2><p>Sem notificações.</p><a class="cp-button cp-button-secondary" href="{% url 'mundo_cronicas' %}">Explorar as crônicas</a></li>{% endfor %}
+</ul><div class="cp-empty" data-cp-filter-empty hidden><h2>Nenhuma notificação neste filtro.</h2><p>Altere o termo de busca ou escolha “Todas”.</p></div>
+</section>
+{% endblock %}

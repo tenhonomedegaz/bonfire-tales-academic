@@ -1,0 +1,72 @@
+/* A compact game shop, scoped to the Mundane Market. */
+.market-game-header { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px 24px; padding:14px 18px; margin:0 0 10px; border:1px solid #633027; border-left:3px solid #b31515; background:linear-gradient(110deg,#2c1010,#131011 80%); }
+.market-game-header h1 { color:#f2eee8; font:600 32px/1.1 'Frank Ruhl Libre',serif; margin:0 0 6px; }
+.market-game-header p { color:#c4b6ac; font-size:12px; line-height:1.6; }
+.market-game-header-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.market-game-header-actions button { cursor:pointer; min-height:36px; padding:8px 10px; border:1px solid #85422c; border-radius:3px; background:#24140f; color:#f0b18a; font-size:11px; }
+.market-game-header-actions button:hover { background:#401c13; border-color:#df8152; }
+.market-game-local { margin:0 0 12px; color:#b1a096; font-size:10px; line-height:1.7; padding-left:2px; }
+.market-game-footer-note { margin:15px 0 0; color:#b9a699; font-size:11px; line-height:1.75; }
+.bft-market-game .mkt-browse { padding:12px; gap:10px; }
+.bft-market-game .mkt-tools { grid-template-columns:minmax(0,1fr); gap:9px; }
+.bft-market-game .mkt-tools > .market-filter-field { grid-column:1; }
+.bft-market-game .market-filter-field > span { font-size:10px; }
+.bft-market-game .mkt-search,.bft-market-game .mkt-select { font-size:12px; min-height:37px; }
+.bft-market-game .market-extra-filters > summary { display:flex; justify-content:space-between; align-items:center; cursor:pointer; list-style:none; min-height:35px; padding:7px 10px; border:1px solid #5b3427; border-radius:3px; color:#d5a580; background:#20130f; font-size:10px; }
+.bft-market-game .market-extra-filters > summary::-webkit-details-marker { display:none; }
+.bft-market-game .market-extra-filters[open] > div { margin-top:10px; grid-template-columns:minmax(0,1fr); }
+.bft-market-game .market-extra-filters[open] > summary > span:last-child { transform:rotate(45deg); }
+.bft-market-game .mkt-tabs { flex:none; }
+.bft-market-game .mkt-count { font-size:10px; }
+.bft-market-game .mkt-row { min-height:54px; gap:4px 8px; padding:9px 8px; }
+.bft-market-game .mkt-row-name { font-size:13px; line-height:1.4; }
+.bft-market-game .mkt-row-meta { font-size:10px; }
+.bft-market-game .market-reference-label { font:400 9px/1.4 'Open Sans',sans-serif; color:#b9a18b; border:1px solid #583927; border-radius:2px; padding:3px 5px; }
+.bft-market-game .mkt-row.is-selected { background:#391a14; border-color:#e47142; }
+.bft-market-game .mkt-preview-inner { padding:19px; }
+.bft-market-game .mkt-item-heading { grid-template-columns:70px minmax(0,1fr); gap:16px; padding-bottom:14px; }
+.bft-market-game .mkt-item-heading .mkt-figure { width:70px; height:84px; padding:8px; }
+.bft-market-game .market-item-icon { width:48px; height:48px; }
+.bft-market-game .mkt-card-name { font-size:28px; overflow-wrap:anywhere; }
+.bft-market-game .mkt-card { gap:14px; }
+.bft-market-game .mkt-desc { font-size:14px; line-height:1.85; }
+.market-entry-status { display:inline-block; border:1px solid #6d5437; color:#e4bd8f; background:#251b10; font:600 9px/1.4 'Open Sans',sans-serif; border-radius:2px; padding:3px 7px; margin-top:9px; }
+.market-entry-status.is-consult { color:#c7b5a8; border-color:#5d4840; background:#201817; }
+.bft-market-game .mkt-favorite-form { display:inline-block; margin:9px 0 0 8px; }
+.market-guide-notes { border-top:1px solid #5c3326; padding-top:13px; margin-top:6px; }
+.market-guide-notes > summary { color:#e6a678; font-size:12px; font-weight:600; cursor:pointer; }
+.market-guide-notes > summary span { margin-left:8px; }
+.market-guide-notes > div { padding-top:15px; }
+.market-guide-section + .market-guide-section { margin-top:22px; padding-top:17px; border-top:1px solid #4c2d23; }
+.market-guide-section h3 { color:#e6b78f; font:600 22px/1.35 'Frank Ruhl Libre',serif; margin:0 0 12px; }
+.market-guide-section p,.market-guide-paragraph { color:#d1bfb0; font-size:14px; line-height:1.85; margin:0 0 12px; }
+.market-guide-section p:last-child,.market-guide-paragraph:last-child { margin-bottom:0; }
+.market-guide-section strong { color:#f0dac6; }
+.market-consult-note { padding:11px 13px; border-left:2px solid #c56e40; background:#241810; color:#ddb693 !important; font-size:12px !important; line-height:1.8; }
+.market-consult-price { display:flex; align-items:center; gap:20px; padding:15px; border:1px solid #60402e; background:#21160f; border-radius:3px; }
+.market-consult-price > div { flex:none; }
+.market-consult-price span { display:block; color:#bca08a; font-size:10px; margin-bottom:4px; }
+.market-consult-price strong { color:#f0ba8d; font:600 27px/1.2 'Frank Ruhl Libre',serif; }
+.market-consult-price p { color:#b9a79a; font-size:12px; line-height:1.75; }
+.bft-market-game [data-market-selection-status] { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+.bft-market-game :is(button,input,select,summary,a):focus-visible { outline:2px solid #f0ac78; outline-offset:3px; }
+@media(min-width:1024px) {
+  .bft-market-game .shop { grid-template-columns:minmax(330px,.75fr) minmax(0,1.4fr); }
+  .bft-market-game .mkt-pane { gap:10px; }
+}
+@media(max-width:599px) {
+  .market-game-header { padding:14px; }
+  .market-game-header h1 { font-size:29px; }
+  .market-game-header-actions { width:100%; }
+  .market-game-header-actions button { flex:1; min-height:40px; }
+  .bft-market-game .mkt-browse { padding:11px; }
+  .bft-market-game .mkt-row { min-height:58px; }
+  .bft-market-game .mkt-row-name { white-space:normal; }
+  .bft-market-game .mkt-search,.bft-market-game .mkt-select { min-height:42px; }
+  .bft-market-game .mkt-item-heading { grid-template-columns:58px minmax(0,1fr); gap:12px; }
+  .bft-market-game .mkt-item-heading .mkt-figure { width:58px; height:74px; padding:6px; }
+  .bft-market-game .market-item-icon { width:43px; height:43px; }
+  .bft-market-game .mkt-card-name { font-size:25px; }
+  .market-consult-price { flex-wrap:wrap; gap:10px; }
+  .market-guide-section p,.market-guide-paragraph { font-size:13px; }
+}

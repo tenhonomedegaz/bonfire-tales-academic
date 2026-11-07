@@ -1,0 +1,56 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+.env
+.env.*
+!.env.example
+staticfiles/
+AI_CONTEXT_DO_NOT_COMMIT.md
+admin_console_history.jsonl
+bonfas_classes.db
+bonfas_classes.db.*
+*.sqlite3
+*.db
+*.db-*
+*.db.*
+__pycache__/
+*.pyc
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Reference HTML and doc assets
+ref/*
+!ref/FAMILIAR_DE_BATALHA.md
+
+# Arquivos de trabalho/locais (não versionar)
+scratch/
+.claude/
+backups/
+
+# Uploads de usuário (PII) e dumps avulsos na raiz
+media/
+backup_sqlite.json
+/conteudo.json
+
+# Assets pesados de referência em docs/agentes/ (imagens, não código)
+docs/agentes/*.png
+docs/agentes/*.gif

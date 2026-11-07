@@ -1,0 +1,5 @@
+#configure-map .lab-coordinates{grid-template-columns:repeat(2,minmax(0,1fr))}
+#configure-map input[type=range]{padding:0;accent-color:var(--accent);min-height:32px}
+#map-image-status{display:block;min-height:34px;margin-top:9px;color:var(--muted);font-size:12px;overflow-wrap:anywhere}
+#map-image-status[data-error=true]{color:#ffb3a7}
+@media(max-width:600px){.lab-sessions #configure-map{display:block}}

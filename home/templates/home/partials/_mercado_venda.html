@@ -1,0 +1,56 @@
+{% comment %}Painel VENDER do Mercado.
+
+Mesma lista compacta da compra, mesmo painel de destaque: a linha só mostra nome, o preço de
+catálogo e quanto o balcão paga; o botão de venda (com quantidade) vive no painel da direita,
+igual ao botão de compra.
+
+A REGRA não mudou de lugar: quem calcula os 80% e credita a carteira continua sendo
+`personagem_vender_item`. Itens mundanos e mágicos comercializáveis aparecem; o Mercado
+da Comunidade continua disponível para quem preferir vender a outro jogador.
+
+Espera no contexto: mercado_ativo (personagem), mercado_venda (linhas), mercado_next.
+Este partial volta re-renderizado no JSON das mutações (`venda_html`), com as linhas E os
+templates do painel — a vitrine atualiza compra e venda sem reload.{% endcomment %}
+{% if mercado_venda %}
+<ul class="mkt-list" data-shop-list>
+  {% for it in mercado_venda %}
+  <li>
+    <button type="button" class="mkt-row" data-mkt-row data-target="sell-{{ it.id }}"
+            data-search="{{ it.nome|lower }}" aria-selected="false">
+      <span class="mkt-row-name" title="{{ it.nome }}">{% if it.qtd > 1 %}<em class="mkt-row-qtd">{{ it.qtd }}×</em> {% endif %}{{ it.nome }}</span>
+      <span class="mkt-row-meta">catálogo {{ it.custo_display }}</span>
+      <span class="mkt-row-price">{{ it.venda_display }}</span>
+    </button>
+    <template id="sell-{{ it.id }}-tpl">
+      <article class="mkt-card">
+        <figure class="mkt-figure">
+          <span class="mkt-sigil"><span class="mkt-sigil-letter">{{ it.nome|first|upper }}</span></span>
+          <figcaption>{% if it.magico %}Item mágico{% else %}Sua mochila{% endif %}</figcaption>
+        </figure>
+        <p class="mkt-card-kind">Venda no balcão{% if it.qtd > 1 %} · {{ it.qtd }} na mochila{% endif %}</p>
+        <h3 class="mkt-card-name">{{ it.nome }}</h3>
+        <div class="mkt-deal">
+          <span class="mkt-price">{{ it.venda_display }}</span>
+          <form method="post" action="{% url 'personagem_vender_item' mercado_ativo.id_personagem %}" class="mkt-buy" data-shop-sell>
+            {% csrf_token %}
+            <input type="hidden" name="item" value="{{ it.id }}">
+            <input type="hidden" name="next" value="{{ mercado_next }}">
+            {% if it.qtd > 1 %}<input type="number" name="qtd" min="1" max="{{ it.qtd }}" value="1" class="mkt-qty" aria-label="Quantidade de {{ it.nome }} a vender">
+            {% else %}<input type="hidden" name="qtd" value="1">{% endif %}
+            <button type="submit" class="mkt-btn is-sell" data-nome="{{ it.nome }}" data-valor="{{ it.venda_display }}">Vender</button>
+          </form>
+        </div>
+        <dl class="mkt-stats">
+          <div><dt>Catálogo</dt><dd>{{ it.custo_display }}</dd></div>
+          <div><dt>O balcão paga</dt><dd>80%</dd></div>
+          <div><dt>Na mochila</dt><dd>{{ it.qtd }}</dd></div>
+        </dl>
+        <p class="mkt-card-note">O ouro entra na carteira do personagem ativo na hora.{% if it.magico %} Você também pode anunciar itens mágicos no <a href="{% url 'mercado_comunidade' %}">Mercado da Comunidade</a>.{% endif %}</p>
+      </article>
+    </template>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="mkt-note mkt-note-pad">Nada a vender: entram aqui os itens com preço de catálogo. Itens mágicos também podem ser anunciados no <a href="{% url 'mercado_comunidade' %}">Mercado da Comunidade</a>, pela Mochila.</p>
+{% endif %}

@@ -1,0 +1,175 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}{% if page_title %}{{ page_title }} · {% endif %}Bonfire Tales RPG{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}{{ meta_description|default:'Bonfire Tales: RPG contínuo de fantasia sombria, fichas digitais, missões e atlas interativo de Cinéria.' }}{% endblock %}" />
+  <meta name="robots" content="{% block meta_robots %}{% if noindex or default_noindex %}noindex, nofollow{% else %}index, follow, max-image-preview:large{% endif %}{% endblock %}" />
+  <link rel="canonical" href="{% if canonical_path %}{{ site_origin }}{{ canonical_path }}{% else %}{{ site_origin }}{{ request.path }}{% endif %}" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Bonfire Tales RPG" />
+  <meta property="og:title" content="{% if page_title %}{{ page_title }} · {% endif %}Bonfire Tales RPG" />
+  <meta property="og:description" content="{{ meta_description|default:'RPG contínuo de fantasia sombria, fichas digitais, missões e atlas interativo de Cinéria.' }}" />
+  <meta property="og:url" content="{% if canonical_path %}{{ site_origin }}{{ canonical_path }}{% else %}{{ site_origin }}{{ request.path }}{% endif %}" />
+  {% if adsense_publisher_id %}<meta name="google-adsense-account" content="{{ adsense_publisher_id }}">{% endif %}
+  {% if adsense_enabled and ads_enabled %}
+  <script src="{% static 'js/privacy-choices.js' %}?v=1" defer></script>
+  <script async crossorigin="anonymous" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ adsense_publisher_id }}"></script>
+  {% endif %}
+  <link rel="icon" type="image/png" href="{% static 'brand/icon.png' %}" />
+  <link rel="shortcut icon" type="image/png" href="{% static 'brand/icon.png' %}" />
+
+  <link rel="preload" href="{% static 'brand/OpenSans.ttf' %}" as="font" type="font/ttf" crossorigin>
+  <link rel="preload" href="{% static 'brand/FrankRuhlLibre.ttf' %}" as="font" type="font/ttf" crossorigin>
+
+  <script src="{% static 'vendor/tailwind/tailwind-3.4.17-typography.js' %}"></script>
+  <script>
+    // Falha no carregamento do asset não deve interromper os scripts da página.
+    if (window.tailwind) window.tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Open Sans', 'sans-serif'],
+            serif: ['Frank Ruhl Libre', 'serif'],
+          },
+          colors: {
+            bonfire: {
+              bg0: '#0A0A0A',
+              bg1: '#141110',
+              bg2: '#201917',
+              card: '#191411',
+              stroke: '#3C3029',
+              flame: '#B31515',
+              ember: '#FF6A00',
+              spark: '#FFC43D',
+              text: '#F2EEE8',
+              muted: '#B6AAA0',
+            }
+          },
+          backgroundImage: {
+            'noise': "url('data:image/svg+xml,%3Csvg viewBox=\"0 0 200 200\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cfilter id=\"noiseFilter\"%3E%3CfeTurbulence type=\"fractalNoise\" baseFrequency=\"0.65\" numOctaves=\"3\" stitchTiles=\"stitch\"/%3E%3C/filter%3E%3Crect width=\"100%25\" height=\"100%25\" filter=\"url(%23noiseFilter)\" opacity=\"0.05\"/%3E%3C/svg%3E')",
+            'bonfire-gradient': 'linear-gradient(to right, #4B0D0D, #B31515)',
+          },
+          keyframes: {
+            'fade-in-down': {
+              '0%': { opacity: '0', transform: 'translateY(-10px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            },
+            'fade-in': {
+              '0%': { opacity: '0' },
+              '100%': { opacity: '1' },
+            }
+          },
+          animation: {
+            'fade-in-down': 'fade-in-down 0.2s ease-out forwards',
+            'fade-in': 'fade-in 0.2s ease-out forwards',
+          }
+        }
+      }
+    }
+  </script>
+
+  {% block content_libraries %}{% include 'home/includes/content_libraries.html' %}{% endblock %}
+
+  <link rel="stylesheet" href="{% static 'css/pages/base.css' %}?v=3">
+  <link rel="stylesheet" href="{% static 'css/pages/magias.css' %}?v=7">
+  {% block extra_head %}{% endblock %}
+  <link rel="stylesheet" href="{% static 'css/pages/responsive.css' %}?v=1">
+  <link rel="stylesheet" href="{% static 'css/brand.css' %}?v=2">
+  <link rel="stylesheet" href="{% static 'css/brand-world.css' %}?v=2">
+  <link rel="stylesheet" href="{% static 'css/components/ranks.css' %}?v=1">
+  <link rel="stylesheet" href="{% static 'css/components/theme-compositions.css' %}?v=1">
+  <link rel="stylesheet" href="{% static 'css/components/cosmetic-presentation.css' %}?v=15">
+  <link rel="stylesheet" href="{% static 'css/components/character-card.css' %}?v=1">
+  <script src="{% static 'cosmetics/renderer.js' %}?v=14" defer></script>
+  <link rel="stylesheet" href="{% static 'css/components/cosmetic-catalog.css' %}?v=2">
+  <script src="{% static 'js/cosmetic-catalog.js' %}?v=2" defer></script>
+  <link rel="stylesheet" href="{% static 'css/components/navigation-access.css' %}?v=1">
+  <link rel="stylesheet" href="{% static 'css/components/master-review.css' %}?v=1">
+  <link rel="stylesheet" href="{% static 'css/components/editorial-ad.css' %}?v=2">
+  <link rel="stylesheet" href="{% static 'css/components/profile-effects.css' %}?v=2">
+  <link rel="stylesheet" href="{% static 'css/components/profile-theme-motifs.css' %}?v=2">
+  <link rel="stylesheet" href="{% static 'css/components/illustrated-theme-skins.css' %}?v=3">
+  <link rel="stylesheet" href="{% static 'css/components/rank-theme-skins.css' %}?v=1">
+  <script src="{% static 'js/profile-effects.js' %}?v=3" defer></script>
+  <script src="{% static 'js/navigation-access.js' %}?v=1" defer></script>
+  <script src="{% static 'js/brand.js' %}?v=1" defer></script>
+  <script src="{% static 'js/theme-composition-preview.js' %}?v=1" defer></script>
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  <a class="bft-skip" href="#main-content">Pular para o conteúdo</a>
+  <div id="root">
+    <div class="bft-shell flex flex-col min-h-screen bg-[var(--bg0)] text-[var(--text)] selection:bg-[var(--ember)] selection:text-white">
+      {% include 'home/components/header.html' %}
+      {% if master_review_access and pending_master_requests_count %}
+      <aside class="bft-review-notice" aria-label="Solicitações de mestre pendentes">
+        <span>{{ pending_master_requests_count }} solicitaç{{ pending_master_requests_count|pluralize:'ão,ões' }} de mestre aguardando avaliação.</span>
+        <a href="{% url 'master_dashboard' %}?permissao=pendente#permissoes">Avaliar solicitações →</a>
+      </aside>
+      {% endif %}
+      
+      <div class="flex-1 flex flex-row w-full justify-center">
+          {% block ad_containers %}
+          {% if adsense_enabled and ads_enabled and adsense_sidebar_slot %}
+          <aside class="support-sidebar-left hidden min-[1340px]:flex flex-col gap-2.5 w-[160px] 2xl:w-[250px] flex-shrink-0 pt-4 sticky top-[57px] h-[calc(100vh-57px)] overflow-hidden z-30" aria-label="Publicidade lateral esquerda">
+              <div class="h-full w-full">
+                  {% include 'home/components/sidebar_support.html' %}
+              </div>
+          </aside>
+          {% endif %}
+          {% endblock %}
+
+          <main id="main-content" tabindex="-1" class="{% block main_class %}flex-1 w-full max-w-5xl mx-auto px-3 md:px-5 py-4{% endblock %} relative z-10 min-w-0">
+              {% block mobile_ad_top %}
+              {% if adsense_enabled and ads_enabled and adsense_horizontal_slot %}
+              <aside class="block min-[1340px]:hidden mb-4 w-full" aria-label="Publicidade acima do conteúdo">
+                  {% include 'home/components/horizontal_support.html' %}
+              </aside>
+              {% endif %}
+              {% endblock %}
+
+              {% block content %}
+              {% endblock %}
+
+              {% block mobile_ad %}
+              {% if adsense_enabled and ads_enabled and adsense_horizontal_slot %}
+              <aside class="block mt-8 mb-2.5 w-full px-3 md:px-0" aria-label="Publicidade após o conteúdo">
+                  {% include 'home/components/horizontal_support.html' %}
+              </aside>
+              {% endif %}
+              {% endblock %}
+          </main>
+
+          {% block ad_containers_right %}
+          {% if adsense_enabled and ads_enabled and adsense_sidebar_slot %}
+          <aside class="support-sidebar-right hidden min-[1340px]:flex flex-col gap-2.5 w-[160px] 2xl:w-[250px] flex-shrink-0 pt-4 sticky top-[57px] h-[calc(100vh-57px)] overflow-hidden z-30" aria-label="Publicidade lateral direita">
+              <div class="h-full w-full">
+                  {% include 'home/components/sidebar_support.html' %}
+              </div>
+          </aside>
+          {% endif %}
+          {% endblock %}
+      </div>
+
+      {% include 'home/components/footer.html' %}
+    </div>
+  </div>
+
+  {% if user_profile and user_profile.vlibras_enabled %}
+  <div vw class="enabled">
+    <div vw-access-button class="active"></div>
+    <div vw-plugin-wrapper>
+      <div class="vw-plugin-top-wrapper"></div>
+    </div>
+  </div>
+  <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+  <script>
+    new window.VLibras.Widget('https://vlibras.gov.br/app');
+  </script>
+  {% endif %}
+<link rel="stylesheet" href="{% static 'css/components/spell_picker.css' %}?v=1">
+<script src="{% static 'js/spell_picker.js' %}?v=1" defer></script>
+</body>
+</html>

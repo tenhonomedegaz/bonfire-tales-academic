@@ -1,0 +1,51 @@
+.mr-history{max-width:100%;overflow-x:auto;margin-top:1rem}
+.mr-history table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:.875rem;line-height:1.5}
+.mr-history th,.mr-history td{padding:.75rem 1rem;text-align:left;border-bottom:1px solid var(--stroke,#3e2525);vertical-align:top}
+.mr-history th{color:var(--muted,#c3b0a5);font-size:.75rem;text-transform:uppercase;background:var(--bg1,#181111)}
+.mr-history th:first-child{width:34%}
+.mr-history th:nth-child(2){width:14%}
+.mr-history th:nth-child(3),.mr-history th:nth-child(4){width:18%}
+.mr-history td{overflow-wrap:anywhere}
+.mr-history td:nth-child(2),.mr-history td:nth-child(3),.mr-history td:nth-child(4){font-variant-numeric:tabular-nums}
+.mr-history tbody tr:hover{background:var(--bg1,#181111)}
+.mr-history:focus-visible{outline:2px solid var(--flame,#f29045);outline-offset:3px}
+.mr-mission-title{font-weight:600}
+.mr-origin{display:block;width:fit-content;margin-top:.4rem;padding:.15rem .4rem;border:1px solid var(--stroke,#3e2525);border-radius:4px;font-size:.75rem;line-height:1.4}
+.mr-origin[data-origin="system"]{border-color:#47706b;color:#b0d4cc}
+.mr-origin[data-origin="manual"]{border-color:#776345;color:#dcc69b}
+.mr-origin-filter{display:flex;align-items:center;flex-wrap:wrap;gap:.75rem;margin:1rem 0}
+.mr-origin-filter select{min-height:44px;max-width:100%;background:var(--bg1,#181111);border:1px solid var(--stroke,#3e2525);color:inherit;padding:.5rem}
+.mr-provenance,.mr-boost{display:block;margin-top:.25rem;font-size:.75rem;line-height:1.45}
+.mr-provenance{color:var(--muted,#c3b0a5)}
+.mr-boost{font-weight:600}
+.mr-details{margin-top:.5rem}
+.mr-details summary{cursor:pointer;color:var(--accent,var(--flame,#f29045));font-size:.8rem;min-height:28px}
+.mr-details summary:focus-visible{outline:2px solid var(--flame,#f29045);outline-offset:3px}
+.mr-details-body{padding:.25rem 0 .5rem}
+.mr-summary{white-space:pre-line;margin:0 0 .5rem}
+.mr-details h3{font-size:.8rem;margin:.5rem 0 .25rem;letter-spacing:0}
+.mr-details ul{margin:.25rem 0 .5rem;padding-left:1.25rem}
+.master-area .mr-history-section{scroll-margin-top:0}
+.mr-history-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-top:1rem;min-width:0}
+.mr-range{margin:0;color:var(--muted,#c3b0a5);font-size:.8rem}
+.mr-pagination,.mr-page-numbers{display:flex;align-items:center;justify-content:center;gap:.25rem;max-width:100%;flex-wrap:wrap}
+.mr-page{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;min-width:44px;min-height:44px;box-sizing:border-box;padding:.5rem;border:1px solid var(--stroke,#3e2525);border-radius:4px;background:var(--bg1,#181111);color:inherit;text-decoration:none;font-size:.8rem;font-variant-numeric:tabular-nums}
+.mr-page-step{padding:.5rem .75rem}
+.mr-page img{width:16px;height:16px;flex-shrink:0;filter:brightness(0) invert(1);opacity:.85}
+.mr-page[aria-current="page"]{border-color:var(--flame,#f29045);color:var(--flame,#f29045);font-weight:700}
+.mr-page[aria-disabled="true"]{opacity:.45}
+.mr-page[href]:hover{border-color:var(--flame,#f29045)}
+.mr-page[href]:focus-visible{outline:2px solid var(--flame,#f29045);outline-offset:2px}
+.mr-page-ellipsis{min-width:1rem;text-align:center;color:var(--muted,#c3b0a5)}
+@media(max-width:700px){
+  .mr-history thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+  .mr-history table,.mr-history tbody{display:block;width:100%}
+  .mr-history tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);border-bottom:1px solid var(--stroke,#3e2525);padding:.5rem 0}
+  .mr-history td{display:block;border:0;padding:.5rem;min-width:0}
+  .mr-history td:first-child{grid-column:1/-1}
+  .mr-history td[data-label]::before{content:attr(data-label);display:block;font-size:.7rem;color:var(--muted,#c3b0a5);margin-bottom:.25rem}
+  .mr-details summary{min-height:44px;display:list-item;align-content:center}
+  .mr-history-footer{align-items:stretch}
+  .mr-pagination{width:100%;justify-content:space-between}
+  .mr-page-numbers{flex-basis:100%;order:-1;gap:.125rem}
+}

@@ -1,0 +1,8 @@
+Django==6.0.4
+psycopg[binary]==3.3.4
+whitenoise==6.6.0
+waitress==3.0.2
+openpyxl==3.1.5
+beautifulsoup4==4.15.0
+Pillow==13.0.0
+networkx==3.7

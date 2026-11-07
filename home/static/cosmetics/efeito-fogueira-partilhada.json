@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "slug": "efeito-fogueira-partilhada",
+  "type": "efeito",
+  "scope": "ambos",
+  "overlay": true,
+  "layers": [
+    {
+      "slot": "banner",
+      "file": "community-effect-fogueira-partilhada-v1.webp",
+      "fallback": "community-effect-fogueira-partilhada-v1.png",
+      "width": 1200,
+      "height": 400,
+      "sprite": "full",
+      "motion": "float",
+      "opacity": 0.88
+    }
+  ]
+}

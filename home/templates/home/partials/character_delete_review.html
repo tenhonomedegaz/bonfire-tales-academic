@@ -1,0 +1,9 @@
+<dialog class="character-delete-review" data-character-delete-review aria-labelledby="character-delete-review-title" aria-describedby="character-delete-review-description">
+  <h2 id="character-delete-review-title">Excluir ficha definitivamente</h2>
+  <p id="character-delete-review-description" data-character-delete-description></p>
+  <p>A exclusão não pode ser desfeita. Se você quiser apenas liberar uma vaga ativa, <a href="{% url 'character_slots' %}">arquive a ficha</a>.</p>
+  <div class="character-delete-review-actions">
+    <button type="button" data-character-delete-cancel>Manter ficha</button>
+    <button type="button" data-character-delete-confirm>Excluir definitivamente</button>
+  </div>
+</dialog>

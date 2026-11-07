@@ -1,0 +1,15 @@
+{% if c.progresso_aventuras %}
+<span class="conquista-progress">{{ c.progresso_aventuras.atual }} comprovadas &middot; meta: {% if c.progresso_aventuras.operador == 'gt' %}mais de{% else %}pelo menos{% endif %} {{ c.progresso_aventuras.alvo }}</span>
+{% endif %}
+{% if c.progresso_unidades %}
+<span class="conquista-progress">{{ c.progresso_unidades.atual }} unidades pagas &middot; meta: {% if c.progresso_unidades.operador == 'gt' %}mais de{% else %}pelo menos{% endif %} {{ c.progresso_unidades.alvo }}</span>
+{% endif %}
+{% if c.progresso_nivel %}
+<span class="conquista-progress">Nível atual comprovado: {{ c.progresso_nivel.atual }} &middot; meta: {{ c.progresso_nivel.alvo }}</span>
+{% endif %}
+{% if c.progresso_quest %}
+<span class="conquista-progress">{{ c.progresso_quest.atual }} quest{{ c.progresso_quest.atual|pluralize }} comprovada{{ c.progresso_quest.atual|pluralize }} &middot; meta: {{ c.progresso_quest.alvo }}</span>
+{% endif %}
+{% if c.progresso_rank %}
+<span class="conquista-progress">Maior nível comprovado: {{ c.progresso_rank.atual }} &middot; nível do rank: {{ c.progresso_rank.alvo }}</span>
+{% endif %}
