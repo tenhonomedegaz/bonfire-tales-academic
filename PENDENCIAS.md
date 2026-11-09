@@ -1,6 +1,13 @@
 # Pendencias consolidadas - Bonfire Tales
 
-Referencia: snapshot da dev em 07/11/2026. Documento para manutencao manual,
+**Estado atual (09/11/2026):** consulte a
+[lista consolidada atualizada e anonimizada](docs/academic/PENDENCIAS_ATUALIZADAS.md)
+e o [marco de gestao/historias](docs/academic/CENTRAL_GESTAO.md).
+As anotacoes anteriores abaixo foram preservadas como registro historico; seus
+estados antigos nao prevalecem sobre o levantamento atualizado.
+
+Referencia: snapshot da dev em 07/11/2026; backlog atualizado localmente em
+08/11/2026, sem mudar o snapshot de codigo. Documento para manutencao manual,
 orientacao academica e priorizacao, nao certificacao de que todos os fluxos foram
 testados. **Aberto** significa relato ou frente sem aceite final registrado.
 Status antigos em outros arquivos nao prevalecem sobre as ressalvas daqui.
@@ -86,6 +93,42 @@ multiclasse, atributos, recursos, magias, talentos e revisoes. Incluir uma ficha
 nova e uma legada. Nao confundir suite extensa com evidencia de fluxo utilizavel.
 
 ## Como registrar uma correcao
+
+## Relatos adicionais de 06-07/11 (registro em 08/11)
+
+Sem reproducao nova: os itens abaixo sao relatos ou melhorias, nao diagnosticos
+confirmados. A consolidacao local mais abrangente esta em `PENDENCIAS.md` do
+checkout operacional BonfireSite-redesign-integration; esta copia publica local
+permanece sem dados reais e sem publicacao automatica desta atualizacao.
+
+| ID | Pendencia | Criterio / cuidado |
+| --- | --- | --- |
+| C12 | Instinto de Sobrevivencia humano ausente no seletor | Conferir catalogo, requisitos, filtros e revisao |
+| C13 | Sinal Tubatio desaparecido | Confirmar se remocao foi intencional antes de restaurar |
+| C14 | Falha ao atingir Cacador 5 como multiclasse, relato com Mutantes | Comparar nova/legada e primaria/secundaria; nivel da classe != nivel total; obter traceback |
+| C15 | HTTP 500 ao abrir ficha apos subir nivel | Separar persistencia da confirmacao de renderizacao; evitar confirmar duas vezes |
+| C16 | Cacador ausente na selecao primaria | Conferir disponibilidade/revisao/listagem; sem excecao nominal |
+| M01 | Vitrine mistura ativos e antigos | Filtrar atividade preservando portfolio e historico |
+| M02 | Apresentacao salva dificil de encontrar | Navegacao clara para editar/ver e estado publicado |
+| M03 | Galeria e aprovacao pouco claras | Autor ve estado; revisor acessa fila; aprovado aparece publicamente |
+| M04 | Retrato proprio e aparencia de mestre | Separados do avatar pessoal e consistentes com cosmeticos |
+| M05 | Mesa de Texto e extras indevidos na importacao | Auditar fonte/substituta; invalidacao rastreavel, sem ajuste financeiro presumido |
+| M06 | Duplicatas por nome e datas de inicio/fim/resgate | Matching com evidencia e origem manual/sistemica |
+| M07 | Aventuras ausentes com registro no bot | Conciliar recibo, boost base e bonus de rank sem repetir pagamento |
+| M08 | Paginacao/navegacao de vitrine e portfolio | Revalidar apos correcoes; preservar filtros e posicionar resultados |
+| M09 | Aceite integrado do vinculo automatico Discord/Fogueira | Fluxo generico ja corrigido; conferir cadastro/login sem contornar suspensao |
+| A04 | Staff sem caminho intuitivo para treino antigo | Registrar origem comprovada sem recobrar; novos treinos via mercado |
+| A05 | Formulario completo de mestre | Conferir perguntas aprovadas; manter novas solicitacoes fechadas ate autorizacao |
+| U06 | Header desalinhado intermitente em 1920x1080 | Reproduzir zoom/menu/viewport; houve normalizacao relatada |
+| D04 | Bestiario: ND, XP/PB separados e icones de tipo | Revalidar relatos antigos e qualidade dos blocos |
+| D05 | Organizacoes e traducoes/referencias editoriais | Revalidar layout, imagens, colunas e exemplos como Feather Fall |
+| I05 | Aceite de identidade/email unico apos migracoes | Correcao previa existe; nao excluir contas sem auditar relacoes |
+
+Uma ficha antiga de Cacador primario funcionar nao prova que as fichas novas
+funcionem. Os prints nao demonstram a causa do HTTP 500 nem a exclusao da lista.
+Priorizar C14-C16 junto de C01/C06, sem confundir com C11 de outra classe.
+
+## Procedimento de encerramento de item
 
 Para cada ID: reproducao sintetica, causa demonstrada, arquivos alterados,
 mudanca de dados separada de mudanca de codigo, teste focado e limites restantes.

@@ -1,6 +1,7 @@
 from django import forms
 
 from home.models import TbCosmetico
+from .roles import ROLE_NAMES
 
 
 class PeopleSearchForm(forms.Form):
@@ -40,3 +41,10 @@ class ManualGrantForm(forms.Form):
 class GrantConfirmationForm(forms.Form):
     ticket = forms.CharField(max_length=8192, widget=forms.HiddenInput,
                              error_messages={'required': 'Confira uma nova prévia antes de confirmar.'})
+
+
+class RoleAssignmentForm(forms.Form):
+    roles = forms.MultipleChoiceField(label='Cargos', required=False,
+        choices=[(name, name) for name in ROLE_NAMES], widget=forms.CheckboxSelectMultiple)
+    reason = forms.CharField(label='Motivo da alteração', min_length=5, max_length=500,
+                             widget=forms.Textarea(attrs={'rows': 3}))

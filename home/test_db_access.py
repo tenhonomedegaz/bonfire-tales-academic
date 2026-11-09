@@ -209,9 +209,9 @@ class StructuredDbApiTests(TestCase):
         }])
         schema = self.client.get(reverse('db_access_schema'), **headers).json()
         for model_name in ('opcao_jogo', 'acesso_opcao'):
-            self.assertFalse(any(
-                field['writable'] for field in schema['models'][model_name]['fields'].values()
-            ))
+            writable = {name for name, field in schema['models'][model_name]['fields'].items()
+                        if field['writable']}
+            self.assertEqual(writable, {'arquivado'} if model_name == 'opcao_jogo' else set())
 
         create = self.client.post(
             option_url, data=json.dumps({'nome': 'Outro', 'slug': 'outro-api', 'tipo': 'Bailado'}),

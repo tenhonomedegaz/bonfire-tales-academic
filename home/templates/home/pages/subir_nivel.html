@@ -23,7 +23,10 @@
         <div class="sn-leveljump"><span class="sn-lvl-to">Nível {{ nivel_atual }}</span></div>
       {% endif %}
       <div class="sn-hero-classline">
-        {% if classes_atuais|length > 1 %}
+        {% if multiclass_payload %}
+          <span class="sn-class-chip">{{ ganhos.classe }} 0 → 1</span>
+          <a href="{% url 'personagem_subir_nivel' p.id_personagem %}">Cancelar multiclasse</a>
+        {% elif classes_atuais|length > 1 %}
           <label class="sn-classpick">
             <span>Classe que avança:</span>
             <select class="lvl-field" id="sn-classe-pick" aria-label="Classe que sobe de nível">
@@ -62,7 +65,7 @@
       {# ======================= ETAPA: VISÃO GERAL (ganhos) ======================= #}
       <section class="cf-step space-y-3" data-step="ganhos" data-step-name="Visão geral">
         {% if pode_subir %}
-        <h2 class="sn-step-title">O que o nível {{ nivel_alvo }} concede</h2>
+        <h2 class="sn-step-title">{{ ganhos.classe }}: o que o nível {{ nivel_classe_alvo }} concede</h2>
         <p class="sn-step-sub">Estes ganhos entram automaticamente ao confirmar. Depois, faça as escolhas passo a passo.</p>
 
         <div class="sn-grants">
@@ -101,7 +104,7 @@
             {% for f in ganhos.features %}
               <details class="sn-feature">
                 <summary><span class="sn-feature-name">{{ f.nome }}</span><span class="sn-feature-src">{{ f.fonte }}</span></summary>
-                <div class="sn-feature-desc">{{ f.descricao|striptags|truncatechars:600 }}</div>
+                <div class="sn-feature-desc sn-choice-description" data-markdown-source>{{ f.descricao }}</div>
               </details>
             {% endfor %}
           </div>
@@ -109,10 +112,10 @@
           <p class="sn-step-sub">Nenhuma característica nova nas tabelas para este nível — os ganhos são numéricos (PV, proficiência, slots).</p>
         {% endif %}
 
-        {% if pode_subir and classes_multiclasse %}
+        {% if pode_subir and classes_multiclasse and not multiclass_payload %}
           <div class="sn-mc" data-lvl-card="multiclasse">
             <div class="sn-mc-hdr">Prefere multiclassar?</div>
-            <p class="sn-step-sub">Em vez de avançar em {{ ganhos.classe }}, você pode gastar este nível numa classe nova. As escolhas da nova classe são feitas depois, na ficha.</p>
+            <p class="sn-step-sub">Em vez de avançar em {{ ganhos.classe }}, você pode gastar este nível numa classe nova e concluir suas escolhas antes de confirmar.</p>
             <div class="sn-mc-row">
               <select class="lvl-field lvl-field--grow" data-lvl-field="classe" aria-label="Classe de multiclasse">
                 {% for c in classes_multiclasse %}<option value="{{ c.id }}" data-hunter="{{ c.hunter|yesno:'1,0' }}">{{ c.nome }}{% if c.req %} (req: {{ c.req }}){% endif %}</option>{% endfor %}
@@ -149,10 +152,10 @@
             <select class="lvl-field lvl-field--grow" data-lvl-field="subclasse"
                     data-lvl-auto-queue="subclasse" aria-label="Subclasse">
               <option value="">— Selecione —</option>
-              {% for s in pend.subclasses %}<option value="{{ s.id }}" data-desc="{{ s.descricao|striptags }}">{{ s.nome }}</option>{% endfor %}
+              {% for s in pend.subclasses %}<option value="{{ s.id }}" data-desc="{{ s.descricao }}">{{ s.nome }}</option>{% endfor %}
             </select>
           </div>
-          <p class="lvl-card__hint" data-lvl-desc hidden style="margin-top:0.5rem"></p>
+          <div class="sn-choice-description" data-lvl-desc aria-live="polite" hidden></div>
         </div>
       </section>
       {% endif %}
@@ -174,17 +177,30 @@
           </div>
           <div class="lvl-queued" data-lvl-chips hidden></div>
           <label class="lvl-radio"><input type="radio" name="lvl-asi-modo-{{ slot }}" value="asi" checked> Aumentar atributos (+2 distribuível)</label>
-          <div class="lvl-card__row" data-lvl-asi-attrs style="margin:0.4rem 0 0.5rem 1.4rem">
-            <select class="lvl-field" data-lvl-field="asi_attr_1" aria-label="Primeiro atributo do ASI">{% for a in atributos %}<option value="{{ a }}">+1 {{ a }}</option>{% endfor %}</select>
-            <select class="lvl-field" data-lvl-field="asi_attr_2" aria-label="Segundo atributo do ASI">{% for a in atributos %}<option value="{{ a }}">+1 {{ a }}</option>{% endfor %}</select>
+          <div data-lvl-asi-attrs>
+            <p class="sn-asi-budget" data-asi-budget role="status">2 pontos disponíveis</p>
+            <div class="sn-asi-grid">
+              {% for a in atributos %}
+              <div class="sn-asi-row" data-asi-attribute="{{ a }}">
+                <span><strong>{{ a }}</strong> <span class="sn-asi-score">Prévia: <output data-asi-score="{{ a }}">—</output></span></span>
+                <div class="sn-asi-controls">
+                  <button type="button" data-asi-minus aria-label="Remover ponto de {{ a }}" title="Remover ponto de {{ a }}" disabled>-</button>
+                  <output data-asi-delta aria-label="Pontos em {{ a }}">+0</output>
+                  <button type="button" data-asi-plus aria-label="Adicionar ponto em {{ a }}" title="Adicionar ponto em {{ a }}">+</button>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            <input type="hidden" data-lvl-field="asi_attr_1">
+            <input type="hidden" data-lvl-field="asi_attr_2">
           </div>
           <label class="lvl-radio"><input type="radio" name="lvl-asi-modo-{{ slot }}" value="talento"> Trocar por um Talento (+1 atributo)</label>
           <div class="lvl-card__row" data-lvl-asi-tal hidden style="margin:0.4rem 0 0.5rem 1.4rem">
-            <select class="lvl-field lvl-field--grow" data-lvl-field="talento" data-lvl-describe aria-label="Talento"><option value="">— Talento —</option>{% for t in talentos_normais %}<option value="{{ t.id }}" data-attrs="{{ t.attrs_csv }}" data-desc="{{ t.descricao|striptags }}" data-elegivel="{% if t.elegivel %}1{% else %}0{% endif %}"{% if not t.elegivel %} disabled title="{{ t.estado }}{% if t.pre %}: {{ t.pre }}{% endif %}"{% endif %}>{{ t.nome }}{% if t.pre %} ({{ t.pre }}){% endif %}{% if t.estado %} — {{ t.estado }}{% endif %}</option>{% endfor %}</select>
+            <select class="lvl-field lvl-field--grow" data-lvl-field="talento" data-lvl-describe aria-label="Talento"><option value="">— Talento —</option>{% for t in talentos_normais %}<option value="{{ t.id }}" data-attrs="{{ t.attrs_csv }}" data-desc="{{ t.descricao }}" data-elegivel="{% if t.elegivel %}1{% else %}0{% endif %}"{% if not t.elegivel %} disabled title="{{ t.estado }}{% if t.pre %}: {{ t.pre }}{% endif %}"{% endif %}>{{ t.nome }}{% if t.pre %} ({{ t.pre }}){% endif %}{% if t.estado %} — {{ t.estado }}{% endif %}</option>{% endfor %}</select>
             <select class="lvl-field" data-lvl-field="talento_attr" aria-label="Atributo do talento">{% for a in atributos %}<option value="{{ a }}">+1 {{ a }}</option>{% endfor %}</select>
           </div>
           <div data-lvl-talento-picks hidden style="margin:0.4rem 0 0.5rem 1.4rem"></div>
-          <p class="lvl-card__hint" data-lvl-desc hidden style="margin:0.5rem 0 0 1.4rem"></p>
+          <div class="sn-choice-description" data-lvl-desc aria-live="polite" hidden></div>
         </div>
         {% endfor %}
       </section>
@@ -206,10 +222,10 @@
               <select class="lvl-field lvl-field--grow" data-lvl-field="talento"
                       data-lvl-auto-queue="talento_racial" aria-label="Talento racial nível {{ bloco.nivel }}">
                 <option value="">— Selecione —</option>
-                {% for o in bloco.opcoes %}<option value="{{ o.nome }}" data-desc="{{ o.descricao|striptags }}">{{ o.nome }}{% if o.pre %} ({{ o.pre }}){% endif %}</option>{% endfor %}
+                {% for o in bloco.opcoes %}<option value="{{ o.nome }}" data-desc="{{ o.descricao }}">{{ o.nome }}{% if o.pre %} ({{ o.pre }}){% endif %}</option>{% endfor %}
               </select>
             </div>
-            <p class="lvl-card__hint" data-lvl-desc hidden style="margin-top:0.5rem"></p>
+            <div class="sn-choice-description" data-lvl-desc aria-live="polite" hidden></div>
           </div>
         {% endfor %}
       </section>
@@ -230,7 +246,7 @@
             </select>
             <select class="lvl-field" data-lvl-field="talento_attr" aria-label="Atributo do talento de {{ marco.nome }}">{% for a in atributos %}<option value="{{ a }}">{{ a }}</option>{% endfor %}</select>
           </div>
-          <div class="lvl-card__hint space-y-2" data-lvl-desc hidden></div>
+          <div class="sn-choice-description" data-lvl-desc aria-live="polite" hidden></div>
           <div data-lvl-talento-picks hidden></div>
         </div>
         {% endfor %}
@@ -258,11 +274,11 @@
                 <select class="lvl-field lvl-field--grow" data-lvl-field="val"
                         data-lvl-auto-queue="opcao" aria-label="Escolher {{ g.tipo|lower }}">
                   <option value="">Escolher {{ g.tipo|lower }}…</option>
-                  {% for o in g.disponiveis %}<option value="{{ o.val }}" data-desc="{{ o.descricao|striptags }}"{% if o.ja_proficiente %} disabled{% endif %}{% if o.pre %} title="Pré-requisito: {{ o.pre }}"{% endif %}>{{ o.nome }}{% if o.ja_proficiente %} — já proficiente{% endif %}</option>{% endfor %}
+                  {% for o in g.disponiveis %}<option value="{{ o.val }}" data-desc="{{ o.descricao }}"{% if o.ja_proficiente %} disabled{% endif %}{% if o.pre %} title="Pré-requisito: {{ o.pre }}"{% endif %}>{{ o.nome }}{% if o.ja_proficiente %} — já proficiente{% endif %}</option>{% endfor %}
                 </select>
               </div>
               {% for o in g.disponiveis %}{% if o.ja_proficiente %}<p class="lvl-card__hint">{{ o.nome }} — já proficiente</p>{% endif %}{% endfor %}
-              <p class="lvl-card__hint" data-lvl-desc hidden style="margin-top:0.5rem"></p>
+              <div class="sn-choice-description" data-lvl-desc aria-live="polite" hidden></div>
             {% elif g.pendentes %}
               <p class="lvl-card__hint">Sem opções disponíveis no catálogo para esta classe/nível.</p>
             {% endif %}
@@ -277,12 +293,13 @@
               </select>
               <select class="lvl-field lvl-field--grow" data-lvl-field="val" aria-label="Nova escolha que entra">
                 <option value="">Escolha que entra…</option>
-                {% for o in g.disponiveis %}<option value="{{ o.val }}"{% if o.ja_proficiente %} disabled{% endif %}>{{ o.nome }}</option>{% endfor %}
+                {% for o in g.disponiveis %}<option value="{{ o.val }}" data-desc="{{ o.descricao }}"{% if o.ja_proficiente %} disabled{% endif %}>{{ o.nome }}</option>{% endfor %}
               </select>
               <button type="button" class="lvl-add" data-lvl-queue="trocar_opcao">Trocar</button>
             </div>
             <div class="lvl-queued" data-lvl-chips hidden></div>
             <p class="lvl-card__hint">Complete a nova escolha acima para efetivar a troca. Um preparo que use a escolha substituída será retirado.</p>
+            <div class="sn-choice-description" data-lvl-desc aria-live="polite" hidden></div>
           </div>
           {% endif %}
         {% endfor %}
@@ -425,7 +442,7 @@
         <span class="cf-preview-status" id="sn-prev-status">nível {{ nivel_alvo }}</span>
       </div>
       <div class="cf-preview-body">
-        <div class="cf-preview-name">{{ p.nome }} <span class="cf-preview-sub">{{ ganhos.classe }} Nv <span data-prev-nivel>{{ preview_resumo.nivel }}</span></span></div>
+        <div class="cf-preview-name">{{ p.nome }} <span class="cf-preview-sub">{% for c in classes_alvo %}{{ c.id_classe.nome }} Nv {{ c.nivel }}{% if not forloop.last %} · {% endif %}{% endfor %}</span></div>
         <div class="cf-vitals">
           <div class="cf-vital accent"><span class="k">PV</span><span class="v" data-prev-pv>{{ preview_resumo.pv }}</span></div>
           <div class="cf-vital accent"><span class="k">CA</span><span class="v" data-prev-ca>{{ preview_resumo.ca }}</span></div>
@@ -444,6 +461,7 @@
 </section>
 
 {{ talentos_picks_json|json_script:"sn-talento-picks" }}
+{{ multiclass_payload|json_script:"sn-multiclass" }}
 
 <script>
   window.SN = {
@@ -461,7 +479,7 @@
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/criador.css' %}?v=3">
 <link rel="stylesheet" href="{% static 'css/pages/levelup.css' %}?v=3">
-<link rel="stylesheet" href="{% static 'css/pages/subir_nivel.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'css/pages/subir_nivel.css' %}?v=3">
 <link rel="stylesheet" href="{% static 'css/pages/character-workflows.css' %}?v=1">
-<script src="{% static 'js/subir_nivel.js' %}?v=6" defer></script>
+<script src="{% static 'js/subir_nivel.js' %}?v=10" defer></script>
 {% endblock %}

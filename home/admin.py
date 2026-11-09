@@ -3400,7 +3400,7 @@ class TbTalentoAdmin(BonfireAdminMixin, admin.ModelAdmin):
 class TbOpcaojogoAdmin(BonfireAdminMixin, admin.ModelAdmin):
     change_list_template = "admin/home/tbopcaojogo/change_list.html"
     list_display = ("nome", "tipo", "etiquetas_adicionais", "tags_preview", "pre_requisito", "slug", "short_description")
-    list_filter = ("tipo",)
+    list_filter = ("tipo", "arquivado")
     search_fields = ("nome", "slug", "tipo", "descricao", "pre_requisito", "etiquetas_adicionais")
     prepopulated_fields = {"slug": ("nome",)}
     ordering = ("tipo", "nome")

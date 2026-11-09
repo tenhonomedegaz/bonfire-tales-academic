@@ -159,8 +159,10 @@ class HunterPublicCreatorTests(_CriadorBase):
             TbAntecedente.objects.filter(slug='acolito').update(nome='Antecedente vivo alterado')
             default_page = self.client.get(reverse('criacao_ficha'))
             self.assertEqual(default_page.status_code, 200)
-            self.assertNotIn('cacador', [c['slug'] for c in default_page.context['catalogos']['classes']])
-            self.assertContains(default_page, 'Criar Caçador')
+            common_hunter = next(c for c in default_page.context['catalogos']['classes']
+                                 if c['slug'] == 'cacador')
+            self.assertTrue(common_hunter['hunter_rework'])
+            self.assertEqual(common_hunter['nome'], self.classe.nome)
             page = self.client.get(reverse('criacao_ficha') + '?hunter=1')
             self.assertEqual(page.status_code, 200)
             self.assertEqual([c['slug'] for c in page.context['catalogos']['classes']], ['cacador'])

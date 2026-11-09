@@ -1,0 +1,36 @@
+{% extends 'home/gestao/shell.html' %}
+{% load static %}
+{% block gestao_content %}
+<nav class="gestao-breadcrumb" aria-label="Caminho"><a href="{{ people_url }}">Pessoas</a><span>/</span><a href="{{ person_url }}">{{ target.username }}</a><span>/</span><span>Cargos</span></nav>
+<header class="gestao-heading"><div><h1>Cargos de {{ target.username }}</h1></div></header>
+{% if form.errors %}<div class="gestao-errors" role="alert">{{ form.non_field_errors }}{{ form.roles.errors }}{{ form.reason.errors }}</div>{% endif %}
+{% if preview %}
+<section class="gestao-section">
+  <h2>Conferir alteração</h2>
+  <dl class="gestao-details">
+    <div><dt>Pessoa</dt><dd>@{{ target.username }}</dd></div>
+    <div><dt>Adicionar</dt><dd>{{ preview.added|join:', '|default:'Nenhum cargo' }}</dd></div>
+    <div><dt>Remover</dt><dd>{{ preview.removed|join:', '|default:'Nenhum cargo' }}</dd></div>
+    <div><dt>Motivo</dt><dd>{{ form.reason.value }}</dd></div>
+  </dl>
+  <p class="gestao-notice">Permissões individuais, demais grupos e condição de Administrador serão preservados.</p>
+  <div class="gestao-actions">
+    <form method="post">{% csrf_token %}{{ confirmation_form.ticket }}<button class="gestao-button gestao-primary" name="action" value="confirm" type="submit">Confirmar cargos</button></form>
+    <a class="gestao-button" href="{{ roles_url }}">Revisar seleção</a>
+    <a class="gestao-button" href="{{ person_url }}">Cancelar</a>
+  </div>
+</section>
+{% else %}
+<form method="post">{% csrf_token %}
+  <section class="gestao-section"><h2>Cargos</h2>{{ form.roles }}
+    <div class="gestao-field"><label for="{{ form.reason.id_for_label }}">{{ form.reason.label }}</label>{{ form.reason }}</div>
+    <div class="gestao-actions"><button class="gestao-button gestao-primary" type="submit" name="action" value="preview">Conferir alteração</button><a class="gestao-button" href="{{ person_url }}">Cancelar</a></div>
+  </section>
+</form>
+{% endif %}
+<section class="gestao-section"><h2>Acessos de cada cargo</h2>
+  {% for role in role_catalog %}<details class="gestao-role-detail"><summary>{{ role.name }} <span class="gestao-muted">{{ role.permissions|length }} permissões</span></summary>
+    <ul>{% for permission in role.permissions %}<li>{{ permission }}</li>{% empty %}<li>Sem permissões configuradas. Atribuir este cargo não libera tarefas.</li>{% endfor %}</ul>
+  </details>{% endfor %}
+</section>
+{% endblock %}

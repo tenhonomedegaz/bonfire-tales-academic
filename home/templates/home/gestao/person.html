@@ -25,13 +25,31 @@
     <div><dt>Conta criada</dt><dd>{{ target.date_joined|date:'d/m/Y H:i' }} <span class="gestao-muted">(Brasília)</span></dd></div>
   </dl>
 </section>
+{% if managed_characters %}<section class="gestao-section"><h2>Personagens</h2><ul class="gestao-activity">{% for character in managed_characters %}<li><strong>{{ character.nome }}</strong><span>Nível {{ character.nivel }}</span><div class="gestao-actions">{% if can_correct_character_profile %}<a class="gestao-button" href="{% url 'gestao:profile_case' character.pk %}">Corrigir dados</a>{% endif %}{% if can_register_character_training %}<a class="gestao-button" href="{% url 'gestao:training_case' character.pk %}">Regularizar treino</a>{% endif %}</div></li>{% endfor %}</ul></section>{% endif %}
 <section class="gestao-section" aria-labelledby="roles-title">
   <h2 id="roles-title">Cargos</h2>
+  {% if can_manage_roles %}<a class="gestao-button" href="{{ roles_url }}">Gerenciar cargos</a>{% endif %}
   <div class="gestao-tags">
     {% if target.is_superuser %}<span class="gestao-status admin">Administrador</span>{% endif %}
     {% for group in target.groups.all %}<span class="gestao-status muted">{{ group.name }}</span>{% empty %}{% if not target.is_superuser %}<span class="gestao-muted">Sem cargo de equipe.</span>{% endif %}{% endfor %}
   </div>
 </section>
+{% if can_manage_roles %}
+<section class="gestao-section" aria-labelledby="access-title">
+  <h2 id="access-title">Permissões e origem do acesso</h2>
+  {% if target.is_superuser %}<p class="gestao-notice">Administrador: acesso integral. Este estado não é alterado pelos cargos abaixo.</p>{% endif %}
+  {% if not target.is_active %}<p class="gestao-notice warning">Conta inativa: os acessos da central estão bloqueados.</p>{% endif %}
+  <dl class="gestao-details">{% for row in effective_access %}<div><dt>{{ row.label }}</dt><dd>{{ row.sources|join:', ' }}</dd></div>{% empty %}<p class="gestao-muted">Nenhuma permissão atribuída por cargo ou exceção individual.</p>{% endfor %}</dl>
+</section>
+<section class="gestao-section" aria-labelledby="role-history-title">
+  <h2 id="role-history-title">Alterações de cargos</h2>
+  <ol class="gestao-receipts">{% for receipt in role_receipts %}<li>
+    <strong>{{ receipt.actor.username }}</strong> · {{ receipt.criado_em|date:'d/m/Y H:i' }}
+    <p>{{ receipt.before_roles|join:', '|default:'Sem cargo' }} → {{ receipt.after_roles|join:', '|default:'Sem cargo' }}</p>
+    <p class="gestao-reason">{{ receipt.motivo }}</p>
+  </li>{% empty %}<li class="gestao-muted">Nenhuma alteração registrada pela central.</li>{% endfor %}</ol>
+</section>
+{% endif %}
 {% elif active_tab == 'inventory' %}
 <section class="gestao-section" id="results" aria-labelledby="inventory-title">
   <div class="gestao-section-heading"><h2 id="inventory-title">Inventário e direitos</h2></div>

@@ -142,8 +142,11 @@ class LevelUpConfirmationTests(TestCase):
         ], evaluator_version=EVALUATOR, vocabulary_version=VOCABULARY)
         self.pc.ruleset = ruleset
         self.pc.save(update_fields=['ruleset'])
-        with self.assertRaisesMessage(ValueError, 'Incompatible class snapshot fields.'):
-            self.post()
+        with self.assertLogs('home.views', level='ERROR') as logged:
+            response = self.post()
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.json()['code'], 'levelup_context_unavailable')
+        self.assertIn('Incompatible class snapshot fields.', '\n'.join(logged.output))
         self.assert_unchanged()
         self.assertEqual(self.pc.ruleset_id, ruleset.pk)
 
@@ -156,11 +159,28 @@ class LevelUpConfirmationTests(TestCase):
         self.pc.ruleset = ruleset
         self.pc.id_subclasse = legacy
         self.pc.save(update_fields=['ruleset', 'id_subclasse'])
-        with self.assertRaisesMessage(ValueError, 'Subclass is not part of this ruleset.'):
-            self.post()
+        with self.assertLogs('home.views', level='ERROR') as logged:
+            response = self.post()
+        self.assertEqual(response.status_code, 409)
+        self.assertIn('Subclass is not part of this ruleset.', '\n'.join(logged.output))
         self.assert_unchanged()
         self.assertEqual(self.pc.ruleset_id, ruleset.pk)
         self.assertEqual(self.pc.id_subclasse_id, legacy.pk)
+
+    def test_incompatible_preview_explains_block_without_writing(self):
+        from home.versioned_classes import seal_class_snapshot
+        from home.models import TbSubclasse
+        self.pc.ruleset = seal_class_snapshot(self.pc.id_classe_id)
+        self.pc.id_subclasse = TbSubclasse.objects.create(
+            id_classe=self.pc.id_classe, nome='Unbound subclass', slug='unbound-subclass')
+        self.pc.save(update_fields=['ruleset', 'id_subclasse'])
+        with self.assertLogs('home.views', level='ERROR'):
+            response = self.client.post(self.preview_url, {'acoes': self.actions},
+                                        content_type='application/json')
+        self.assertEqual(response.status_code, 409)
+        self.assertTrue(response.json()['erros'])
+        self.assertTrue(response.json()['reference'])
+        self.assert_unchanged()
 
     def test_malformed_batches_are_rejected_without_partial_writes(self):
         self.client.raise_request_exception = False

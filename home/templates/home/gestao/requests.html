@@ -1,0 +1,14 @@
+{% extends 'home/gestao/shell.html' %}
+{% block gestao_content %}
+<header class="gestao-heading"><div><h1>Atendimento</h1></div><a class="gestao-button gestao-primary" href="{% url 'gestao:request_create' %}">Nova solicitação</a></header>
+<form method="get" class="gestao-filters">
+  <div class="gestao-field gestao-grow"><label for="request-search">Pesquisar</label><input id="request-search" name="q" value="{{ filters.q }}" maxlength="150" type="search"></div>
+  <div class="gestao-field"><label for="queue-filter">Área</label><select id="queue-filter" name="queue"><option value="">Todas</option>{% for key, value in queue_choices %}<option value="{{ key }}" {% if filters.queue == key %}selected{% endif %}>{{ value.0 }}</option>{% endfor %}</select></div>
+  <div class="gestao-field"><label for="status-filter">Situação</label><select id="status-filter" name="status"><option value="">Todas</option>{% for key, label in status_choices %}<option value="{{ key }}" {% if filters.status == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+  <button class="gestao-button" type="submit">Filtrar</button>
+</form>
+<section class="gestao-section"><div class="gestao-table-wrap"><table class="gestao-table"><thead><tr><th>Referência / solicitação</th><th>Área</th><th>Solicitante</th><th>Responsável</th><th>Situação</th><th>Atualização</th></tr></thead><tbody>
+{% for task in tasks %}<tr><td><a href="{% url 'gestao:request_detail' task.pk %}">{{ task.reference }} · {{ task.title }}</a></td><td>{{ task.get_queue_display }}</td><td>{{ task.requester.username }}</td><td>{{ task.assignee.username|default:'Não atribuído' }}</td><td>{{ task.get_status_display }}</td><td>{{ task.updated_at|date:'d/m/Y H:i' }}</td></tr>{% empty %}<tr><td colspan="6">Nenhuma solicitação encontrada.</td></tr>{% endfor %}
+</tbody></table></div></section>
+<nav class="gestao-actions" aria-label="Paginação do atendimento">{% if tasks.has_previous %}<a class="gestao-button" href="?{{ pagination_query }}&amp;page={{ tasks.previous_page_number }}">Anterior</a>{% endif %}<span>Página {{ tasks.number }} de {{ tasks.paginator.num_pages }}</span>{% if tasks.has_next %}<a class="gestao-button" href="?{{ pagination_query }}&amp;page={{ tasks.next_page_number }}">Próxima</a>{% endif %}</nav>
+{% endblock %}

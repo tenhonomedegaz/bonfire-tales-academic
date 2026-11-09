@@ -19,6 +19,7 @@
 {% elif only_content %}
     <div id="raceDetailContainer" data-active-tab="lore" data-active-lineage="" data-active-essence="" data-base-image="{{ raca.image_url }}" data-base-custom-image="{{ raca.has_custom_image|yesno:'true,false' }}" data-base-focus-x="{{ raca.imagem_foco_x }}" data-base-focus-y="{{ raca.imagem_foco_y }}" data-race-name="{{ raca.nome }}" data-race-slug="{{ raca.slug }}">
       {{ race_portraits|json_script:'racePortraitData' }}
+      {{ race_origin_options|json_script:'raceOriginOptions' }}
       <nav class="race-breadcrumb" aria-label="Localização na biblioteca"><a href="{% url 'racas' %}" data-race-route>Raças</a><span aria-hidden="true">/</span><span>{{ raca.nome }}</span></nav>
 
       <!-- ============ HERO / CABEÇALHO DA RAÇA ============ -->
@@ -140,7 +141,7 @@
 
         <div class="race-select-group race-element-field" data-element-field hidden>
           <label for="raceElementSelect">Manifestação elemental</label>
-          <select id="raceElementSelect">{% for value,label in race_element_options %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select>
+          <select id="raceElementSelect" aria-label="Manifestação elemental"></select>
           <p>O elemento muda a representação visual. As regras continuam sendo as da essência Elemental.</p>
         </div>
         <div class="race-showing" role="status" aria-live="polite" aria-atomic="true">

@@ -19,14 +19,18 @@ from home.models import (CosmeticCheckoutPurchase, CosmeticMMRedemption,
 
 from .forms import (CosmeticCatalogFilterForm, GrantConfirmationForm,
                     ManualGrantForm, PeopleSearchForm)
-from .policy import can, require_capability
+from .forms import RoleAssignmentForm
+from .roles import access_summary, apply_roles, preview_roles, require_admin, role_catalog
+from .policy import can, can_review_editorial, require_capability
 from .services import apply_manual_grant, preview_manual_grant
 
 
 def _workspace(request, title, **context):
+    from .request_views import portal_context
     people_access = can(request.user, 'people.view')
     cosmetics_access = people_access and can(request.user, 'cosmetics.view')
     return {
+        **portal_context(request.user),
         'page_title': title,
         'noindex': True,
         'ads_enabled': False,
@@ -34,6 +38,9 @@ def _workspace(request, title, **context):
         'can_view_cosmetics': cosmetics_access,
         'can_grant_cosmetics': cosmetics_access and can(request.user, 'cosmetics.grant_manual'),
         'can_view_email': bool(request.user.is_superuser),
+        'can_manage_roles': bool(request.user.is_active and request.user.is_superuser),
+        'can_review_editorial': can_review_editorial(request.user),
+        'can_manage_masters': can(request.user, 'masters.authorize') or can(request.user, 'editorial.announcements'),
         'management_section': 'people',
         **context,
     }
@@ -57,6 +64,7 @@ def _person_navigation(request, target):
         'inventory_url': _url('person', {**params, 'tab': 'inventory'}, user_id=target.pk),
         'history_url': _url('person', {**params, 'tab': 'history'}, user_id=target.pk),
         'grant_url': _url('grant', params, user_id=target.pk),
+        'roles_url': _url('roles', params, user_id=target.pk),
     }
 
 
@@ -161,8 +169,8 @@ def _inventory_item(cosmetic, registry):
 @require_GET
 def index(request):
     if not request.user.is_authenticated:
-        return redirect_to_login(request.get_full_path())
-    if not (can(request.user, 'people.view') or can(request.user, 'character_history.review')):
+        return redirect_to_login(request.get_full_path(), login_url='login')
+    if not request.user.is_active:
         raise PermissionDenied
     context = _workspace(request, 'Gestão', management_section='index',
                          can_review_history=can(request.user, 'character_history.review'),
@@ -170,7 +178,7 @@ def index(request):
     if context['can_view_cosmetics']:
         context['recent_receipts'] = ManualCosmeticGrantReceipt.objects.filter(
             actor=request.user).select_related('user', 'cosmetico').order_by('-criado_em', '-pk')[:8]
-    return render(request, 'home/gestao/index.html', context)
+    return render(request, 'home/gestao/portal_index.html', context)
 
 
 @never_cache
@@ -225,7 +233,53 @@ def person(request, user_id):
         context['inventory_rows'] = [_inventory_item(item, registry) for item in context['page_obj']]
     elif tab == 'history':
         context.update(_page_context(request, _receipts(target)))
+    if request.user.is_superuser and tab == 'overview':
+        context['effective_access'] = access_summary(target)
+        context['role_receipts'] = target.management_role_receipts.select_related('actor')[:10]
+    if tab == 'overview' and (can(request.user, 'characters.training') or can(request.user, 'characters.profile')):
+        from .workflows import can_review
+        from home.models import TbPersonagem
+        if can_review(request.user, 'ficha'):
+            context['can_register_character_training'] = can(request.user, 'characters.training')
+            context['can_correct_character_profile'] = can(request.user, 'characters.profile')
+            context['managed_characters'] = TbPersonagem.objects.filter(dono=target,
+                arquivado=False).order_by('nome', 'pk')[:100]
     return render(request, 'home/gestao/person.html', context)
+
+
+@never_cache
+@require_capability('people.view')
+@require_http_methods(['GET', 'POST'])
+def roles(request, user_id):
+    require_admin(request.user)
+    target = get_object_or_404(get_user_model(), pk=user_id)
+    form = RoleAssignmentForm(request.POST if request.method == 'POST' else None,
+        initial={'roles': list(target.groups.values_list('name', flat=True))})
+    preview = None
+    confirmation = GrantConfirmationForm()
+    if request.method == 'POST':
+        try:
+            action = request.POST.get('action')
+            if action == 'preview' and form.is_valid():
+                preview = preview_roles(actor=request.user, user_id=target.pk,
+                    roles=form.cleaned_data['roles'], reason=form.cleaned_data['reason'])
+                confirmation = GrantConfirmationForm(initial={'ticket': preview['ticket']})
+            elif action == 'confirm':
+                confirmation = GrantConfirmationForm(request.POST)
+                if confirmation.is_valid():
+                    apply_roles(actor=request.user, user_id=target.pk,
+                                ticket=confirmation.cleaned_data['ticket'])
+                    messages.success(request, 'Cargos atualizados. Alteração registrada no histórico.')
+                    return redirect(_person_navigation(request, target)['person_url'])
+                form.add_error(None, 'Confira uma nova prévia antes de confirmar.')
+            elif action != 'preview':
+                form.add_error(None, 'Ação inválida.')
+        except ValidationError as error:
+            form.add_error(None, error)
+    return render(request, 'home/gestao/roles.html', _workspace(request,
+        'Cargos de %s' % target.username, target=target, form=form, preview=preview,
+        confirmation_form=confirmation, role_catalog=role_catalog(),
+        **_person_navigation(request, target)))
 
 
 @never_cache

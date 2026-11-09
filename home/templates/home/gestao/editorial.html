@@ -1,0 +1,14 @@
+{% extends 'home/gestao/shell.html' %}
+{% block gestao_content %}
+<header class="gestao-heading"><h1>Revisões editoriais</h1><span>{{ entries.paginator.count }} pendente{{ entries.paginator.count|pluralize:"s" }}</span></header>
+<form method="get" class="gestao-filters">
+  <div class="gestao-field gestao-grow"><label for="editorial-search">Título ou autor</label><input id="editorial-search" type="search" name="q" value="{{ filters.q }}" maxlength="150"></div>
+  <div class="gestao-field"><label for="editorial-source">Conteúdo</label><select id="editorial-source" name="source"><option value="">Todos</option>{% for key, label in source_choices %}<option value="{{ key }}" {% if filters.source == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+  <button class="gestao-button" type="submit">Filtrar</button>
+</form>
+<table class="gestao-table"><thead><tr><th>Conteúdo</th><th>Autor</th><th>Recebido</th><th>Revisão</th></tr></thead><tbody>
+{% for item in entries %}<tr><td data-label="Conteúdo"><strong>{{ item.title }}</strong><span class="gestao-subline">{{ item.label }}</span></td><td data-label="Autor">{{ item.author }}</td><td data-label="Recebido">{{ item.submitted|date:'d/m/Y H:i' }}</td><td data-label="Revisão"><a class="gestao-button" href="{{ item.url }}">Revisar<span class="gestao-sr-only"> {{ item.title }}</span></a></td></tr>
+{% empty %}<tr><td colspan="4">Nenhum conteúdo pendente para estes filtros.</td></tr>{% endfor %}
+</tbody></table>
+<nav class="gestao-pagination" aria-label="Paginação editorial">{% if entries.has_previous %}<a class="gestao-button" href="?{{ pagination_query }}&amp;page={{ entries.previous_page_number }}">Anterior</a>{% endif %}<span>Página {{ entries.number }} de {{ entries.paginator.num_pages }}</span>{% if entries.has_next %}<a class="gestao-button" href="?{{ pagination_query }}&amp;page={{ entries.next_page_number }}">Próxima</a>{% endif %}</nav>
+{% endblock %}

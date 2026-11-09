@@ -5,6 +5,7 @@ from . import hunter_views
 from . import master_participation
 from . import master_tables
 from . import master_portfolio
+from .gestao import story_views
 from . import master_roster
 from . import theme_studio
 from . import master_commercial
@@ -16,6 +17,8 @@ from . import profile_comments
 from . import vtt_lab
 
 urlpatterns = [
+    path('jogador/historias/', story_views.inbox, name='character_stories_inbox'),
+    path('jogador/personagens/<int:pk>/historia/', story_views.edit, name='character_story'),
     path('gestao/', include('home.gestao.urls')),
     path('vtt/laboratorio/', vtt_lab.laboratory, name='vtt_lab'),
     path('vtt/laboratorio/api/sessoes/', vtt_lab.sessions, name='vtt_lab_sessions'),

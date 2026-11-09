@@ -1052,6 +1052,8 @@
             var h = '';
             if (opts.tagline) h += '<div class="cf-info-tagline">' + escHtml(String(opts.tagline).replace(/[*_`>#]/g, '').trim()) + '</div>';
             if (opts.resumo) h += '<div class="cf-info-resumo">' + escHtml(opts.resumo) + '</div>';
+            if (opts.lineage && opts.lineage.desc) h += '<div class="cf-info-trait"><b class="cf-info-trait-nome">' +
+                escHtml(opts.lineage.nome) + '</b><span class="cf-info-trait-desc">' + escHtml(opts.lineage.desc) + '</span></div>';
             if (opts.meta && opts.meta.length) h += infoMetaHtml(opts.meta);
             return h;
         }
@@ -1059,9 +1061,12 @@
             // NOME como TÍTULO em linha própria (peso forte) + descrição embaixo. O formato
             // corrido "Nome — descrição" era ilegível com traços longos (pedido da staff).
             return '<div class="cf-info-list">' + traits.map(function (t) {
+                var description = t.desc || '';
+                var html = typeof renderBonfireMarkdown === 'function' && typeof sanitizeBonfireMarkdownHtml === 'function'
+                    ? sanitizeBonfireMarkdownHtml(renderBonfireMarkdown(description)) : escHtml(description);
                 return '<div class="cf-info-trait">' +
                     '<b class="cf-info-trait-nome">' + escHtml(t.nome) + '</b>' +
-                    (t.desc ? '<span class="cf-info-trait-desc">' + escHtml(t.desc) + '</span>' : '') +
+                    (description ? '<div class="cf-info-trait-desc">' + html + '</div>' : '') +
                     '</div>';
             }).join('') + '</div>';
         }
@@ -1104,12 +1109,13 @@
             var r = racaBySlug[racaSel.value];
             if (!r) { fillInfo(el('cf-raca-info'), null); return; }
             var traits = (r.tracos || []).slice();
+            var lobj = null;
             if (!linWrap.hidden && linSel.value) {
-                var lobj = (r.linhagens || []).filter(function (l) { return l.slug === linSel.value; })[0];
-                if (lobj && lobj.desc) traits.unshift({ nome: 'Linhagem: ' + lobj.nome, desc: lobj.desc });
+                lobj = (r.linhagens || []).filter(function (l) { return l.slug === linSel.value; })[0];
+                if (lobj) traits = traits.concat(lobj.tracos || []);
             }
             // Traços são o conteúdo principal (aba default); lore na segunda aba. Sem corte a 6.
-            fillInfo(el('cf-raca-info'), { tabs: true, tagline: r.tagline, resumo: r.resumo, traits: traits });
+            fillInfo(el('cf-raca-info'), { tabs: true, tagline: r.tagline, resumo: r.resumo, traits: traits, lineage: lobj });
         }
         function renderEssenciaInfo() {
             var e = essenciaBySlug[essSel.value];

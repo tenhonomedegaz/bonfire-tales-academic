@@ -297,7 +297,11 @@
       if (mySeq !== seq) return;
       var j = res.json;
       if (statusEl) statusEl.classList.remove('is-live');
-      if (!j || !j.ready || !j.preview) { if (statusEl) statusEl.textContent = 'estado atual'; return; }
+      if (!j || !j.ready || !j.preview) {
+        if (statusEl) statusEl.textContent = 'prévia indisponível';
+        if (j && j.erros && j.erros.length) showErr(j.erros, true);
+        return;
+      }
       applyPreview(j.preview);
       applyPend(j.pendencias);
       if (statusEl) statusEl.textContent = lote.length ? ('prévia de ' + lote.length + ' escolha(s)') : 'estado atual';

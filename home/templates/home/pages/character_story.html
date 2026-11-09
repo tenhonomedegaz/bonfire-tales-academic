@@ -1,0 +1,15 @@
+{% extends 'home/base.html' %}{% load static tz %}
+{% block body_class %}character-story-page{% endblock %}
+{% block meta_robots %}noindex, nofollow{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/gestao.css' %}?v=portal-2">{% endblock %}
+{% block content %}<div class="gestao-workspace">
+<header class="gestao-heading"><h1>História de {{ p.nome }}</h1><a class="gestao-button" href="{% url 'ficha_detail' p.pk %}">Voltar à ficha</a></header>
+{% for message in messages %}<p class="gestao-notice" role="status">{{ message }}</p>{% endfor %}
+<p class="gestao-notice" role="status">{{ story_review.label }}</p>
+{% if story_review.latest.feedback %}<section class="gestao-section"><h2>Devolutiva do Loremaster</h2><p>{{ story_review.latest.feedback|linebreaksbr }}</p><p class="gestao-muted">{{ story_review.latest.reviewer.username }} · {{ story_review.latest.reviewed_at|timezone:'America/Sao_Paulo'|date:'d/m/Y H:i' }}</p></section>{% endif %}
+<form method="post">{% csrf_token %}{{ form.ticket }}{{ form.non_field_errors }}
+<div class="gestao-field"><label for="{{ form.text.id_for_label }}">História</label>{{ form.text.errors }}{{ form.text }}</div>
+<div class="gestao-actions"><button class="gestao-button" name="action" value="draft">Salvar rascunho</button><button class="gestao-button gestao-primary" name="action" value="submit">Enviar ao Loremaster</button></div></form>
+<section class="gestao-section"><h2>Envios e pareceres</h2>
+{% for submission in submissions %}<details class="gestao-section"><summary>{{ submission.submitted_at|timezone:'America/Sao_Paulo'|date:'d/m/Y H:i' }} · {{ submission.get_status_display }}</summary><div class="bonfire-markdown" data-markdown-source data-markdown-options="false">{{ submission.text }}</div>{% if submission.feedback %}<h3>Comentário do Loremaster</h3><p>{{ submission.feedback|linebreaksbr }}</p><p class="gestao-muted">{{ submission.reviewer.username }} · {{ submission.reviewed_at|timezone:'America/Sao_Paulo'|date:'d/m/Y H:i' }}</p>{% endif %}</details>{% empty %}<p>Nenhuma versão enviada.</p>{% endfor %}
+</section><a href="{% url 'character_stories_inbox' %}">Histórias dos meus personagens</a></div>{% endblock %}

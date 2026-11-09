@@ -1,0 +1,8 @@
+{% extends 'home/gestao/shell.html' %}
+{% block content_libraries %}{% include 'home/includes/content_libraries.html' %}{% endblock %}
+{% block gestao_content %}<header class="gestao-heading"><h1>História de {{ item.character.nome }}</h1><a class="gestao-button" href="{% url 'gestao:editorial' %}?source=historia">Fila de histórias</a></header>
+<p>{{ item.author.username }} · Enviada em {{ item.submitted_at|date:'d/m/Y H:i' }} · {{ item.get_status_display }}</p>
+{% if outdated %}<p class="gestao-notice" role="status">O jogador já alterou o rascunho. Esta versão não pode ser aprovada; aguarde o reenvio ou devolva com orientação.</p>{% endif %}
+<section class="gestao-section"><div class="bonfire-markdown" data-markdown-source data-markdown-options="false">{{ item.text }}</div></section>
+{% if item.status == 'pending' %}<form method="post">{% csrf_token %}{{ form.ticket }}{{ form.non_field_errors }}<div class="gestao-field"><label for="{{ form.feedback.id_for_label }}">Comentário ao jogador</label>{{ form.feedback.errors }}{{ form.feedback }}</div><div class="gestao-actions"><button class="gestao-button" name="action" value="changes">Solicitar ajustes</button><button class="gestao-button gestao-primary" name="action" value="approved" {% if outdated %}disabled{% endif %}>Aprovar história</button></div></form>{% else %}<p>{{ item.feedback|linebreaksbr }}</p>{% endif %}
+{% endblock %}

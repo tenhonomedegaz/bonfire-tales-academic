@@ -1,0 +1,3 @@
+<p role="status">{{ story_review.label }}</p>
+{% if can_read_story_feedback and story_review.latest.feedback %}<details><summary>Devolutiva do Loremaster</summary><p>{{ story_review.latest.feedback|linebreaksbr }}</p></details>{% endif %}
+{% if p.dono_id == request.user.pk %}<a class="banner-btn" href="{% url 'character_story' p.pk %}">História e aprovação</a>{% endif %}

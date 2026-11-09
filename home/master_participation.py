@@ -11,6 +11,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST, require_http_methods
+from django.views.decorators.cache import never_cache
 
 from .models import TbMesaAnuncio, TbPerfilMestre
 from .master_hub import can_review
@@ -18,8 +19,8 @@ from .master_registration import applications_open, roster_for
 
 
 def can_authorize(user):
-    return bool(user.is_authenticated and user.is_active and (
-        user.is_superuser or (user.is_staff and user.has_perm('home.autorizar_mestres'))))
+    from .master_hub import can_authorize as authorized
+    return authorized(user)
 
 
 def participation(profile):
@@ -60,6 +61,7 @@ def masters_directory(request):
 
 
 @login_required(login_url='/login/')
+@never_cache
 def master_dashboard(request):
     authorizer = can_authorize(request.user)
     reviewer = can_review(request.user)
@@ -92,21 +94,31 @@ def master_dashboard(request):
         applicant.candidatura_respostas = application_answers(applicant.candidatura_json)
         applicant.fogueiras = [f'F{identity.numero:02d}' for identity in identities
                                if identity.user_id == applicant.user_id]
-    review_queue = (TbMesaAnuncio.objects.filter(estado='pendente').select_related(
-        'mestre').order_by('-atualizado_em')[:100] if reviewer else [])
-    commercial_masters = (TbPerfilMestre.objects.filter(
+        applicant.portfolio_links = [{'label': f'F{identity.numero:02d}',
+            'url': reverse('master_roster_portfolio', args=[identity.numero])}
+            for identity in identities if identity.user_id == applicant.user_id]
+    from .gestao.editorial_views import review_page
+    review_queue, review_pagination = (review_page(request, TbMesaAnuncio.objects.filter(
+        estado='pendente').select_related('mestre').order_by('atualizado_em', 'pk'),
+        item_parameter='anuncio', page_parameter='anuncios_pagina') if reviewer else ([], {}))
+    commercial_masters = (Paginator(TbPerfilMestre.objects.filter(
         status_mestre='aprovado', user__is_active=True).exclude(user=request.user).select_related(
-        'user', 'user__autorizacao_vitrine').order_by('user__username')[:100] if authorizer else [])
-    return render(request, 'home/pages/master_dashboard.html', {
+        'user', 'user__autorizacao_vitrine').order_by('user__username', 'pk'), 25).get_page(
+        request.GET.get('vitrine_pagina')) if authorizer else [])
+    from .gestao.views import _workspace
+    return render(request, 'home/pages/master_dashboard.html', _workspace(request, 'Mestres e divulgação',
+        management_section='masters', **{
         'can_authorize': authorizer, 'can_review': reviewer,
         'can_review_work': work_reviewer,
         'master_requests': requests, 'review_queue': review_queue,
         'master_requests_page': requests_page, 'pending_master_count': pending_count,
+        'announcements_previous_url': review_pagination.get('previous_url', ''),
+        'announcements_next_url': review_pagination.get('next_url', ''),
         'master_applications_open': applications_open(),
         'request_status': request_status, 'request_status_options': status_choices,
         'request_search': request_search,
         'commercial_masters': commercial_masters,
-        'page_title': 'Permissões de mestre', 'notice': request.GET.get('salvo')})
+        'notice': request.GET.get('salvo')}))
 
 
 @login_required(login_url='/login/')

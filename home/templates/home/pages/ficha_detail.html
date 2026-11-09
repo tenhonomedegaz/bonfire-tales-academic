@@ -727,7 +727,7 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
 
       <div class="ficha-panel">
         <div class="ficha-section-title">História</div>
-        <label class="info-field full"><textarea name="historia" rows="8" placeholder="A história e lore do personagem...">{{ p.historia|default:'' }}</textarea></label>
+        {% include 'home/partials/character_story_status.html' %}
       </div>
 
       <div class="ficha-panel">
@@ -779,6 +779,7 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
 
     <div class="ficha-panel">
       <div class="ficha-section-title">História</div>
+      {% include 'home/partials/character_story_status.html' %}
       {% if p.historia %}<div class="info-lore" data-lore>{{ p.historia }}</div>{% else %}<p class="info-empty">Sem história registrada.</p>{% endif %}
     </div>
 

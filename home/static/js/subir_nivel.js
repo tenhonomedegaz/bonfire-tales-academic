@@ -12,14 +12,15 @@
   var main = document.getElementById('sn-main');
   if (!main || !SN.previewUrl) return;
 
-  var CHOICE_STEPS = ['subclasse', 'asi', 'talento_racial', 'marcos', 'opcoes', 'magias', 'magias_concedidas', 'troca_magia'];
   var lote = [];       // [{tipo, payload, key, label, card, fixed}]
   var seq = 0;
-  var mode = 'subir';  // 'subir' (nível na classe) | 'mc' (multiclassar)
+  var multiclassPayload = JSON.parse(document.getElementById('sn-multiclass').textContent || 'null');
+  var mode = multiclassPayload ? 'mc' : 'subir';
   var previewTimer = null, okTimer = null;
   var current = 0;
   var talentoPicks = {};
   var confirmation = null;
+  var choicePickers = [];
   var talentoPicksEl = document.getElementById('sn-talento-picks');
   if (talentoPicksEl) {
     try { talentoPicks = JSON.parse(talentoPicksEl.textContent || '{}'); } catch (_e) { talentoPicks = {}; }
@@ -73,11 +74,10 @@
     return ['Resposta inválida ao confirmar (HTTP ' + res.status + '). Recarregue a ficha para verificar o estado atual.'];
   }
 
-  // steps visíveis conforme o modo (multiclassar oculta as escolhas do nível)
+  // A nova classe usa as mesmas etapas de escolha do avancar normal.
   function activeSteps() {
     return allSteps.filter(function (s) {
       var slug = s.dataset.step;
-      if (mode === 'mc' && CHOICE_STEPS.indexOf(slug) !== -1) return false;
       // passo de magias prospectivo só entra no fluxo quando destravado pela prévia ao vivo
       if (slug === 'magias' && magiasProspectiva && !magiasUnlocked) return false;
       return true;
@@ -87,15 +87,20 @@
   // ================= mutações do lote =================
   function addAction(a) { if (a.key && inLote(a.key)) return; lote.push(a); sync(); }
   function addOrReplace(a) { lote = lote.filter(function (x) { return x.key !== a.key; }); lote.push(a); sync(); }
-  function removeKey(key) {
+  function removeKey(key, resetAllocation) {
     var a = lote.filter(function (x) { return x.key === key; })[0];
     if (a && a.fixed) return;                 // ação-âncora não sai do lote
     lote = lote.filter(function (x) { return x.key !== key; });
+    if (resetAllocation && a && a.tipo === 'asi' && a.payload.modo !== 'talento' && a.card && a.card.resetAsiAllocation) a.card.resetAsiAllocation();
     sync();
   }
   function seedAncora() {
     lote = lote.filter(function (a) { return !a.fixed; });
-    if (mode === 'mc') return; // a âncora de mc é adicionada pelo botão do cartão
+    if (mode === 'mc') {
+      lote.unshift({ tipo: 'adicionar_classe', payload: multiclassPayload,
+        key: 'adicionar_classe', label: 'Multiclasse', card: null, fixed: true });
+      return;
+    }
     if (SN.podeSubir) {
       var pay = {}; if (SN.classeId != null) pay.classe = SN.classeId;
       lote.unshift({ tipo: 'subir_nivel', payload: pay, key: 'subir_nivel',
@@ -103,7 +108,86 @@
     }
   }
 
-  function sync() { renderCards(); renderStepper(); renderReview(); schedulePreview(); }
+  function sync() { renderCards(); choicePickers.forEach(function (refresh) { refresh(); }); renderStepper(); renderReview(); schedulePreview(); }
+
+  function showChoiceDescription(card, option) {
+    var host = card && card.querySelector('[data-lvl-desc]');
+    if (!host) return;
+    host.replaceChildren();
+    host.hidden = !option || !option.value;
+    if (host.hidden) return;
+    var heading = document.createElement('h3');
+    heading.textContent = option.text.trim();
+    var body = document.createElement('div');
+    var raw = option.dataset.desc || '';
+    if (typeof renderBonfireMarkdownElement === 'function') {
+      renderBonfireMarkdownElement(body, raw);
+    } else body.textContent = raw;
+    host.append(heading, body);
+  }
+
+  // Preserve native values/events and server validation; only replace the presentation.
+  function initChoicePickers() {
+    main.querySelectorAll('select[data-lvl-auto-queue], select[data-lvl-describe], [data-lvl-card="marco"] select[data-lvl-field="talento"], [data-lvl-card="trocar_opcao"] select[data-lvl-field="val"]').forEach(function (field) {
+      var card = field.closest('[data-lvl-card]');
+      var picker = document.createElement('details');
+      picker.className = 'sn-choice-picker';
+      var summary = document.createElement('summary');
+      var caption = field.getAttribute('aria-label') || optText(field);
+      summary.textContent = caption;
+      var search = document.createElement('input');
+      search.type = 'search'; search.placeholder = 'Buscar';
+      search.setAttribute('aria-label', 'Buscar: ' + caption);
+      // Searching is not a mechanical choice (ASI cards listen for bubbled changes).
+      search.addEventListener('change', function (event) { event.stopPropagation(); });
+      var results = document.createElement('div');
+      results.className = 'sn-choice-results';
+      var status = document.createElement('p');
+      status.className = 'sn-choice-status'; status.setAttribute('role', 'status');
+      var entries = [];
+      [].forEach.call(field.options, function (option) {
+        if (!option.value) return;
+        var button = document.createElement('button');
+        button.type = 'button'; button.textContent = option.text.trim();
+        button.title = option.title;
+        button.addEventListener('click', function () {
+          if (option.disabled || field.disabled) return;
+          field.value = option.value;
+          showChoiceDescription(card, option);
+          field.dispatchEvent(new Event('change', { bubbles: true }));
+          picker.open = false;
+          summary.focus();
+        });
+        results.appendChild(button);
+        entries.push({ option: option, button: button });
+      });
+      function normalize(value) { return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
+      function refresh() {
+        var query = normalize(search.value.trim()), shown = 0, selected = [];
+        entries.forEach(function (entry) {
+          var option = entry.option, button = entry.button;
+          var chosen = field.value === option.value || lote.some(function (action) {
+            return action.card === card && String(action.payload[field.dataset.lvlField]) === option.value;
+          });
+          button.hidden = !normalize(option.text).includes(query);
+          button.disabled = field.disabled || option.disabled;
+          button.setAttribute('aria-pressed', String(chosen));
+          if (!button.hidden) shown++;
+          if (chosen) selected.push(option.text.trim());
+        });
+        summary.textContent = selected.length ? selected.join(' / ') : caption;
+        status.textContent = shown ? shown + ' opções' : 'Nenhuma opção encontrada';
+      }
+      search.addEventListener('input', refresh);
+      picker.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') { picker.open = false; summary.focus(); }
+      });
+      field.addEventListener('change', refresh);
+      picker.append(summary, search, status, results);
+      field.before(picker); field.hidden = true;
+      choicePickers.push(refresh); refresh();
+    });
+  }
 
   // ================= render dos cartões (contrato do level-up em lote) =================
   function chipHtml(a) {
@@ -204,13 +288,10 @@
       var hunter = scl.options[scl.selectedIndex].dataset.hunter === '1';
       var ability = fieldOf(card, 'hunter_ability');
       if (hunter && (!ability || !ability.value)) { flash(ability); return; }
-      mode = 'mc';
-      lote = lote.filter(function (a) { return !a.fixed; });         // tira o subir_nivel
-      lote = lote.filter(function (a) { return CHOICE_STEP_CARDS(a) === false; }); // limpa escolhas do nível
-      lote.unshift({ tipo: 'adicionar_classe', payload: { classe: parseInt(scl.value, 10),
-        hunter_ability: hunter ? ability.value : undefined },
-        key: 'adicionar_classe', label: 'Multiclasse: ' + optText(scl), card: card, fixed: true });
-      rebuildStepper(); goTo(activeSteps().length - 1); sync();
+      var target = new URL(SN.pageUrl, window.location.href);
+      target.searchParams.set('multiclasse', scl.value);
+      if (hunter) target.searchParams.set('hunter_ability', ability.value);
+      window.location.href = target.href;
       return;
     }
 
@@ -285,6 +366,7 @@
       label = optText(tal) + ' (+1 ' + tat.value + ')';
     } else {
       var a1 = fieldOf(card, 'asi_attr_1'), a2 = fieldOf(card, 'asi_attr_2');
+      if (!a1.value || !a2.value) { if (inLote(key)) removeKey(key); return; }
       payload = { asi_attr_1: a1.value, asi_attr_2: a2.value };
       label = a1.value === a2.value ? ('+2 ' + a1.value) : ('+1 ' + a1.value + ' / +1 ' + a2.value);
     }
@@ -322,11 +404,6 @@
   }
 
   // uma ação pertence a um cartão de escolha do nível? (p/ limpar ao multiclassar)
-  function CHOICE_STEP_CARDS(a) {
-    if (!a.card) return true;   // âncoras já removidas antes
-    return ['subclasse', 'talento_racial', 'marco', 'asi', 'opcao', 'trocar_opcao', 'aprender_magias', 'magias_concedidas', 'trocar_magia'].indexOf(a.card.dataset.lvlCard) === -1;
-  }
-
   function rebuildMagias(card) {
     var t = [].map.call(card.querySelectorAll('[data-lvl-group="truques"] input:checked'), function (i) { return i.value; });
     var m = [].map.call(card.querySelectorAll('[data-lvl-group="magias"] input:checked'), function (i) { return i.value; });
@@ -444,6 +521,11 @@
     }).join('');
     var extra = document.querySelector('[data-prev-extra]');
     if (extra) extra.innerHTML = buildExtra(pv);
+    (pv.atributos || []).forEach(function (attribute) {
+      main.querySelectorAll('[data-asi-score="' + attribute.sig + '"]').forEach(function (output) {
+        output.textContent = attribute.valor;
+      });
+    });
   }
   function pendItems(pend) {
     var items = [];
@@ -501,7 +583,11 @@
       if (mySeq !== seq) return;
       var j = res.json;
       if (statusEl) statusEl.classList.remove('is-live');
-      if (!j || !j.ready || !j.preview) { if (statusEl) statusEl.textContent = 'estado atual'; return; }
+      if (!j || !j.ready || !j.preview) {
+        if (statusEl) statusEl.textContent = 'prévia indisponível';
+        if (j && j.erros && j.erros.length) showErr(j.erros, true);
+        return;
+      }
       applyPreview(j.preview);
       applyPend(j.pendencias);
       if (statusEl) statusEl.textContent = 'nível ' + j.preview.nivel + (lote.length > 1 ? (' · ' + (lote.length) + ' no lote') : '');
@@ -598,12 +684,7 @@
         if (!field.value) return;
         var option = field.options[field.selectedIndex];
         var card = field.closest('[data-lvl-card]');
-        var desc = card && card.querySelector('[data-lvl-desc]');
-        if (desc) {
-          var body = option.dataset.desc || '';
-          desc.textContent = option.text.trim() + (body ? (' — ' + body) : '');
-          desc.hidden = false;
-        }
+        showChoiceDescription(card, option);
         handleQueue(field);
         field.value = '';
       });
@@ -612,16 +693,42 @@
       field.addEventListener('change', function () {
         var option = field.options[field.selectedIndex];
         var card = field.closest('[data-lvl-card]');
-        var desc = card && card.querySelector('[data-lvl-desc]');
-        if (!desc) return;
-        desc.textContent = (option && option.dataset.desc) || '';
-        desc.hidden = !desc.textContent;
+        showChoiceDescription(card, option);
       });
     });
     // Um cartão por aprimoramento pendente: alternância atributo↔talento, atributos que o
     // talento permite e ENFILEIRAMENTO na própria seleção (sem botão "Escolher").
     main.querySelectorAll('[data-lvl-card="asi"], [data-lvl-card="marco"]').forEach(function (asi) {
       var attrsBlock = asi.querySelector('[data-lvl-asi-attrs]'), talBlock = asi.querySelector('[data-lvl-asi-tal]');
+      if (attrsBlock) {
+        var allocated = [];
+        asi.resetAsiAllocation = function () { allocated = []; updateAllocation(); };
+        function updateAllocation() {
+          fieldOf(asi, 'asi_attr_1').value = allocated[0] || '';
+          fieldOf(asi, 'asi_attr_2').value = allocated[1] || '';
+          var remaining = 2 - allocated.length;
+          attrsBlock.querySelector('[data-asi-budget]').textContent =
+            remaining + (remaining === 1 ? ' ponto disponível' : ' pontos disponíveis');
+          attrsBlock.querySelectorAll('[data-asi-attribute]').forEach(function (row) {
+            var amount = allocated.filter(function (sig) { return sig === row.dataset.asiAttribute; }).length;
+            row.querySelector('[data-asi-delta]').textContent = '+' + amount;
+            row.querySelector('[data-asi-minus]').disabled = !amount;
+            row.querySelector('[data-asi-plus]').disabled = allocated.length >= 2;
+          });
+          queueAsi(asi);
+        }
+        attrsBlock.querySelectorAll('[data-asi-attribute]').forEach(function (row) {
+          row.querySelector('[data-asi-plus]').addEventListener('click', function () {
+            if (allocated.length >= 2) return;
+            allocated.push(row.dataset.asiAttribute); updateAllocation();
+          });
+          row.querySelector('[data-asi-minus]').addEventListener('click', function () {
+            var index = allocated.indexOf(row.dataset.asiAttribute);
+            if (index < 0) return;
+            allocated.splice(index, 1); updateAllocation();
+          });
+        });
+      }
       asi.querySelectorAll('input[type="radio"]').forEach(function (r) {
         r.addEventListener('change', function () {
           var talMode = r.value === 'talento' && r.checked;
@@ -654,14 +761,7 @@
           if (!picks[k]) picks[k] = [];
           if (sel.value) picks[k].push(sel.value);
         });
-        var desc = asi.querySelector('[data-lvl-desc]');
-        if (desc) {
-          var markdown = talSel.options[talSel.selectedIndex].dataset.desc || '';
-          if (typeof renderBonfireMarkdown === 'function' && typeof sanitizeBonfireMarkdownHtml === 'function') {
-            desc.innerHTML = sanitizeBonfireMarkdownHtml(renderBonfireMarkdown(markdown));
-          } else desc.textContent = markdown;
-          desc.hidden = !talSel.value;
-        }
+        showChoiceDescription(asi, talSel.options[talSel.selectedIndex]);
         if (incomplete) { if (inLote(key)) removeKey(key); return; }
         addOrReplace({ tipo: 'marco', key: key, card: asi, label: optText(talSel) + ' — ' + attrSel.value,
           payload: { marco: asi.dataset.marco, talento: talSel.value,
@@ -703,7 +803,7 @@
   // remover chip do lote (delegação — cobre cards e a revisão)
   document.addEventListener('click', function (e) {
     var x = e.target.closest('.lvl-chip__x[data-key]');
-    if (x) { e.preventDefault(); removeKey(x.dataset.key); }
+    if (x) { e.preventDefault(); removeKey(x.dataset.key, true); }
   });
   // navegação do stepper
   stepperEl.addEventListener('click', function (e) {
@@ -726,6 +826,7 @@
   // ================= start =================
   seedAncora();
   initCards();
+  initChoicePickers();
   renderCards();
   showCurrent();
   renderReview();

@@ -161,6 +161,7 @@ class TbOpcaojogo(models.Model):
     pre_requisito = models.TextField(db_column='PreRequisito', blank=True, null=True)
     etiquetas_adicionais = models.CharField(db_column='EtiquetasAdicionais', max_length=255, blank=True, null=True)
     tags_json = models.JSONField(db_column='TagsJSON', blank=True, default=list, help_text='Tags estruturadas usadas pelo criador de personagem.')
+    arquivado = models.BooleanField(default=False, help_text='Oculta de novos catalogos e escolhas, preservando fichas e revisoes existentes.')
 
 
     class Meta:
@@ -3537,6 +3538,9 @@ class SocialCreditRedemption(models.Model):
 
 
 from .vtt_lab_models import VttLabReceipt, VttLabSession  # noqa: E402,F401
-from .gestao_models import ManualCosmeticGrantReceipt  # noqa: E402,F401
+from .gestao_models import ManualCosmeticGrantReceipt, ManagementRoleReceipt  # noqa: E402,F401
+from .gestao_models import ManagementRolePolicyReceipt  # noqa: E402,F401
+from .portal_models import PortalRequest, PortalActivity  # noqa: E402,F401
+from .character_story_models import CharacterStorySubmission  # noqa: E402,F401
 from .character_log_models import (CharacterLogSource, CharacterLogImportBatch, CharacterLogMission,
                                   CharacterHistoryMission, CharacterLogEntry, CharacterLogReview)  # noqa: E402,F401

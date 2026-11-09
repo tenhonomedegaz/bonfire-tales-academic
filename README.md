@@ -1,4 +1,4 @@
-# Bonfire Tales RPG - Academic & Portfolio Snapshot
+# Bonfire Tales RPG - Copia Academica e Portfolio
 
 Copia academica publica do codigo do Bonfire Tales RPG, uma plataforma web para
 centralizar regras, personagens, missoes e operacoes de uma comunidade de RPG.
@@ -30,11 +30,26 @@ o objetivo arquitetural nao deve ser confundido com implementacao integral.
 ## Origem desta copia
 
 - Branch de origem: `dev`.
-- Commit de referencia: `21ca6683ddd2f389df081d9381817f55d04840fd`.
-- Data de preparacao: 07/11/2026.
+- Commit de referencia: `b9920a3343f7909cc74815e2a4a8fb0d6718f32e`.
+- Data desta atualizacao: 09/11/2026.
 - Historico Git independente: commits antigos do repositorio privado nao foram publicados.
 - A documentacao inclui relatos de QA posteriores a esse commit, explicitados no manifesto.
 - Esta copia nao acompanha a `dev` automaticamente e nao publica alteracoes em producao.
+
+## Marco de Gestao e Revisao de Historias
+
+Este marco incorpora a central de gestao por tarefas, cargos e permissoes,
+regularizacao de treinamento, correcao auditada de dados da ficha e integracao
+das filas editoriais, dos mestres e dos anuncios. Historias de personagens agora
+possuem rascunho, envio, parecer do Loremaster, devolutiva e reenvio com versoes.
+Inclui as correcoes recentes de Cacador/charbuilder e configuracao de ficha importada.
+
+Consulte [arquitetura deste marco](docs/academic/CENTRAL_GESTAO.md) e
+[pendencias atualizadas](docs/academic/PENDENCIAS_ATUALIZADAS.md).
+As migrations 0178 a 0184 representam estruturas/contratos genericos, nao uma
+copia de conteudo real. Publicar codigo nao significa implantar ou aprovar dados
+na producao. Os 71 testes focados do lote operacional passaram; isso nao e uma
+certificacao da suite completa nem da reproducao sem os catalogos excluidos.
 
 ## Execucao local
 

@@ -7,11 +7,14 @@ def master_review(request):
     """Expose the review queue only to users allowed to authorize masters."""
     from .master_participation import can_authorize
     from .models import TbPerfilMestre
-    from .gestao.policy import can
+    from .gestao.policy import can, can_review_editorial
+    from .gestao.workflows import review_queues
 
     allowed = can_authorize(request.user)
+    from .character_stories import notification_context
     return {
-        'management_access': can(request.user, 'people.view') or can(request.user, 'character_history.review'),
+        **notification_context(request.user),
+        'management_access': can(request.user, 'people.view') or can(request.user, 'character_history.review') or can(request.user, 'masters.authorize') or can_review_editorial(request.user) or bool(review_queues(request.user)),
         'can_review_history': can(request.user, 'character_history.review'),
         'master_review_access': allowed,
         'pending_master_requests_count': (

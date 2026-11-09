@@ -44,15 +44,13 @@ def rank_catalog():
 
 
 def can_review(user):
-    return bool(getattr(user, 'is_authenticated', False) and getattr(user, 'is_active', False) and (
-        getattr(user, 'is_superuser', False) or (
-            getattr(user, 'is_staff', False) and user.has_perm('home.revisar_mesa_anuncio'))))
+    from .gestao.policy import can
+    return can(user, 'editorial.announcements')
 
 
 def can_authorize(user):
-    return bool(getattr(user, 'is_authenticated', False) and getattr(user, 'is_active', False) and (
-        getattr(user, 'is_superuser', False) or (
-            getattr(user, 'is_staff', False) and user.has_perm('home.autorizar_mestres'))))
+    from .gestao.policy import can
+    return can(user, 'masters.authorize')
 
 
 def participation(profile=None):

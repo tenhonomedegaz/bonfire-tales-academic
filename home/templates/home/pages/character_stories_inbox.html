@@ -1,0 +1,7 @@
+{% extends 'home/base.html' %}{% load static %}
+{% block body_class %}character-story-page{% endblock %}
+{% block meta_robots %}noindex, nofollow{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/gestao.css' %}?v=portal-2">{% endblock %}
+{% block content %}<div class="gestao-workspace"><header class="gestao-heading"><h1>Histórias dos personagens</h1><a class="gestao-button" href="{% url 'personagens' %}">Meus personagens</a></header>
+{% for submission in stories %}<section class="gestao-section"><h2>{{ submission.character.nome }}</h2><p>{{ submission.get_status_display }}</p>{% if submission.feedback %}<p>{{ submission.feedback|linebreaksbr }}</p>{% endif %}<a class="gestao-button" href="{% url 'character_story' submission.character_id %}">Ver história e pareceres</a></section>{% empty %}<p>Nenhuma história enviada.</p>{% endfor %}
+<nav class="gestao-pagination" aria-label="Histórias">{% if stories.has_previous %}<a href="?page={{ stories.previous_page_number }}">Anterior</a>{% endif %}<span>Página {{ stories.number }} de {{ stories.paginator.num_pages }}</span>{% if stories.has_next %}<a href="?page={{ stories.next_page_number }}">Próxima</a>{% endif %}</nav></div>{% endblock %}

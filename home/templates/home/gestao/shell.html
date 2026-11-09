@@ -4,9 +4,10 @@
 {% block meta_robots %}noindex, nofollow{% endblock %}
 {% block content_libraries %}{% endblock %}
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/gestao.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'css/pages/gestao.css' %}?v=portal-2">
 <link rel="stylesheet" href="{% static 'css/pages/character-log-reviews.css' %}?v=1">
 <script src="{% static 'js/gestao.js' %}?v=1" defer></script>
+<script src="{% static 'js/gestao-portal.js' %}?v=1" defer></script>
 {% endblock %}
 {% block ad_containers %}{% endblock %}
 {% block ad_containers_right %}{% endblock %}
@@ -15,22 +16,62 @@
 {% block main_class %}gestao-main{% endblock %}
 {% block content %}
 {% timezone 'America/Sao_Paulo' %}
+{% url 'gestao:requests' as requests_route %}
+{% url 'gestao:request_create' as create_route %}
+{% firstof portal_requests_url requests_route as requests_link %}
+{% firstof portal_create_url create_route as create_link %}
 <div class="gestao-workspace">
-  <div class="gestao-bar">
-    <a class="gestao-brand" href="{% url 'gestao:index' %}">Gestão</a>
-    <nav class="gestao-nav" aria-label="Gestão">
-      {% if can_view_people %}
-      <a href="{% url 'gestao:index' %}"{% if management_section == 'index' %} aria-current="page"{% endif %}>Início</a>
-      <a href="{% url 'gestao:people' %}"{% if management_section == 'people' %} aria-current="page"{% endif %}>Pessoas</a>
-      {% endif %}
-      {% if user.is_superuser %}<a href="{% url 'gestao:character_logs' %}"{% if management_section == 'character_logs' %} aria-current="page"{% endif %}>Fichas do bot</a>{% endif %}
-      {% if can_review_history %}<a href="{% url 'gestao:character_log_reviews' %}"{% if management_section == 'character_log_reviews' %} aria-current="page"{% endif %}>Conciliacao de historico</a>{% endif %}
+  {# Adapted from portal_bonfire Sidebar and Workspace; authorization remains in Django. #}
+  <aside class="gestao-sidebar" aria-label="Central de gestão">
+    <a class="gestao-portal-brand" href="{% url 'gestao:index' %}">
+      <img src="{% static 'brand/icon.png' %}" width="38" height="44" alt="">
+      <span><strong>Bonfire Tales</strong><small>Central de gestão</small></span>
+    </a>
+    <button class="gestao-menu-toggle" type="button" aria-controls="gestao-navigation" aria-expanded="true" hidden>
+      <img class="gestao-icon" src="{% static 'icons/lucide/chevron-right.svg' %}" alt=""><span>Menu da gestão</span>
+    </button>
+    <nav id="gestao-navigation" class="gestao-portal-nav" aria-label="Gestão">
+      <p class="gestao-nav-label">Central</p>
+      <a class="gestao-nav-item" href="{% url 'gestao:index' %}"{% if management_section == 'index' %} aria-current="page"{% endif %}><img class="gestao-icon" src="{% static 'icons/lucide/eye.svg' %}" alt=""><span>Visão geral</span></a>
+      {% if user.is_authenticated and requests_link %}<a class="gestao-nav-item" href="{{ requests_link }}"{% if management_section == 'requests' and request.resolver_match.url_name != 'request_create' %} aria-current="page"{% endif %}><img class="gestao-icon" src="{% static 'icons/lucide/file-search.svg' %}" alt=""><span>Atendimento</span></a>{% endif %}
+      {% if user.is_authenticated and create_link %}<a class="gestao-nav-item" href="{{ create_link }}"{% if management_section == 'request_create' or request.resolver_match.url_name == 'request_create' %} aria-current="page"{% endif %}><img class="gestao-icon" src="{% static 'icons/lucide/send.svg' %}" alt=""><span>Nova solicitação</span></a>{% endif %}
+      <p class="gestao-nav-label">Áreas de trabalho</p>
+      {% if can_review_editorial %}<a class="gestao-nav-item" href="{% url 'gestao:editorial' %}"{% if management_section == 'editorial' %} aria-current="page"{% endif %}><img class="gestao-icon" src="{% static 'icons/lucide/file-search.svg' %}" alt=""><span>Revisões editoriais</span></a>{% endif %}
+      {% if perms.home.review_portal_historia or user.is_superuser %}<a class="gestao-nav-item" href="{% url 'gestao:editorial' %}?source=historia"><span>Histórias para aprovar</span><small>{{ pending_character_stories_count }}</small></a>{% endif %}
+      {% if can_manage_masters %}<a class="gestao-nav-item" href="{% url 'master_dashboard' %}"{% if management_section == 'masters' %} aria-current="page"{% endif %}><img class="gestao-icon" src="{% static 'icons/lucide/file-search.svg' %}" alt=""><span>Mestres e divulgação</span></a>{% endif %}
+      {% if portal_queues %}<details class="gestao-work-group" open>
+        <summary><img class="gestao-icon" src="{% static 'icons/lucide/file-search.svg' %}" alt="">Atendimento</summary>
+        <div class="gestao-work-subgroups">{% for queue in portal_queues %}<a class="gestao-nav-item" href="{{ queue.url }}"{% if active_queue == queue.key or filters.queue == queue.key %} aria-current="page"{% endif %}><span>{{ queue.label }}</span><small>{{ queue.pending }}</small></a>{% endfor %}</div>
+      </details>{% endif %}
+      {% if can_view_people %}<details class="gestao-work-group" open>
+        <summary><img class="gestao-icon" src="{% static 'icons/lucide/search.svg' %}" alt="">Pessoas e acesso</summary>
+        <div class="gestao-work-subgroups">
+          <a class="gestao-nav-item" href="{% url 'gestao:people' %}"{% if management_section == 'people' and active_tab != 'inventory' and request.resolver_match.url_name != 'roles' %} aria-current="page"{% endif %}>Pessoas</a>
+          {% if can_view_cosmetics %}<a class="gestao-nav-item" href="{% if inventory_url %}{{ inventory_url }}{% else %}{% url 'gestao:index' %}#portal-cosmetics{% endif %}"{% if active_tab == 'inventory' %} aria-current="page"{% endif %}>Cosméticos</a>{% endif %}
+          {% if can_manage_roles or user.is_superuser %}<a class="gestao-nav-item" href="{% if roles_url %}{{ roles_url }}{% else %}{% url 'gestao:index' %}#portal-roles{% endif %}"{% if request.resolver_match.url_name == 'roles' %} aria-current="page"{% endif %}>Cargos</a>{% endif %}
+          {% if can_manage_roles or user.is_superuser %}<a class="gestao-nav-item" href="{% url 'gestao:role_policy' %}"{% if management_section == 'roles' %} aria-current="page"{% endif %}>Permissões dos cargos</a>{% endif %}
+        </div>
+      </details>{% endif %}
+      {% if can_review_history or perms.home.review_character_history or user.is_superuser %}<details class="gestao-work-group" open>
+        <summary><img class="gestao-icon" src="{% static 'icons/lucide/file-search.svg' %}" alt="">Filas e histórico</summary>
+        <div class="gestao-work-subgroups">
+          {% if can_review_history or perms.home.review_character_history %}<a class="gestao-nav-item" href="{% url 'gestao:character_log_reviews' %}"{% if management_section == 'character_log_reviews' %} aria-current="page"{% endif %}>Conciliação de histórico</a>{% endif %}
+          {% if user.is_superuser %}<a class="gestao-nav-item" href="{% url 'gestao:character_logs' %}"{% if management_section == 'character_logs' %} aria-current="page"{% endif %}>Fichas do bot</a>{% endif %}
+        </div>
+      </details>{% endif %}
     </nav>
-    <div class="gestao-secondary-links">
+    <div class="gestao-sidebar-footer">
       {% if user.is_superuser %}<a href="/admin/">Ferramentas técnicas</a>{% endif %}
-      <a class="gestao-site-link" href="/">Voltar ao site</a>
+      <a href="{% url 'home' %}"><img class="gestao-icon" src="{% static 'icons/lucide/chevron-left.svg' %}" alt="">Voltar ao site</a>
     </div>
-  </div>
+  </aside>
+  <div class="gestao-portal-main">
+  <header class="gestao-topbar">
+    <nav class="gestao-portal-breadcrumb" aria-label="Localização"><a href="{% url 'gestao:index' %}">Central</a><img class="gestao-icon" src="{% static 'icons/lucide/chevron-right.svg' %}" alt=""><strong>{{ page_title|default:'Gestão' }}</strong></nav>
+    <div class="gestao-profile"><span class="gestao-profile-mark" aria-hidden="true">{{ user.username|first|upper }}</span><span>{{ user.get_full_name|default:user.username }}</span></div>
+  </header>
+  <div class="gestao-portal-content">
+  {% if pending_character_stories_count %}<aside class="gestao-notice" aria-label="Histórias aguardando aprovação"><span>{{ pending_character_stories_count }} história{{ pending_character_stories_count|pluralize:'s' }} de personagem aguardando aprovação.</span> <a href="{% url 'gestao:editorial' %}?source=historia">Revisar histórias →</a></aside>{% endif %}
   {% if messages %}
   <div class="gestao-messages" aria-live="polite">
     {% for message in messages %}<p class="gestao-notice {{ message.tags }}" role="status">{{ message }}</p>{% endfor %}
@@ -44,6 +85,9 @@
     {% if next_url %}<a class="gestao-button" href="{{ next_url }}" rel="next">Próxima<img class="gestao-icon" src="{% static 'icons/lucide/chevron-right.svg' %}" alt=""></a>{% else %}<span class="gestao-button" aria-disabled="true">Próxima</span>{% endif %}
   </nav>
   {% endif %}
+  <footer class="gestao-workspace-footer"><img src="{% static 'brand/icon.png' %}" width="16" height="19" alt=""><span>Bonfire Tales</span><span>Central de gestão</span></footer>
+  </div>
+  </div>
 </div>
 {% endtimezone %}
 {% endblock %}

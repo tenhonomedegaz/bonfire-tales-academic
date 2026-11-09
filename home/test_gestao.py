@@ -211,7 +211,9 @@ class ManagementFlowTests(TestCase):
 
     def test_http_routes_are_guarded_and_share_site_header_without_new_tab(self):
         for name in ('gestao:index', 'gestao:people'):
-            self.assertEqual(self.client.get(reverse(name)).status_code, 302)
+            self.assertRedirects(self.client.get(reverse(name)),
+                                 reverse('login') + '?next=' + reverse(name),
+                                 fetch_redirect_response=False)
         self.client.force_login(self.staff)
         self.assertEqual(self.client.get(reverse('gestao:people')).status_code, 403)
         self.assertEqual(self.client.get(reverse('gestao:person', args=[self.person.pk])).status_code, 403)
@@ -232,6 +234,8 @@ if ISOLATED:
     with connection.schema_editor() as editor:
         for model in models:
             editor.create_model(model)
+    from django.contrib.auth.management import create_permissions
+    create_permissions(apps.get_app_config('home'), verbosity=0)
     from django.test.utils import setup_test_environment
     setup_test_environment()
     if '--migration-check' in sys.argv:
@@ -243,8 +247,19 @@ if ISOLATED:
         from wsgiref.simple_server import make_server
         users = get_user_model()
         preview_admin = users.objects.create_superuser('preview-admin', 'preview@example.invalid', 'preview-local-only')
-        visitor = users.objects.create_user('AventureiroDeCineria', first_name='Aventureiro')
+        visitor = users.objects.create_user('AventureiroDeCineria', first_name='Aventureiro', password='preview-local-only')
         users.objects.create_user('StaffDeExemplo', is_staff=True)
+        from uuid import uuid4
+        from .models import TbIdioma, TbPersonagem
+        from .gestao.requests import create_request, act_on_request
+        TbIdioma.objects.create(nome='Idioma de demonstração', slug='idioma-demonstracao')
+        training_character = TbPersonagem.objects.create(dono=visitor,
+            nome='Personagem de treinamento', nivel=5, aventuras=20, carteira_pc=30000)
+        training_request = create_request(actor=visitor, request_id=uuid4(), queue='ficha',
+            title='Treinamento antigo de demonstração', character_id=training_character.pk,
+            description='Registrar o idioma comprovado no histórico de campanha.')
+        act_on_request(actor=preview_admin, task_id=training_request.pk, request_id=uuid4(),
+            version=1, action='start', note='Atendimento fictício assumido para demonstração local.')
         TbCosmetico.objects.create(slug='moldura-lua-negra-preview', tipo='moldura',
             nome='Moldura da Lua Negra', origem='evento_manual', ativo=True,
             asset_url='/static/cosmetics/avatar-black-moon-v5.webp')
@@ -298,6 +313,28 @@ if ISOLATED:
             if source_id not in demo_sheets:
                 raise ValidationError('Esta previa aceita somente fontes ficticias locais.')
             return demo_sheets[source_id]
+        from .models import TbCronica, TbTrabalhoMestre, TbPerfilMestre, TbMesaAnuncio
+        TbPerfilMestre.objects.update_or_create(user=visitor, defaults={'status_mestre': 'aprovado'})
+        TbCronica.objects.create(titulo='O caminho das lanternas', slug='previa-lanternas',
+            autor=visitor, conteudo_markdown='## Uma noite em Cineria\n\nRelato ficticio para revisao editorial.',
+            resumo='Uma historia de exemplo, sem dados reais.')
+        TbTrabalhoMestre.objects.create(mestre=visitor, titulo='Diario da campanha',
+            categoria='relato', texto='Apresentacao ficticia do trabalho para revisao.',
+            descricao='Material demonstrativo, sem dados reais.', estado='pendente', revisao=1)
+        TbMesaAnuncio.objects.create(mestre=visitor, titulo='Viajantes da neblina',
+            descricao='Anuncio ficticio para revisar a divulgacao.', rank='Obsidiana',
+            agenda_combinar=True, estado='pendente', revisao=1)
+        candidate = users.objects.create_user('MestreDeDemonstracao')
+        TbPerfilMestre.objects.create(user=candidate, status_mestre='pendente',
+            solicitado_em=timezone.now(), apresentacao='Gosto de historias de exploracao e misterio.',
+            estilo='Exploracao e investigacao', experiencia='Campanhas ficticias de demonstracao.',
+            combinados='Sessao zero e acordo de convivencia.', versao=1)
+        TbMestreLegado.objects.create(importacao=archive, numero=10, nome='Mestre de Demonstracao',
+            rotulo_original='F10', discord_id='423456789012345678', user=candidate)
+        from .character_stories import edit_ticket, save_story
+        save_story(actor=visitor, character_id=training_character.pk,
+            text='## Origens\n\nVim de uma aldeia de Cineria e procuro noticias da minha familia.',
+            ticket=edit_ticket(visitor, training_character), submit=True)
         print('ISOLATED_PREVIEW http://127.0.0.1:8777/gestao/', flush=True)
         with patch('home.character_log_import.download_workbook', side_effect=demo_download):
             from .character_log_import import preview_log, apply_log

@@ -1,0 +1,14 @@
+{% extends 'home/gestao/shell.html' %}
+{% block gestao_content %}
+<nav class="gestao-breadcrumb"><a href="{% url 'gestao:request_detail' task.pk %}">{{ task.reference }}</a><span>/</span><span>Treinamento comprovado</span></nav>
+<header class="gestao-heading"><h1>Registrar treinamento comprovado</h1></header>
+<p>{{ task.character.nome }} · {{ task.character.dono.username }}</p>
+{% if form.errors or confirmation_form.errors %}<div class="gestao-errors" role="alert">{{ form.errors }}{{ confirmation_form.errors }}</div>{% endif %}
+{% if preview %}
+<section class="gestao-section"><h2>Conferir registro</h2><dl class="gestao-details"><div><dt>Personagem</dt><dd>{{ preview.person.nome }}</dd></div><div><dt>Proficiência</dt><dd>{{ preview.name }} · {{ preview.kind }}</dd></div><div><dt>Cobrança</dt><dd>0 PO · treinamento já concluído</dd></div><div><dt>Motivo</dt><dd>{{ preview.reason }}</dd></div><div><dt>Evidência</dt><dd>{{ preview.evidence|linebreaksbr }}</dd></div><div><dt>Solicitação</dt><dd>{% if preview.finish %}Concluir após registro{% else %}Manter em atendimento{% endif %}</dd></div></dl>
+{% if preview.already_known %}<p class="gestao-notice">O personagem já possui essa proficiência. Ela será preservada, sem duplicação.</p>{% endif %}
+<div class="gestao-actions"><form method="post">{% csrf_token %}{{ confirmation_form.ticket }}<button class="gestao-button gestao-primary" name="action" value="confirm" type="submit">Confirmar registro</button></form><a class="gestao-button" href="{% url 'gestao:request_training' task.pk %}">Revisar</a></div></section>
+{% else %}
+<form method="post" class="gestao-section">{% csrf_token %}{% for field in form %}<div class="gestao-field">{% if field.name == 'finish' %}<label>{{ field }} {{ field.label }}</label>{% else %}<label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% endif %}{{ field.errors }}</div>{% endfor %}<div class="gestao-actions"><button class="gestao-button gestao-primary" name="action" value="preview" type="submit">Conferir registro</button><a class="gestao-button" href="{% url 'gestao:request_detail' task.pk %}">Cancelar</a></div></form>
+{% endif %}
+{% endblock %}

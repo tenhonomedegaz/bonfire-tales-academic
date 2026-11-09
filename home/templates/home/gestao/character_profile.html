@@ -1,0 +1,17 @@
+{% extends 'home/gestao/shell.html' %}
+{% block gestao_content %}
+<nav class="gestao-breadcrumb"><a href="{% url 'gestao:request_detail' task.pk %}">{{ task.reference }}</a><span>/</span><span>Correção de dados</span></nav>
+<header class="gestao-heading"><h1>Corrigir dados da ficha</h1></header><p>{{ task.character.nome }} · {{ task.character.dono.username }}</p>
+{% if form.errors or confirmation_form.errors %}<div class="gestao-errors" role="alert">{{ form.errors }}{{ confirmation_form.errors }}</div>{% endif %}
+{% if preview %}
+<section class="gestao-section"><h2>Conferir alterações</h2>
+{% for row in preview.rows %}<article class="gestao-role-detail"><h3>{{ row.label }}</h3><div class="gestao-profile-diff"><div><h4>Antes</h4><div class="gestao-change-copy">{{ row.before|default:'Em branco' }}</div></div><div><h4>Depois</h4><div class="gestao-change-copy">{{ row.after|default:'Em branco' }}</div></div></div></article>{% endfor %}
+<dl class="gestao-details"><div><dt>Motivo</dt><dd>{{ preview.reason }}</dd></div><div><dt>Evidência</dt><dd>{{ preview.evidence|linebreaksbr }}</dd></div><div><dt>Solicitação</dt><dd>{% if preview.finish %}Concluir após aplicar{% else %}Manter em atendimento{% endif %}</dd></div></dl>
+<div class="gestao-actions"><form method="post">{% csrf_token %}{{ confirmation_form.ticket }}<button class="gestao-button gestao-primary" name="action" value="confirm" type="submit">Confirmar correção</button></form><a class="gestao-button" href="{% url 'gestao:request_profile' task.pk %}">Revisar</a></div></section>
+{% else %}
+<form method="post">{% csrf_token %}{{ form.base_token }}
+<section class="gestao-section"><h2>Identidade e informações narrativas</h2><div class="gestao-profile-fields">{% for field in profile_fields %}<div class="gestao-field {% if field.name in long_fields %}gestao-profile-wide{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endfor %}</div></section>
+<section class="gestao-section"><h2>Registro da correção</h2><div class="gestao-field"><label for="{{ form.reason.id_for_label }}">{{ form.reason.label }}</label>{{ form.reason }}</div><div class="gestao-field"><label for="{{ form.evidence.id_for_label }}">{{ form.evidence.label }}</label>{{ form.evidence }}</div><div class="gestao-field"><label>{{ form.finish }} {{ form.finish.label }}</label></div><div class="gestao-actions"><button class="gestao-button gestao-primary" name="action" value="preview" type="submit">Conferir alterações</button><a class="gestao-button" href="{% url 'gestao:request_detail' task.pk %}">Cancelar</a></div></section>
+</form>
+{% endif %}
+{% endblock %}

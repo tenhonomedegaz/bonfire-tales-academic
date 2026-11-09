@@ -109,7 +109,9 @@
         <a href="{% url 'master_dashboard' %}?permissao=pendente#permissoes">Avaliar solicitações →</a>
       </aside>
       {% endif %}
-      
+      {% if pending_character_stories_count %}<aside class="bft-review-notice" aria-label="Histórias aguardando aprovação"><span>{{ pending_character_stories_count }} história{{ pending_character_stories_count|pluralize:'s' }} de personagem aguardando aprovação.</span><a href="{% url 'gestao:editorial' %}?source=historia">Revisar histórias →</a></aside>{% endif %}
+      {% if character_story_changes_count %}<aside class="bft-review-notice" aria-label="Devolutivas de histórias"><span>O Loremaster solicitou ajustes em {{ character_story_changes_count }} história{{ character_story_changes_count|pluralize:'s' }}.</span><a href="{% url 'character_stories_inbox' %}">Ver devolutivas →</a></aside>{% endif %}
+
       <div class="flex-1 flex flex-row w-full justify-center">
           {% block ad_containers %}
           {% if adsense_enabled and ads_enabled and adsense_sidebar_slot %}

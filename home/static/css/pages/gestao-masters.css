@@ -1,0 +1,17 @@
+.gestao-masters { min-width: 0; }
+.gestao-master-tabs { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--gestao-border); }
+.gestao-master-record { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, .8fr); gap: 24px; padding: 24px 0; border-bottom: 1px solid var(--gestao-border); scroll-margin-top: 20px; }
+.gestao-master-record:last-of-type { border-bottom: 0; }
+.gestao-master-record h3 { margin: 0 0 8px; font-size: 17px; line-height: 1.4; overflow-wrap: anywhere; }
+.gestao-master-record p { margin-bottom: 8px; }
+.gestao-master-record form { display: grid; align-content: start; gap: 12px; min-width: 0; }
+.gestao-master-record details { margin-top: 12px; }
+.gestao-master-record summary { cursor: pointer; color: var(--gestao-accent); }
+.gestao-master-record dl { display: grid; gap: 8px; margin-top: 12px; }
+.gestao-master-record dt { font-weight: 700; }
+.gestao-master-record dd { margin: 0 0 10px; overflow-wrap: anywhere; white-space: normal; }
+.gestao-master-check { display: flex; gap: 8px; align-items: flex-start; }
+.gestao-master-check input { flex: 0 0 auto; margin-top: 4px; }
+.gestao-master-check span { min-width: 0; }
+.gestao-master-record .gestao-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+@media (max-width: 900px) { .gestao-master-record { grid-template-columns: minmax(0, 1fr); gap: 16px; } }

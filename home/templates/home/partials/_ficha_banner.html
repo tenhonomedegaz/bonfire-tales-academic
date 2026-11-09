@@ -40,7 +40,9 @@ progressao de aventuras e atalhos para outras abas.{% endcomment %}
           staff. O Mercado entra no lugar: é onde ele compra e vende.{% endcomment %}
           {% if is_staff %}<a href="{% url 'editar_ficha' p.id_personagem %}" class="banner-btn">Painel da staff</a>{% endif %}
           <a href="{% url 'mercado_itens_mundanos' %}" class="banner-btn">Mercado</a>
-          {% if levelup_status.mostrar_botao %}
+          {% if configuracao_inicial_pendente %}
+            <a href="{% url 'criacao_ficha' %}?recriar={{ p.id_personagem }}" class="banner-btn primary">Configurar ficha importada</a>
+          {% elif levelup_status.mostrar_botao %}
             <a href="{% url 'personagem_subir_nivel' p.id_personagem %}" class="banner-btn primary banner-btn-levelup" data-levelup-btn>
               ⬆ {% if levelup_status.pode_subir %}Subir de Nível{% else %}Concluir escolhas de nível{% endif %}
             </a>

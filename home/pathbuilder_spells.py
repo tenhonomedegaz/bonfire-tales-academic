@@ -114,6 +114,7 @@ def apply_spell_selection(personagem, build, *, ruleset=None):
         else:
             TbPersonagemMagia.objects.create(id_personagem=personagem, id_magia=spell,
                 nivel=shown_spell.nivel, nome=shown_spell.nome, preparada=prepared, origem=origin)
+    personagem._pathbuilder_staged_spell_keys = seen
     personagem._pathbuilder_spell_issues = issues
 
 

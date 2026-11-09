@@ -1,0 +1,9 @@
+{% extends 'home/gestao/shell.html' %}
+{% block gestao_content %}
+<nav class="gestao-breadcrumb"><a href="{% url 'gestao:requests' %}">Atendimento</a><span>/</span><span>Nova solicitação</span></nav>
+<header class="gestao-heading"><h1>Nova solicitação</h1></header>
+<form method="post" class="gestao-section">{% csrf_token %}{{ form.request_id }}
+{% if form.errors %}<div class="gestao-errors" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+{% for field in form.visible_fields %}<div class="gestao-field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endfor %}
+<div class="gestao-actions"><button class="gestao-button gestao-primary" type="submit">Enviar solicitação</button><a class="gestao-button" href="{% url 'gestao:requests' %}">Cancelar</a></div></form>
+{% endblock %}

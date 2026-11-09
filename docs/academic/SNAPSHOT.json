@@ -1,11 +1,13 @@
 {
   "local_additions": [
-    "docs/qa/20261106-character-history-levelup.md"
+    "docs/qa/20261106-character-history-levelup.md",
+    "docs/academic/PENDENCIAS_ATUALIZADAS.md",
+    "docs/academic/CENTRAL_GESTAO.md"
   ],
-  "exported_files": 2466,
-  "snapshot_date": "2026-11-07",
+  "exported_files": 2541,
+  "snapshot_date": "2026-11-09",
   "source_branch": "dev",
-  "source_commit": "21ca6683ddd2f389df081d9381817f55d04840fd",
+  "source_commit": "b9920a3343f7909cc74815e2a4a8fb0d6718f32e",
   "excluded_paths": [
     "docs/agentes/arquitetura_personalizacao_perfil.md",
     "docs/agentes/arquitetura_temas_dinamicos.md",
@@ -247,5 +249,8 @@
     "scratch/verify_options_query.py",
     "scratch/verify_subclass_features.py"
   ],
-  "private_git_history_included": false
+  "private_git_history_included": false,
+  "synchronized_code_files": 116,
+  "publication_note": "Codigo atualizado sem historico privado; fixtures, pacotes, evidencias operacionais e dados reais continuam excluidos. Documentacao publica adaptada separadamente.",
+  "validation": "71 testes focados no lote operacional; verificacao separada do subconjunto publico sem fixtures. Nao equivale a suite geral nem a aceite em producao."
 }

@@ -350,10 +350,51 @@ def _page_embedded_option_universe(ctx, options, tipo_display):
              'nome': option['nome'], 'descricao': option.get('descricao') or '',
              'pre': option.get('pre_requisito') or ''}
             for option in sorted(options, key=lambda item: item['nome'])
-            if option['tipo'] == tipo_display]
+            if option['tipo'] == tipo_display and not option.get('arquivado', False)]
+
+
+def _option_class_level_filter(options, ctx):
+    """Apply explicit '<N> nivel de <classe>' requirements to any option type.
+
+    Other prerequisite grammars retain their existing behavior; this adapter does
+    not turn combat activation tags into acquisition prerequisites.
+    """
+    pattern = re.compile(r'(\d+)\s*[º°o]?\s*n[ií]vel\s+(?:de|da|do)\s+(.+?)\.?$', re.I)
+    requirements = {row['slug']: pattern.fullmatch(str(row.get('pre') or '').strip())
+                    for row in options}
+    if not any(requirements.values()):
+        return options
+    classe = ctx.get('classe')
+    person = ctx.get('personagem')
+    levels = {}
+
+    def register(source, level):
+        for label in (source.nome, source.slug):
+            levels[normalize_slug(str(label or ''))] = int(level or 0)
+
+    if person is None:
+        if classe is not None:
+            register(classe, ctx.get('nivel') or 1)
+    else:
+        ruleset = ctx.get('ruleset')
+        for pc in person.classes.select_related('id_classe'):
+            source = pc.id_classe
+            if ruleset is not None and 'class-catalog:%s' % pc.id_classe_id in ruleset.manifest:
+                from .versioned_classes import VersionedClassCatalog
+                source = VersionedClassCatalog(ruleset, pc.id_classe_id).classe
+            elif classe is not None and pc.id_classe_id == classe.pk:
+                source = classe
+            register(source, pc.nivel)
+    return [row for row in options if requirements[row['slug']] is None or
+            levels.get(normalize_slug(requirements[row['slug']].group(2)), 0)
+            >= int(requirements[row['slug']].group(1))]
 
 
 def _opcao_universe(ctx):
+    return _option_class_level_filter(_opcao_catalog_universe(ctx), ctx)
+
+
+def _opcao_catalog_universe(ctx):
     """Opções acessíveis (TbOpcaojogo do tipo ∩ TbAcessoopcao p/ classe/subclasse/nível)."""
     from django.db.models import Q
     from .models import TbOpcaojogo, TbAcessoopcao, TbClasse, TbSubclasse
@@ -423,7 +464,7 @@ def _opcao_universe(ctx):
     if listed:
         return [{'id': o.id_opcao, 'slug': o.slug, 'nome': o.nome,
                  'descricao': o.descricao or '', 'pre': o.pre_requisito or ''}
-                for o in TbOpcaojogo.objects.filter(tipo=tipo_disp).order_by('nome')
+                for o in TbOpcaojogo.objects.filter(tipo=tipo_disp, arquivado=False).order_by('nome')
                 if normalize_slug(o.slug) in listed]
     classe = ctx.get('classe')
     subclasse = ctx.get('subclasse')
@@ -441,7 +482,7 @@ def _opcao_universe(ctx):
         (Q(id_classe=classe) if classe and not constraints.get('subclass_only')
          else Q(pk__in=[]))
         | (Q(id_subclasse=subclasse) if subclasse else Q(pk__in=[])))
-    qs = TbOpcaojogo.objects.filter(tipo=tipo_disp)
+    qs = TbOpcaojogo.objects.filter(tipo=tipo_disp, arquivado=False)
     # ACL e por UNIVERSO. A classe pode ter acessos de outro tipo (por exemplo,
     # Estilos de Luta) sem que isso esconda um catalogo global sem ACL (Manobras).
     universe_ids = qs.values_list('id_opcao', flat=True)
@@ -456,7 +497,7 @@ def _opcao_universe(ctx):
     if universe or constraints.get('subclass_only'):
         return universe
     return _page_embedded_option_universe(
-        ctx, TbOpcaojogo.objects.filter(tipo=tipo_disp).values(
+        ctx, TbOpcaojogo.objects.filter(tipo=tipo_disp, arquivado=False).values(
             'id_opcao', 'slug', 'nome', 'tipo', 'descricao', 'pre_requisito'),
         tipo_disp)
 
@@ -966,20 +1007,8 @@ _ATTR_BASED_RE = re.compile(r'\b(str|for|dex|des|con|int|wis|sab|cha|car)_based\
 
 
 def _pericia_proficient_slugs(personagem):
-    """Perícias em que o personagem é PROFICIENTE (campo TbPersonagemPericia + escolhas
-    pick:pericia persistidas). Universo-base da escolha de expertise (só se especializa no
-    que já se é proficiente)."""
-    from .character_engine import _slug, _norm_skill_slug
-    if personagem is None:
-        return set()
-    out = set()
-    for per in personagem.pericias.all():
-        if per.proficiente or per.expertise:
-            out.add(_norm_skill_slug(_slug(per.nome)))
-    for e in personagem.escolhas.filter(tipo='pericia'):
-        if e.valor:
-            out.add(_norm_skill_slug(e.valor))
-    return out
+    """Use the same complete proficiency set as ordinary skill picks, including tags."""
+    return _pericia_owned_slugs(personagem)
 
 
 def _expertise_owned_slugs(personagem):

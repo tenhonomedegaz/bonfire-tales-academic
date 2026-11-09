@@ -135,9 +135,9 @@ MODEL_ALLOWLIST = {
     'opcao_jogo': ModelAccess(
         home_models.TbOpcaojogo,
         ('id_opcao', 'nome', 'slug', 'tipo', 'descricao', 'pre_requisito',
-         'etiquetas_adicionais', 'tags_json'),
-        (),
-        ('id_opcao', 'slug', 'tipo'),
+         'etiquetas_adicionais', 'tags_json', 'arquivado'),
+        ('arquivado',),
+        ('id_opcao', 'slug', 'tipo', 'arquivado'),
         ('id_opcao', 'slug', 'nome', 'tipo'),
     ),
     'acesso_opcao': ModelAccess(

@@ -1,0 +1,78 @@
+{% extends 'home/gestao/shell.html' %}
+{% load static %}
+{% block gestao_content %}
+{% if can_review_editorial %}<p><a class="gestao-button" href="{% url 'gestao:editorial' %}">Revisões editoriais</a></p>{% endif %}
+<header class="gestao-heading gestao-portal-heading"><h1>Visão geral</h1><div class="gestao-portal-heading-actions">{% if portal_create_url %}<a class="gestao-button gestao-primary" href="{{ portal_create_url }}"><img class="gestao-icon" src="{% static 'icons/lucide/send.svg' %}" alt="">Nova solicitação</a>{% endif %}{% if can_view_people %}<a class="gestao-button" href="{% url 'gestao:people' %}"><img class="gestao-icon" src="{% static 'icons/lucide/search.svg' %}" alt="">Localizar pessoa</a>{% endif %}</div></header>
+
+<section class="gestao-portal-section" aria-labelledby="portal-requests">
+  <div class="gestao-section-heading"><h2 id="portal-requests">Atendimento</h2>{% if portal_requests_url %}<a href="{{ portal_requests_url }}">Ver solicitações</a>{% endif %}</div>
+  {% if portal_queues and portal_total_pending != None %}<p class="gestao-queue-summary">{{ portal_total_pending }} pendente{{ portal_total_pending|pluralize:'s' }}</p>{% endif %}
+  {% if portal_requests_url %}<nav class="gestao-request-status-links" aria-label="Solicitações por situação"><a href="{{ portal_requests_url }}">Todas</a><a href="{{ portal_requests_url }}?status=new">Novas</a><a href="{{ portal_requests_url }}?status=reviewing">Em atendimento</a><a href="{{ portal_requests_url }}?status=waiting">Aguardando solicitante</a><a href="{{ portal_requests_url }}?status=done">Concluídas</a><a href="{{ portal_requests_url }}?status=rejected">Recusadas</a></nav>{% endif %}
+  {% if portal_queues %}
+  <div class="gestao-queue-grid gestao-workflow-grid">
+    {% for queue in portal_queues %}<a class="gestao-queue" href="{{ queue.url }}">
+      <span class="gestao-queue-icon {% if queue.key == 'ficha' or queue.key == 'desenvolvimento' %}amber{% elif queue.key == 'ticket' %}blue{% elif queue.key == 'regras' %}teal{% else %}violet{% endif %}"><img class="gestao-icon" src="{% static 'icons/lucide/file-search.svg' %}" alt=""></span>
+      <img class="gestao-queue-arrow gestao-icon" src="{% static 'icons/lucide/chevron-right.svg' %}" alt="">
+      <span class="gestao-queue-total">{{ queue.pending }}</span><strong>{{ queue.label }}</strong><span>{% if queue.can_review %}Em aberto{% else %}Suas solicitações em aberto{% endif %} · {{ queue.total }} no total</span>
+    </a>{% endfor %}
+  </div>
+  {% else %}<p class="gestao-empty">Nenhuma fila disponível.</p>{% endif %}
+</section>
+
+{% if portal_recent_activity %}
+<section class="gestao-portal-section" aria-labelledby="portal-recent-activity">
+  <div class="gestao-section-heading"><h2 id="portal-recent-activity">Atividade recente</h2></div>
+  <ul class="gestao-portal-timeline">{% for event in portal_recent_activity %}<li><div><a href="{% url 'gestao:request_detail' event.task_id %}">{{ event.task.reference }} · {{ event.task.title }}</a><p>{{ event.actor.username }} · {{ event.task.get_queue_display }}</p></div><time datetime="{{ event.created_at|date:'c' }}">{{ event.created_at|date:'d/m/Y H:i' }}</time></li>{% endfor %}</ul>
+</section>
+{% endif %}
+
+{% if can_review_history or user.is_superuser %}
+<section class="gestao-portal-section" aria-labelledby="portal-queues">
+  <div class="gestao-section-heading"><h2 id="portal-queues">Histórico de personagens</h2></div>
+  <div class="gestao-queue-grid">
+    {% if can_review_history %}<a class="gestao-queue" href="{% url 'gestao:character_log_reviews' %}?state=pending">
+      <span class="gestao-queue-icon teal"><img class="gestao-icon" src="{% static 'icons/lucide/file-search.svg' %}" alt=""></span>
+      <img class="gestao-queue-arrow gestao-icon" src="{% static 'icons/lucide/chevron-right.svg' %}" alt="">
+      <strong>Conciliação de histórico</strong><span>Registros pendentes de revisão</span>
+    </a>{% endif %}
+    {% if user.is_superuser %}<a class="gestao-queue" href="{% url 'gestao:character_logs' %}">
+      <span class="gestao-queue-icon blue"><img class="gestao-icon" src="{% static 'icons/lucide/file-search.svg' %}" alt=""></span>
+      <img class="gestao-queue-arrow gestao-icon" src="{% static 'icons/lucide/chevron-right.svg' %}" alt="">
+      <strong>Fichas do bot</strong><span>Importações e registros de personagens</span>
+    </a>{% endif %}
+  </div>
+</section>
+{% endif %}
+
+{% if can_view_people %}
+<section class="gestao-portal-section" aria-labelledby="portal-people">
+  <div class="gestao-section-heading"><h2 id="portal-people">Pessoas</h2><a href="{% url 'gestao:people' %}">Ver pessoas</a></div>
+  <form class="gestao-filters gestao-portal-search" method="get" action="{% url 'gestao:people' %}">
+    <div class="gestao-field gestao-grow"><label for="{{ search_form.q.id_for_label }}">{% if can_view_email %}Usuário, nome, Discord ou e-mail{% else %}Usuário, nome ou Discord{% endif %}</label>{{ search_form.q }}</div>
+    <button class="gestao-button gestao-primary" type="submit"><img class="gestao-icon" src="{% static 'icons/lucide/search.svg' %}" alt="">Buscar pessoa</button>
+  </form>
+  {% if can_view_cosmetics or can_manage_roles %}<div class="gestao-service-list">
+    {% if can_view_cosmetics %}<div class="gestao-service" id="portal-cosmetics"><span class="gestao-queue-icon violet"><img class="gestao-icon" src="{% static 'icons/lucide/image.svg' %}" alt=""></span><div><h3>Cosméticos</h3><p>Inventário e concessões por pessoa</p></div><a href="{% url 'gestao:people' %}" aria-label="Selecionar pessoa para consultar cosméticos">Selecionar pessoa<img class="gestao-icon" src="{% static 'icons/lucide/chevron-right.svg' %}" alt=""></a></div>{% endif %}
+    {% if can_manage_roles %}<div class="gestao-service" id="portal-roles"><span class="gestao-queue-icon blue"><img class="gestao-icon" src="{% static 'icons/lucide/link.svg' %}" alt=""></span><div><h3>Cargos</h3><p>Cargos e acesso por pessoa</p></div><a href="{% url 'gestao:people' %}" aria-label="Selecionar pessoa para gerenciar cargos">Selecionar pessoa<img class="gestao-icon" src="{% static 'icons/lucide/chevron-right.svg' %}" alt=""></a></div>{% endif %}
+  </div>{% endif %}
+</section>
+{% endif %}
+
+{% if can_view_cosmetics %}
+<section class="gestao-portal-section" aria-labelledby="portal-history">
+  <div class="gestao-section-heading"><h2 id="portal-history">Suas últimas concessões</h2></div>
+  {% if recent_receipts %}
+  <table class="gestao-table gestao-portal-table">
+    <thead><tr><th scope="col">Pessoa</th><th scope="col">Cosmético</th><th scope="col">Resultado</th><th scope="col">Data</th><th scope="col"><span class="gestao-sr-only">Histórico</span></th></tr></thead>
+    <tbody>{% for receipt in recent_receipts %}<tr>
+      <td data-label="Pessoa"><a class="gestao-person-link" href="{% url 'gestao:person' receipt.user_id %}">{{ receipt.user.get_full_name|default:receipt.user.username }}</a><span class="gestao-subline">@{{ receipt.user.username }}</span></td>
+      <td data-label="Cosmético">{{ receipt.cosmetico.nome }}</td>
+      <td data-label="Resultado"><span class="gestao-status {% if receipt.outcome == 'granted' %}success{% else %}muted{% endif %}">{% if receipt.outcome == 'granted' %}Concedido{% else %}Já possuía{% endif %}</span></td>
+      <td data-label="Data"><time datetime="{{ receipt.criado_em|date:'c' }}">{{ receipt.criado_em|date:'d/m/Y H:i' }}</time></td>
+      <td data-label="Histórico"><a href="{% url 'gestao:person' receipt.user_id %}?tab=history" aria-label="Ver histórico de {{ receipt.user.username }}"><img class="gestao-icon" src="{% static 'icons/lucide/chevron-right.svg' %}" alt=""><span class="gestao-sr-only">Ver histórico</span></a></td>
+    </tr>{% endfor %}</tbody>
+  </table>
+  {% else %}<div class="gestao-portal-empty"><img class="gestao-icon" src="{% static 'icons/lucide/file-search.svg' %}" alt=""><p>Nenhuma concessão registrada por você.</p></div>{% endif %}
+</section>
+{% endif %}
+{% endblock %}

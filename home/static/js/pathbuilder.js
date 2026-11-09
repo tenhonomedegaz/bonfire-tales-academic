@@ -394,6 +394,12 @@
                       }).join(', ') + '</p>'
                     : '';
                 var subs = '';
+                var ability = index > 0 && (info.permanent_ability_choices || []).length
+                    ? '<label class="pb-row-note">Atributo de conjuração <select class="pb-select-inline" data-class-ability="' + index + '">' +
+                      '<option value="">Selecione</option>' + info.permanent_ability_choices.map(function (value) {
+                          return '<option value="' + esc(value) + '"' + (row.ability === value ? ' selected' : '') + '>' +
+                              esc(({ int: 'Inteligência', wis: 'Sabedoria' })[value] || value) + '</option>';
+                      }).join('') + '</select></label>' : '';
                 if (unlocked && (info.subclasses || []).length) {
                     subs = '<div class="pb-subclass" data-subclass-for="' + index + '">' +
                         (info.subclasses || []).map(function (sub) {
@@ -419,7 +425,7 @@
                       (index === 0 ? ''
                         : '<button type="button" class="pb-x" data-remove-class="' + index +
                           '" title="Remover classe">×</button>') +
-                    '</div>' + asiNote + subs + '</div>';
+                    '</div>' + ability + asiNote + subs + '</div>';
             }).join('');
         }
 
@@ -658,6 +664,10 @@
                       esc(String(group.label).toLocaleLowerCase('pt-BR')) + ' (' +
                       (group.opcoes || []).length + ' opções)" aria-label="Filtrar opções">'
                     : '';
+                var automatic = (group.automaticas || []).map(function (row) {
+                    return '<details class="pb-row-note"><summary>' + esc(row.nome) +
+                        ' (automático)</summary>' + renderMd(row.descricao) + '</details>';
+                }).join('');
                 return '<div class="pb-row pb-choice' + (group.pendentes ? ' is-pending' : '') + '">' +
                     '<div class="pb-row-head">' +
                       '<span class="pb-row-name">' + esc(group.label) +
@@ -666,9 +676,9 @@
                         (group.optional ? 'opcional: até ' + restam :
                          (restam > 0 ? 'escolha ' + restam : 'ok')) + '</span>' +
                     '</div>' +
-                    (fixed.length ? '<p class="pb-row-note">Já na ficha: ' +
+                    (fixed.length && !(group.automaticas || []).length ? '<p class="pb-row-note">Já na ficha: ' +
                        esc(fixed.map(function (r) { return r.nome; }).join(', ')) + '</p>' : '') +
-                    filtro +
+                    automatic + filtro +
                     '<div class="pb-opts-inline' + (filtro ? ' is-long' : '') +
                       '" data-choice-opts>' + opts + '</div></div>';
             }).join('');
@@ -1401,7 +1411,11 @@
 
         app.addEventListener('change', function (event) {
             var target = event.target;
-            if (target.dataset.itemEquipped != null) {
+            if (target.dataset.classAbility != null) {
+                mutate(function (build) {
+                    build.classes[Number(target.dataset.classAbility)].ability = target.value;
+                });
+            } else if (target.dataset.itemEquipped != null) {
                 mutate(function (build) {
                     build.itens[Number(target.dataset.itemEquipped)].equipado = target.checked;
                 });

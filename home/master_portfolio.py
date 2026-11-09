@@ -12,6 +12,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST, require_http_methods
+from django.views.decorators.cache import never_cache
 
 from .master_hub import safe_public_url, validate_banner
 from .models import TbPerfilMestre, TbTrabalhoMestre
@@ -19,7 +20,7 @@ from .models import TbPerfilMestre, TbTrabalhoMestre
 
 def can_review_work(user):
     return bool(user.is_authenticated and user.is_active and (
-        user.is_superuser or (user.is_staff and user.has_perm('home.revisar_trabalho_mestre'))))
+        user.is_superuser or user.has_perm('home.revisar_trabalho_mestre')))
 
 
 class WorkForm(forms.ModelForm):
@@ -123,12 +124,18 @@ def work_edit(request, pk=None):
 
 
 @login_required(login_url='/login/')
+@never_cache
 def review_queue(request):
     if not can_review_work(request.user):
         raise PermissionDenied
-    return render(request, 'home/pages/master_gallery_review.html', {
-        'works': TbTrabalhoMestre.objects.filter(estado='pendente').select_related('mestre')[:100],
-        'page_title': 'Revisar galeria', 'noindex': True})
+    from .gestao.views import _workspace
+    from .gestao.editorial_views import review_page
+    works, pagination = review_page(request, TbTrabalhoMestre.objects.filter(
+        estado='pendente').select_related('mestre'))
+    return render(request, 'home/pages/master_gallery_review.html', _workspace(request, 'Revisar galeria',
+        management_section='editorial', **{
+        **pagination, 'works': works,
+        'noindex': True}))
 
 
 @login_required(login_url='/login/')
