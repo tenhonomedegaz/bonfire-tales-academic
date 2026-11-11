@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "source_sha256": "41e9c80b84fc08ed9cffa6fa1def5d0356f6fca4dc34ada46f21b8095f99b326",
+  "rows": [
+    {
+      "pk": 69,
+      "slug": "adult-bronze-dragon",
+      "before_sha256": "5e9eb2a8bc1b9a6860d64ddce55f4af87af14877dfadcbef51238303ce16ad82",
+      "after_sha256": "f7655b67129b706ca1bf8be4b67702afef4b25fce241f96c62992391e2dd6d40",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "4a5a280633b712cd63f38d0a2766e3b4713371bb554a0e7b9ce15d9a80bce334",
+          "expected_tags": [
+            "instant{attack:melee, attack:+12, reach:10ft, dmg:2d8+7(cortante), dmg:1d10(eletrico)}"
+          ],
+          "tags": [
+            "instant{attack:melee, attack:+12, reach:10ft, dmg:2d8+7(cortante), dmg:1d10(raio)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 595,
+      "slug": "modron-pentadrone",
+      "before_sha256": "c87c9b4d8511e463bc6c64082bd3309087c0b4cf4eaf84281a5661b834a3b9da",
+      "after_sha256": "d09fc6d96e26e5f0cd16937a5ddac375d3f2fed2a96aa499dedc063080ddbb8b",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Electrical Discharge",
+          "source_entries_sha256": "b0e68f5280eb130663b9d462a4f2d53aac9eb2da7ad2abd53948cb8dbf97cf12",
+          "expected_tags": [
+            "instant{attack:ranged, attack:+4, range:120ft, dmg:1d6+2(eletrico)}"
+          ],
+          "tags": [
+            "instant{attack:ranged, attack:+4, range:120ft, dmg:1d6+2(raio)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 94,
+      "slug": "ancient-blue-dragon",
+      "before_sha256": "5760ac20d0724ad437747b0be9fffa1c725095b2be20e22aec77682e8691e3d7",
+      "after_sha256": "f0dded8d8e554c467280adde00100962d7a2c71ce43ee2077c86be44bee76092",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "3668057abeb4c1369e84372ed45b858410c4a4bf982c7a22332c2a62cac4c9a8",
+          "expected_tags": [
+            "instant{attack:melee, attack:+16, reach:15ft, dmg:2d8+9(cortante), dmg:2d10(eletrico)}"
+          ],
+          "tags": [
+            "instant{attack:melee, attack:+16, reach:15ft, dmg:2d8+9(cortante), dmg:2d10(raio)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 67,
+      "slug": "adult-blue-dragon",
+      "before_sha256": "6b0ae75a0ca60cc0b2278e9b3666bbf3cdfff6f280f24c0a61a3ae0240a5709c",
+      "after_sha256": "b9182bc2d4e7bc2fb3fb89a208ee2c1f5557c9a14d29031c05597a5aef06ab95",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "4a5a280633b712cd63f38d0a2766e3b4713371bb554a0e7b9ce15d9a80bce334",
+          "expected_tags": [
+            "instant{attack:melee, attack:+12, reach:10ft, dmg:2d8+7(cortante), dmg:1d10(eletrico)}"
+          ],
+          "tags": [
+            "instant{attack:melee, attack:+12, reach:10ft, dmg:2d8+7(cortante), dmg:1d10(raio)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 96,
+      "slug": "ancient-bronze-dragon",
+      "before_sha256": "19337922b852e08963177c4ed2b717936384f8191a14fe0ef7b31befb31789a0",
+      "after_sha256": "f6f1a00a07bceebd51d77f26be57d9c6f7af436c36cacb55f3bde955e1383f33",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "457a280470ce16601a48bf38fb653cafda2bc2535f49edd73cb3c033d76f799c",
+          "expected_tags": [
+            "instant{attack:melee, attack:+16, reach:15ft, dmg:2d8+9(cortante), dmg:2d8(eletrico)}"
+          ],
+          "tags": [
+            "instant{attack:melee, attack:+16, reach:15ft, dmg:2d8+9(cortante), dmg:2d8(raio)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 83,
+      "slug": "air-elemental",
+      "before_sha256": "16bb15fdb853e6e721b5b1ea85f066d1c77e3486066c83873fc22d3710b26e40",
+      "after_sha256": "585c3bf684d819bdde993480b7344e9a3c492a9ed081a9743cbebf38bf1b28ca",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Thunderous Slam",
+          "source_entries_sha256": "16b3831e88faddb5d68cc1ce56784731089428642c0c681ae2f3ce6117f77801",
+          "expected_tags": [
+            "instant{attack:melee, attack:+8, reach:10ft, dmg:2d8+5(trovao)}"
+          ],
+          "tags": [
+            "instant{attack:melee, attack:+8, reach:10ft, dmg:2d8+5(trovejante)}"
+          ]
+        }
+      ]
+    }
+  ]
+}

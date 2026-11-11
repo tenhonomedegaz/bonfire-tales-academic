@@ -6,7 +6,7 @@ das etapas autorizadas e seu estado de publicacao estao em
 
 Data: 27/10/2026. Escopo: **somente levantamento/reconciliacao da etapa P0** do
 plano `docs/planos/20261026-perfil-cosmeticos-lojas.md:80`.
-Repositorio: `[local-path] Bonfas/BonfireSite-redesign-integration`.
+Repositorio: `C:/Users/helio/Desktop/Projetos Bonfas/BonfireSite-redesign-integration`.
 
 ## 1. Resultado e limites
 
@@ -190,7 +190,7 @@ informa molduras de rank ocupando o intervalo 33..46 em producao.
 ### 4.4 Demo sintetica antiga: discrepancia de fixture, nao de producao
 
 O Main identificou a fonte em
-`[local-path] Bonfas/AmandaBot/scratch/catalog_export_ui_check.py`.
+`C:/Users/helio/Desktop/Projetos Bonfas/AmandaBot/scratch/catalog_export_ui_check.py`.
 Segundo o relato historico E6, a versao antiga semeava somente dois itens Arcane
 e os 21 itens de rank e ainda injetava os oito drafts de luas/Vigilia com
 `ativo=True` e `origem=livre`. Ela NAO incluia os seeds basais completos.

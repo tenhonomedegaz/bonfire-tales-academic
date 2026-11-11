@@ -5,7 +5,7 @@
     {% if community.is_master %}<a class="mh-button" href="{% url 'master_table_create' %}">+ Preparar anúncio</a>{% endif %}
   </div>
   <p class="mh-intro">O anúncio no site não cria nem altera missões no Discord.</p>
-  {% if commercial_status %}<p role="status">Vitrine paga demonstrativa: {{ commercial_status.completed_tables }}/3 mesas concluídas nos últimos 30 dias, {{ commercial_status.open_tables }}/1 aberta registrada no bot. {% if commercial_status.activity_unavailable %}Consulta ao bot temporariamente indisponível.{% endif %} {% if commercial_status.admin_authorized %}Autorização comercial registrada.{% else %}Autorização comercial pendente.{% endif %} {% if commercial_status.eligible %}Você pode enviar uma proposta paga para revisão; nenhuma cobrança é realizada pelo anúncio.{% endif %}</p>{% endif %}
+  {% if commercial_status %}<p role="status">Vitrine paga demonstrativa: {{ commercial_status.completed_tables }}/3 mesas verificadas nos últimos 30 dias, {{ commercial_status.open_tables }}/1 aberta. {% if commercial_status.admin_authorized %}Autorização comercial registrada.{% else %}Autorização comercial pendente.{% endif %} {% if commercial_status.eligible %}Você pode enviar uma proposta paga para revisão; nenhuma cobrança é realizada pelo anúncio.{% endif %}</p>{% endif %}
   {% if request.GET.salvo %}<p class="mh-notice" role="status">Anúncio salvo. Confira o estado abaixo.</p>{% endif %}
   <div class="mh-own-list">
     {% for table in my_tables %}

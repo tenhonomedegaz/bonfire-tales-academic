@@ -156,12 +156,6 @@ def is_mestre(user):
         return True
     if not getattr(user, 'is_authenticated', False):
         return False
-    from .models import TbPerfilMestre
-    participation = TbPerfilMestre.objects.filter(user=user).first()
-    if participation and participation.status_mestre in ('suspenso', 'recusado'):
-        return False
-    if participation and participation.status_mestre == 'aprovado':
-        return True
     perfil = getattr(user, 'profile', None) or getattr(user, 'userprofile', None)
     if getattr(perfil, 'is_mestre', False):
         return True

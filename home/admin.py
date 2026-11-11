@@ -2677,8 +2677,8 @@ class TbPersonagemRevisaoAdmin(BonfireAdminMixin, admin.ModelAdmin):
 
 @admin.register(TbRecompensaMestre)
 class TbRecompensaMestreAdmin(admin.ModelAdmin):
-    list_display = ("nome", "tipo", "efeito", "preco_mm", "preco_vitalicio_aprovado_mm", "ativo", "ordem")
-    list_filter = ("tipo", "efeito", "ativo")
+    list_display = ("nome", "tipo", "preco_mm", "preco_vitalicio_aprovado_mm", "ativo", "ordem")
+    list_filter = ("tipo", "ativo")
     search_fields = ("nome", "slug")
     prepopulated_fields = {"slug": ("nome",)}
     ordering = ("ordem", "preco_mm")
@@ -3400,7 +3400,7 @@ class TbTalentoAdmin(BonfireAdminMixin, admin.ModelAdmin):
 class TbOpcaojogoAdmin(BonfireAdminMixin, admin.ModelAdmin):
     change_list_template = "admin/home/tbopcaojogo/change_list.html"
     list_display = ("nome", "tipo", "etiquetas_adicionais", "tags_preview", "pre_requisito", "slug", "short_description")
-    list_filter = ("tipo", "arquivado")
+    list_filter = ("tipo",)
     search_fields = ("nome", "slug", "tipo", "descricao", "pre_requisito", "etiquetas_adicionais")
     prepopulated_fields = {"slug": ("nome",)}
     ordering = ("tipo", "nome")
@@ -4216,12 +4216,12 @@ class _TbCosmeticoForm(forms.ModelForm):
         fields = '__all__'
 
     def clean_definicao_json(self):
-        from .cosmetics import sanitize_catalog_theme_definition
+        from .cosmetics import sanitize_definicao_tema
         raw = self.cleaned_data.get('definicao_json')
         tipo = (self.data.get('tipo') or getattr(self.instance, 'tipo', '')).strip()
         if tipo != 'tema':
             return {}
-        return sanitize_catalog_theme_definition(raw)
+        return sanitize_definicao_tema(raw)
 
 
 @admin.register(TbCosmetico)
@@ -5155,6 +5155,3 @@ class SocialCreditRedemptionAdmin(_ReadOnlySocialCreditAdmin):
 
 
 from . import master_commercial_admin  # noqa: E402,F401
-from . import profile_comments_admin  # noqa: E402,F401
-from . import email_identity_admin  # noqa: E402,F401
-from . import master_legacy_admin  # noqa: E402,F401

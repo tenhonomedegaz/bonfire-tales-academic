@@ -8,14 +8,12 @@ from zoneinfo import ZoneInfo
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
-from django.contrib import admin
-from django.core.exceptions import PermissionDenied
-from django.test import Client, RequestFactory, TestCase
+from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
 from .master_commercial import commercial_eligibility
-from .master_commercial_admin import CommercialAuthorizationForm
+from .master_commercial_admin import EvidenceForm, CommercialAuthorizationForm
 from .models import (TbAutorizacaoVitrine, TbAventuraMestre, TbMesaAnuncio,
                      TbPerfilMestre, TbTransacaoMestre, TbVerificacaoMesa)
 
@@ -157,36 +155,24 @@ class MasterTableFlowTests(TestCase):
         table.refresh_from_db()
         self.assertEqual(table.estado, 'rascunho')
 
-    @patch('home.master_commercial.completed_activity', return_value={
-        'completed_tables': 3, 'open_tables': 1, 'system_tables': 2,
-        'manual_tables': 1, 'activity_unavailable': False,
-    })
-    def test_completed_activity_enables_only_demonstrative_paid_listing(self, activity):
+    def test_verified_tables_enable_only_demonstrative_paid_listing(self):
         today = timezone.localdate()
         self.assertFalse(commercial_eligibility(self.master)['eligible'])
         self.assertFalse(CommercialAuthorizationForm(data={
             'user': self.master.pk, 'autorizada': True, 'observacao': ''}).is_valid())
         adventures = [TbAventuraMestre.objects.create(
-            mestre=self.master, nome=f'Mesa legada {n}', data=today-timedelta(days=n),
+            mestre=self.master, nome=f'Mesa verificada {n}', data=today-timedelta(days=n),
             jogadores=5, recompensa_mm=0) for n in range(3)]
+        self.assertFalse(EvidenceForm(data={
+            'aventura': adventures[0].pk, 'aberta': True, 'validada': True,
+            'observacao': ''}).is_valid())
         for n, adventure in enumerate(adventures):
             TbVerificacaoMesa.objects.create(aventura=adventure, aberta=n == 0,
                 validada=True, observacao='Realização conferida pela equipe', validado_por=self.staff)
-        with patch('home.master_commercial.completed_activity', return_value={
-            'completed_tables': 0, 'open_tables': 0, 'system_tables': 0,
-            'manual_tables': 0, 'activity_unavailable': False,
-        }):
-            TbAutorizacaoVitrine.objects.create(user=self.master, autorizada=True,
-                observacao='Vitrine piloto autorizada', avaliado_por=self.staff)
-            eligibility = commercial_eligibility(self.master)
-            self.assertEqual(eligibility['completed_tables'], 0)
-            self.assertEqual(eligibility['open_tables'], 0)
-            self.assertFalse(eligibility['eligible'])
-        TbAutorizacaoVitrine.objects.filter(user=self.master).update(autorizada=False)
         self.assertEqual(commercial_eligibility(self.master)['completed_tables'], 3)
-        activity.assert_called_with(self.master, today)
         self.assertFalse(commercial_eligibility(self.master)['eligible'])
-        TbAutorizacaoVitrine.objects.filter(user=self.master).update(autorizada=True)
+        TbAutorizacaoVitrine.objects.create(user=self.master, autorizada=True,
+            observacao='Vitrine piloto autorizada', avaliado_por=self.staff)
         self.assertTrue(commercial_eligibility(self.master)['eligible'])
 
         self.client.force_login(self.master)
@@ -251,11 +237,7 @@ class MasterTableFlowTests(TestCase):
         self.assertNotContains(page, 'Encerrar anúncio')
         self.assertEqual(self.client.get(reverse('master_table_detail', args=[table.pk])).status_code, 200)
 
-    @patch('home.master_commercial.completed_activity', return_value={
-        'completed_tables': 3, 'open_tables': 1, 'system_tables': 2,
-        'manual_tables': 1, 'activity_unavailable': False,
-    })
-    def test_staff_reviewer_authorizes_and_revokes_without_manual_verification(self, activity):
+    def test_staff_reviewer_can_verify_and_revoke_without_changing_rewards(self):
         reviewer = get_user_model().objects.create_user(
             'table_reviewer', password='test-pass', is_staff=True)
         reviewer.user_permissions.add(Permission.objects.get(codename='autorizar_mestres'))
@@ -263,62 +245,36 @@ class MasterTableFlowTests(TestCase):
         adventures = [TbAventuraMestre.objects.create(
             mestre=self.master, nome=f'Mesa {n}', data=day-timedelta(days=n),
             jogadores=4, recompensa_mm=0) for n in range(3)]
-        verification = TbVerificacaoMesa.objects.create(
-            aventura=adventures[0], aberta=True, validada=True,
-            observacao='Registro legado preservado', validado_por=self.staff)
-        verification_fields = ('pk', 'aventura_id', 'aberta', 'validada',
-                               'observacao', 'validado_por_id', 'validado_em')
-        old_verifications = list(TbVerificacaoMesa.objects.order_by('pk').values(*verification_fields))
-        old_adventures = list(TbAventuraMestre.objects.order_by('pk').values(
-            'pk', 'mestre_id', 'nome', 'data', 'jogadores', 'recompensa_mm'))
         self.client.force_login(reviewer)
         dashboard = self.client.get(reverse('master_dashboard'))
-        self.assertNotContains(dashboard, 'Verificar mesas realizadas')
-        self.assertNotContains(dashboard, 'data-master-moderation="verificacao"')
+        self.assertContains(dashboard, 'Verificar mesas realizadas')
         self.assertContains(dashboard, 'Autorizar vitrine demonstrativa')
-        for adventure in adventures:
-            for action in ('validar', 'invalidar'):
-                with self.subTest(adventure=adventure.pk, action=action):
-                    response = self.client.post(reverse('master_verify_table', args=[adventure.pk]), {
-                        'acao': action, 'aberta': 'sim',
-                        'observacao': 'Tentativa no fluxo encerrado', 'confirmar': 'sim',
-                    })
-                    self.assertEqual(response.status_code, 410)
-                    self.assertEqual(list(TbVerificacaoMesa.objects.order_by('pk').values(
-                        *verification_fields)), old_verifications)
-        legacy_admin = admin.site._registry[TbVerificacaoMesa]
-        request = RequestFactory().post('/')
-        request.user = reviewer
-        self.assertTrue(legacy_admin.has_view_permission(request, verification))
-        self.assertFalse(legacy_admin.has_add_permission(request))
-        self.assertFalse(legacy_admin.has_change_permission(request, verification))
-        self.assertFalse(legacy_admin.has_delete_permission(request, verification))
-        self.assertTrue({'aventura', 'aberta', 'validada', 'observacao',
-                         'validado_por', 'validado_em'}.issubset(
-            legacy_admin.get_readonly_fields(request)))
-        with self.assertRaises(PermissionDenied):
-            legacy_admin.save_model(request, verification, None, change=True)
+        for n, adventure in enumerate(adventures):
+            response = self.client.post(reverse('master_verify_table', args=[adventure.pk]), {
+                'acao': 'validar', 'aberta': 'sim' if n == 0 else '',
+                'observacao': 'Mesa concluída e divulgação conferida', 'confirmar': 'sim',
+            })
+            self.assertEqual(response.status_code, 302)
+        self.assertEqual(TbVerificacaoMesa.objects.filter(validada=True).count(), 3)
         self.assertFalse(commercial_eligibility(self.master)['eligible'])
         auth_url = reverse('master_authorize_listing', args=[self.master.pk])
         self.assertEqual(self.client.post(auth_url, {'acao': 'autorizar',
             'observacao': 'Piloto autorizado', 'confirmar': 'sim'}).status_code, 302)
         self.assertTrue(commercial_eligibility(self.master)['eligible'])
-        current_activity = activity.return_value
-        activity.return_value = dict(current_activity, completed_tables=0, open_tables=0,
-                                     system_tables=0, manual_tables=0)
         self.assertFalse(commercial_eligibility(
             self.master, today=day + timedelta(days=30))['eligible'])
-        activity.assert_called_with(self.master, day + timedelta(days=30))
-        activity.return_value = current_activity
+        self.assertEqual(self.client.post(reverse('master_verify_table', args=[adventures[0].pk]), {
+            'acao': 'invalidar', 'observacao': 'Evidência retirada', 'confirmar': 'sim',
+        }).status_code, 302)
+        self.assertFalse(commercial_eligibility(self.master)['eligible'])
+        self.assertEqual(self.client.post(reverse('master_verify_table', args=[adventures[0].pk]), {
+            'acao': 'validar', 'aberta': 'sim', 'observacao': 'Evidência reconferida',
+            'confirmar': 'sim',
+        }).status_code, 302)
         self.assertTrue(commercial_eligibility(self.master)['eligible'])
         self.assertEqual(self.client.post(auth_url, {'acao': 'revogar',
             'observacao': 'Piloto encerrado', 'confirmar': 'sim'}).status_code, 302)
         self.assertFalse(commercial_eligibility(self.master)['eligible'])
-        TbPerfilMestre.objects.create(user=reviewer, status_mestre='aprovado', modo='mestre')
-        self.assertEqual(self.client.post(reverse('master_authorize_listing', args=[reviewer.pk]), {
-            'acao': 'autorizar', 'observacao': 'Autoavaliação', 'confirmar': 'sim',
-        }).status_code, 403)
-        self.assertFalse(TbAutorizacaoVitrine.objects.filter(user=reviewer).exists())
         self.assertEqual(TbTransacaoMestre.objects.count(), 0)
         self.assertEqual(TbAventuraMestre.objects.count(), 3)
         self.client.force_login(self.master)
@@ -330,12 +286,4 @@ class MasterTableFlowTests(TestCase):
         csrf_client.force_login(reviewer)
         self.assertEqual(csrf_client.post(auth_url, {'acao': 'autorizar',
             'observacao': 'Tentativa sem CSRF', 'confirmar': 'sim'}).status_code, 403)
-        self.assertEqual(csrf_client.post(reverse('master_verify_table', args=[adventures[0].pk]), {
-            'acao': 'invalidar', 'observacao': 'Tentativa sem CSRF', 'confirmar': 'sim',
-        }).status_code, 403)
         self.assertFalse(commercial_eligibility(self.master)['eligible'])
-        self.assertEqual(list(TbVerificacaoMesa.objects.order_by('pk').values(
-            *verification_fields)), old_verifications)
-        self.assertEqual(list(TbAventuraMestre.objects.order_by('pk').values(
-            'pk', 'mestre_id', 'nome', 'data', 'jogadores', 'recompensa_mm')), old_adventures)
-        self.assertEqual(TbTransacaoMestre.objects.count(), 0)

@@ -1,9 +1,4 @@
 """One reviewed publication pointer per class, independent of class names."""
-import re
-from dataclasses import dataclass
-
-from django.conf import settings
-from django.core.exceptions import ObjectDoesNotExist
 from django.db import connection, transaction
 from django.utils import timezone
 
@@ -15,62 +10,15 @@ class ClassPublicationConflict(Exception):
     pass
 
 
-CATALOG_ERRORS = (ObjectDoesNotExist, ValueError, KeyError, TypeError,
-                  AttributeError, IndexError, OverflowError, RecursionError)
-_UNRESOLVED = object()
-
-
-@dataclass(frozen=True)
-class ClassCatalogSelection:
-    mode: str
-    ruleset: object = None
-    catalog: object = None
-
-
-def _validated_catalog(ruleset, classe, *, require_presentation=False):
-    catalog = VersionedClassCatalog(ruleset, classe.pk)
-    if (catalog.classe.slug != classe.slug or
-            require_presentation and catalog.presentation_source != 'catalog'):
-        raise ValueError('Invalid class identity or presentation contract.')
-    for rows in catalog.collections.values():
-        ids = [row.pk for row in rows]
-        if any(type(pk) is not int or pk < 1 for pk in ids) or len(set(ids)) != len(ids):
-            raise ValueError('Invalid source identities in class catalog.')
-    return catalog
-
-
-def resolve_class_catalog(classe, *, publication=_UNRESOLVED):
-    """Select pointer -> configured snapshot -> source, without changing pins.
-
-    A caller that already read the pointer may pass that result (including None).
-    Invalid selected snapshots raise; only an absent selection permits source.
-    Configured legacy snapshots need not declare the common presentation contract.
-    Compatibility aliases belong in settings, not class-specific reader branches.
-    """
-    if publication is _UNRESOLVED:
-        publication = published_catalog(classe)
-    if publication is not None:
-        return ClassCatalogSelection('published', *publication)
-    bindings = getattr(settings, 'CLASS_CATALOG_RULESETS', {})
-    if not isinstance(bindings, dict):
-        raise ValueError('Invalid configured catalog mapping.')
-    if classe.slug not in bindings:
-        return ClassCatalogSelection('source')
-    checksum = bindings[classe.slug]
-    if not isinstance(checksum, str) or not re.fullmatch(r'[a-f0-9]{64}', checksum):
-        raise ValueError('Invalid configured catalog checksum.')
-    ruleset = TbRuleset.objects.get(checksum=checksum)
-    catalog = _validated_catalog(ruleset, classe)
-    return ClassCatalogSelection('configured', ruleset, catalog)
-
-
 def published_catalog(classe):
     """Resolve the class's current immutable catalog, or None when unpublished."""
     binding = TbClassPublication.objects.select_related('ruleset').filter(
         id_classe_id=classe.pk).first()
     if binding is None:
         return None
-    catalog = _validated_catalog(binding.ruleset, classe, require_presentation=True)
+    catalog = VersionedClassCatalog(binding.ruleset, classe.pk)
+    if catalog.classe.slug != classe.slug or catalog.presentation_source != 'catalog':
+        raise ValueError('Invalid published class identity or presentation contract.')
     return binding.ruleset, catalog
 
 
@@ -80,7 +28,9 @@ def publication_preview(class_id, target_checksum, expected_current):
 
     classe = TbClasse.objects.get(pk=class_id)
     target = TbRuleset.objects.get(checksum=target_checksum)
-    catalog = _validated_catalog(target, classe, require_presentation=True)
+    catalog = VersionedClassCatalog(target, class_id)
+    if catalog.classe.slug != classe.slug or catalog.presentation_source != 'catalog':
+        raise ValueError('Target catalog is not ready for common publication.')
     current = TbClassPublication.objects.filter(id_classe_id=class_id).select_related('ruleset').first()
     current_checksum = current.ruleset.checksum if current else 'unpublished'
     if expected_current != current_checksum:

@@ -19,7 +19,7 @@
 {% block content %}
 {% if master_demo %}<p class="master-area mh-notice" role="status">Demonstração visual: este perfil e suas missões são fictícios. Nenhuma autorização real é concedida.</p>{% endif %}
 {% if appearance.background_url|safe_profile_image %}<div class="profile-bg-media" id="profile-bg-media" style="background-image:url('{{ appearance.background_url|safe_profile_image }}');"></div>{% else %}<div class="profile-bg-media" id="profile-bg-media" style="display:none"></div>{% endif %}
-<div class="profile-page {{ appearance.theme_class }}{% if appearance.background_url|safe_profile_image %} profile-has-bg{% endif %}" id="profile-root" data-theme-category="{{ appearance.theme_category|default:'classico' }}" data-theme-motif="{{ appearance.theme_motif|default:'none' }}"{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %}>
+<div class="profile-page {{ appearance.theme_class }} {{ appearance.effect_class }}{% if appearance.background_url|safe_profile_image %} profile-has-bg{% endif %}" id="profile-root" data-theme-motif="{{ appearance.theme_motif|default:'none' }}"{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %}>
 
     <!-- Toasts -->
     {% for msg in success_messages %}
@@ -36,11 +36,18 @@
     {% endfor %}
 
     <!-- Header do Perfil -->
+    {% cosmetic_package 'tema' appearance.theme_key user as theme_package %}
+    {% cosmetic_package 'moldura' appearance.frame_key user as frame_package %}
+    {% cosmetic_package 'efeito' appearance.effect_key user as effect_package %}
     <div class="profile-header profile-hero{% if profile.banner_url|safe_profile_image %} cosmetic-has-banner{% endif %}">
         {% if profile.banner_url|safe_profile_image %}
         <div class="profile-banner-media" style="background-image:url('{{ profile.banner_url|safe_profile_image }}');"></div>
         {% endif %}
-        <div class="profile-avatar-wrapper profile-editor-avatar" id="profile-avatar-main">
+        {% include 'home/partials/_cosmetic_preview.html' with layers=theme_package.banner slot='banner' %}
+        {% include 'home/partials/_cosmetic_preview.html' with layers=effect_package.banner slot='banner' %}
+        {% include 'home/partials/_cosmetic_preview.html' with layers=theme_package.ornament slot='ornament' %}
+        {% include 'home/partials/_cosmetic_preview.html' with layers=effect_package.ornament slot='ornament' %}
+        <div class="profile-avatar-wrapper {{ appearance.frame_class }}{% if frame_package.avatar or effect_package.avatar %} is-packaged{% endif %}" id="profile-avatar-main">
             {% if profile.avatar_url|safe_profile_image %}
             <img src="{{ profile.avatar_url|safe_profile_image }}" alt="Avatar de {{ user.username }}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
             <div class="profile-avatar-fallback" style="display:none;">
@@ -51,6 +58,8 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             </div>
         {% endif %}
+        {% include 'home/partials/_cosmetic_preview.html' with layers=frame_package.avatar slot='avatar' %}
+        {% include 'home/partials/_cosmetic_preview.html' with layers=effect_package.avatar slot='avatar' %}
         </div>
         <div class="profile-hero-copy">
         <p class="profile-kicker">Sua presença em Cinéria</p>
@@ -117,6 +126,7 @@
         <section class="profile-editor-group" id="perfil-aparencia">
         <h2 class="profile-section-title">Aparência do perfil</h2>
         <p><a class="cw-atelier-link" href="{% url 'cosmetic_discovery' %}" target="_blank" rel="noopener">Explorar cosméticos ↗</a></p>
+        <p class="profile-group-intro">Escolha as imagens, cores e detalhes que contam a sua história. A prévia acompanha cada ajuste.</p>
         <div class="profile-field">
             <label class="profile-label" for="id_avatar_url">Foto de Perfil (URL da imagem)</label>
             <input class="profile-input" type="url" id="id_avatar_url" name="avatar_url" value="{{ profile.avatar_url|default:'' }}" placeholder="https://i.imgur.com/sua-foto.png" autocomplete="off">
@@ -167,17 +177,24 @@
 
 
 
-        <div class="profile-cosmetic-launchers">
-            <div class="profile-field">
-                {% cosmetic_catalog appearance_theme_options 'tema' 'id_profile_theme' 'profile_theme' appearance.theme_key 'perfil' 'Tema' 'profile-input' %}
-                {% if locked_theme_preference %}<label class="profile-inline-check"><input type="checkbox" name="clear_locked_profile_theme"> Esquecer tema Colab guardado</label>{% endif %}
+        <div class="profile-field">
+            <span class="profile-label">Tema</span>
+            <div class="tema-swatch-grid" id="id_profile_theme_group" role="radiogroup" aria-label="Tema do perfil">
+                {% for item in appearance_theme_options %}
+                {% include 'home/includes/tema_swatch.html' with key=item.key item=item input_name='profile_theme' input_id='id_profile_theme_'|add:item.key selected_value=appearance.theme_key disabled=item.locked custom=appearance.custom %}
+                {% endfor %}
             </div>
+            {% if locked_theme_preference %}<label class="profile-inline-check"><input type="checkbox" name="clear_locked_profile_theme"> Esquecer tema Colab guardado</label>{% endif %}
+            <a class="cw-atelier-link" href="{% url 'theme_studio' %}" target="_blank" rel="noopener">Experimentar identidades no ateliê ↗</a><p class="profile-field-help">Abre em outra aba sem perder suas alterações. A prévia não compra nem salva o tema.</p>
+        </div>
+
+        <div class="profile-appearance-grid">
             <div class="profile-field">
-                {% cosmetic_catalog appearance_frame_options 'moldura' 'id_avatar_frame' 'avatar_frame' appearance.frame_key 'perfil' 'Moldura' 'profile-input' %}
+                {% cosmetic_catalog appearance_frame_options 'moldura' 'id_avatar_frame' 'avatar_frame' appearance.frame_key 'perfil' 'Borda do Avatar' 'profile-input' %}
                 {% if locked_frame_preference %}<label class="profile-inline-check"><input type="checkbox" name="clear_locked_avatar_frame"> Esquecer moldura Colab guardada</label>{% endif %}
             </div>
             <div class="profile-field">
-                {% cosmetic_catalog appearance_effect_options 'efeito' 'id_profile_effect' 'profile_effect' appearance.effect_key 'perfil' 'Efeito' 'profile-input' %}
+                {% cosmetic_catalog appearance_effect_options 'efeito' 'id_profile_effect' 'profile_effect' appearance.effect_key 'perfil' 'Efeito do Perfil' 'profile-input' %}
                 {% if locked_effect_preference %}<label class="profile-inline-check"><input type="checkbox" name="clear_locked_profile_effect"> Esquecer efeito Colab guardado</label>{% endif %}
             </div>
         </div>
@@ -355,6 +372,21 @@
 
         </div>{# /.perfil-editor-main #}
 
+        {# PRÉVIA VIVA: o perfil público inteiro, pelo MESMO partial que a página real. #}
+        <aside class="perfil-preview-pane" id="perfil-preview-pane" aria-label="Prévia do seu perfil público">
+            <div class="perfil-preview-head">
+                <button type="button" class="perfil-preview-toggle" id="perfil-preview-toggle" aria-expanded="true" aria-controls="perfil-preview-stage">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <span class="perfil-preview-title">Prévia ao vivo</span>
+                    <span class="perfil-preview-chevron" aria-hidden="true"></span>
+                </button>
+                <span class="perfil-preview-status" id="perfil-preview-status" role="status" aria-live="polite"></span>
+            </div>
+            <p class="perfil-preview-hint">Este é o seu perfil público de verdade — tema, partículas, moldura, título e insígnias. Reage a cada ajuste; nada é gravado até você clicar em <strong>Salvar Perfil</strong>.</p>
+            <div class="perfil-preview-stage" id="perfil-preview-stage">
+                {% include 'home/partials/_perfil_publico_hero.html' with viewed_user=user profile=profile appearance=preview_appearance badges=preview_badges titulo=preview_titulo conquistas=preview_conquistas personagens=preview_personagens mestre_ouro_direito=mestre_ouro_direito preview_mode=True %}
+            </div>
+        </aside>
 
         </div>{# /.perfil-editor-layout #}
     </form>
@@ -607,13 +639,216 @@ document.addEventListener('DOMContentLoaded', () => {
         if (file) setBg(URL.createObjectURL(file));
     });
 
-    const themeSelect = document.getElementById('id_profile_theme');
+    // =================================================================
+    // PRÉVIA VIVA DO PERFIL INTEIRO
+    // O servidor renderiza o MESMO partial do perfil público a cada ajuste
+    // (POST /perfil/previa/, nada persistido) e devolve o HTML pronto. Aqui só
+    // trocamos o nó e sobrepomos os arquivos escolhidos localmente — que ainda
+    // NÃO existem no servidor (URL.createObjectURL).
+    // =================================================================
+    const form = document.getElementById('perfil-form');
+    const stage = document.getElementById('perfil-preview-stage');
+    const statusEl = document.getElementById('perfil-preview-status');
+    const PREVIEW_URL = '{% url "perfil_preview" %}';
+
+    // Painel de cores só aparece com o tema Personalizado (comportamento antigo).
     const customBox = document.getElementById('profile-custom-controls');
-    const syncCustomControls = () => {
-        if (customBox) customBox.style.display = themeSelect && themeSelect.value === 'custom' ? '' : 'none';
+    const sincronizaCustomBox = () => {
+        if (!customBox) return;
+        const marcado = document.querySelector('input[name="profile_theme"]:checked');
+        customBox.style.display = (marcado && marcado.value === 'custom') ? '' : 'none';
     };
-    if (themeSelect) themeSelect.addEventListener('change', syncCustomControls);
-    syncCustomControls();
+
+    if (form && stage) {
+        // Arquivo escolhido no <input type=file> → blob local por "slot".
+        const blobs = { avatar: '', banner: '', background: '' };
+        const SLOT_DE_ARQUIVO = { avatar_file: 'avatar', banner_file: 'banner', background_file: 'background' };
+
+        const trocaBlob = (slot, file) => {
+            if (blobs[slot]) URL.revokeObjectURL(blobs[slot]);
+            blobs[slot] = file ? URL.createObjectURL(file) : '';
+        };
+
+        // Sobrepõe os blobs locais por cima do HTML que veio do servidor.
+        const aplicaArquivosLocais = () => {
+            const root = stage.querySelector('.public-profile-page');
+            if (!root) return;
+            if (blobs.avatar) {
+                const box = root.querySelector('.public-profile-avatar');
+                if (box) {
+                    let img = box.querySelector(':scope > img');
+                    if (!img) {
+                        const initials = box.querySelector(':scope > span');
+                        if (initials) initials.remove();
+                        img = document.createElement('img');
+                        img.alt = '';
+                        box.insertBefore(img, box.firstChild);
+                    }
+                    img.src = blobs.avatar;
+                }
+            }
+            if (blobs.banner) {
+                const banner = root.querySelector('.public-profile-banner');
+                if (banner) {
+                    let media = banner.querySelector('.public-profile-banner-media');
+                    if (!media) { media = document.createElement('div'); media.className = 'public-profile-banner-media'; banner.appendChild(media); }
+                    media.style.display = '';
+                    media.style.backgroundImage = `url("${blobs.banner}")`;
+                }
+            }
+            if (blobs.background) {
+                const bg = root.querySelector('.perfil-preview-bg');
+                if (bg) { bg.style.display = ''; bg.style.backgroundImage = `url("${blobs.background}")`; }
+                root.classList.add('profile-has-bg');
+            }
+        };
+
+        // <link> do CSS avançado do tema (TbCosmetico.css_file), quando houver.
+        const aplicaTemaCss = (href) => {
+            let link = document.getElementById('perfil-preview-theme-css');
+            if (href) {
+                if (!link) {
+                    link = document.createElement('link');
+                    link.rel = 'stylesheet';
+                    link.id = 'perfil-preview-theme-css';
+                    document.head.appendChild(link);
+                }
+                if (link.getAttribute('href') !== href) link.setAttribute('href', href);
+            } else if (link) {
+                link.remove();
+            }
+        };
+
+        const RECUSA_LABEL = {
+            profile_theme: 'tema', avatar_frame: 'moldura', profile_effect: 'efeito',
+            titulo_equipado: 'título', badges_destaque: 'insígnias',
+        };
+        const mostraRecusa = (recusados) => {
+            if (!statusEl) return;
+            if (recusados && recusados.length) {
+                statusEl.textContent = 'Bloqueado: ' + recusados.map(r => RECUSA_LABEL[r] || r).join(', ');
+                statusEl.classList.add('is-recusa');
+            } else {
+                statusEl.textContent = '';
+                statusEl.classList.remove('is-recusa');
+            }
+        };
+
+        let timer = null;
+        let seq = 0;
+        const atualizaPrevia = () => {
+            const meuSeq = ++seq;
+            const dados = new FormData();
+            // Só texto/seleção. O binário do arquivo NUNCA vai no preview — o
+            // servidor não salva nada e a imagem local é sobreposta aqui.
+            form.querySelectorAll('input, select, textarea').forEach(el => {
+                if (!el.name || el.type === 'file' || el.disabled) return;
+                if ((el.type === 'checkbox' || el.type === 'radio') && !el.checked) return;
+                dados.append(el.name, el.value);
+            });
+            stage.classList.add('is-carregando');
+            fetch(PREVIEW_URL, {
+                method: 'POST', body: dados, credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            })
+                .then(r => (r.ok ? r.json() : Promise.reject(r.status)))
+                .then(json => {
+                    if (meuSeq !== seq || !json || !json.html) return;  // resposta velha
+                    const atual = stage.querySelector('.public-profile-page');
+                    // outerHTML: o nó inteiro é substituído, então as partículas
+                    // (CSS por data-fx-*) reiniciam sozinhas no nó novo.
+                    if (atual) { atual.outerHTML = json.html; } else { stage.innerHTML = json.html; }
+                    aplicaTemaCss(json.theme_css_href);
+                    aplicaArquivosLocais();
+                    mostraRecusa(json.recusados);
+                    requestAnimationFrame(() => {
+                        if (meuSeq !== seq || !window.TemaSwatch) return;
+                        window.TemaSwatch.syncAuthorizedPreview(
+                            stage.querySelector('.public-profile-page'),
+                            document.getElementById('profile-root'));
+                    });
+                })
+                .catch(() => { if (statusEl) statusEl.textContent = 'Prévia indisponível'; })
+                .finally(() => { if (meuSeq === seq) stage.classList.remove('is-carregando'); });
+        };
+
+        const agenda = () => { clearTimeout(timer); timer = setTimeout(atualizaPrevia, 250); };
+        // Sem espera: escolher um tema é uma decisão inteira, não digitação.
+        const agora = () => { clearTimeout(timer); atualizaPrevia(); };
+
+        // PINTURA IMEDIATA (0 ms): antes mesmo do servidor responder, o palco já
+        // recebe as vars do cartão clicado (data-* de tema_swatch_card.html). O
+        // fetch que vem em seguida traz o HTML definitivo — este passo só mata a
+        // latência entre o clique e a cor mudar.
+        const CORES_CUSTOM = {
+            accent: document.getElementById('id_custom_accent'),
+            accent2: document.getElementById('id_custom_accent2'),
+            surface: document.getElementById('id_custom_surface'),
+            deep: document.getElementById('id_custom_deep'),
+            gradiente: document.getElementById('id_custom_gradiente'),
+        };
+        const grades = document.getElementById('id_profile_theme_group');
+        const pintaTemaNoPalco = () => {
+            if (!window.TemaSwatch || !grades) return;
+            const tema = window.TemaSwatch.cartaoMarcado(grades, 'profile_theme');
+            const alvo = stage.querySelector('.public-profile-page');
+            if (tema && alvo) {
+                const escolhido = window.TemaSwatch.comCoresDoFormulario(tema, CORES_CUSTOM);
+                window.TemaSwatch.aplica(alvo, escolhido);
+                window.TemaSwatch.aplica(document.getElementById('profile-root'), escolhido);
+            }
+        };
+
+        form.addEventListener('input', (ev) => {
+            const el = ev.target;
+            // Cores do tema Personalizado também pintam na hora (e seguem no debounce).
+            if (el && el.name && el.name.indexOf('custom_') === 0) pintaTemaNoPalco();
+            agenda();
+        });
+        form.addEventListener('change', (ev) => {
+            const el = ev.target;
+            if (el && el.type === 'file') {
+                const slot = SLOT_DE_ARQUIVO[el.name];
+                if (slot) { trocaBlob(slot, el.files && el.files[0]); aplicaArquivosLocais(); }
+            }
+            // "Remover X" derruba também a sobreposição local do arquivo.
+            if (el && el.name && el.name.indexOf('clear_') === 0 && el.checked) {
+                const slot = el.name.slice('clear_'.length);
+                if (slot in blobs) {
+                    trocaBlob(slot, null);
+                    const fileInput = form.querySelector('[name="' + slot + '_file"]');
+                    if (fileInput) fileInput.value = '';
+                }
+            }
+            if (el && el.name === 'profile_theme') {
+                sincronizaCustomBox();
+                pintaTemaNoPalco();
+                agora();   // selecionar tema = refresh instantâneo do pane
+                return;
+            }
+            if (el && el.name && el.name.indexOf('custom_') === 0) pintaTemaNoPalco();
+            agenda();
+        });
+    }
+
+    sincronizaCustomBox();
+
+    // Mobile: a prévia vira bloco COLAPSÁVEL acima do formulário (nunca escondida).
+    const pane = document.getElementById('perfil-preview-pane');
+    const toggle = document.getElementById('perfil-preview-toggle');
+    if (pane && toggle) {
+        const larga = () => window.matchMedia('(min-width: 900px)').matches;
+        toggle.addEventListener('click', () => {
+            const fechado = pane.classList.toggle('is-collapsed');
+            toggle.setAttribute('aria-expanded', fechado ? 'false' : 'true');
+        });
+        window.addEventListener('resize', () => {
+            if (larga() && pane.classList.contains('is-collapsed')) {
+                pane.classList.remove('is-collapsed');
+                toggle.setAttribute('aria-expanded', 'true');
+            }
+        });
+    }
 });
 </script>
 {% endblock %}

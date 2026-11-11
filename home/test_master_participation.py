@@ -2,36 +2,31 @@
 
 from django.contrib.auth import get_user_model
 from django.test import Client
-from django.test import TestCase, override_settings
+from django.test import TestCase
 from django.urls import reverse
 
-from .models import TbPerfilMestre, TbImportacaoMestre, TbMestreLegado
-from .master_application_testdata import application_data
+from .models import TbPerfilMestre
 
 
-@override_settings(MASTER_APPLICATIONS_OPEN=True)
 class MasterParticipationFlowTests(TestCase):
     def setUp(self):
         user_model = get_user_model()
         self.player = user_model.objects.create_user('player_participation', password='test-pass')
         self.other = user_model.objects.create_user('other_participation', password='test-pass')
         self.staff = user_model.objects.create_superuser('staff_participation', 'staff@example.test', 'test-pass')
-        archive = TbImportacaoMestre.objects.create(fonte='participation-tests', checksum='a' * 64, dados={})
-        TbMestreLegado.objects.create(importacao=archive, numero=1, nome='Mestre Player',
-                                     rotulo_original='Fogueira 01', user=self.player)
 
     def test_request_review_edit_and_directory_are_distinct_from_discord(self):
         self.client.force_login(self.player)
-        response = self.client.post(reverse('master_request'), application_data())
+        response = self.client.post(reverse('master_request'))
         self.assertEqual(response.status_code, 302)
         profile = TbPerfilMestre.objects.get(user=self.player)
         self.assertEqual(profile.status_mestre, 'pendente')
         self.assertEqual(profile.versao, 1)
-        self.client.post(reverse('master_request'), application_data())
+        self.client.post(reverse('master_request'))
         profile.refresh_from_db()
         self.assertEqual(profile.versao, 1)
         self.assertEqual(self.client.get(reverse('participation_edit')).status_code, 403)
-        self.assertFalse(self.client.get(reverse('masters_directory')).context['masters'][0]['community'].get('is_master', False))
+        self.assertEqual(self.client.get(reverse('masters_directory')).context['masters'], [])
 
         self.client.force_login(self.other)
         self.assertEqual(self.client.post(reverse('master_authorize', args=[self.player.pk]), {
@@ -59,7 +54,7 @@ class MasterParticipationFlowTests(TestCase):
         self.assertEqual(self.client.post(reverse('master_authorize', args=[self.player.pk]), {
             'acao': 'suspender', 'confirmar': 'sim', 'versao': str(profile.versao),
         }).status_code, 302)
-        self.assertFalse(self.client.get(reverse('masters_directory')).context['masters'][0]['community'].get('is_master', False))
+        self.assertEqual(self.client.get(reverse('masters_directory')).context['masters'], [])
 
     def test_sensitive_posts_keep_csrf_protection(self):
         client = Client(enforce_csrf_checks=True)

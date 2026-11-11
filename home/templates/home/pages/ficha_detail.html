@@ -46,7 +46,7 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
 {% if appearance.background_url %}<div class="ficha-bg-media" style="background-image:url('{{ appearance.background_url }}');"></div>{% endif %}
 {% comment %}`ficha-has-bg` só sai COM imagem de fundo: é ela que liga o desfoque
 (backdrop-filter) da folha central em ficha.css. Sem imagem, folha sólida como sempre.{% endcomment %}
-<section class="ficha animate-fade-in space-y-3 {{ appearance.theme_class }} {{ appearance.effect_class }}{% if appearance.background_url %} ficha-has-bg{% endif %}" data-theme-category="{{ appearance.theme_category|default:'classico' }}" data-theme-motif="{{ appearance.theme_motif|default:'none' }}"{% if appearance.fx_particula %} data-fx-particula="{{ appearance.fx_particula }}" data-fx-vel="{{ appearance.fx_vel }}"{% endif %}{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %}>
+<section class="ficha animate-fade-in space-y-3 {{ appearance.theme_class }} {{ appearance.effect_class }}{% if appearance.background_url %} ficha-has-bg{% endif %}" data-theme-motif="{{ appearance.theme_motif|default:'none' }}"{% if appearance.fx_particula %} data-fx-particula="{{ appearance.fx_particula }}" data-fx-vel="{{ appearance.fx_vel }}"{% endif %}{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %}>
 
   {# ===================== CABEÇALHO (banner estilo planilha) ===================== #}
   {% include 'home/partials/_ficha_banner.html' %}
@@ -727,7 +727,7 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
 
       <div class="ficha-panel">
         <div class="ficha-section-title">História</div>
-        {% include 'home/partials/character_story_status.html' %}
+        <label class="info-field full"><textarea name="historia" rows="8" placeholder="A história e lore do personagem...">{{ p.historia|default:'' }}</textarea></label>
       </div>
 
       <div class="ficha-panel">
@@ -779,7 +779,6 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
 
     <div class="ficha-panel">
       <div class="ficha-section-title">História</div>
-      {% include 'home/partials/character_story_status.html' %}
       {% if p.historia %}<div class="info-lore" data-lore>{{ p.historia }}</div>{% else %}<p class="info-empty">Sem história registrada.</p>{% endif %}
     </div>
 

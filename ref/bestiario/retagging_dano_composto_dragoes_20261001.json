@@ -1,0 +1,326 @@
+{
+  "version": 1,
+  "source_sha256": "41e9c80b84fc08ed9cffa6fa1def5d0356f6fca4dc34ada46f21b8095f99b326",
+  "rows": [
+    {
+      "pk": 66,
+      "slug": "adult-black-dragon",
+      "before_sha256": "a514c48b7f9f70a590159ee4f87a9be0cb6204a6c8bdbba96b67f2735c131891",
+      "after_sha256": "7e432c96ec5c6f556d16b73dd428c7d70713801fef53a54a4e8b909c324acd2b",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "7d6c1d1514007e35366d18d63234ad581ad43af5087a70fcd4c2db459b75221e",
+          "tags": [
+            "instant{attack:melee, attack:+11, reach:10ft, dmg:2d6+6(cortante), dmg:1d8(acido)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 67,
+      "slug": "adult-blue-dragon",
+      "before_sha256": "b3595d72730b0031656fbebf9fa31649771188f7e97dc8d4a68efa4aa9c1f9b2",
+      "after_sha256": "63321c79f2f957bb0fdb86dfa94efe20d9bb4fcd436e0e40c1eb686bf32c278f",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "4a5a280633b712cd63f38d0a2766e3b4713371bb554a0e7b9ce15d9a80bce334",
+          "tags": [
+            "instant{attack:melee, attack:+12, reach:10ft, dmg:2d8+7(cortante), dmg:1d10(eletrico)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 68,
+      "slug": "adult-brass-dragon",
+      "before_sha256": "643713e3b60c545a94181ad6558b566c12ce3a4c77d45bfa7f21b6b6fe5aa4a9",
+      "after_sha256": "aec51409a682a5addd6f9be7ab06424c67bf89524a9c49f85a563e4e757fd3fb",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "71afd58653680667b7ca710935bc3dd836751e07824f5d82f6d1c8add02ad3d4",
+          "tags": [
+            "instant{attack:melee, attack:+11, reach:10ft, dmg:2d10+6(cortante), dmg:1d8(fogo)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 69,
+      "slug": "adult-bronze-dragon",
+      "before_sha256": "066ec533723f867e865eaa41f0c778d0d58c0cf56d975096f5195f2f132089ed",
+      "after_sha256": "b1e73d73ce890134ca6feb90c651f948a1758c7135b48639e207bfc51b431dd6",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "4a5a280633b712cd63f38d0a2766e3b4713371bb554a0e7b9ce15d9a80bce334",
+          "tags": [
+            "instant{attack:melee, attack:+12, reach:10ft, dmg:2d8+7(cortante), dmg:1d10(eletrico)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 70,
+      "slug": "adult-copper-dragon",
+      "before_sha256": "1b0f58b780219ec68f11d1dfa3af17234c1ab81cbfbb51551b6e67b117416f4f",
+      "after_sha256": "2ea8d09694b66d4de95d6b0581dcf0c4fd83e258241b03be332a986135fc9dea",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "59f431aa2219c781351b07bf362f39a2fbdc54318fc4aad90102b1049a148120",
+          "tags": [
+            "instant{attack:melee, attack:+11, reach:10ft, dmg:2d10+6(cortante), dmg:1d8(acido)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 73,
+      "slug": "adult-gold-dragon",
+      "before_sha256": "425ec6bc62a04763dbd995199048cdf7a52ab391c7acb0b751909f63df2262dc",
+      "after_sha256": "661ba59c9168d73601f50f91cb232e2dcdf3217e304be3dc4e33a3a5135bed11",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "7ce25898e56335cff44fff8e106db38b9af064cd92ae0f5a0997b05bd720faff",
+          "tags": [
+            "instant{attack:melee, attack:+14, reach:10ft, dmg:2d8+8(cortante), dmg:1d8(fogo)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 74,
+      "slug": "adult-green-dragon",
+      "before_sha256": "dddd60d6bd15baadc4d7d6649bce34a211f0d2cd0943c48356f0895aa7d51594",
+      "after_sha256": "009cacc483f7f585f781ab63d837ad5ca2bd3ec913ecaff371835a4c341d7490",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "4061ceb36c14fe196f2acf03303e9cdae4d4bdd4560b7426902bb388d0893833",
+          "tags": [
+            "instant{attack:melee, attack:+11, reach:10ft, dmg:2d8+6(cortante), dmg:2d6(veneno)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 78,
+      "slug": "adult-red-dragon",
+      "before_sha256": "bf8c7122dbf4180fe7469f15ff1b1d75eee7828cdc2f234325344e0c5f5213be",
+      "after_sha256": "aae14e1f45b5fc369a3a0c2e244f32121f21eaad31fb85b8f4a0c68903b78dd2",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "e409596573250b6ce0181fd7a47bdb77b0d52270f7620e31f7806a158de9bbce",
+          "tags": [
+            "instant{attack:melee, attack:+14, reach:10ft, dmg:1d10+8(cortante), dmg:2d4(fogo)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 80,
+      "slug": "adult-silver-dragon",
+      "before_sha256": "b15f0ad4a20283e35d9dbb359e2a3f8d8b2fdeb1a55f9c86a790eb6dd3e93aea",
+      "after_sha256": "cfd87c3fc31b228951da99f653c0e34288bcc7a380b9906f163c2c733bf553a1",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "ae43e9b283c26baf34e174cf6000984ba23e4d98d513ba04f42d6d9532c7f342",
+          "tags": [
+            "instant{attack:melee, attack:+13, reach:10ft, dmg:2d8+8(cortante), dmg:1d8(frio)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 82,
+      "slug": "adult-white-dragon",
+      "before_sha256": "daf60518b9025ccfb76e531cda4ceb7b2f84c404c8ddbead29a53e187d2e8bc3",
+      "after_sha256": "39f295587fcde41d111e7ee56e9165f7cdd1b5eaccf5df6f8d7db6747a3fd97f",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "9f7897febdf569974d3f9e3f559af67750ab00158026c260fe14271d2b99f8c4",
+          "tags": [
+            "instant{attack:melee, attack:+11, reach:10ft, dmg:2d6+6(cortante), dmg:1d8(frio)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 93,
+      "slug": "ancient-black-dragon",
+      "before_sha256": "a16468e21b06fbfac2408247f306d7a49679d81ee2a506c8394663bd98f6b8fb",
+      "after_sha256": "590cc8016df89d735add782ef46195325c9731b562867e7e149fc1b481272960",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "94e70720dba7afbf6f416ece5b49f9136f7bc88c0fe2b91ff7c9eb67ec3b5aca",
+          "tags": [
+            "instant{attack:melee, attack:+15, reach:15ft, dmg:2d8+8(cortante), dmg:2d8(acido)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 94,
+      "slug": "ancient-blue-dragon",
+      "before_sha256": "ca06facfbbfada8f7c19dae140d7f2719e3709f04c3c32860791d88158ebc655",
+      "after_sha256": "48864b043839ab4cb5a9002859cd2efe316ae016206bff32dc0f8e84bc2395b8",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "3668057abeb4c1369e84372ed45b858410c4a4bf982c7a22332c2a62cac4c9a8",
+          "tags": [
+            "instant{attack:melee, attack:+16, reach:15ft, dmg:2d8+9(cortante), dmg:2d10(eletrico)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 95,
+      "slug": "ancient-brass-dragon",
+      "before_sha256": "c201597ba559c8412d015e5428bf1d7d7c7515724b9d7d2bd44593af50d515f8",
+      "after_sha256": "6ee3f06a0a1c28de6b1ec21450ea97bba8bfb893452facd391af59afdc6d4a9e",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "ff223511cfce38ea4b4aab87e507b167e19e41af072cb5f6e69da0e68ae02b56",
+          "tags": [
+            "instant{attack:melee, attack:+14, reach:15ft, dmg:2d10+8(cortante), dmg:2d6(fogo)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 96,
+      "slug": "ancient-bronze-dragon",
+      "before_sha256": "9c3c3c4edfe3754bbfe66c5a51e8de4cea115507631624cbac8bb000da9717ef",
+      "after_sha256": "ed7d8f17e83aefe9962aa493f7e24f48579b12ea7c647c16e7d44e7a439f327c",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "457a280470ce16601a48bf38fb653cafda2bc2535f49edd73cb3c033d76f799c",
+          "tags": [
+            "instant{attack:melee, attack:+16, reach:15ft, dmg:2d8+9(cortante), dmg:2d8(eletrico)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 97,
+      "slug": "ancient-copper-dragon",
+      "before_sha256": "70f7fefd944399df581cbf4915a43b2444055fdd0fc9da4d3fc24be25a96859a",
+      "after_sha256": "31dea0bd4b96d88107de009cbf2a821d916aa2b86c0347b4e912964920d60bac",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "f63af0f32be2f15eb70040090a35a60a35b1771f52e5a94c8c88b0c94bd55ed7",
+          "tags": [
+            "instant{attack:melee, attack:+15, reach:15ft, dmg:2d10+8(cortante), dmg:2d8(acido)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 101,
+      "slug": "ancient-gold-dragon",
+      "before_sha256": "0448fcbec32dfc4249fe147788553cc340552deb709a5c5165afcba183dd08bc",
+      "after_sha256": "65d6795a6d54fbb3f842d46be2a91ce3a9ecb85e24ff6d46f4ff4fee1095d8da",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "662276373ece86b4d22278ad7fa861de3d9a938ba4a5274a048f47575491cc0a",
+          "tags": [
+            "instant{attack:melee, attack:+17, reach:15ft, dmg:2d8+10(cortante), dmg:2d8(fogo)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 102,
+      "slug": "ancient-green-dragon",
+      "before_sha256": "c72f93e0ae55b510e2b609b443b26e5f90a5f8d4996f3cfb6d539da413288f6d",
+      "after_sha256": "9a816aac9ec1c3368d03a256f8e9e48fb71ccd2f24bafbd5782a8f9827753316",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "904611b59b79e051123b7f96021cca28263909bd5c81fda37c0b03c406a06d64",
+          "tags": [
+            "instant{attack:melee, attack:+15, reach:15ft, dmg:2d8+8(cortante), dmg:3d6(veneno)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 104,
+      "slug": "ancient-red-dragon",
+      "before_sha256": "1d25c6436c7b9432a61472d83d0e39537333eed247098b87eff71d5405b2a494",
+      "after_sha256": "a76a32b45c57c996295f07691178921431c3e72ee22179cfbdd51a439ccf6234",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "271981c0cd090410e2a5daf2cea05d0f4655a02338210f00fe6230750c11cd73",
+          "tags": [
+            "instant{attack:melee, attack:+17, reach:15ft, dmg:2d8+10(cortante), dmg:3d6(fogo)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 107,
+      "slug": "ancient-silver-dragon",
+      "before_sha256": "b6f8b1f966bb75a100c5984fd454b7e9a0cf6833a4af2e6b5b5a7ae39ec789aa",
+      "after_sha256": "3b5c21548dfb7eefded3de6584e6b3ef8870d3d2391716d5dd3d3b45e106ffbc",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "11fd0389d85d1cd525d4f8c6a685023eca417238f806e1468d3a14a174879977",
+          "tags": [
+            "instant{attack:melee, attack:+17, reach:15ft, dmg:2d8+10(cortante), dmg:2d8(frio)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 109,
+      "slug": "ancient-white-dragon",
+      "before_sha256": "1334d811856c2677dc2cdfa033beaaef0448ec1ed6f6ed39badc9229047382ff",
+      "after_sha256": "2d0bbb40e6f8175a873ab465410d766aabe2dc48d43a86577e5186a22456ae58",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "a1242abb5f287fb6900ebba12fb9964cdc1b5e2d52e3cb041dde5c49c13a7c03",
+          "tags": [
+            "instant{attack:melee, attack:+14, reach:15ft, dmg:2d8+8(cortante), dmg:2d6(frio)}"
+          ]
+        }
+      ]
+    }
+  ]
+}

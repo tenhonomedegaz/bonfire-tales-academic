@@ -48,10 +48,8 @@
     if (target.matches('.cosmetic-effect-sample')) return;
     const owner = target.closest(roots);
     let motif = owner?.dataset.themeMotif;
-    const paletteOnly = owner?.dataset.themeCategory === 'classico' || owner?.classList.contains('skin-illustrated');
-    if (paletteOnly) motif = 'none';
     // Legacy palettes receive the same compositions as their data-driven equivalents.
-    if ((!motif || motif === 'none') && !paletteOnly) {
+    if (!motif || motif === 'none') {
       const legacy = Object.keys(legacyMotifs).find(key => owner?.classList.contains(`theme-${key}`));
       motif = legacy ? legacyMotifs[legacy] : 'none';
     }

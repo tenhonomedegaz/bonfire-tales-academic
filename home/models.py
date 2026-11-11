@@ -24,8 +24,6 @@ import json
 import uuid
 
 from django.db import models
-from django.db.models.functions import Length
-from django.db.models.lookups import LessThanOrEqual
 from django.utils import timezone
 from django.db.models.signals import pre_save, post_save, post_delete
 from django.dispatch import receiver
@@ -161,7 +159,6 @@ class TbOpcaojogo(models.Model):
     pre_requisito = models.TextField(db_column='PreRequisito', blank=True, null=True)
     etiquetas_adicionais = models.CharField(db_column='EtiquetasAdicionais', max_length=255, blank=True, null=True)
     tags_json = models.JSONField(db_column='TagsJSON', blank=True, default=list, help_text='Tags estruturadas usadas pelo criador de personagem.')
-    arquivado = models.BooleanField(default=False, help_text='Oculta de novos catalogos e escolhas, preservando fichas e revisoes existentes.')
 
 
     class Meta:
@@ -1078,7 +1075,7 @@ class UserProfile(models.Model):
     profile_effect = models.CharField(db_column='ProfileEffect', max_length=40, blank=True, null=True, help_text='Efeito visual do cartao de perfil.')
     vlibras_enabled = models.BooleanField(db_column='VlibrasEnabled', default=False, help_text='Habilita o plugin VLibras no site.')
     email_verified = models.BooleanField(db_column='EmailVerified', default=False,
-                                         help_text='E-mail confirmado por link de verificação. Todo endereço não vazio é exclusivo de uma conta.')
+                                         help_text='E-mail confirmado por link de verificação. Só e-mail verificado "trava" o uso por outra conta e vale para a cobrança.')
     # Vínculo com o Discord (OAuth2). discord_user_id é o vínculo FORTE com o bot
     # (BotMember), substituindo o casamento frágil por e-mail.
     discord_user_id = models.CharField(db_column='DiscordUserId', max_length=32, blank=True, null=True, unique=True)
@@ -1133,14 +1130,6 @@ class UserProfile(models.Model):
         ))
         self.titulo_equipado = (self.titulo_equipado or '').strip()
         super().save(*args, **kwargs)
-
-
-class UserAccountMergeReceipt(models.Model):
-    keeper = models.ForeignKey('auth.User', on_delete=models.PROTECT, related_name='account_merge_receipts')
-    removed_user_id = models.PositiveIntegerField(unique=True)
-    removed_username = models.CharField(max_length=150)
-    email_verification_preserved = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
 
 
 class AsaasCheckoutOrder(models.Model):
@@ -1976,7 +1965,6 @@ class TbPersonagemAventura(models.Model):
                                      help_text='Nome da mesa/aventura lançada (obrigatório).')
     origem = models.CharField(max_length=32, default='mesa', choices=[
         ('mesa', 'Mesa jogada'), ('recompensa_comunidade', 'Recompensa comunitária'),
-        ('mercado_mestre', 'Resgate do Mercado de Mestre'),
     ], db_index=True)
     qtd_aventuras = models.IntegerField(db_column='QtdAventuras', default=0,
                                         help_text='Quantas aventuras ESTE lançamento adicionou.')
@@ -2105,10 +2093,6 @@ class TbRecompensaMestre(models.Model):
     preco_vitalicio_aprovado_mm = models.PositiveIntegerField(null=True, blank=True,
         help_text='Preço único aprovado pelo PO em MM; deve coincidir com PrecoMM.')
     tipo = models.CharField(db_column='Tipo', max_length=12, choices=TIPO_CHOICES, default='normal')
-    efeito = models.CharField(max_length=24, default='manual', choices=[
-        ('manual', 'Cumprimento manual'),
-        ('aventura_recompensa', 'Uma aventura e ouro de progressao por unidade'),
-    ], help_text='Contrato explicito; nome e descricao nunca determinam a entrega.')
     ativo = models.BooleanField(db_column='Ativo', default=True)
     ordem = models.IntegerField(db_column='Ordem', default=0)
 
@@ -2120,12 +2104,6 @@ class TbRecompensaMestre(models.Model):
 
     def __str__(self):
         return f'{self.nome} ({self.preco_mm} MM)'
-
-    def clean(self):
-        super().clean()
-        if self.efeito == 'aventura_recompensa' and self.tipo != 'normal':
-            from django.core.exceptions import ValidationError
-            raise ValidationError({'efeito': 'Entrega de aventura exige uma oferta de resgate normal.'})
 
 
 class TbPerfilMestre(models.Model):
@@ -2144,7 +2122,6 @@ class TbPerfilMestre(models.Model):
         ('aprovado', 'Mestre autorizado'), ('recusado', 'Solicitação não aprovada'),
         ('suspenso', 'Permissão suspensa')])
     solicitado_em = models.DateTimeField(null=True, blank=True)
-    candidatura_json = models.JSONField(default=dict, blank=True)
     avaliado_em = models.DateTimeField(null=True, blank=True)
     avaliador = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True,
                                   blank=True, related_name='mestres_autorizados')
@@ -2319,12 +2296,6 @@ class TbTransacaoMestre(models.Model):
     descricao = models.CharField(db_column='Descricao', max_length=255, blank=True, null=True)
     valor_mm = models.IntegerField(db_column='ValorMM', default=0)
     saldo_mm = models.IntegerField(db_column='SaldoMM', default=0)
-    operacao = models.CharField(max_length=32, unique=True, null=True, blank=True)
-    recompensa = models.ForeignKey(TbRecompensaMestre, models.PROTECT, null=True, blank=True)
-    personagem = models.ForeignKey('TbPersonagem', models.PROTECT, null=True, blank=True,
-                                  related_name='resgates_mestre')
-    quantidade = models.PositiveIntegerField(null=True, blank=True)
-    detalhes_json = models.JSONField(default=dict, blank=True)
     criado_em = models.DateTimeField(db_column='CriadoEm', auto_now_add=True)
 
     class Meta:
@@ -2335,97 +2306,6 @@ class TbTransacaoMestre(models.Model):
 
     def __str__(self):
         return f'{self.get_tipo_display()} {self.valor_mm} MM'
-
-
-class TbImportacaoMestre(models.Model):
-    """Immutable source archive; importing history never credits a wallet twice."""
-
-    fonte = models.CharField(max_length=160, unique=True)
-    checksum = models.CharField(max_length=64, unique=True)
-    dados = models.JSONField(default=dict)
-    criado_por = models.ForeignKey('auth.User', on_delete=models.PROTECT, null=True, blank=True)
-    criado_em = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        verbose_name = 'Importação do mercado de mestres'
-        verbose_name_plural = 'Importações do mercado de mestres'
-
-
-class TbMestreLegado(models.Model):
-    """Community identity, independent from a login or a single bot quest."""
-
-    importacao = models.ForeignKey(TbImportacaoMestre, on_delete=models.PROTECT, related_name='mestres')
-    numero = models.PositiveIntegerField()
-    nome = models.CharField(max_length=200)
-    rotulo_original = models.CharField(max_length=250)
-    saldo_mm = models.IntegerField(default=0)
-    moedas_evento = models.PositiveIntegerField(default=0)
-    mesas_declaradas = models.PositiveIntegerField(default=0)
-    user = models.ForeignKey('auth.User', on_delete=models.PROTECT, null=True, blank=True,
-                             related_name='identidades_mestre')
-    discord_id = models.CharField(max_length=32, blank=True, default='', db_index=True)
-    evidencia = models.JSONField(default=dict, blank=True)
-    vinculado_por = models.ForeignKey('auth.User', on_delete=models.PROTECT, null=True, blank=True,
-                                      related_name='vinculos_mestre_revisados')
-    vinculado_em = models.DateTimeField(null=True, blank=True)
-    carteira_importada_em = models.DateTimeField(null=True, blank=True)
-    conciliacao = models.CharField(max_length=200, blank=True, default='')
-
-    class Meta:
-        constraints = [models.UniqueConstraint(fields=['importacao', 'numero'], name='mestre_legado_fonte_numero')]
-        verbose_name = 'Identidade legada de mestre'
-        verbose_name_plural = 'Identidades legadas de mestres'
-        ordering = ['numero']
-
-    def __str__(self):
-        return f'Fogueira {self.numero:02d} - {self.nome}'
-
-
-class TbRegistroMestreLegado(models.Model):
-    mestre = models.ForeignKey(TbMestreLegado, on_delete=models.PROTECT, related_name='registros')
-    chave = models.CharField(max_length=160)
-    tipo = models.CharField(max_length=12, choices=[('adventure', 'Aventura'), ('purchase', 'Resgate')])
-    titulo = models.CharField(max_length=500)
-    data = models.DateField(null=True, blank=True)
-    valor_mm = models.IntegerField()
-    original = models.JSONField(default=dict)
-    bot_quest_id = models.CharField(max_length=100, blank=True, default='')
-    aventura = models.OneToOneField(TbAventuraMestre, on_delete=models.PROTECT, null=True, blank=True)
-    transacao = models.OneToOneField(TbTransacaoMestre, on_delete=models.PROTECT, null=True, blank=True)
-
-    class Meta:
-        constraints = [models.UniqueConstraint(fields=['mestre', 'chave'], name='registro_mestre_legado_unico')]
-        verbose_name = 'Registro legado de mestre'
-        verbose_name_plural = 'Registros legados de mestres'
-        ordering = ['data', 'pk']
-
-
-class TbRevisaoMissaoBot(models.Model):
-    """Staff decisions and exactly-once MM receipts, independent of the old XLSX."""
-
-    quest_id = models.CharField(max_length=100, unique=True)
-    guild_id = models.CharField(max_length=100)
-    master_discord_id = models.CharField(max_length=32, blank=True, default='', db_index=True)
-    master_name = models.CharField(max_length=150, blank=True, default='')
-    decision = models.CharField(max_length=16)
-    canonical_id = models.CharField(max_length=100, blank=True, default='')
-    adventures = models.PositiveIntegerField(null=True, blank=True)
-    master_mm = models.PositiveIntegerField(null=True, blank=True)
-    event_coins = models.PositiveIntegerField(default=0)
-    financial_mode = models.CharField(max_length=16, default='none')
-    legacy_master = models.ForeignKey(TbMestreLegado, on_delete=models.PROTECT, null=True, blank=True)
-    legacy_record = models.ForeignKey(TbRegistroMestreLegado, on_delete=models.PROTECT, null=True, blank=True)
-    credit_user = models.ForeignKey('auth.User', on_delete=models.PROTECT, null=True, blank=True,
-                                    related_name='bot_mission_credits')
-    receipt = models.OneToOneField(TbTransacaoMestre, on_delete=models.PROTECT, null=True, blank=True)
-    adventure_receipt = models.OneToOneField(TbAventuraMestre, on_delete=models.PROTECT, null=True, blank=True)
-    evidence = models.JSONField(default=dict)
-    reviewed_by = models.ForeignKey('auth.User', on_delete=models.PROTECT, related_name='bot_mission_reviews')
-    reviewed_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        verbose_name = 'Revisao de missao do bot'
-        verbose_name_plural = 'Revisoes de missoes do bot'
 
 
 class MestreOuroDireito(models.Model):
@@ -3204,51 +3084,6 @@ class TbPerfilCurtida(models.Model):
         return '%s ♥ %s' % (self.quem.username, self.alvo.username)
 
 
-class TbPerfilComentario(models.Model):
-    """Public wall text; removing a comment never deletes its audit or likes."""
-    perfil = models.ForeignKey('auth.User', on_delete=models.CASCADE,
-                               related_name='perfil_comentarios_recebidos', db_column='PerfilId')
-    autor = models.ForeignKey('auth.User', on_delete=models.CASCADE,
-                              related_name='perfil_comentarios_escritos', db_column='AutorId')
-    texto = models.TextField(max_length=4000, db_column='Texto')
-    chave_operacao = models.UUIDField(unique=True, db_column='ChaveOperacao')
-    criado_em = models.DateTimeField(auto_now_add=True, db_column='CriadoEm')
-    removido_em = models.DateTimeField(null=True, blank=True, db_column='RemovidoEm')
-    removido_por = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, blank=True,
-                                     related_name='perfil_comentarios_removidos', db_column='RemovidoPorId')
-
-    class Meta:
-        db_table = 'TB_PerfilComentario'
-        ordering = ['-criado_em', '-pk']
-        indexes = [
-            models.Index(fields=['perfil', 'removido_em', '-criado_em', '-id'], name='perfil_wall_recent_idx'),
-            models.Index(fields=['autor', 'criado_em'], name='perfil_wall_rate_idx'),
-        ]
-        constraints = [
-            models.CheckConstraint(condition=(~models.Q(texto='') & LessThanOrEqual(Length('texto'), 4000)),
-                                   name='perfil_comment_text_length'),
-            models.CheckConstraint(condition=(models.Q(removido_em__isnull=False) |
-                                               models.Q(removido_por__isnull=True)),
-                                   name='perfil_comment_removal_state'),
-        ]
-
-    def __str__(self):
-        return f'Comentario #{self.pk} no perfil #{self.perfil_id}'
-
-
-class TbPerfilComentarioCurtida(models.Model):
-    comentario = models.ForeignKey(TbPerfilComentario, on_delete=models.CASCADE,
-                                   related_name='curtidas', db_column='ComentarioId')
-    quem = models.ForeignKey('auth.User', on_delete=models.CASCADE,
-                             related_name='perfil_comentario_curtidas', db_column='QuemId')
-    criado_em = models.DateTimeField(auto_now_add=True, db_column='CriadoEm')
-
-    class Meta:
-        db_table = 'TB_PerfilComentarioCurtida'
-        constraints = [models.UniqueConstraint(fields=['comentario', 'quem'],
-                                               name='perfil_comment_like_unique')]
-
-
 class TbPerfilSeguidor(models.Model):
     """`seguidor` segue o perfil de `alvo`. Direcional (seguir não é mútuo).
     related_name: user.seguindo = quem ELE segue; user.seguidores = quem o segue."""
@@ -3535,12 +3370,3 @@ class SocialCreditRedemption(models.Model):
 
     class Meta:
         ordering = ['-created_at', '-pk']
-
-
-from .vtt_lab_models import VttLabReceipt, VttLabSession  # noqa: E402,F401
-from .gestao_models import ManualCosmeticGrantReceipt, ManagementRoleReceipt  # noqa: E402,F401
-from .gestao_models import ManagementRolePolicyReceipt  # noqa: E402,F401
-from .portal_models import PortalRequest, PortalActivity  # noqa: E402,F401
-from .character_story_models import CharacterStorySubmission  # noqa: E402,F401
-from .character_log_models import (CharacterLogSource, CharacterLogImportBatch, CharacterLogMission,
-                                  CharacterHistoryMission, CharacterLogEntry, CharacterLogReview)  # noqa: E402,F401

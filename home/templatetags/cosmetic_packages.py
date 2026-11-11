@@ -1,10 +1,8 @@
 """Template bridge for cosmetic media packages; access is checked server side."""
 
 from django import template
-from django.urls import reverse
 
 from home.cosmetic_packages import get_package, load_package
-from home.cosmetic_picker import picker_items
 
 
 register = template.Library()
@@ -14,12 +12,15 @@ register = template.Library()
 def cosmetic_catalog(options, tipo, select_id, select_name, selected_value='',
                      escopo='perfil', label='', select_class=''):
   """Public thumbnails do not grant access; keep the catalog's server-side locks."""
-  items = picker_items(options, tipo, escopo)
-  for item in items:
+  items = []
+  for option in options:
+    item = dict(option)
+    item['locked'] = bool(item.get('locked') or item.get('estado') == 'bloqueado')
     item['selected'] = item['key'] == selected_value
+    item['package'] = load_package(tipo, item['key'], escopo)
+    items.append(item)
   return {'items': items, 'tipo': tipo, 'select_id': select_id,
-          'select_name': select_name, 'label': label, 'select_class': select_class,
-          'preview_url': reverse('cosmetic_picker_preview'), 'escopo': escopo}
+          'select_name': select_name, 'label': label, 'select_class': select_class}
 
 
 @register.simple_tag(name='character_rank')

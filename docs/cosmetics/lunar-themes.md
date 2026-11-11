@@ -3,10 +3,8 @@
 ## Estado
 
 Proposta visual implementada em 28/10/2026 e aprovada pelo PO em 29/10/2026.
-Os tres registros foram publicados e conferidos na producao em 01/11/2026
-pelos formularios administrativos existentes, sem migration nem concessao.
-O catalogo esta em `lunar-themes-catalog.json`, com `ativo: true`, origem
-`staff` e liberacao manual por administrador. Inventarios foram preservados.
+Nao houve gravacao no banco local nem no de producao, ativacao ou concessao.
+O catalogo proposto esta em `lunar-themes-catalog.json`, com `ativo: false`.
 As molduras e os efeitos aprovados nao foram alterados.
 
 Preview: `20261028-lunar-themes.html`. Abre diretamente como arquivo, sem servidor.
@@ -83,10 +81,7 @@ Nao converter de volta os efeitos 54/55/56, nem reutilizar suas PKs ou posses.
   tres assets com alpha e centro visualmente transparente; modo de movimento
   reduzido respeitado.
 - `git diff --check` sem erros de whitespace.
-- Cadastro e ativacao conferidos pelos formularios autenticados na producao
-  em 01/11/2026. A skin corrigida depende da atualizacao dos estaticos.
-- Temas usam cores e skin. Seus manifests sem camadas desativam a midia
-  legada; luas, nuvens e pingentes continuam nos efeitos independentes.
+- Ainda nao ha validacao autenticada desses novos registros na producao.
 
 ## Origem da arte
 
@@ -106,8 +101,7 @@ ou criar condicionais por item. `--lunar-*` e o namespace interno original de
 material, preservado por compatibilidade; nao representa exclusividade lunar.
 Os tokens completos estao nos JSONs de catalogo; usar ambos, nao so a paleta.
 
-Cantos usam corte de 280px no asset e tamanho de 40px na tela, preservando
-os pingentes inteiros; a arte das arestas se repete, em vez de esticar.
+Cantos permanecem em 26px e a arte das arestas se repete, em vez de esticar.
 Isso preserva a proporcao ao variar largura e altura. Conteudo muito extenso
 ainda precisa de quebra de linha: a skin permite `overflow-wrap:anywhere`,
 nao encolhe a fonte e nao promete legibilidade em caixas arbitrariamente

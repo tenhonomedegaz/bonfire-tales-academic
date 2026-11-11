@@ -1,0 +1,586 @@
+source,page,level,school,en,traduzido,adaptado,final,status
+XGE,150,8th,Necromancy,Abi-Dalzim's Horrid Wilting,O Murchamento Horrível de Abi-Dalzim,Putrefação Hemomântica,Putrefação Hemomântica,ok
+XGE,150,1st,Abjuration,Absorb Elements,Absorver elementos,Absorver Elementos,Absorver Elementos,ok
+PHB'24,239,Cantrip,Evocation,Acid Splash,Salpicos de ácido,Bolha Ácida,Bolha Ácida,ok
+XGE,150,2nd,Evocation,Aganazzar's Scorcher,O Incendiário de Aganazzar,Incinerar,Incinerar,ok
+PHB'24,239,2nd,Abjuration,Aid,Ajuda,Auxílio,Auxílio,ok
+AAG,22,2nd,Conjuration,Air Bubble,Bolha de ar,Bolha de ar,Bolha de ar,ok
+PHB'24,239,1st,Abjuration (ritual),Alarm,,,,sem_match
+PHB'24,239,2nd,Transmutation,Alter Self,Alterar a si mesmo,Alterar Forma,Alterar Forma,ok
+FRHoF,142,5th,Abjuration,Alustriel's Mooncloak,Manto Lunar de Alustriel,Manto Lunar,Manto Lunar,ok
+TCM'24,125,1st,Divination,Ancestral Communion,Comunhão Ancestral,Comunhão Ancestral,Comunhão Ancestral,ok
+PHB'24,239,1st,Enchantment,Animal Friendship,Amizade Animal,Amizade Animal,Amizade Animal,ok
+PHB'24,240,2nd,Enchantment (ritual),Animal Messenger,,,,sem_match
+PHB'24,240,8th,Transmutation,Animal Shapes,Formas de animais,Formas Animais,Formas Animais,ok
+PHB'24,240,3rd,Necromancy,Animate Dead,Animar os mortos,Animar Mortos,Animar Mortos,ok
+PHB'24,240,5th,Transmutation,Animate Objects,Animar objetos,Animar objetos,Animar objetos,ok
+BMT,50,3rd,Enchantment,Antagonize,Antagonizar,Antagonizar,Antagonizar,ok
+PHB'24,241,5th,Abjuration,Antilife Shell,Concha Antivida,Cúpula Antivida,Cúpula Antivida,ok
+PHB'24,241,8th,Abjuration,Antimagic Field,Campo Antimagia,Campo Antimagia,Campo Antimagia,ok
+PHB'24,242,8th,Enchantment,Antipathy/Sympathy,Antipatia/Simpatia,Antipatia/Simpatia,Antipatia/Simpatia,ok
+PHB'24,242,4th,Divination,Arcane Eye,Olho Arcano,Olho Arcano,Olho Arcano,ok
+PHB'24,242,6th,Conjuration,Arcane Gate,Portal Arcano,Portal Arcano,Portal Arcano,ok
+PHB'24,242,2nd,Abjuration,Arcane Lock,Fechadura Arcana,Fechadura Arcana,Fechadura Arcana,ok
+PHB'24,242,2nd,Abjuration,Arcane Vigor,Vigor Arcano,Vigor Arcano,Vigor Arcano,ok
+PHB'24,243,1st,Abjuration,Armor of Agathys,Armadura de Agathys,Armadura Gelida,Armadura Gelida,ok
+PHB'24,243,1st,Conjuration,Arms of Hadar,Brasões de Hadar,Tentaculos Abissais,Tentaculos Abissais,ok
+FTD,19,3rd,Transmutation,Ashardalon's Stride,Passos de Ashardalon,Corrida Dracônica,Corrida Dracônica,ok
+PHB'24,243,9th,Necromancy,Astral Projection,Projeção Astral,Projeção Astral,Projeção Astral,ok
+PHB'24,244,2nd,Divination (ritual),Augury,,,,sem_match
+PHB'24,244,4th,Abjuration,Aura of Life,Aura da Vida,Aura da Vida,Aura da Vida,desambiguado
+PHB'24,244,4th,Abjuration,Aura of Purity,Aura de Pureza,Aura de Pureza,Aura de Pureza,desambiguado
+PHB'24,244,3rd,Abjuration,Aura of Vitality,Aura de Vitalidade,Aura de Vitalidade,Aura de Vitalidade,ok
+PHB'24,244,5th,Transmutation,Awaken,Despertar,Despertar,Despertar,ok
+FRHoF,142,4th,Abjuration,Backlash,Retaliação,Retaliação,Retaliação,ok
+PHB'24,245,1st,Enchantment,Bane,Bane,Perdição,Perdição,ok
+PHB'24,245,5th,Conjuration,Banishing Smite,Golpe de Banimento,Golpe de Banimento,Golpe de Banimento,ok
+PHB'24,245,4th,Abjuration,Banishment,Banimento,Banimento,Banimento,ok
+PHB'24,245,2nd,Transmutation,Barkskin,Pele de casca,Pele de Árvore,Pele de Árvore,ok
+PHB'24,245,3rd,Abjuration,Beacon of Hope,Farol da Esperança,Farol da Esperança,Farol da Esperança,ok
+XGE,150,1st,Divination,Beast Bond,Vínculo Bestial,Vínculo Bestial,Vínculo Bestial,ok
+PHB'24,245,2nd,Divination (ritual),Beast Sense,,,,sem_match
+PHB'24,245,8th,Enchantment,Befuddlement,Confusão,Confusão,Confusão,ok
+PHB'24,246,3rd,Necromancy,Bestow Curse,Impor Maldição,Infligir Maldição,Infligir Maldição,ok
+PHB'24,246,5th,Evocation,Bigby's Hand,A mão de Bigby,Grande Mão Arcana,Grande Mão Arcana,ok
+PHB'24,247,6th,Evocation,Blade Barrier,Barreira de lâminas,Barreira de lâminas,Barreira de lâminas,ok
+PHB'24,247,Cantrip,Abjuration,Blade Ward,Guarda de Lâminas,Proteção contra Lâminas,Proteção contra Lâminas,ok
+FRHoF,143,9th,Conjuration,Blade of Disaster,Lâmina do Desastre,Lâmina do Desastre,Lâmina do Desastre,ok
+PHB'24,247,1st,Enchantment,Bless,Abençoar,Bênção,Bênção,ok
+PHB'24,247,4th,Necromancy,Blight,Praga,Malogro,Malogro,ok
+PHB'24,247,3rd,Evocation,Blinding Smite,Golpe Cegante,Golpe Cegante,Golpe Cegante,ok
+PHB'24,248,2nd,Transmutation,Blindness/Deafness,Cegueira/Surdez,Cegueira/Surdez,Cegueira/Surdez,ok
+PHB'24,248,3rd,Transmutation,Blink,Piscar,Piscar,Piscar,ok
+TCM'24,125,Cantrip,Necromancy,Blood Bolt,Raio de Sangue,Raio de Sangue,Raio de Sangue,ok
+TCM'24,125,2nd,Necromancy,Blood Sacrifice,Sacrifício de Sangue,Sacrifício de Sangue,Sacrifício de Sangue,ok
+PHB'24,248,2nd,Illusion,Blur,Borrão,Borrar,Borrar,ok
+XGE,150,6th,Transmutation,Bones of the Earth,Ossos da Terra,Ossos da Terra,Ossos da Terra,ok
+TCE,106,Cantrip,Evocation,Booming Blade,Lâmina Trovejante,Lâmina Trovejante,Lâmina Trovejante,ok
+SCC,37,2nd,Divination,Borrowed Knowledge,,,,sem_match
+TCM'24,125,4th,Transmutation,Buried Alive,Enterrado vivo,Enterrado vivo,Enterrado vivo,ok
+PHB'24,248,1st,Evocation,Burning Hands,Mãos em Chamas,Mãos Flamejantes,Mãos Flamejantes,ok
+FRHoF,143,3rd,Evocation,Cacophonic Shield,Escudo Cacofônico,Escudo de Cacofônia,Escudo de Cacofônia,ok
+PHB'24,248,3rd,Conjuration,Call Lightning,Chamar Relâmpago,Convocar Relâmpagos,Convocar Relâmpagos,ok
+TCM'24,125,4th,Enchantment,Call of the Wild,O Chamado da Selva,Chamado Selvagem,Chamado Selvagem,ok
+PHB'24,249,2nd,Enchantment,Calm Emotions,Emoções calmas,Acalmar Emoções,Acalmar Emoções,ok
+TCM'24,126,1st,Necromancy,Captivate Undead,Cativar Mortos-Vivos,Cativar Mortos-Vivos,Cativar Mortos-Vivos,ok
+XGE,150,1st,Transmutation,Catapult,Catapulta,Catapulta,Catapulta,ok
+XGE,151,3rd,Enchantment,Catnap,Soneca,Soneca,Soneca,ok
+XGE,151,1st,Necromancy,Cause Fear,Causar medo,Causar medo,Causar medo,ok
+XGE,151,1st,Abjuration (ritual),Ceremony,,,,sem_match
+PHB'24,249,6th,Evocation,Chain Lightning,Relâmpago em Cadeia,Cadeia de Relâmpagos,Cadeia de Relâmpagos,ok
+TCM'24,126,2nd,Conjuration,Chain of Conviction,Cadeia de Condenação,Corrente da Convicção,Corrente da Convicção,ok
+XGE,151,1st,Evocation,Chaos Bolt,Raio do Caos,Raio do Caos,Raio do Caos,ok
+PHB'24,249,4th,Enchantment,Charm Monster,Monstro Encantador,Enfeitiçar Monstro,Enfeitiçar Monstro,ok
+PHB'24,249,1st,Enchantment,Charm Person,Pessoa encantadora,Enfeitiçar Pessoa,Enfeitiçar Pessoa,ok
+PHB'24,249,Cantrip,Necromancy,Chill Touch,Toque frio,Toque Gélido,Toque Gélido,ok
+TCM'24,126,2nd,Necromancy,Chorus of the Lost,Coro dos Perdidos,Cântico das Lamentações,Cântico das Lamentações,ok
+PHB'24,249,1st,Evocation,Chromatic Orb,Orbe Cromático,Orbe Cromática,Orbe Cromática,ok
+PHB'24,250,6th,Necromancy,Circle of Death,Círculo da Morte,Círculo da Morte,Círculo da Morte,ok
+PHB'24,250,5th,Abjuration,Circle of Power,Círculo de Poder,Círculo de Poder,Círculo de Poder,ok
+PHB'24,250,3rd,Divination,Clairvoyance,Clarividência,Clarividência,Clarividência,ok
+PHB'24,251,8th,Necromancy,Clone,Clone,Clone,Clone,ok
+PHB'24,251,2nd,Conjuration,Cloud of Daggers,Nuvem de Adagas,Nuvem de Adagas,Nuvem de Adagas,ok
+PHB'24,251,5th,Conjuration,Cloudkill,Cloudkill,Névoa Mortal,Névoa Mortal,ok
+PHB'24,251,1st,Illusion,Color Spray,Spray de cor,Leque Cromático,Leque Cromático,ok
+PHB'24,251,1st,Enchantment,Command,Comando,Comando,Comando,ok
+PHB'24,251,5th,Divination (ritual),Commune,,,,sem_match
+PHB'24,252,5th,Divination (ritual),Commune with Nature,,,,sem_match
+PHB'24,252,1st,Enchantment,Compelled Duel,Duelo forçado,Duelo Compelido,Duelo Compelido,ok
+PHB'24,252,1st,Divination (ritual),Comprehend Languages,,,,sem_match
+PHB'24,252,4th,Enchantment,Compulsion,Compulsão,Compulsão,Compulsão,ok
+PHB'24,253,5th,Evocation,Cone of Cold,Cone de Frio,Cone de Frio,Cone de Frio,ok
+PHB'24,253,4th,Enchantment,Confusion,Confusão,Confusão,Confusão,ok
+PHB'24,254,3rd,Conjuration,Conjure Animals,Animais de Invocação,Conjurar Animais,Conjurar Animais,desambiguado
+PHB'24,254,3rd,Conjuration,Conjure Barrage,Conjurar Barragem,Conjurar Barragem,Conjurar Barragem,desambiguado
+PHB'24,254,7th,Conjuration,Conjure Celestial,Invocar Celestial,Invocar Celestial,Invocar Celestial,ok
+FRHoF,143,3rd,Conjuration,Conjure Constructs,Conjurar Construções,Manifestar Constructos,Manifestar Constructos,ok
+PHB'24,254,5th,Conjuration,Conjure Elemental,Invocar Elemental,Manifestar Elemental,Manifestar Elemental,ok
+PHB'24,255,6th,Conjuration,Conjure Fey,Invocar Fada,Invocar Fada,Invocar Fada,ok
+PHB'24,255,4th,Conjuration,Conjure Minor Elementals,Invocar Elementais Menores,Invocar Elementais Menores,Invocar Elementais Menores,desambiguado
+PHB'24,255,5th,Conjuration,Conjure Volley,Conjurar Voleio,Saraivada de Ataques,Saraivada de Ataques,ok
+PHB'24,255,4th,Conjuration,Conjure Woodland Beings,Evocar Seres da Floresta,Invocar Seres da Floresta,Invocar Seres da Floresta,desambiguado
+TCM'24,126,4th,Evocation,Consuming Pyre,Consumindo Pira,Julgamento dos Hereges,Julgamento dos Hereges,ok
+PHB'24,255,5th,Divination (ritual),Contact Other Plane,,,,sem_match
+PHB'24,256,5th,Necromancy,Contagion,Contágio,Contágio,Contágio,ok
+PHB'24,256,6th,Abjuration,Contingency,Contingência,Contingência,Contingência,ok
+PHB'24,256,2nd,Evocation,Continual Flame,Chama contínua,Chama contínua,Chama contínua,ok
+XGE,152,Cantrip,Transmutation,Control Flames,Controlar as chamas,Controlar Chamas,Controlar Chamas,ok
+PHB'24,256,4th,Transmutation,Control Water,Controle da água,Controlar Água,Controlar Água,ok
+PHB'24,257,8th,Transmutation,Control Weather,Controle o clima,Controlar Clima,Controlar Clima,ok
+XGE,152,5th,Transmutation,Control Winds,Ventos de controle,Controlar Ventos,Controlar Ventos,ok
+PHB'24,258,2nd,Transmutation,Cordon of Arrows,Cordão de flechas,Armadilha de Flechas,Armadilha de Flechas,ok
+PHB'24,258,3rd,Abjuration,Counterspell,Contrafeitiço,Contramágica,Contramágica,ok
+XGE,152,Cantrip,Conjuration,Create Bonfire,Criar fogueira,Criar Fogueira,Criar Fogueira,ok
+PHB'24,258,3rd,Conjuration,Create Food and Water,Criar alimentos e água,Criar Comida e Água,Criar Comida e Água,ok
+XGE,152,6th,Transmutation,Create Homunculus,Criar Homúnculo,Criar Homúnculo,Criar Homúnculo,ok
+IDRotF,318,7th,Transmutation,Create Magen,Criar Magen,,,sem_match
+AAG,22,5th,Transmutation,Create Spelljamming Helm,Criar Elmo de Spelljamming,,,sem_match
+PHB'24,258,6th,Necromancy,Create Undead,Criar Mortos-vivos,Criar Mortos-Vivos,Criar Mortos-Vivos,ok
+PHB'24,258,1st,Transmutation,Create or Destroy Water,Criar ou destruir água,Criar ou Destruir Água,Criar ou Destruir Água,ok
+PHB'24,259,5th,Illusion,Creation,Criação,Criação,Criação,ok
+TCM'24,127,3rd,Necromancy,Creeping Rot,Podridão rastejante,Raiz Horripilante,Raiz Horripilante,desambiguado
+TCM'24,127,3rd,Necromancy,Crimson Harvest,Colheita Carmesim,Colheita Carmesim,Colheita Carmesim,desambiguado
+TCM'24,127,3rd,Abjuration,Crooked Ward,Ala Tortuosa,Proteção Tortuosa,Proteção Tortuosa,ok
+PHB'24,259,2nd,Enchantment,Crown of Madness,Coroa da Loucura,Coroa da Loucura,Coroa da Loucura,ok
+XGE,152,7th,Evocation,Crown of Stars,Coroa de Estrelas,Coroa de Estrelas,Coroa de Estrelas,ok
+PHB'24,259,3rd,Evocation,Crusader's Mantle,Manto do Cruzado,Manto do Cruzado,Manto do Cruzado,ok
+TCM'24,127,3rd,Necromancy,Culling Sickle,Foice de abate,Foice Espectral,Foice Espectral,ok
+PHB'24,259,1st,Abjuration,Cure Wounds,Curar feridas,Curar Ferimentos,Curar Ferimentos,ok
+TCM'24,128,3rd,Enchantment (ritual),Cursed Cacophany,,,,sem_match
+PHB'24,259,Cantrip,Illusion,Dancing Lights,Luzes dançantes,Luzes Dançantes,Luzes Dançantes,ok
+XGE,153,5th,Necromancy,Danse Macabre,Dança Macabra,Dança Macabra,Dança Macabra,ok
+EGW,186,8th,Evocation,Dark Star,Estrela Negra,Estrela Negra,Estrela Negra,ok
+PHB'24,260,2nd,Evocation,Darkness,Escuridão,Escuridão,Escuridão,ok
+PHB'24,260,2nd,Transmutation,Darkvision,Visão no escuro,Visão no Escuro,Visão no Escuro,ok
+XGE,153,5th,Evocation,Dawn,Alvorecer,Alvorecer,Alvorecer,ok
+PHB'24,260,3rd,Evocation,Daylight,Luz do dia,Luz do Dia,Luz do Dia,ok
+FRHoF,143,2nd,Necromancy,Death Armor,Armadura da Morte,Armadura da Morte,Armadura da Morte,ok
+PHB'24,261,4th,Abjuration,Death Ward,Ala da Morte,Proteção contra a Morte,Proteção contra a Morte,ok
+PHB'24,261,7th,Evocation,Delayed Blast Fireball,Bola de fogo de explosão retardada,Bola de Fogo Contida,Bola de Fogo Contida,ok
+PHB'24,261,8th,Conjuration,Demiplane,Semiplano,Demiplano,Demiplano,ok
+FRHoF,143,2nd,Conjuration (ritual),Deryan's Helpful Homunculi,,,,sem_match
+PHB'24,261,5th,Evocation,Destructive Wave,Onda Destrutiva,Onda Destrutiva,Onda Destrutiva,ok
+PHB'24,261,1st,Divination,Detect Evil and Good,Detectar o bem e o mal,Detectar o Bem e o Mal,Detectar o Bem e o Mal,ok
+PHB'24,262,1st,Divination (ritual),Detect Magic,,,,sem_match
+PHB'24,262,1st,Divination (ritual),Detect Poison and Disease,,,,sem_match
+PHB'24,262,2nd,Divination,Detect Thoughts,Detectar Pensamentos,Detectar Pensamentos,Detectar Pensamentos,ok
+TCM'24,128,1st,Necromancy,Devil's Due,Duelo do Diabo,Absorver Agonia,Absorver Agonia,ok
+PHB'24,262,4th,Conjuration,Dimension Door,Porta Dimensional,Porta Dimensional,Porta Dimensional,ok
+FRHoF,144,6th,Enchantment,Dirge,Lamento,Canto Fúnebre,Canto Fúnebre,ok
+PHB'24,262,1st,Illusion,Disguise Self,Disfarce-se,Disfarce-se,Disfarce-se,ok
+PHB'24,263,6th,Transmutation,Disintegrate,Desintegrar,Desintegrar,Desintegrar,ok
+PHB'24,263,5th,Abjuration,Dispel Evil and Good,Dissipar o Mal e o Bem,Dissipar o Mal e o Bem,Dissipar o Mal e o Bem,ok
+PHB'24,264,3rd,Abjuration,Dispel Magic,Dissipar Magia,Dissipar Magia,Dissipar Magia,ok
+TCM'24,128,Cantrip,Transmutation,Dissolution,Dissolução,Dissolução,Dissolução,ok
+PHB'24,264,1st,Enchantment,Dissonant Whispers,Sussurros Dissonantes,Sussurros Dissonantes,Sussurros Dissonantes,ok
+PHB'24,264,4th,Divination (ritual),Divination,,,,sem_match
+PHB'24,265,1st,Transmutation,Divine Favor,Favor Divino,Favor Divino,Favor Divino,ok
+PHB'24,265,1st,Evocation,Divine Smite,Golpe Divino,,,sem_match
+PHB'24,265,7th,Evocation,Divine Word,Palavra Divina,Palavra Divina,Palavra Divina,ok
+PHB'24,265,4th,Enchantment,Dominate Beast,Besta Dominadora,Dominar Besta,Dominar Besta,ok
+PHB'24,265,8th,Enchantment,Dominate Monster,Monstro Dominador,Dominar Monstro,Dominar Monstro,ok
+PHB'24,266,5th,Enchantment,Dominate Person,Pessoa dominante,Dominar Pessoa,Dominar Pessoa,ok
+FRHoF,144,4th,Conjuration,Doomtide,Maré da Perdição,Maré da Ruína,Maré da Ruína,ok
+FTD,19,7th,Transmutation,Draconic Transformation,Transformação Dracônica,Transformação Dracônica,Transformação Dracônica,ok
+PHB'24,266,2nd,Transmutation,Dragon's Breath,Sopro do Dragão,Sopro do Dragão,Sopro do Dragão,ok
+PHB'24,266,6th,Conjuration (ritual),Drawmij's Instant Summons,,,,sem_match
+PHB'24,266,5th,Illusion,Dream,Sonhar,Sonhar,Sonhar,ok
+TCE,106,7th,Conjuration,Dream of the Blue Veil,Sonho do Véu Azul,,,sem_match
+XGE,154,6th,Abjuration,Druid Grove,Bosque Druida,Bosque Druídico,Bosque Druídico,ok
+PHB'24,266,Cantrip,Transmutation,Druidcraft,Druidcraft,Druidcraft,Druidcraft,ok
+XGE,154,2nd,Conjuration,Dust Devil,Demônio de poeira,Diabo de Poeira,Diabo de Poeira,ok
+XGE,155,1st,Evocation,Earth Tremor,Tremor de terra,Tremor de terra,Tremor de terra,ok
+XGE,154,2nd,Transmutation,Earthbind,Ligação da Terra,Prender à Terra,Prender à Terra,ok
+PHB'24,267,8th,Transmutation,Earthquake,Terremoto,Terremoto,Terremoto,ok
+PHB'24,267,Cantrip,Evocation,Eldritch Blast,Explosão Mística,Rajada Mística,Rajada Mística,ok
+XGE,155,4th,Transmutation,Elemental Bane,Maldição Elemental,Perdição Elemental,Perdição Elemental,ok
+PHB'24,267,3rd,Transmutation,Elemental Weapon,Arma Elemental,Arma Elemental,Arma Elemental,ok
+PHB'24,267,Cantrip,Transmutation,Elementalism,Elementalismo,Elementalismo,Elementalismo,ok
+FRHoF,144,6th,Evocation,Elminster's Effulgent Spheres,Esferas Efulgentes de Elminster,Esferas Elementais,Esferas Elementais,ok
+FRHoF,144,2nd,Abjuration,Elminster's Elusion,A Ilusão de Elminster,Elusão Mágica,Elusão Mágica,ok
+GGR,47,Cantrip,Enchantment,Encode Thoughts,Codificar pensamentos,Codificar pensamentos,Codificar pensamentos,ok
+XGE,155,3rd,Enchantment,Enemies Abound,Inimigos por toda parte,Inimigos à vista,Inimigos à vista,ok
+XGE,155,5th,Necromancy,Enervation,Enervação,Enervação,Enervação,ok
+PHB'24,268,2nd,Transmutation,Enhance Ability,Aprimorar Habilidades,Aprimorar Habilidades,Aprimorar Habilidades,desambiguado
+PHB'24,268,2nd,Transmutation,Enlarge/Reduce,Ampliar/Reduzir,Aumentar/Reduzir,Aumentar/Reduzir,desambiguado
+PHB'24,268,1st,Conjuration,Ensnaring Strike,Golpe Enredante,Golpe Enraizador,Golpe Enraizador,ok
+PHB'24,268,1st,Conjuration,Entangle,Enredar,Enraizar,Enraizar,ok
+PHB'24,269,2nd,Enchantment,Enthrall,Encantar,Encantar,Encantar,ok
+XGE,155,3rd,Transmutation,Erupting Earth,Terra em erupção,Terra Eruptiva,Terra Eruptiva,ok
+PHB'24,269,7th,Conjuration,Etherealness,Eterealidade,Eterealidade,Eterealidade,ok
+PHB'24,270,4th,Conjuration,Evard's Black Tentacles,Tentáculos Negros de Evard,Tendões Umbrais,Tendões Umbrais,ok
+PHB'24,270,1st,Transmutation,Expeditious Retreat,Retirada Rápida,Recuo Acelerado,Recuo Acelerado,ok
+TCM'24,128,Cantrip,Transmutation,Eye Burn,Queimadura nos olhos,Queimadura nos olhos,Queimadura nos olhos,ok
+PHB'24,270,6th,Necromancy,Eyebite,Mordida no olho,Olhar Perverso,Olhar Perverso,ok
+PHB'24,271,4th,Transmutation,Fabricate,Fabricar,Fabricar,Fabricar,ok
+PHB'24,271,1st,Evocation,Faerie Fire,Fogo das Fadas,Fogo das Fadas,Fogo das Fadas,ok
+PHB'24,271,1st,Necromancy,False Life,Vida Falsa,Vida Falsa,Vida Falsa,ok
+XGE,155,5th,Conjuration,Far Step,Passo Distante,Passo Distante,Passo Distante,ok
+PHB'24,271,3rd,Illusion,Fear,Temer,Medo,Medo,ok
+PHB'24,271,1st,Transmutation,Feather Fall,Queda de penas,Queda Suave,Queda Suave,ok
+PHB'24,271,3rd,Necromancy (ritual),Feign Death,,,,sem_match
+TCM'24,128,5th,Necromancy,Field of Reaping,Campo de colheita,Campo do Ceifador,Campo do Ceifador,ok
+PHB'24,272,1st,Conjuration (ritual),Find Familiar,,,,sem_match
+XGE,156,4th,Conjuration,Find Greater Steed,Encontre um Corcel Maior,Encontrar Montaria Superior,Encontrar Montaria Superior,ok
+PHB'24,272,2nd,Conjuration,Find Steed,Encontre o cavalo,Encontrar Montaria,Encontrar Montaria,ok
+PHB'24,273,2nd,Divination,Find Traps,Encontre armadilhas,Encontrar Armadilhas,Encontrar Armadilhas,ok
+PHB'24,273,6th,Divination,Find the Path,Encontre o caminho,Encontrar o Caminho,Encontrar o Caminho,ok
+PHB'24,273,7th,Necromancy,Finger of Death,Dedo da Morte,Dedo da Morte,Dedo da Morte,ok
+PHB'24,274,Cantrip,Evocation,Fire Bolt,Raio de Fogo,Raio de Fogo,Raio de Fogo,ok
+PHB'24,274,4th,Evocation,Fire Shield,Escudo de Fogo,Escudo de Fogo,Escudo de Fogo,ok
+PHB'24,275,7th,Evocation,Fire Storm,Tempestade de fogo,Tempestade de fogo,Tempestade de fogo,ok
+PHB'24,274,3rd,Evocation,Fireball,Bola de fogo,Bola de fogo,Bola de fogo,ok
+FTD,20,6th,Abjuration,Fizban's Platinum Shield,Escudo de Platina de Fizban,Escudo de Platina,Escudo de Platina,ok
+XGE,156,3rd,Transmutation,Flame Arrows,Flechas de Chamas,Flechas Flamejantes,Flechas Flamejantes,ok
+PHB'24,275,2nd,Evocation,Flame Blade,Lâmina de Chamas,Lâmina Flamejante,Lâmina Flamejante,ok
+PHB'24,275,5th,Evocation,Flame Strike,Golpe de Chamas,Coluna de Chamas,Coluna de Chamas,ok
+PHB'24,275,2nd,Conjuration,Flaming Sphere,Esfera Flamejante,Esfera Flamejante,Esfera Flamejante,ok
+PHB'24,275,6th,Transmutation,Flesh to Stone,Carne à Pedra,Carne em Pedra,Carne em Pedra,ok
+PHB'24,276,3rd,Transmutation,Fly,Voar,Voo,Voo,ok
+PHB'24,276,1st,Conjuration,Fog Cloud,Nuvem de nevoeiro,Névoa Obscurecente,Névoa Obscurecente,ok
+PHB'24,276,6th,Abjuration (ritual),Forbiddance,,,,sem_match
+PHB'24,276,7th,Evocation,Forcecage,Gaiola de força,Jaula de Energia,Jaula de Energia,ok
+PHB'24,276,9th,Divination,Foresight,Previsão,Presciência,Presciência,ok
+EGW,186,2nd,Divination,Fortune's Favor,Favor da Fortuna,Favor da Fortuna,Favor da Fortuna,ok
+PHB'24,277,4th,Evocation,Fount of Moonlight,Fonte de Luar,Fonte de Luar,Fonte de Luar,ok
+PHB'24,277,4th,Abjuration,Freedom of Movement,Liberdade de Movimento,Movimentação Livre,Movimentação Livre,ok
+TDCSR,176,3rd,Conjuration,Freedom of the Waves,Liberdade das Ondas,Liberdade das Ondas,Liberdade das Ondas,ok
+TDCSR,176,5th,Abjuration,Freedom of the Winds,Liberdade dos Ventos,Liberdade dos Ventos,Liberdade dos Ventos,ok
+PHB'24,277,Cantrip,Enchantment,Friends,Amigos,Amigos,Amigos,ok
+IDRotF,318,1st,Evocation,Frost Fingers,Dedos de Gelo,Dedos Gélidos,Dedos Gélidos,ok
+XGE,156,Cantrip,Evocation,Frostbite,Congelamento,Mordida Gélida,Mordida Gélida,ok
+PHB'24,277,3rd,Transmutation,Gaseous Form,Forma gasosa,Forma Gasosa,Forma Gasosa,ok
+PHB'24,277,9th,Conjuration,Gate,Portão,Portal,Portal,ok
+SatO,12,4th,Abjuration,Gate Seal,Selo do portão,Selo do Portal,Selo do Portal,ok
+PHB'24,278,5th,Enchantment,Geas,Geas,Missão,Missão,ok
+PHB'24,278,2nd,Necromancy (ritual),Gentle Repose,,,,sem_match
+TCM'24,129,6th,Necromancy,Ghastly Charge,Acusação Horripilante,Carga Medonha,Carga Medonha,ok
+PHB'24,279,4th,Conjuration,Giant Insect,Inseto Gigante,Inseto Gigante,Inseto Gigante,ok
+EGW,186,1st,Divination,Gift of Alacrity,Dom da Alacridade,Dom da Alacridade,Dom da Alacridade,ok
+PHB'24,279,8th,Enchantment,Glibness,Eloquência,Eloquência,Eloquência,ok
+PHB'24,279,6th,Abjuration,Globe of Invulnerability,Globo de Invulnerabilidade,Globo de Invulnerabilidade,Globo de Invulnerabilidade,ok
+PHB'24,279,3rd,Abjuration,Glyph of Warding,Glifo de proteção,Glifo de Proteção,Glifo de Proteção,ok
+PHB'24,280,1st,Conjuration,Goodberry,Goodberry,Bom fruto,Bom fruto,desambiguado
+PHB'24,280,4th,Conjuration,Grasping Vine,Videira agarrada,Vinha Restritiva,Vinha Restritiva,ok
+EGW,187,6th,Evocation,Gravity Fissure,Fissura de gravidade,Fissura Gravitacional,Fissura Gravitacional,ok
+EGW,187,4th,Evocation,Gravity Sinkhole,Sumidouro por gravidade,Sumidouro Gravitacional,Sumidouro Gravitacional,ok
+PHB'24,280,1st,Conjuration,Grease,Graxa,Graxa,Graxa,desambiguado
+PHB'24,281,4th,Illusion,Greater Invisibility,Maior Invisibilidade,Invisibilidade Maior,Invisibilidade Maior,ok
+PHB'24,281,5th,Abjuration,Greater Restoration,Restauração Maior,Restauração Maior,Restauração Maior,ok
+TCE,107,Cantrip,Evocation,Green-Flame Blade,Lâmina de Chama Verde,Lâmina de Chama Verde,Lâmina de Chama Verde,desambiguado
+PHB'24,281,4th,Conjuration,Guardian of Faith,Guardião da Fé,Guardião da Fé,Guardião da Fé,ok
+XGE,157,4th,Transmutation,Guardian of Nature,Guardião da Natureza,Guardião da Natureza,Guardião da Natureza,ok
+PHB'24,282,6th,Abjuration,Guards and Wards,Guardas e Enfermos,Guardas e Proteções,Guardas e Proteções,ok
+PHB'24,282,Cantrip,Divination,Guidance,Orientação,Orientação,Orientação,ok
+PHB'24,282,1st,Evocation,Guiding Bolt,Parafuso guia,Raio Guiador,Raio Guiador,ok
+XGE,157,Cantrip,Transmutation,Gust,Rajada,Lufada,Lufada,ok
+PHB'24,282,2nd,Evocation,Gust of Wind,Rajada de vento,Lufada de Vento,Lufada de Vento,ok
+PHB'24,283,1st,Conjuration,Hail of Thorns,Chuva de Espinhos,Saraivada de Espinhos,Saraivada de Espinhos,ok
+PHB'24,283,5th,Abjuration,Hallow,Sagrado,Santificar,Santificar,ok
+PHB'24,283,4th,Illusion,Hallucinatory Terrain,Terreno Alucinatório,Terreno Alucinógeno,Terreno Alucinógeno,ok
+PHB'24,283,6th,Necromancy,Harm,Ferir,Ferir,Ferir,ok
+TCM'24,129,2nd,Enchantment,Harrowing Ballad,Balada comovente,Balada Aflitiva,Balada Aflitiva,ok
+TCM'24,129,3rd,Evocation,Harvest Moonglow,Brilho da Lua da Colheita,Brilho da Lua da Colheita,Brilho da Lua da Colheita,ok
+PHB'24,284,3rd,Transmutation,Haste,Pressa,Velocidade,Velocidade,ok
+PHB'24,284,6th,Abjuration,Heal,Curar,Curar,Curar,ok
+XGE,157,2nd,Conjuration,Healing Spirit,Espírito de Cura,Espírito Curativo,Espírito Curativo,ok
+PHB'24,284,1st,Abjuration,Healing Word,Palavra de Cura,Palavra Curativa,Palavra Curativa,ok
+PHB'24,284,2nd,Transmutation,Heat Metal,Metal quente,Esquentar Metal,Esquentar Metal,ok
+PHB'24,284,1st,Evocation,Hellish Rebuke,Repreensão Infernal,Repreensão Infernal,Repreensão Infernal,ok
+PHB'24,284,6th,Conjuration,Heroes' Feast,Banquete dos Heróis,Banquete dos Heróis,Banquete dos Heróis,ok
+PHB'24,285,1st,Enchantment,Heroism,Heroísmo,Heroísmo,Heroísmo,ok
+PHB'24,285,1st,Enchantment,Hex,Hex,Bruxaria,Bruxaria,ok
+PHB'24,285,5th,Enchantment,Hold Monster,Segure o monstro,Imobilizar Monstro,Imobilizar Monstro,ok
+PHB'24,286,2nd,Enchantment,Hold Person,Segurar pessoa,Imobilizar Pessoa,Imobilizar Pessoa,ok
+PHB'24,286,8th,Abjuration,Holy Aura,Aura Sagrada,Aura Sagrada,Aura Sagrada,ok
+FRHoF,145,8th,Evocation,Holy Star of Mystra,Estrela Sagrada de Mystra,Estrela Arcana,Estrela Arcana,ok
+XGE,157,5th,Evocation,Holy Weapon,Arma Sagrada,Arma Sagrada,Arma Sagrada,ok
+EFA,21,2nd,Conjuration (ritual),Homunculus Servant,,,,sem_match
+PHB'24,286,3rd,Conjuration,Hunger of Hadar,Fome de Hadar,Fome de Umbral,Fome de Umbral,ok
+TCM'24,129,1st,Necromancy,Hungering Blade,Lâmina Faminta,Lâmina Faminta,Lâmina Faminta,ok
+PHB'24,287,1st,Divination,Hunter's Mark,Marca do Caçador,Marca do Caçador,Marca do Caçador,ok
+PHB'24,287,3rd,Illusion,Hypnotic Pattern,Padrão hipnótico,Padrão Hipnótico,Padrão Hipnótico,ok
+PHB'24,287,1st,Conjuration,Ice Knife,Faca de gelo,Faca de Gelo,Faca de Gelo,ok
+PHB'24,287,4th,Evocation,Ice Storm,Tempestade de gelo,Tempestade de Gelo,Tempestade de Gelo,ok
+PHB'24,287,1st,Divination (ritual),Identify,,,,sem_match
+XGE,157,8th,Illusion,Illusory Dragon,Dragão Ilusório,Dragão Ilusório,Dragão Ilusório,ok
+PHB'24,288,1st,Illusion (ritual),Illusory Script,,,,sem_match
+XGE,158,5th,Evocation,Immolation,Imolação,Imolação,Imolação,ok
+EGW,187,2nd,Transmutation,Immovable Object,Objeto imóvel,Objeto imóvel,Objeto imóvel,ok
+PHB'24,288,9th,Abjuration,Imprisonment,Prisão,Aprisionamento,Aprisionamento,ok
+PHB'24,288,8th,Conjuration,Incendiary Cloud,Nuvem Incendiária,Nuvem Incendiária,Nuvem Incendiária,ok
+XGE,158,5th,Conjuration,Infernal Calling,Chamado Infernal,Chamado Infernal,Chamado Infernal,ok
+XGE,158,Cantrip,Conjuration,Infestation,Infestação,Infestação,Infestação,ok
+PHB'24,288,1st,Necromancy,Inflict Wounds,Infligir ferimentos,Infligir ferimentos,Infligir ferimentos,ok
+PHB'24,289,5th,Conjuration,Insect Plague,Praga de insetos,Praga de insetos,Praga de insetos,ok
+TCE,107,3rd,Abjuration,Intellect Fortress,Fortaleza do Intelecto,Fortaleza do Intelecto,Fortaleza do Intelecto,ok
+TCM'24,129,4th,Enchantment,Intrusive Despair,Desespero Intrusivo,Desespero Intrusivo,Desespero Intrusivo,ok
+XGE,159,6th,Transmutation,Investiture of Flame,Investidura da Chama,Investidura da Chama,Investidura da Chama,desambiguado
+XGE,159,6th,Transmutation,Investiture of Ice,Investidura de Gelo,Investidura de Gelo,Investidura de Gelo,desambiguado
+XGE,159,6th,Transmutation,Investiture of Stone,Investidura da Pedra,Investidura da Pedra,Investidura da Pedra,desambiguado
+XGE,160,6th,Transmutation,Investiture of Wind,Investidura do Vento,Investidura do Vento,Investidura do Vento,ok
+PHB'24,289,2nd,Illusion,Invisibility,Invisibilidade,Invisibilidade,Invisibilidade,ok
+XGE,160,9th,Abjuration,Invulnerability,Invulnerabilidade,Invulnerabilidade,Invulnerabilidade,ok
+TCM'24,130,3rd,Enchantment,Isolation,Isolamento,Isolamento,Isolamento,desambiguado
+PHB'24,289,5th,Evocation,Jallarzi's Storm of Radiance,Tempestade de Radiância de Jallarzi,Tempestade de Radiante,Tempestade de Radiante,ok
+PHB'24,290,1st,Transmutation,Jump,Pular,Salto,Salto,ok
+SCC,37,2nd,Transmutation,Kinetic Jaunt,,,,sem_match
+PHB'24,290,2nd,Transmutation,Knock,Bater,Arrombar,Arrombar,ok
+FRHoF,145,3rd,Evocation,Laeral's Silver Lance,Lança de Prata de Laeral,Lança de Prata,Lança de Prata,ok
+PHB'24,290,5th,Divination,Legend Lore,Lendas e Tradições,Lendas e Tradições,Lendas e Tradições,ok
+PHB'24,290,4th,Conjuration,Leomund's Secret Chest,Baú Secreto de Leomund,Baú Secreto,Baú Secreto,ok
+PHB'24,291,3rd,Evocation (ritual),Leomund's Tiny Hut,,,,sem_match
+PHB'24,291,2nd,Abjuration,Lesser Restoration,Restauração Menor,Restauração Menor,Restauração Menor,ok
+PHB'24,291,2nd,Transmutation,Levitate,Levitar,Levitar,Levitar,ok
+XGE,160,3rd,Necromancy,Life Transference,Transferência de Vida,Transferência de Vida,Transferência de Vida,ok
+PHB'24,292,Cantrip,Evocation,Light,Luz,Luz,Luz,ok
+PHB'24,292,3rd,Transmutation,Lightning Arrow,Flecha Relâmpago,Flecha Relâmpago,Flecha Relâmpago,ok
+PHB'24,292,3rd,Evocation,Lightning Bolt,Raio,Relâmpago,Relâmpago,ok
+TCE,107,Cantrip,Evocation,Lightning Lure,Isca de relâmpago,Isca Elétrica,Isca Elétrica,desambiguado
+PHB'24,292,2nd,Divination (ritual),Locate Animals or Plants,,,,sem_match
+PHB'24,292,4th,Divination,Locate Creature,Localizar Criatura,Localizar Criatura,Localizar Criatura,ok
+PHB'24,293,2nd,Divination,Locate Object,Localizar objeto,Localizar objeto,Localizar objeto,ok
+PHB'24,293,1st,Transmutation,Longstrider,Longstrider,Passos Longos,Passos Longos,ok
+TCM'24,130,5th,Transmutation,Lucky Charm,Amuleto da Sorte,Amuleto da Sorte,Amuleto da Sorte,ok
+XGE,160,8th,Evocation,Maddening Darkness,Escuridão Enlouquecedora,Escuridão Enlouquecedora,Escuridão Enlouquecedora,ok
+XGE,160,5th,Evocation,Maelstrom,Redemoinho,Redemoinho,Redemoinho,ok
+PHB'24,293,1st,Abjuration,Mage Armor,Armadura de Mago,Armadura Arcana,Armadura Arcana,ok
+PHB'24,293,Cantrip,Conjuration,Mage Hand,Mão do Mago,Mão Arcana,Mão Arcana,ok
+PHB'24,293,3rd,Abjuration,Magic Circle,Círculo Mágico,Círculo Mágico,Círculo Mágico,ok
+PHB'24,294,6th,Necromancy,Magic Jar,Pote Mágico,Recipiente Arcano,Recipiente Arcano,ok
+PHB'24,295,1st,Evocation,Magic Missile,Míssil Mágico,Mísseis Mágicos,Mísseis Mágicos,ok
+PHB'24,295,2nd,Illusion (ritual),Magic Mouth,,,,sem_match
+XGE,160,Cantrip,Transmutation,Magic Stone,Pedra Mágica,Pedra Mágica,Pedra Mágica,ok
+PHB'24,295,2nd,Transmutation,Magic Weapon,Arma Mágica,Arma Mágica,Arma Mágica,ok
+EGW,188,1st,Transmutation,Magnify Gravity,Ampliar a gravidade,Ampliar Gravidade,Ampliar Gravidade,ok
+PHB'24,295,3rd,Illusion,Major Image,Imagem principal,Imagem Maior,Imagem Maior,ok
+TCM'24,130,3rd,Necromancy,Martyr,Mártir,Mártir,Mártir,ok
+PHB'24,296,5th,Abjuration,Mass Cure Wounds,Cura em massa de feridas,Curar Ferimentos em Massa,Curar Ferimentos em Massa,ok
+PHB'24,296,9th,Abjuration,Mass Heal,Cura em Massa,Cura em Massa,Cura em Massa,ok
+PHB'24,296,3rd,Abjuration,Mass Healing Word,Palavra de Cura em Massa,Palavra Curativa em Massa,Palavra Curativa em Massa,ok
+XGE,160,9th,Transmutation,Mass Polymorph,Polimorfo de massa,Metamorfose Multipla,Metamorfose Multipla,ok
+PHB'24,296,6th,Enchantment,Mass Suggestion,Sugestão em Massa,Sugestão em Massa,Sugestão em Massa,ok
+XGE,161,2nd,Transmutation,Maximilian's Earthen Grasp,O domínio terreno de Maximiliano,Agarrão Terrestre,Agarrão Terrestre,ok
+PHB'24,296,8th,Conjuration,Maze,Labirinto,Labirinto,Labirinto,ok
+PHB'24,296,3rd,Transmutation (ritual),Meld into Stone,,,,sem_match
+PHB'24,297,2nd,Evocation,Melf's Acid Arrow,Flecha Ácida de Melf,Flecha Ácida,Flecha Ácida,ok
+XGE,161,3rd,Evocation,Melf's Minute Meteors,Meteoros de um minuto de Melf,Meteoros de um minuto,Meteoros de um minuto,ok
+PHB'24,297,Cantrip,Transmutation,Mending,Consertando,Consertar,Consertar,ok
+XGE,161,6th,Illusion,Mental Prison,Prisão Mental,Prisão Mental,Prisão Mental,ok
+PHB'24,298,Cantrip,Transmutation,Message,Mensagem,Mensagem,Mensagem,ok
+PHB'24,298,9th,Evocation,Meteor Swarm,Enxame de Meteoros,Chuva de Meteoros,Chuva de Meteoros,ok
+XGE,161,8th,Conjuration,Mighty Fortress,Fortaleza Poderosa,Fortaleza Poderosa,Fortaleza Poderosa,ok
+PHB'24,298,8th,Abjuration,Mind Blank,Mente em branco,Mente Vazia,Mente Vazia,ok
+PHB'24,298,Cantrip,Enchantment,Mind Sliver,Fragmento Mental,Fragmento Mental,Fragmento Mental,ok
+PHB'24,298,2nd,Divination,Mind Spike,Espinho Mental,Espinho Mental,Espinho Mental,ok
+PHB'24,298,Cantrip,Illusion,Minor Illusion,Ilusão Menor,Ilusão Menor,Ilusão Menor,ok
+PHB'24,299,7th,Illusion,Mirage Arcane,Miragem Arcana,Miragem Arcana,Miragem Arcana,ok
+PHB'24,299,2nd,Illusion,Mirror Image,Imagem espelhada,Imagem espelhada,Imagem espelhada,ok
+TCM'24,130,5th,Abjuration,Mirrored Agony,Agonia Espelhada,Agonia Espelhada,Agonia Espelhada,ok
+PHB'24,299,5th,Illusion,Mislead,Enganar,Despistar,Despistar,ok
+TCM'24,130,3rd,Enchantment,Mist of Mourning,Névoa de Luto,Névoa do Luto,Névoa do Luto,desambiguado
+PHB'24,299,2nd,Conjuration,Misty Step,Passo Nebuloso,Passo Nebuloso,Passo Nebuloso,ok
+PHB'24,299,5th,Enchantment,Modify Memory,Modificar memória,Modificar memória,Modificar memória,ok
+XGE,162,Cantrip,Transmutation,Mold Earth,Mofo Terra,Moldar Terra,Moldar Terra,ok
+PHB'24,300,2nd,Evocation,Moonbeam,Raio de luar,Raio Lunar,Raio Lunar,ok
+PHB'24,300,4th,Conjuration,Mordenkainen's Faithful Hound,Cão Fiel de Mordenkainen,Cão Fiel,Cão Fiel,ok
+PHB'24,300,7th,Conjuration,Mordenkainen's Magnificent Mansion,A Magnífica Mansão de Mordenkainen,Magnífica Mansão,Magnífica Mansão,ok
+PHB'24,301,4th,Abjuration,Mordenkainen's Private Sanctum,Santuário Privado de Mordenkainen,Santuário Privado,Santuário Privado,ok
+PHB'24,302,7th,Evocation,Mordenkainen's Sword,Espada de Mordenkainen,Lâmina Arcana Superior,Lâmina Arcana Superior,ok
+PHB'24,302,6th,Transmutation,Move Earth,Mova a Terra,Mover Terra,Mover Terra,ok
+TCM'24,131,4th,Conjuration,Murder of Crows,Assassinato de Corvos,Bando de Corvos,Bando de Corvos,ok
+TCM'24,131,Cantrip,Illusion,Mysterious Presence,Presença Misteriosa,Presença Misteriosa,Presença Misteriosa,ok
+FTD,20,2nd,Illusion,Nathair's Mischief,As travessuras de Nathair,As travessuras de Zarquil,As travessuras de Zarquil,ok
+XGE,163,5th,Necromancy,Negative Energy Flood,Inundação de energia negativa,Inundação de Energia Negativa,Inundação de Energia Negativa,ok
+PHB'24,302,3rd,Abjuration,Nondetection,Não detecção,Não Detecção,Não Detecção,ok
+PHB'24,302,2nd,Illusion,Nystul's Magic Aura,Aura Mágica de Nystul,Aura Mágica Falsa,Aura Mágica Falsa,ok
+PHB'24,302,6th,Evocation,Otiluke's Freezing Sphere,Esfera Congelante de Otiluke,Esfera Congelante,Esfera Congelante,ok
+PHB'24,303,4th,Abjuration,Otiluke's Resilient Sphere,Esfera Resiliente de Otiluke,Esfera Resiliente,Esfera Resiliente,ok
+PHB'24,303,6th,Enchantment,Otto's Irresistible Dance,A Dança Irresistível de Otto,A Dança Irresistível,A Dança Irresistível,ok
+PHB'24,303,2nd,Abjuration,Pass without Trace,Aprovação sem deixar rastros,Passos Sem Pegadas,Passos Sem Pegadas,ok
+PHB'24,304,5th,Transmutation,Passwall,Senha,Passagem,Passagem,ok
+PHB'24,304,2nd,Illusion,Phantasmal Force,Força Fantasmagórica,Força Fantasmagórica,Força Fantasmagórica,ok
+PHB'24,304,4th,Illusion,Phantasmal Killer,Assassino Fantasmagórico,Assassino Fantasmagórico,Assassino Fantasmagórico,ok
+PHB'24,304,3rd,Illusion (ritual),Phantom Steed,,,,sem_match
+PHB'24,304,6th,Conjuration,Planar Ally,Aliado Planar,Aliado Planar,Aliado Planar,ok
+PHB'24,305,5th,Abjuration,Planar Binding,Encadernação plana,Vínculo Planar,Vínculo Planar,ok
+PHB'24,305,7th,Conjuration,Plane Shift,Mudança de avião,Viagem Planar,Viagem Planar,ok
+PHB'24,305,3rd,Transmutation,Plant Growth,Crescimento das plantas,Crescer Plantas,Crescer Plantas,ok
+PHB'24,306,Cantrip,Necromancy,Poison Spray,Spray de veneno,Jato Venenoso,Jato Venenoso,ok
+PHB'24,306,4th,Transmutation,Polymorph,Polimorfo,Metamorfose,Metamorfose,ok
+PHB'24,306,7th,Enchantment,Power Word Fortify,Palavra de Poder Fortificar,Palavra de Poder: Fortificar,Palavra de Poder: Fortificar,ok
+PHB'24,306,9th,Enchantment,Power Word Heal,Palavra de Poder Cura,Palavra de Poder Cura,Palavra de Poder Cura,desambiguado
+PHB'24,306,9th,Enchantment,Power Word Kill,Palavra de Poder: Matar,Palavra de Poder: Matar,Palavra de Poder: Matar,desambiguado
+XGE,163,7th,Enchantment,Power Word Pain,Palavra de poder: Dor,Palavra de poder: Dor,Palavra de poder: Dor,ok
+PHB'24,306,8th,Enchantment,Power Word Stun,Palavra de Poder Atordoante,Palavra de Poder: Atordoar,Palavra de Poder: Atordoar,ok
+PHB'24,307,2nd,Abjuration,Prayer of Healing,Oração de Cura,Prece Curativa,Prece Curativa,ok
+PHB'24,307,Cantrip,Transmutation,Prestidigitation,Prestidigitação,Prestidigitação,Prestidigitação,ok
+XGE,163,Cantrip,Transmutation,Primal Savagery,Selvageria Primitiva,Selvageria Primitiva,Selvageria Primitiva,ok
+XGE,163,6th,Abjuration,Primordial Ward,Ala Primordial,Proteção Primordial,Proteção Primordial,ok
+PHB'24,307,7th,Evocation,Prismatic Spray,Spray Prismático,Rajada Prismática,Rajada Prismática,ok
+PHB'24,308,9th,Abjuration,Prismatic Wall,Parede Prismática,Muralha Prismática,Muralha Prismática,ok
+PHB'24,308,Cantrip,Conjuration,Produce Flame,Produzir chama,Produzir chama,Produzir chama,ok
+PHB'24,309,6th,Illusion,Programmed Illusion,Ilusão Programada,Ilusão Programada,Ilusão Programada,ok
+PHB'24,309,7th,Illusion,Project Image,Imagem do projeto,Projetar Imagem,Projetar Imagem,ok
+PHB'24,309,3rd,Abjuration,Protection from Energy,Proteção contra energia,Proteção contra Energia,Proteção contra Energia,ok
+PHB'24,309,1st,Abjuration,Protection from Evil and Good,Proteção contra o Mal e o Bem,Proteção contra o Bem e o Mal,Proteção contra o Bem e o Mal,ok
+PHB'24,310,2nd,Abjuration,Protection from Poison,Proteção contra veneno,Proteção contra Veneno,Proteção contra Veneno,ok
+XGE,163,9th,Enchantment,Psychic Scream,Grito Psíquico,Grito Psíquico,Grito Psíquico,ok
+EGW,188,3rd,Evocation,Pulse Wave,Onda de pulso,Onda Pulsante,Onda Pulsante,ok
+TCM'24,131,4th,Enchantment,Puppet Master,Mestre dos Fantoches,Mestre dos Fantoches,Mestre dos Fantoches,ok
+PHB'24,310,1st,Transmutation (ritual),Purify Food and Drink,,,,sem_match
+XGE,163,2nd,Transmutation,Pyrotechnics,Pirotecnia,Pirotecnia,Pirotecnia,ok
+PHB'24,310,5th,Necromancy,Raise Dead,Ressuscitar os mortos,Reviver Mortos,Reviver Mortos,ok
+PHB'24,311,5th,Divination (ritual),Rary's Telepathic Bond,,,,sem_match
+FTD,21,4th,Enchantment,Raulothim's Psychic Lance,Lança Psíquica de Raulothim,Lança Psíquica,Lança Psíquica,ok
+EGW,188,9th,Evocation,Ravenous Void,Vazio Voraz,Vazio Voraz,Vazio Voraz,ok
+PHB'24,311,2nd,Necromancy,Ray of Enfeeblement,Raio de Enfraquecimento,Raio de Enfraquecimento,Raio de Enfraquecimento,ok
+PHB'24,311,Cantrip,Evocation,Ray of Frost,Raio de Gelo,Raio de Gelo,Raio de Gelo,ok
+PHB'24,311,1st,Necromancy,Ray of Sickness,Raio da Doença,Raio da Doença,Raio da Doença,ok
+EGW,189,8th,Conjuration,Reality Break,Ruptura da realidade,Ruptura da Realidade,Ruptura da Realidade,ok
+PHB'24,311,7th,Transmutation,Regenerate,Regenerado,Regenerar,Regenerar,ok
+PHB'24,311,5th,Necromancy,Reincarnate,Reencarnar,Reencarnar,Reencarnar,ok
+PHB'24,312,3rd,Abjuration,Remove Curse,Remover Maldição,Remover Maldição,Remover Maldição,ok
+PHB'24,312,Cantrip,Abjuration,Resistance,Resistência,Resistência,Resistência,ok
+PHB'24,312,7th,Necromancy,Resurrection,Ressurreição,Ressurreição,Ressurreição,ok
+PHB'24,312,7th,Transmutation,Reverse Gravity,Gravidade reversa,Inverter Gravidade,Inverter Gravidade,ok
+PHB'24,312,3rd,Necromancy,Revivify,Revigorar,Revivificar,Revivificar,ok
+FTD,21,2nd,Evocation,Rime's Binding Ice,Gelo que une a Rime,Gelo Aprisionante,Gelo Aprisionante,ok
+PHB'24,312,2nd,Transmutation,Rope Trick,Truque com Corda,Truque com Corda,Truque com Corda,ok
+PHB'24,313,Cantrip,Evocation,Sacred Flame,Chama Sagrada,Chama Sagrada,Chama Sagrada,ok
+TCM'24,131,4th,Necromancy,Sacrificial Siphon,Sifão Sacrificial,Sifão Sacrificial,Sifão Sacrificial,ok
+PHB'24,313,1st,Abjuration,Sanctuary,Santuário,Santuário,Santuário,ok
+TCM'24,132,3rd,Transmutation,Sanctum of the Flock,Santuário do Rebanho,Santuário do Rebanho,Santuário do Rebanho,ok
+TCM'24,132,4th,Abjuration,Sanctum of the Shepherd,Santuário do Pastor,Santuário do Pastor,Santuário do Pastor,ok
+TCM'24,132,2nd,Divination,Sanguine Secrets,Segredos Sanguíneos,Segredos Sanguíneos,Segredos Sanguíneos,ok
+EGW,189,Cantrip,Necromancy,Sapping Sting,Picada de sugador,Ferroada Exaurente,Ferroada Exaurente,ok
+TCM'24,133,3rd,Evocation,Scarlet Dawn,Alvorada Escarlate,Alvorada Escarlate,Alvorada Escarlate,ok
+XGE,164,6th,Conjuration,Scatter,Dispersar,Dispersar,Dispersar,ok
+PHB'24,313,2nd,Evocation,Scorching Ray,Raio escaldante,Raio Ardente,Raio Ardente,ok
+PHB'24,313,5th,Divination,Scrying,Adivinhação,Vidência,Vidência,ok
+PHB'24,314,1st,Evocation,Searing Smite,Golpe Incandescente,Golpe Ardente,Golpe Ardente,ok
+PHB'24,314,2nd,Divination,See Invisibility,Veja Invisibilidade,Ver Invisibilidade,Ver Invisibilidade,ok
+PHB'24,314,5th,Illusion,Seeming,Aparente,Aparência,Aparência,ok
+PHB'24,314,3rd,Divination,Sending,Enviando,Enviar Mensagem,Enviar Mensagem,ok
+PHB'24,315,7th,Transmutation,Sequester,Sequestro,Sequestrar,Sequestrar,ok
+XGE,164,2nd,Illusion,Shadow Blade,Lâmina Sombria,Lâmina de Sombras,Lâmina de Sombras,ok
+TCM'24,133,3rd,Necromancy,Shadow Drain,Drenagem de Sombra,Drenagem Umbral,Drenagem Umbral,ok
+XGE,164,4th,Necromancy,Shadow of Moil,Sombra de Moil,Manto das Sombras,Manto das Sombras,ok
+XGE,164,Cantrip,Transmutation,Shape Water,Formar a Água,Moldar Água,Moldar Água,ok
+PHB'24,315,9th,Transmutation,Shapechange,Mudança de forma,Alterar Forma,Alterar Forma,ok
+PHB'24,316,2nd,Evocation,Shatter,Estilhaçar,Estilhaçar,Estilhaçar,ok
+PHB'24,316,1st,Abjuration,Shield,Escudo,Escudo Arcano,Escudo Arcano,ok
+PHB'24,316,1st,Abjuration,Shield of Faith,Escudo da Fé,Escudo da Fé,Escudo da Fé,ok
+PHB'24,316,Cantrip,Transmutation,Shillelagh,Shillelagh,Bordão Místico,Bordão Místico,ok
+PHB'24,316,2nd,Transmutation,Shining Smite,Golpe Brilhante,Golpe Brilhante,Golpe Brilhante,ok
+PHB'24,316,Cantrip,Evocation,Shocking Grasp,Agarrar chocante,Toque Chocante,Toque Chocante,ok
+XGE,164,4th,Evocation,Sickening Radiance,Radiância Doentia,Radiância Nauseante,Radiância Nauseante,ok
+PHB'24,316,2nd,Illusion (ritual),Silence,,,,sem_match
+PHB'24,317,1st,Illusion,Silent Image,Imagem silenciosa,Imagem Silenciosa,Imagem Silenciosa,ok
+SCC,38,1st,Enchantment,Silvery Barbs,,,,sem_match
+FRHoF,145,7th,Transmutation,Simbul's Synostodweomer,Sinostódio de Simbul,Reneração Arcana,Reneração Arcana,ok
+PHB'24,317,7th,Illusion,Simulacrum,Simulacro,Simulacro,Simulacro,ok
+XGE,165,5th,Transmutation,Skill Empowerment,Capacitação de Habilidades,Aprimoramento de Perícia,Aprimoramento de Perícia,ok
+XGE,165,2nd,Transmutation (ritual),Skywrite,,,,sem_match
+PHB'24,317,1st,Enchantment,Sleep,Dormir,Sono,Sono,ok
+PHB'24,317,3rd,Conjuration,Sleet Storm,Tempestade de granizo,Tempestade de Granizo,Tempestade de Granizo,ok
+PHB'24,318,3rd,Transmutation,Slow,Lento,Lentidão,Lentidão,ok
+XGE,165,1st,Abjuration,Snare,Laço,Laço,Laço,ok
+XGE,165,2nd,Evocation,Snilloc's Snowball Swarm,Enxame de bolas de neve de Snilloc,Chuva de Bolas de Neve,Chuva de Bolas de Neve,ok
+FRHoF,145,5th,Transmutation,Songal's Elemental Suffusion,Sufusão Elemental de Songal,Disfarce em Gênio,Disfarce em Gênio,ok
+PHB'24,318,Cantrip,Evocation,Sorcerous Burst,Explosão Mágica,Feitiço Explosivo,Feitiço Explosivo,ok
+XGE,165,6th,Necromancy,Soul Cage,Gaiola da Alma,Gaiola da Alma,Gaiola da Alma,ok
+PHB'24,318,Cantrip,Necromancy,Spare the Dying,Poupe os moribundos,Poupar os Moribundos,Poupar os Moribundos,ok
+PHB'24,318,1st,Divination (ritual),Speak with Animals,,,,sem_match
+PHB'24,318,3rd,Necromancy,Speak with Dead,Fale com os Mortos,Falar com Mortos,Falar com Mortos,ok
+PHB'24,319,3rd,Transmutation,Speak with Plants,Fale com as plantas,Falar com Plantas,Falar com Plantas,ok
+FRHoF,146,1st,Evocation,Spellfire Flare,Chama de Fogo Mágico,Explosão de Fogo Arcano,Explosão de Fogo Arcano,ok
+FRHoF,146,4th,Evocation,Spellfire Storm,Tempestade de Fogo Mágico,Tempestade de Fogo Arcano,Tempestade de Fogo Arcano,ok
+PHB'24,319,2nd,Transmutation,Spider Climb,Escalada de aranha,Escalada Aracnídea,Escalada Aracnídea,desambiguado
+PHB'24,319,2nd,Transmutation,Spike Growth,Crescimento de pico,Crescimento de Espinhos,Crescimento de Espinhos,desambiguado
+PHB'24,319,3rd,Conjuration,Spirit Guardians,Guardiões Espirituais,Guardiões Espirituais,Guardiões Espirituais,ok
+TCE,108,3rd,Necromancy,Spirit Shroud,Sudário Espiritual,Manto Espiritual,Manto Espiritual,ok
+BMT,50,4th,Necromancy,Spirit of Death,Espírito da Morte,Espírito da Morte,Espírito da Morte,ok
+PHB'24,319,2nd,Evocation,Spiritual Weapon,Arma Espiritual,Arma Espiritual,Arma Espiritual,ok
+BMT,50,2nd,Conjuration,Spray of Cards,Dispersão de cartas,Rajada de Cartas,Rajada de Cartas,ok
+PHB'24,320,4th,Enchantment,Staggering Smite,Golpe Estonteante,Golpe Estonteante,Golpe Estonteante,ok
+PHB'24,320,Cantrip,Evocation,Starry Wisp,Brilho Estrelado,Fagulha Estelar,Fagulha Estelar,ok
+PHB'24,320,5th,Conjuration,Steel Wind Strike,Golpe de Vento de Aço,Golpe de Vento de Aço,Golpe de Vento de Aço,ok
+PHB'24,321,3rd,Conjuration,Stinking Cloud,Nuvem fétida,Nuvem Fétida,Nuvem Fétida,ok
+PHB'24,321,4th,Transmutation,Stone Shape,Formato de pedra,Moldar Pedra,Moldar Pedra,desambiguado
+PHB'24,321,4th,Transmutation,Stoneskin,Pele de pedra,Pele de Pedra,Pele de Pedra,desambiguado
+XGE,166,4th,Evocation,Storm Sphere,Esfera de Tempestade,Esfera Tempestuosa,Esfera Tempestuosa,ok
+PHB'24,321,9th,Conjuration,Storm of Vengeance,Tempestade de Vingança,Tempestade da Vingança,Tempestade da Vingança,ok
+PHB'24,321,2nd,Enchantment,Suggestion,Sugestão,Sugestão,Sugestão,ok
+TCM'24,133,2nd,Evocation,Summer Winds,Ventos de Verão,Ventos de Verão,Ventos de Verão,ok
+PHB'24,322,4th,Conjuration,Summon Aberration,Invocar Aberração,Invocar Aberração,Invocar Aberração,ok
+PHB'24,322,2nd,Conjuration,Summon Beast,Invocar Besta,Invocar Besta,Invocar Besta,ok
+PHB'24,323,5th,Conjuration,Summon Celestial,Invocar Celestial,Invocar Celestial,Invocar Celestial,ok
+PHB'24,324,4th,Conjuration,Summon Construct,Construto de Invocação,Invocar Construto,Invocar Construto,ok
+PHB'24,324,5th,Conjuration,Summon Dragon,Invocar Dragão,Invocar Dragão,Invocar Dragão,ok
+PHB'24,325,4th,Conjuration,Summon Elemental,Invocar Elemental,Invocar Elemental,Invocar Elemental,ok
+PHB'24,326,3rd,Conjuration,Summon Fey,Invocar Fada,Invocar Fada,Invocar Fada,ok
+PHB'24,326,6th,Conjuration,Summon Fiend,Invocar Demônio,Invocar Demônio,Invocar Demônio,ok
+XGE,166,4th,Conjuration,Summon Greater Demon,Invocar Demônio Maior,Invocar Demônio Maior,Invocar Demônio Maior,ok
+XGE,167,3rd,Conjuration,Summon Lesser Demons,Invocar Demônios Menores,Invocar Demônios Menores,Invocar Demônios Menores,ok
+TCE,113,3rd,Conjuration,Summon Shadowspawn,Invocar Prole das Sombras,Invocar Prole das Sombras,Invocar Prole das Sombras,ok
+PHB'24,328,3rd,Necromancy,Summon Undead,Invocar Mortos-Vivos,Invocar Mortos-Vivos,Invocar Mortos-Vivos,ok
+PHB'24,329,6th,Evocation,Sunbeam,Raio de sol,Raio Solar,Raio Solar,ok
+PHB'24,329,8th,Evocation,Sunburst,Raio de Sol,Explosão Solar,Explosão Solar,ok
+PHB'24,329,5th,Transmutation,Swift Quiver,Aljava Veloz,Aljava Veloz,Aljava Veloz,ok
+TCE,115,Cantrip,Conjuration,Sword Burst,Explosão de Espada,Explosão de Lâminas,Explosão de Lâminas,ok
+FRHoF,147,3rd,Conjuration,Syluné's Viper,Víbora de Syluné,Vibora de Sono,Vibora de Sono,ok
+PHB'24,329,7th,Abjuration,Symbol,Símbolo,Símbolo,Símbolo,ok
+PHB'24,330,5th,Enchantment,Synaptic Static,Estática Sináptica,Estática Sináptica,Estática Sináptica,ok
+PHB'24,330,6th,Conjuration,Tasha's Bubbling Cauldron,Caldeirão Borbulhante de Tasha,Caldeirão Borbulhante de Bruxa,Caldeirão Borbulhante de Bruxa,ok
+TCE,115,1st,Evocation,Tasha's Caustic Brew,Cerveja Cáustica da Tasha,Infusão Cáustica da Bruxa,Infusão Cáustica da Bruxa,ok
+PHB'24,331,1st,Enchantment,Tasha's Hideous Laughter,A risada horrenda de Tasha,Riso Histérico,Riso Histérico,ok
+TCE,115,2nd,Enchantment,Tasha's Mind Whip,Chicote Mental de Tasha,Chicote Mental,Chicote Mental,ok
+TCE,116,6th,Transmutation,Tasha's Otherworldly Guise,O disfarce sobrenatural de Tasha,Disfarce Explanar,Disfarce Explanar,ok
+PHB'24,331,5th,Transmutation,Telekinesis,Telecinese,Telecinese,Telecinese,ok
+PHB'24,331,8th,Divination,Telepathy,Telepatia,Telepatia,Telepatia,ok
+PHB'24,331,7th,Conjuration,Teleport,Teletransporte,Teletransporte,Teletransporte,ok
+PHB'24,332,5th,Conjuration,Teleportation Circle,Círculo de Teletransporte,Círculo de Teletransporte,Círculo de Teletransporte,ok
+XGE,167,7th,Conjuration,Temple of the Gods,Templo dos Deuses,Templo dos Deuses,Templo dos Deuses,ok
+EGW,189,5th,Transmutation,Temporal Shunt,Derivação Temporal,Derivação Temporal,Derivação Temporal,ok
+PHB'24,332,1st,Conjuration (ritual),Tenser's Floating Disk,,,,sem_match
+XGE,168,6th,Transmutation,Tenser's Transformation,A transformação de Tenser,Despertar Físico,Despertar Físico,ok
+EGW,189,7th,Necromancy,Tether Essence,Essência de ligação,Atar Essência,Atar Essência,ok
+PHB'24,333,Cantrip,Transmutation,Thaumaturgy,Taumaturgia,Taumaturgia,Taumaturgia,desambiguado
+PHB'24,333,Cantrip,Transmutation,Thorn Whip,Chicote de Espinhos,Chicote de Espinhos,Chicote de Espinhos,desambiguado
+XGE,168,3rd,Conjuration,Thunder Step,Passo do Trovão,Passo do Trovão,Passo do Trovão,desambiguado
+PHB'24,333,Cantrip,Evocation,Thunderclap,Trovão,Estrondo Trovejante,Estrondo Trovejante,ok
+PHB'24,334,1st,Evocation,Thunderous Smite,Golpe Trovejante,Golpe Trovejante,Golpe Trovejante,ok
+PHB'24,334,1st,Evocation,Thunderwave,Onda de trovão,Onda de Trovão,Onda de Trovão,ok
+XGE,168,3rd,Conjuration,Tidal Wave,Onda gigante,Onda Marítima,Onda Marítima,desambiguado
+EGW,189,9th,Necromancy,Time Ravage,Devastação do Tempo,Devastação Temporal,Devastação Temporal,ok
+PHB'24,334,9th,Transmutation,Time Stop,Parada no tempo,Parar o Tempo,Parar o Tempo,ok
+XGE,168,3rd,Transmutation,Tiny Servant,Pequeno Servo,Pequeno Servo,Pequeno Servo,ok
+PHB'24,334,Cantrip,Necromancy,Toll the Dead,Toque o sino dos mortos,Soar dos Mortos,Soar dos Mortos,ok
+PHB'24,334,3rd,Divination,Tongues,Línguas,Idiomas,Idiomas,ok
+XGE,169,5th,Transmutation,Transmute Rock,Transmutar Rocha,Transmutar Rocha,Transmutar Rocha,ok
+PHB'24,334,6th,Conjuration,Transport via Plants,Transporte por meio de plantas,Transporte por Plantas,Transporte por Plantas,ok
+PHB'24,335,5th,Conjuration,Tree Stride,Passo da árvore,Passo Arbóreo,Passo Arbóreo,ok
+PHB'24,335,9th,Transmutation,True Polymorph,Polimorfo verdadeiro,Metamorfose Verdadeira,Metamorfose Verdadeira,ok
+PHB'24,336,9th,Necromancy,True Resurrection,Verdadeira Ressurreição,Ressurreição Verdadeira,Ressurreição Verdadeira,ok
+PHB'24,336,6th,Divination,True Seeing,Visão Verdadeira,Visão Verdadeira,Visão Verdadeira,ok
+PHB'24,336,Cantrip,Divination,True Strike,True Strike,Golpe Certeiro,Golpe Certeiro,ok
+PHB'24,336,8th,Conjuration,Tsunami,Tsunami,Tsunami,Tsunami,ok
+TCM'24,133,2nd,Enchantment,Unraveling Whisper,Desvendando o Sussurro,Sussurros Dissonantes,Sussurros Dissonantes,ok
+PHB'24,336,1st,Conjuration (ritual),Unseen Servant,,,,sem_match
+PHB'24,337,3rd,Necromancy,Vampiric Touch,Toque Vampírico,Toque Vampírico,Toque Vampírico,ok
+TCM'24,133,2nd,Illusion,Veil of the Reaper,Véu do Ceifador,Véu do Ceifador,Véu do Ceifador,ok
+PHB'24,337,Cantrip,Enchantment,Vicious Mockery,Zombaria cruel,Zombaria Viciosa,Zombaria Viciosa,ok
+PHB'24,337,4th,Evocation,Vitriolic Sphere,Esfera Vitriólica,Esfera Vitriólica,Esfera Vitriólica,ok
+SCC,38,2nd,Conjuration,Vortex Warp,,,,sem_match
+PHB'24,338,4th,Evocation,Wall of Fire,Muralha de Fogo,Muralha de Fogo,Muralha de Fogo,ok
+PHB'24,338,5th,Evocation,Wall of Force,Muralha de Força,Muralha de Energia,Muralha de Energia,ok
+PHB'24,339,6th,Evocation,Wall of Ice,Parede de Gelo,Parede de Gelo,Parede de Gelo,ok
+XGE,170,5th,Evocation,Wall of Light,Parede de Luz,Parede de Luz,Parede de Luz,ok
+XGE,170,3rd,Evocation,Wall of Sand,Parede de Areia,Parede de Areia,Parede de Areia,desambiguado
+PHB'24,339,5th,Evocation,Wall of Stone,Muro de Pedra,Muro de Pedra,Muro de Pedra,ok
+PHB'24,339,6th,Conjuration,Wall of Thorns,Muralha de Espinhos,Muralha de Espinhos,Muralha de Espinhos,ok
+XGE,170,3rd,Evocation,Wall of Water,Parede de Água,Parede de Água,Parede de Água,desambiguado
+FRHoF,147,1st,Abjuration,Wardaway,Wardaway,Afastar Proteção,Afastar Proteção,ok
+PHB'24,340,2nd,Abjuration,Warding Bond,Ligação de proteção,Vínculo Protetor,Vínculo Protetor,ok
+XGE,170,2nd,Evocation,Warding Wind,Vento protetor,Vento protetor,Vento protetor,ok
+SatO,12,2nd,Divination,Warp Sense,Sentido de dobra,Sentir Distorção,Sentir Distorção,ok
+PHB'24,340,3rd,Transmutation (ritual),Water Breathing,,,,sem_match
+PHB'24,340,3rd,Transmutation (ritual),Water Walk,,,,sem_match
+XGE,170,4th,Conjuration,Watery Sphere,Esfera aquosa,Esfera Aquosa,Esfera Aquosa,ok
+PHB'24,340,2nd,Conjuration,Web,Web,Teia,Teia,ok
+PHB'24,341,9th,Illusion,Weird,Esquisito,Estranheza,Estranheza,ok
+XGE,171,7th,Evocation,Whirlwind,Turbilhão,Redemoinho,Redemoinho,ok
+PHB'24,341,6th,Transmutation,Wind Walk,Caminhada ao Vento,Caminhar no Vento,Caminhar no Vento,ok
+PHB'24,341,3rd,Evocation,Wind Wall,Parede de Vento,Muralha de Vento,Muralha de Vento,ok
+PHB'24,341,9th,Conjuration,Wish,Desejar,Desejo,Desejo,ok
+PHB'24,343,1st,Evocation,Witch Bolt,Raio de Bruxa,Raio da Bruxa,Raio da Bruxa,ok
+SCC,38,2nd,Necromancy,Wither and Bloom,,,,sem_match
+PHB'24,343,Cantrip,Evocation,Word of Radiance,Palavra de Radiância,Palavra de Radiância,Palavra de Radiância,ok
+PHB'24,343,6th,Conjuration,Word of Recall,Palavra de Recordação,Palavra de Retorno,Palavra de Retorno,ok
+XGE,171,5th,Evocation,Wrath of Nature,Ira da Natureza,Ira da Natureza,Ira da Natureza,ok
+PHB'24,343,1st,Necromancy,Wrathful Smite,Golpe Furioso,Golpe Colérico,Golpe Colérico,ok
+EGW,190,2nd,Conjuration (ritual),Wristpocket,,,,sem_match
+PHB'24,343,5th,Enchantment,Yolande's Regal Presence,A Presença Majestosa de Yolande,Presença Majestosa,Presença Majestosa,ok
+XGE,171,1st,Transmutation,Zephyr Strike,Golpe Zéfiro,Golpe Zéfiro,Golpe Zéfiro,ok
+PHB'24,343,2nd,Enchantment,Zone of Truth,Zona da Verdade,Zona da Verdade,Zona da Verdade,ok

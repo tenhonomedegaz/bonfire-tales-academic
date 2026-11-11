@@ -1,4 +1,4 @@
-/* Local previews only. Economy operations remain native, CSRF-protected POSTs. */
+/* Navigation/filtering only. Economy operations remain native, CSRF-protected POSTs. */
 (() => {
   const root=document.querySelector('.mm-page');
   if(!root)return;
@@ -77,27 +77,6 @@
   const title=document.getElementById('mm-review-title');
   const back=document.getElementById('mm-review-back');
   const confirm=document.getElementById('mm-review-confirm');
-  function rewardQuote(form){
-    const input=form.elements.namedItem('quantidade');
-    const quantity=Number(input?.value||1),unit=Number(form.dataset.mmUnitPrice);
-    return {quantity,unit,total:quantity*unit,input};
-  }
-  root.querySelectorAll('.mm-redemption-form').forEach(form=>{
-    const {input}=rewardQuote(form);
-    const events=form.elements.namedItem('usar_moedas_evento');
-    function preview(){
-      input.setCustomValidity('');
-      events?.setCustomValidity('');
-      const quote=rewardQuote(form),valid=input.validity.valid;
-      form.querySelector('[data-mm-total]').textContent=valid?quote.total+' MM':'—';
-      if(valid&&quote.total>Number(form.dataset.mmBalance))input.setCustomValidity('MM insuficientes para esta quantidade.');
-      if(valid&&events?.checked&&quote.quantity>Number(form.dataset.mmEventBalance))events.setCustomValidity('Moedas de Evento insuficientes para esta quantidade.');
-    }
-    input.addEventListener('input',preview);
-    input.addEventListener('change',preview);
-    events?.addEventListener('change',preview);
-    preview();
-  });
   if(review&&details&&title&&back&&confirm&&typeof review.showModal==='function'){
     let pending=null;
     let sending=false;
@@ -112,7 +91,11 @@
       event.preventDefault();
       const submitter=event.submitter||form.querySelector('button[type="submit"]');
       details.replaceChildren();
-      if(form.dataset.mmReview==='registro'){
+      if(form.dataset.mmReview==='eventos'){
+        title.textContent='Revisar troca por Braseiros';
+        append('Personagem',form.elements.namedItem('personagem').selectedOptions[0]?.textContent.trim());
+        append('Moedas de Evento',value(form,'moedas'));
+      }else if(form.dataset.mmReview==='registro'){
         title.textContent='Revisar registro de mesa';
         append('Aventura',value(form,'nome'));
         append('Data',value(form,'data'));
@@ -124,15 +107,7 @@
         const reward=form.closest('.mm-reward');
         append('Ação',submitter?.textContent.trim());
         append('Recompensa',reward?.querySelector('h2')?.textContent.trim());
-        const quote=rewardQuote(form);
-        append('Quantidade',String(quote.quantity));
-        append('Custo unitário',quote.unit+' MM');
-        append('Total',quote.total+' MM');
-        const character=form.elements.namedItem('personagem');
-        if(character){
-          append('Personagem',character.selectedOptions[0]?.textContent.trim()+' (#'+character.value+')');
-          append('Moedas de Evento',form.elements.namedItem('usar_moedas_evento')?.checked?String(quote.quantity):'0');
-        }
+        append('Custo exibido',reward?.querySelector('.mm-price')?.textContent.trim());
       }
       pending={form,submitter};
       review.showModal();

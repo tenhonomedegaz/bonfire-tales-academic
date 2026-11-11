@@ -4,18 +4,6 @@
   "type": "moldura",
   "scope": "ambos",
   "layers": [
-    {
-      "slot": "avatar",
-      "file": "community-frame-arcane-pulse-v1.webp",
-      "fallback": "community-frame-arcane-pulse-v1.png",
-      "width": 512,
-      "height": 512,
-      "motion": "none",
-      "aperture": {
-        "cx": 49.707,
-        "cy": 50.977,
-        "diameter": 66.799
-      }
-    }
+    {"slot": "avatar", "file": "arcane-ring.svg", "fallback": "arcane-ring.svg", "width": 160, "height": 160, "anchor": "center", "motion": "pulse"}
   ]
 }

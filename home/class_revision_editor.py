@@ -10,8 +10,7 @@ from django.db import transaction
 
 from .content_versions import create_revision, digest, resolve_content, seal_ruleset
 from .models import TbClasse, TbClassehabilidade, TbRecursoclasse, TbRuleset, TbSubclasse
-from .versioned_classes import (EVALUATOR, MODELS, VOCABULARY, VersionedClassCatalog,
-                                _fields, validate_class_contracts)
+from .versioned_classes import EVALUATOR, MODELS, VOCABULARY, VersionedClassCatalog, _fields
 
 
 MODEL_BY_LABEL = {model._meta.label_lower: model for model in MODELS}
@@ -54,8 +53,8 @@ def _validate_row(model, row, class_id):
         raise ValueError('Feature level must be between 1 and 20.')
 
 
-def _prepare_revision(base_checksum, class_id, changes, presentation_source, *, contracts=None, lock=False):
-    if not isinstance(changes, list) or (not changes and contracts is None and presentation_source is None):
+def _prepare_revision(base_checksum, class_id, changes, presentation_source, *, lock=False):
+    if not isinstance(changes, list) or not changes:
         raise ValueError('At least one reviewed change is required.')
     if presentation_source not in (None, PRESENTATION_SOURCE):
         raise ValueError('Unsupported presentation source.')
@@ -104,8 +103,6 @@ def _prepare_revision(base_checksum, class_id, changes, presentation_source, *, 
             matches[0].update(updated)
     if presentation_source:
         payload['presentation_source'] = presentation_source
-    if contracts is not None:
-        payload['contracts'] = validate_class_contracts(contracts)
     _validate_snapshot(payload, class_id)
     return ruleset, identity, payload
 
@@ -128,10 +125,10 @@ def _validate_snapshot(payload, class_id):
                 raise ValueError('Dangling subclass reference.')
 
 
-def preview_class_revision(base_checksum, class_id, changes, *, presentation_source=None, contracts=None):
+def preview_class_revision(base_checksum, class_id, changes, *, presentation_source=None):
     """Compute a target checksum after the same preflight, without writing content."""
     ruleset, identity, payload = _prepare_revision(
-        base_checksum, class_id, changes, presentation_source, contracts=contracts)
+        base_checksum, class_id, changes, presentation_source)
     revision_checksum = digest({'identity': identity, 'payload': payload, 'dependencies': []})
     manifest = {**ruleset.manifest, identity: revision_checksum}
     target_checksum = digest({'manifest': manifest, 'evaluator': EVALUATOR,
@@ -143,7 +140,7 @@ def preview_class_revision(base_checksum, class_id, changes, *, presentation_sou
 
 @transaction.atomic
 def create_class_revision(base_checksum, class_id, changes, *, author=None,
-                          presentation_source=None, contracts=None):
+                          presentation_source=None):
     """Seal a copy of a class catalog, checking every change and binding.
 
     Each change has model, action and pk. ``update`` additionally has a
@@ -151,7 +148,7 @@ def create_class_revision(base_checksum, class_id, changes, *, author=None,
     ``remove`` omits a row from the new snapshot only. There is no client SQL.
     """
     ruleset, identity, payload = _prepare_revision(
-        base_checksum, class_id, changes, presentation_source, contracts=contracts, lock=True)
+        base_checksum, class_id, changes, presentation_source, lock=True)
     revision = create_revision(identity, payload, author=author)
     revisions = [entry.revision for entry in ruleset.entries.select_related('revision')
                  if entry.identity != identity]
@@ -164,13 +161,13 @@ def create_class_revision(base_checksum, class_id, changes, *, author=None,
 def class_revision_operation(payload, api_key):
     """Bounded API operation; publication remains an explicit later action."""
     from .db_access import ApiProblem
-    allowed = {'base_version', 'class_id', 'changes', 'presentation_source', 'contracts'}
+    allowed = {'base_version', 'class_id', 'changes', 'presentation_source'}
     if set(payload) - allowed or type(payload.get('class_id')) is not int:
         raise ApiProblem(400, 'invalid_class_revision', 'Operação de classe inválida.')
     try:
         ruleset = create_class_revision(
             payload['base_version'], payload['class_id'], payload.get('changes'),
-            author=None, presentation_source=payload.get('presentation_source'), contracts=payload.get('contracts'))
+            author=None, presentation_source=payload.get('presentation_source'))
     except TbRuleset.DoesNotExist:
         raise ApiProblem(404, 'base_not_found', 'Revisão de base não encontrada.') from None
     except (ValueError, KeyError, TypeError, TbClasse.DoesNotExist,
@@ -184,13 +181,13 @@ def class_revision_operation(payload, api_key):
 def class_revision_preview_operation(payload, api_key):
     """Read-scoped preflight of the same structured revision operation."""
     from .db_access import ApiProblem
-    allowed = {'base_version', 'class_id', 'changes', 'presentation_source', 'contracts'}
+    allowed = {'base_version', 'class_id', 'changes', 'presentation_source'}
     if set(payload) - allowed or type(payload.get('class_id')) is not int:
         raise ApiProblem(400, 'invalid_class_revision', 'Operação de classe inválida.')
     try:
         return preview_class_revision(
             payload['base_version'], payload['class_id'], payload.get('changes'),
-            presentation_source=payload.get('presentation_source'), contracts=payload.get('contracts'))
+            presentation_source=payload.get('presentation_source'))
     except TbRuleset.DoesNotExist:
         raise ApiProblem(404, 'base_not_found', 'Revisão de base não encontrada.') from None
     except (ValueError, KeyError, TypeError, TbClasse.DoesNotExist,

@@ -93,7 +93,6 @@
               <div class="space-y-2.5">
                 <h3 class="font-rpg font-bold text-[var(--ember)] text-sm uppercase tracking-widest border-b border-[var(--stroke)] pb-2 mb-1.5">Guia</h3>
                 <ul class="space-y-1.5">
-                  <li><a href="{% url 'masters_directory' %}" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Vitrine de mestres</a></li>
                   <li><a href="/mestre/se-tornando-mestre" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Se tornando mestre</a></li>
                   <li><a href="{% url 'bestiario' %}" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Bestiario</a></li>
                 </ul>
@@ -242,10 +241,10 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                             Jogadores
                         </a>
-                        {% if management_access %}
-                        <a href="{% url 'gestao:index' %}" class="flex items-center justify-center gap-2 px-3 py-2 text-sm font-bold text-white bg-gradient-to-r from-[var(--flame)] to-[var(--ember)] rounded-sm hover:brightness-110 transition-all shadow-[0_0_15px_rgba(210,23,23,0.3)] hover:shadow-[0_0_20px_rgba(210,23,23,0.6)]">
+                        {% if user.is_superuser %}
+                        <a href="/admin/" target="_blank" class="flex items-center justify-center gap-2 px-3 py-2 text-sm font-bold text-white bg-gradient-to-r from-[var(--flame)] to-[var(--ember)] rounded-sm hover:brightness-110 transition-all shadow-[0_0_15px_rgba(210,23,23,0.3)] hover:shadow-[0_0_20px_rgba(210,23,23,0.6)]">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                            Gestão
+                            Admin
                         </a>
                         {% endif %}
                         <form action="{% url 'logout' %}" method="post" class="w-full m-0">
@@ -331,10 +330,10 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                         Jogadores
                     </a>
-                    {% if management_access %}
-                    <a href="{% url 'gestao:index' %}" class="flex items-center gap-2 p-2 text-sm font-bold text-white bg-gradient-to-r from-[var(--flame)] to-[var(--ember)] rounded-sm">
+                    {% if user.is_superuser %}
+                    <a href="/admin/" target="_blank" class="flex items-center gap-2 p-2 text-sm font-bold text-white bg-gradient-to-r from-[var(--flame)] to-[var(--ember)] rounded-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                        Gestão
+                        Painel Admin
                     </a>
                     {% endif %}
                     <form action="{% url 'logout' %}" method="post" class="m-0">
@@ -395,7 +394,6 @@
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-[var(--muted)] transition-transform group-open/mob-cat:rotate-180"><path d="m6 9 6 6 6-6"/></svg>
                 </summary>
                 <div class="grid grid-cols-2 gap-x-4 gap-y-2 px-3 pb-3 pt-1 border-l-2 border-[var(--stroke)] ml-5 mt-1 text-sm text-[var(--muted)] mobile-cat-enter">
-                  <a href="{% url 'masters_directory' %}" class="hover:text-[var(--text)] py-1">Vitrine de mestres</a>
                   <a href="/mestre/se-tornando-mestre/" class="hover:text-[var(--text)] py-1">Guia Mestre</a>
                   <a href="/mestre/bestiario/" class="hover:text-[var(--text)] py-1">Bestiário</a>
                   <a href="/mercado/itens-mundanos/" class="hover:text-[var(--text)] py-1">Mercado</a>

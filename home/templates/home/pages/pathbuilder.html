@@ -22,6 +22,7 @@ markup de ficha nenhum — é impossível haver drift.{% endcomment %}
       <h1>Pathbuilder</h1>
     </div>
     <div class="pb-head-tools">
+      <a class="pb-btn" href="{% url 'hunter_laboratory' %}">Prévia do Caçador reworkado</a>
       <div class="pb-variant" role="tablist" aria-label="Variante da build">
         <button type="button" role="tab" class="pb-variant-tab" data-build-tab="0">Build A</button>
         <button type="button" role="tab" class="pb-variant-tab" data-build-tab="1">Build B</button>
@@ -249,5 +250,5 @@ markup de ficha nenhum — é impossível haver drift.{% endcomment %}
 tem o cromo do laboratório (stepper, cartões de escolha, painel).{% endcomment %}
 <link rel="stylesheet" href="{% static 'css/pages/ficha.css' %}?v=14">
 <link rel="stylesheet" href="{% static 'css/pages/pathbuilder.css' %}?v=4">
-<script src="{% static 'js/pathbuilder.js' %}?v=6" defer></script>
+<script src="{% static 'js/pathbuilder.js' %}?v=4" defer></script>
 {% endblock %}

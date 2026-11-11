@@ -1,0 +1,27 @@
+{
+  "scope": "13 live classes, 119 live subclasses, 512 sealed subclass occurrences, all 20 levels",
+  "source": "PostgreSQL DEV content and 7 sealed TbRuleset class catalogs",
+  "matrix": "builder-page-parity-baseline-2026-10-13.jsonl.gz",
+  "rows": 13980,
+  "catalog_paths": 699,
+  "counts": {
+    "matched_by_automated_audits": 7269,
+    "live": 2640,
+    "choice_review": 6711,
+    "corrected_spell_source_rows": 9360,
+    "sealed:4": 2640,
+    "sealed:6": 2640,
+    "sealed:7": 2640,
+    "sealed:11": 2520,
+    "sealed:1": 300,
+    "sealed:2": 300,
+    "sealed:3": 300
+  },
+  "uncompressed_sha256": "bbbe5b008adfec1a4e6709e9fdb3272201cc506998d764226aac3e75dc8a8e7b",
+  "compressed_sha256": "386f67bfe91696cd21d3c47074e4e74e33b51248eac00045d5fcdde284f7ecf0",
+  "limitations": [
+    "Choice review flags need source-role and prose triage.",
+    "Automated checks do not prove textual mechanics or UI parity.",
+    "Baseline reflects local DEV content at audit time; rerun before final integrated QA."
+  ]
+}

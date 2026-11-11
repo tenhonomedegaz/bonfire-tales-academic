@@ -1,0 +1,172 @@
+{
+  "schema": 1,
+  "common_tags": [
+    "attr:talent_attr_score+2",
+    "attr_max:talent_attr_score=30"
+  ],
+  "effects": {
+    "dadiva-do-reforco-mistico": [
+      "always_active{attr_max:sintonizacao=4}",
+      "cast{spell:identificar, always_prepared, uses{1, reset:long_rest}, without{slot}, without{components}}"
+    ],
+    "dadiva-da-mente-desperta": [
+      "sense:telepathy(range:+60ft)",
+      "if(already:resist{psiquico}): immune:psiquico else: resist:psiquico",
+      "cast{spell:detectar-pensamentos, always_prepared, at_will, without{slot}, without{components}}",
+      "cast{spell:telecinese, always_prepared, uses{1, reset:short_or_long}, without{slot}, without{components}}"
+    ],
+    "dadiva-da-resistencia-heroica": [
+      "trigger=failed_save(kind:any|death), result:success, lockout{self, reset:short_rest|long_rest}",
+      "instant{grant:heroic_inspiration@table}",
+      "trigger=heroic_inspiration_roll(result:failure), retain:heroic_inspiration"
+    ],
+    "dadiva-da-folia": [
+      "if(already:prof{atuacao}): expertise:atuacao else: prof:atuacao",
+      "pick:pericia_expertise:1(requires:already_expertise{atuacao})"
+    ],
+    "dadiva-da-resistencia-implacavel": [
+      "pick:damage_resistance:2(from:acido|frio|energia|fogo|raio|necrotico|veneno|psiquico|radiante|trovejante, upgrade:resist_to_immune, swap:long_rest)",
+      "trigger=take_damage(type:chosen_resistance), target{range:60ft, visible, unless:total_cover}, save:dex(dc:8+pb+declared(spell_mod|con_mod)), dmg:3d12+declared(spell_mod|con_mod), uses{1, reset:round, reaction:free}"
+    ],
+    "dadiva-do-destino": [
+      "trigger=d20_result, range:60ft, roll:2d4, buff:d20(plus_or_minus:2d4), uses{1, reset:initiative_or_short_or_long}",
+      "trigger=self_natural_critical, reset:alter_fate(direction:critical_opposite)"
+    ],
+    "dadiva-do-horror": [
+      "cond_immune:amedrontado",
+      "if(already:prof{intimidacao}): expertise:intimidacao else: prof:intimidacao",
+      "instant{trigger=damage_enemy, apply:horror(duration:until_source_turn_start)}"
+    ],
+    "dadiva-do-conjurador-de-combate": [
+      "trigger=cast_spell(circle:1+), damage_die_floor:3(roll:1|2)",
+      "always_active{suppress{concentration_break}}"
+    ],
+    "dadiva-da-viagem-dimensional": [
+      "teleport:30ft(dest:unoccupied_visible, timing:before_or_after_attack_or_magic_action)",
+      "cast{spell:porta-dimensional, always_prepared, uses{1, reset:short_or_long}, without{slot}, without{components}}"
+    ],
+    "dadiva-do-espirito-noturno": [
+      "while_active{requires:in_dim_light, action:bonus_action, instant{apply:invisivel(target:self)}}",
+      "while_active{requires:in_dim_light, resist:concussao, resist:cortante, resist:perfurante}"
+    ],
+    "dadiva-do-ceifador-de-almas": [
+      "immune:veneno",
+      "cond_immune:envenenado",
+      "adv:death_save",
+      "trigger=death_by_damage(source:self), restricts{resurrection, undead_transformation, except:desejo|ressurreicao_verdadeira}",
+      "trigger=damage_roll(source:attack|spell|feature), choose:damage_type, maximize:all_dice_of_chosen_type, lockout{target, reset:target_death|short_rest|long_rest}"
+    ],
+    "dadiva-das-sombras-vivas": [
+      "while_active{trigger=attack_action, reach:+10ft, duration:until_turn_end}",
+      "while_active{action:bonus_action, instant{dodge}}"
+    ],
+    "dadiva-da-carnificina": [
+      "while_active{trigger=drop_to_0, requires:can_see, adv:attack{scope:next_attack, until:next_turn_end}}",
+      "while_active{requires:self{sangrando}, 1/turn, instant{trigger=hit, dmg:+lvl}}",
+      "while_active{requires:self{sangrando}, crit_range:+1}"
+    ],
+    "dadiva-da-velocidade": [
+      "speed:+30",
+      "cond_immune:paralisado",
+      "cond_immune:restringido",
+      "escape{action:move, condition:agarrado, cost:5ft}",
+      "cast{spell:velocidade, always_prepared, uses{1, reset:short_or_long}, without{slot}, without{components}, without{lethargy}}"
+    ],
+    "dadiva-do-dominio-do-ceu": [
+      "always_active{move:fly(=walk, hover, fall_threshold:5ft, fall_speed:60ft)}",
+      "cast{spell:caminhar-no-vento, without{slot}, without{components}, uses{1, reset:long_rest}, always_prepared}"
+    ],
+    "dadiva-do-ataque-implacavel": [
+      "always_active{ignore:resist(concussao,cortante,perfurante)}",
+      "always_active{crit_dmg:+talent_attr_score}"
+    ],
+    "dadiva-da-memoria-arcana": [
+      "if(already:prof{arcanismo}): expertise:arcanismo else: prof:arcanismo",
+      "pick:pericia_expertise:1(requires:already_expertise{arcanismo})",
+      "cast{spell_level:1|2|3|4, roll:d4, match_level:without_slot}"
+    ],
+    "dadiva-da-saude-abundante": [
+      "always_active{temp_hp:+5}",
+      "always_active{modify:hit_die=maximum}"
+    ],
+    "dadiva-da-recuperacao": [
+      "trigger=reduce_to_0(target:self), instant{set:hp=1, heal:half(max_hp)}, uses{1, reset:long_rest}",
+      "define{recovery_pool: max:10, die:d10, reset:short_or_long}, action:bonus_action, uses{10, reset:short_or_long}, heal:sum(rolled_d10)@self"
+    ],
+    "dadiva-da-tempestade": [
+      "always_active{resist:raio, resist:trovejante}",
+      "while_active{requires:self{sangrando}, immune:raio, immune:trovejante}",
+      "dadv:spell_save{damage:raio|trovejante}"
+    ],
+    "dadiva-da-fortitude": [
+      "always_active{buff:max_hp:+40}",
+      "always_active{trigger=healing, 1/turn, instant{heal:+con_mod}}"
+    ],
+    "dadiva-da-visao-verdadeira": [
+      "sense:truesight(range:120ft)"
+    ],
+    "dadiva-da-resiliencia-sangrenta": [
+      "while_active{requires:self{sangrando}, resist:acido, resist:concussao, resist:frio, resist:fogo, resist:raio, resist:necrotico, resist:perfurante, resist:veneno, resist:psiquico, resist:radiante, resist:cortante, resist:trovejante}"
+    ],
+    "dadiva-do-erudito": [
+      "prof:acrobacia",
+      "prof:adestrar_animais",
+      "prof:arcanismo",
+      "prof:atletismo",
+      "prof:atuacao",
+      "prof:enganacao",
+      "prof:furtividade",
+      "prof:historia",
+      "prof:intimidacao",
+      "prof:intuicao",
+      "prof:investigacao",
+      "prof:medicina",
+      "prof:natureza",
+      "prof:percepcao",
+      "prof:persuasao",
+      "prof:prestidigitacao",
+      "prof:religiao",
+      "prof:sobrevivencia",
+      "expertise:original_prof"
+    ],
+    "dadiva-do-devorador-de-almas": [
+      "if(already:resist{frio}): immune:frio else: resist:frio",
+      "if(already:resist{necrotico}): immune:necrotico else: resist:necrotico",
+      "trigger=enemy_reduce_to_0(range:120ft, source:not{self}), action=reaction, instant{heal:50(target:self)}, uses{pb, reset:long_rest}"
+    ],
+    "dadiva-da-sorte-tola": [
+      "trigger=failed_save(kind:any|death), reroll:d20(keep:new), lockout{self, reset:turn_start}"
+    ],
+    "dadiva-da-aptidao-de-batalha": [
+      "attack_roll:immune(disadvantage)",
+      "trigger=failed_attack, convert:hit, lockout{self, reset:turn_start}"
+    ]
+  },
+  "declarative_tags": {
+    "dadiva-da-maestria-de-escola-arcana": [
+      "spell_selection:any{nivel:1, qtd:1, escola:pick:escola_dominada, always_prepared, extra, fora_do_limite}",
+      "cast{spell:spell_selection, at_will, without{slot}, without{components}}",
+      "spell_selection:any{nivel:7, qtd:1, escola:pick:escola_dominada, always_prepared, extra, fora_do_limite}",
+      "cast{spell:spell_selection, uses{1, reset:long_rest}, without{slot}}"
+    ],
+    "dadiva-da-marca-arcana-superior": [
+      "spell_selection:any{spell_marca:decreto_definitivo, always_prepared, extra, fora_do_limite}",
+      "cast{spell:spell_selection, uses{1, reset:long_rest}, without{slot}, without{components}}"
+    ],
+    "dadiva-da-manipulacao-corporea": [
+      "restriction{forma: creature_type:besta|humanoide|monstruosidade, max_cr:10}",
+      "uses{1, reset:long_rest}",
+      "always_active{temp_hp:+20}"
+    ],
+    "dadiva-do-alvorecer-ardente": [
+      "aura{radius:30ft,target:allies,effects{temp_hp:+10}}",
+      "if(already:resist{radiante}): immune:radiante else: resist:radiante"
+    ]
+  },
+  "declarative_gaps": {
+    "dadiva-da-maestria-de-escola-arcana": "Falta vincular uma escola dominada às duas escolhas de magia e aos usos distintos de conjuração.",
+    "dadiva-da-marca-arcana-superior": "Falta resolver a Marca Arcana e seu decreto definitivo antes de conceder a magia selecionada.",
+    "dadiva-da-manipulacao-corporea": "Falta um consumidor de transformação com lista de formas, CR e duração para aplicar a restrição da fonte.",
+    "dadiva-do-alvorecer-ardente": "Falta ciclo de vida da aura e seus gatilhos de incapacitação, escuridão e ataque para aplicar a fonte sem simplificá-la."
+  }
+}

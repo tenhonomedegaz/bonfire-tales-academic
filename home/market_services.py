@@ -70,39 +70,16 @@ def sync_training(personagem, *, now=None):
     return completed
 
 
-def training_catalog_entry(token):
-    from .models import TbIdioma, TbItemMundano
+def start_training(personagem, token):
+    from .models import (
+        TbIdioma, TbItemMundano, TbPersonagem, TbPersonagemTreinamento,
+    )
     tipo, sep, slug = str(token or '').partition(':')
     if not sep or tipo not in {'idioma', 'ferramenta'} or not slug:
-        return None, None
+        return None, 'treinamento_invalido'
     catalog = (TbIdioma.objects.filter(slug=slug).first() if tipo == 'idioma'
                else TbItemMundano.objects.filter(
                    slug=slug, categoria='ferramenta').first())
-    return tipo, catalog
-
-
-@transaction.atomic
-def register_completed_training(personagem, token):
-    """Record an attested legacy training; no charge, timer or paid-training rewrite."""
-    from django.core.exceptions import ValidationError
-    from .models import TbPersonagem, TbPersonagemProficiencia, TbPersonagemTreinamento
-    tipo, catalog = training_catalog_entry(token)
-    if catalog is None:
-        raise ValidationError('Treinamento não encontrado no catálogo.')
-    personagem = TbPersonagem.objects.select_for_update().get(pk=personagem.pk)
-    existing = personagem.proficiencias.filter(tipo=tipo, nome__iexact=catalog.nome).first()
-    if existing:
-        return existing, False
-    if TbPersonagemTreinamento.objects.filter(id_personagem=personagem,
-            tipo=tipo, nome__iexact=catalog.nome, status='ativo').exists():
-        raise ValidationError('Este treinamento pago está em andamento. Não será alterado por esta operação.')
-    return TbPersonagemProficiencia.objects.get_or_create(id_personagem=personagem,
-        tipo=tipo, nome__iexact=catalog.nome, defaults={'nome': catalog.nome, 'origem': 'Treinamento'})
-
-
-def start_training(personagem, token):
-    from .models import TbPersonagem, TbPersonagemTreinamento
-    tipo, catalog = training_catalog_entry(token)
     if catalog is None:
         return None, 'treinamento_invalido'
 

@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "source_sha256": "41e9c80b84fc08ed9cffa6fa1def5d0356f6fca4dc34ada46f21b8095f99b326",
+  "rows": [
+    {
+      "pk": 871,
+      "slug": "wolf",
+      "before_sha256": "c22caf1d996c05d1bcf2966774889f0bb59078cd021422651b64ca31f4a496a2",
+      "after_sha256": "9cd5392fc3e52fa92e44fc9710df07eea8de525ea8ca7331fa815ec997b960e9",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bite",
+          "source_entries_sha256": "14aa27f6e8b3559aa088efa58e453c53ebebec31f41a018e0c79cd6c70ba6f3e",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d6+2(perfurante), instant{trigger=hit, requires:target{size<=medio}, apply:caido}}"
+          ],
+          "correct_prone_name": true
+        }
+      ]
+    },
+    {
+      "pk": 283,
+      "slug": "dire-wolf",
+      "before_sha256": "e57d7a8e565268ffc83b78e1aacd00af018d8677eb957e3ba2185640b9c6e8fb",
+      "after_sha256": "3a970ab981e926ee11e26deb63dd3eb99733223c9b55baac9411c475ff542563",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bite",
+          "source_entries_sha256": "b776dcde3047dd94cc12979b7076df466f9368281f219344ddc17438376cc17d",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d10+3(perfurante), instant{trigger=hit, requires:target{size<=grande}, apply:caido}}"
+          ],
+          "correct_prone_name": true
+        }
+      ]
+    },
+    {
+      "pk": 870,
+      "slug": "winter-wolf",
+      "before_sha256": "e9486f3630251a14acdeae14181ebaa79034ebd0f8823da01ad5fab26bc3a7ad",
+      "after_sha256": "63323e46ff28360aa6bd8edffb191231f701415715fc8339d6c203fdf550c2fc",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bite",
+          "source_entries_sha256": "95806d0c618771ae5a38a410cd1eaca1f821bc96707938a1d8ea28f0beb1747b",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:2d6+4(perfurante), instant{trigger=hit, requires:target{size<=grande}, apply:caido}}"
+          ],
+          "correct_prone_name": true
+        }
+      ]
+    },
+    {
+      "pk": 200,
+      "slug": "brown-bear",
+      "before_sha256": "8a0343f92159198bf36e9fcb9f9fde179d8d76cafc4f67b86c9845e763f1ae53",
+      "after_sha256": "40b9ef388abbc1cfb3087f438de032159d08cd4fb1b0b113e3060b84ec26fa3a",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "2b0cdfc77f9767d2273d7442ab59d15dcf1fc292fc90d06122ae9ec9a2121ae7",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d4+3(cortante), instant{trigger=hit, requires:target{size<=grande}, apply:caido}}"
+          ],
+          "correct_prone_name": true
+        }
+      ]
+    },
+    {
+      "pk": 803,
+      "slug": "tiger",
+      "before_sha256": "8ae47b488bd101ff301c2f8fd95f2a7ddf7060c91944f9bc04ecbd383baa0312",
+      "after_sha256": "9a2e3edfe361a99d1349c249a31aaab78a10c32922a75b42aa5623b708b45c8f",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Rend",
+          "source_entries_sha256": "38836993d049810817eb9f8e6f3c6bdfc2613e6e0c268da10c23d8c1f199af57",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:2d6+3(cortante), instant{trigger=hit, requires:target{size<=grande}, apply:caido}}"
+          ],
+          "correct_prone_name": true
+        }
+      ]
+    }
+  ]
+}

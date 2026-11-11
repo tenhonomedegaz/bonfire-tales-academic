@@ -15,32 +15,23 @@ class CosmeticSequenceTests(SimpleTestCase):
     def parse(self, raw):
         return parse_package(raw, raw['slug'], 'efeito')
 
-    def rig(self, raw):
-        return next(layer for layer in raw['layers'] if layer.get('parts')
-                    and layer.get('sequence', {}).get('backdrop', 0) > 0)
-
     def test_sequence_survives_validation_and_template_serialization(self):
         package = self.parse(self.raw)
         self.assertIsNotNone(package)
-        expected = self.rig(self.raw)
-        layer = next(layer for layer in package['banner'] if layer.get('parts')
-                     and layer.get('sequence', {}).get('backdrop', 0) > 0)
+        layer = package['banner'][-1]
         self.assertEqual(layer['sequence']['columns'], 1)
-        self.assertEqual(layer['sequence'], expected['sequence'])
-        self.assertEqual(len(layer['parts']), len(expected['parts']))
-        self.assertNotIn('mask_url', layer)
-        for pose, source in zip(layer['parts'], expected['parts']):
-            self.assertTrue(pose['url'].endswith('/' + source['file']))
-            self.assertEqual(pose['sequence'], source['sequence'])
-            self.assertEqual(pose['placement'], source['placement'])
-        self.assertTrue(all(f['frame'] == 0 for f in layer['sequence']['frames']))
+        self.assertEqual(layer['sequence']['duration'], 18)
+        self.assertEqual(len(layer['sequence']['frames']), 24)
+        self.assertEqual(len(layer['parts']), 2)
+        self.assertEqual(len(layer['parts'][0]['sequence']['frames']), 24)
+        self.assertGreaterEqual(len({f['x'] for f in layer['parts'][0]['sequence']['frames']}), 16)
         html = get_template('home/partials/_cosmetic_preview.html').render({'layers': package['banner'], 'slot': 'banner'})
         self.assertIn('data-cosmetic-parts=', html)
         self.assertIn('data-cosmetic-sequence="{&quot;columns&quot;:1', html)
         self.assertNotIn('data-cosmetic-sequence="{"columns"', html)
 
     def test_numeric_timeline_rejects_malformed_or_unsafe_input(self):
-        seq = self.rig(self.raw)['sequence']
+        seq = self.raw['layers'][-1]['sequence']
         invalid = [None, [], {}, dict(seq, columns=True), dict(seq, columns=0),
                    dict(seq, columns=9), dict(seq, duration=float('nan')),
                    dict(seq, duration=.5), dict(seq, delay=5), dict(seq, backdrop=1),
@@ -55,14 +46,14 @@ class CosmeticSequenceTests(SimpleTestCase):
             invalid.append(bad)
         for sequence in invalid:
             raw = copy.deepcopy(self.raw)
-            self.rig(raw)['sequence'] = sequence
+            raw['layers'][-1]['sequence'] = sequence
             with self.subTest(sequence=sequence):
                 self.assertIsNone(self.parse(raw))
 
     def test_atlas_cannot_be_attached_to_avatars_or_conflicting_motions(self):
         for change in ({'slot': 'avatar'}, {'motion': 'drift'}, {'sprite': 'open'}):
             raw = copy.deepcopy(self.raw)
-            self.rig(raw).update(change)
+            raw['layers'][-1].update(change)
             with self.subTest(change=change):
                 self.assertIsNone(self.parse(raw))
 

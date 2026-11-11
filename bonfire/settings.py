@@ -1,7 +1,6 @@
 
 
 import importlib.util
-import json
 import os
 from pathlib import Path
 from urllib.parse import urlparse
@@ -56,22 +55,7 @@ for _k, _v in _PROJECT_ENV.items():
 
 
 DEBUG = _env_bool("DJANGO_DEBUG", False)
-VTT_LAB_ENABLED = _env_bool('VTT_LAB_ENABLED', False)
-# Reopening the incomplete application form requires an explicit deployment setting.
-MASTER_APPLICATIONS_OPEN = _env_bool('MASTER_APPLICATIONS_OPEN', False)
-MASTER_ROSTER_MAX_NUMBER = int(os.environ.get('MASTER_ROSTER_MAX_NUMBER', '76'))
-# Keep the legacy activation alias until its active source has been migrated.
 HUNTER_CREATOR_RULESET_CHECKSUM = os.environ.get('HUNTER_CREATOR_RULESET_CHECKSUM', '').strip()
-# Published pointers take precedence at read time; explicit general mappings win
-# over the compatibility alias. Neither setting changes existing character pins.
-try:
-    CLASS_CATALOG_RULESETS = json.loads(os.environ.get('CLASS_CATALOG_RULESETS', '{}'))
-except (TypeError, ValueError) as exc:
-    raise ImproperlyConfigured('CLASS_CATALOG_RULESETS deve ser um objeto JSON.') from exc
-if not isinstance(CLASS_CATALOG_RULESETS, dict):
-    raise ImproperlyConfigured('CLASS_CATALOG_RULESETS deve ser um objeto JSON.')
-if HUNTER_CREATOR_RULESET_CHECKSUM:
-    CLASS_CATALOG_RULESETS.setdefault('cacador', HUNTER_CREATOR_RULESET_CHECKSUM)
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 if not SECRET_KEY:

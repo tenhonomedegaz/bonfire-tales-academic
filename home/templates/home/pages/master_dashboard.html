@@ -1,59 +1,36 @@
-{% extends 'home/gestao/shell.html' %}{% load static tz %}
-{% block extra_head %}{{ block.super }}
-<link rel="stylesheet" href="{% static 'css/pages/gestao-masters.css' %}?v=1">
-<link rel="stylesheet" href="{% static 'css/pages/master-moderation-review.css' %}?v=1">
-<script defer src="{% static 'js/master-moderation-review.js' %}?v=1"></script>
-{% endblock %}
-{% block gestao_content %}
-<div class="gestao-masters">
-<header class="gestao-heading"><h1>Mestres e divulgação</h1>{% if can_review or can_review_work %}<a class="gestao-button" href="{% url 'gestao:editorial' %}">Revisões editoriais</a>{% else %}<a class="gestao-button" href="{% url 'gestao:index' %}">Central</a>{% endif %}</header>
-<nav class="gestao-master-tabs" aria-label="Gestão de mestres">
-{% if can_authorize %}<a href="#permissoes">Mestres e apresentações</a>{% endif %}
-{% if can_review %}<a href="#revisao">Anúncios</a>{% endif %}
-{% if can_review_work %}<a href="{% url 'master_gallery_review' %}">Trabalhos da galeria</a>{% endif %}
-{% if can_authorize %}<a href="#vitrine-comercial">Vitrine demonstrativa</a>{% endif %}
-</nav>
-{% if not master_applications_open %}<p class="gestao-notice" role="status">Novas solicitações estão temporariamente encerradas. Autorizações exigem uma Fogueira vinculada ao cadastro vigente.</p>{% endif %}
-{% if notice %}<p class="gestao-notice" role="status">Alteração salva.</p>{% endif %}
+{% extends 'home/pages/master_shell.html' %}{% load tz %}{% block master_content %}
+<header class="mh-compact-head"><p class="mh-eyebrow">Administração Bonfire</p><h1>Permissões e divulgação</h1><p>A equipe autoriza mestres. Cada mestre constrói seu portfólio na aba Mestre do próprio perfil.</p><a class="mh-text-link" href="{% url 'profile' %}?aba=mestre">Voltar ao meu perfil →</a></header>
+{% if notice %}<p class="mh-notice" role="status">Alteração salva.</p>{% endif %}{% if can_review_work %}<p><a class="mh-text-link" href="{% url 'master_gallery_review' %}">Revisar trabalhos da galeria →</a></p>{% endif %}
+{% if can_authorize %}<section class="mh-section" id="permissoes"><div class="mh-section-head"><h2>Solicitações de mestre</h2><span class="mh-count">{{ pending_master_count }} aguardando</span></div><p class="mh-intro">Autorizar libera a apresentação pública do mestre neste site. Não altera cargos ou missões no Discord, moedas ou permissões de administrador.</p>
+<form method="get" action="{% url 'master_dashboard' %}#permissoes" class="mh-filter" aria-label="Filtrar solicitações de mestre">
+  <div class="mh-field"><label for="master-applicant">Solicitante</label><input id="master-applicant" type="search" name="solicitante" value="{{ request_search }}" maxlength="120"></div>
+  <div class="mh-field"><label for="master-request-status">Estado do pedido</label><select id="master-request-status" name="permissao">{% for value,label in request_status_options %}<option value="{{ value }}"{% if request_status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+  <button class="mh-button" type="submit">Filtrar</button>
+</form>
+{% for applicant in master_requests %}<article class="mh-own-table"><div><span class="mh-state" data-state="{{ applicant.status_mestre }}">{{ applicant.get_status_mestre_display }}</span><h3>{{ applicant.user.username }}</h3><p>Solicitado em {{ applicant.solicitado_em|timezone:'America/Sao_Paulo'|date:'d/m/Y · H:i' }}</p></div><form class="mh-review-form" data-master-moderation="permissao" method="post" action="{% url 'master_authorize' applicant.user_id %}">{% csrf_token %}<input type="hidden" name="versao" value="{{ applicant.versao }}"><label for="master-note-{{ applicant.pk }}">Retorno privado ao jogador</label><input id="master-note-{{ applicant.pk }}" name="nota" maxlength="500" value="{{ applicant.nota_avaliacao }}"><label class="mh-check"><input type="checkbox" name="confirmar" value="sim" required><span>Confirmo a alteração desta permissão de mestre.</span></label><div class="mh-actions">{% if applicant.status_mestre == 'aprovado' %}<button class="mh-button mh-button-ghost mh-button-small" name="acao" value="suspender">Suspender permissão</button>{% else %}<button class="mh-button mh-button-small" name="acao" value="autorizar">Autorizar mestre</button>{% if applicant.status_mestre == 'pendente' %}<button class="mh-button mh-button-ghost mh-button-small" name="acao" value="recusar">Não aprovar</button>{% endif %}{% endif %}</div></form></article>{% empty %}<p class="mh-empty">Nenhuma solicitação encontrada para este filtro.</p>{% endfor %}
+{% if master_requests_page.paginator.num_pages > 1 %}<nav class="mh-actions" aria-label="Páginas de solicitações">
+{% if master_requests_page.has_previous %}<a class="mh-text-link" href="?permissao={{ request_status }}&amp;solicitante={{ request_search|urlencode }}&amp;solicitacoes_pagina={{ master_requests_page.previous_page_number }}#permissoes">← Anterior</a>{% endif %}
+<span>Página {{ master_requests_page.number }} de {{ master_requests_page.paginator.num_pages }}</span>
+{% if master_requests_page.has_next %}<a class="mh-text-link" href="?permissao={{ request_status }}&amp;solicitante={{ request_search|urlencode }}&amp;solicitacoes_pagina={{ master_requests_page.next_page_number }}#permissoes">Próxima →</a>{% endif %}
+</nav>{% endif %}</section>{% endif %}
+{% if can_review %}<section class="mh-section" id="revisao"><div class="mh-section-head"><h2>Anúncios para revisar</h2><span class="mh-count">{{ review_queue|length }}</span></div><p class="mh-intro">A autorização de mestre e a aprovação de um anúncio são ações distintas. Confira as informações da missão antes de divulgar.</p>{% for table in review_queue %}<article class="mh-own-table"><div><h3>{{ table.titulo }}</h3><p>{{ table.mestre.username }} · {{ table.ranks_display }} · {{ table.data|timezone:'America/Sao_Paulo'|date:'d/m H:i' }}</p><a class="mh-text-link" href="{% url 'master_table_detail' table.pk %}">Ler anúncio completo →</a></div><form class="mh-review-form" data-master-moderation="mesa" method="post" action="{% url 'master_table_action' table.pk %}">{% csrf_token %}<input type="hidden" name="revisao" value="{{ table.revisao }}"><label for="review-note-{{ table.pk }}">Retorno privado ao autor</label><input id="review-note-{{ table.pk }}" name="nota" maxlength="500"><div class="mh-actions"><button class="mh-button mh-button-small" name="acao" value="aprovar">Aprovar divulgação</button><button class="mh-button mh-button-ghost mh-button-small" name="acao" value="ajustes">Pedir ajustes</button></div></form></article>{% empty %}<p class="mh-empty">Nenhum anúncio aguardando revisão.</p>{% endfor %}</section>{% endif %}
 {% if can_authorize %}
-<section class="gestao-portal-section" id="permissoes">
-<header class="gestao-section-heading"><h2>Mestres e apresentações</h2><span>{{ pending_master_count }} aguardando autorização</span></header>
-<form method="get" action="{% url 'master_dashboard' %}#permissoes" class="gestao-filters" aria-label="Filtrar solicitações de mestre">
-<div class="gestao-field gestao-grow"><label for="master-applicant">Nome de usuário</label><input id="master-applicant" type="search" name="solicitante" value="{{ request_search }}" maxlength="120"></div>
-<div class="gestao-field"><label for="master-request-status">Estado do cadastro</label><select id="master-request-status" name="permissao">{% for value,label in request_status_options %}<option value="{{ value }}"{% if request_status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
-<button class="gestao-button" type="submit">Filtrar</button></form>
-{% for applicant in master_requests %}
-<article class="gestao-master-record" id="master-{{ applicant.user_id }}">
-<div><header><h3>{{ applicant.user.username }}</h3><span class="gestao-status">{{ applicant.get_status_mestre_display }}</span></header>
-<p>{% for number in applicant.fogueiras %}{{ number }}{% if not forloop.last %} · {% endif %}{% empty %}Sem Fogueira vinculada{% endfor %}</p>
-<p class="gestao-muted">Solicitado em {{ applicant.solicitado_em|timezone:'America/Sao_Paulo'|date:'d/m/Y · H:i'|default:'Não registrado' }}</p>
-<details><summary>Apresentação de mestre</summary>
-<dl><dt>Apresentação</dt><dd>{{ applicant.apresentacao|default:'Não preenchida'|linebreaksbr }}</dd><dt>Estilo</dt><dd>{{ applicant.estilo|default:'Não preenchido' }}</dd><dt>Disponibilidade</dt><dd>{{ applicant.disponibilidade|default:'Não preenchida' }}</dd><dt>Experiência</dt><dd>{{ applicant.experiencia|default:'Não preenchida'|linebreaksbr }}</dd><dt>Combinados</dt><dd>{{ applicant.combinados|default:'Não preenchidos'|linebreaksbr }}</dd><dt>Vitrine</dt><dd>{% if applicant.listado %}Listada pelo mestre{% else %}Não listada pelo mestre{% endif %}</dd></dl>
-{% for portfolio in applicant.portfolio_links %}<a class="gestao-button" href="{{ portfolio.url }}">Portfólio {{ portfolio.label }}</a>{% endfor %}
-</details>
-{% if applicant.candidatura_respostas %}<details><summary>Respostas da candidatura</summary><dl>{% for answer in applicant.candidatura_respostas %}<dt>{{ answer.label }}</dt><dd>{{ answer.value|linebreaksbr }}</dd>{% endfor %}</dl></details>{% endif %}
-</div>
-<form data-master-moderation="permissao" method="post" action="{% url 'master_authorize' applicant.user_id %}">{% csrf_token %}<input type="hidden" name="versao" value="{{ applicant.versao }}">
-<div class="gestao-field"><label for="master-note-{{ applicant.pk }}">Retorno privado ao jogador</label><input type="text" id="master-note-{{ applicant.pk }}" name="nota" maxlength="500" value="{{ applicant.nota_avaliacao }}"></div>
-<label class="gestao-master-check"><input type="checkbox" name="confirmar" value="sim" required><span>Confirmo a alteração desta permissão de mestre.</span></label>
-<div class="gestao-actions">{% if applicant.status_mestre == 'aprovado' %}<button class="gestao-button" name="acao" value="suspender">Suspender permissão</button>{% else %}{% if applicant.fogueiras %}<button class="gestao-button gestao-primary" name="acao" value="autorizar">Autorizar mestre</button>{% endif %}{% if applicant.status_mestre == 'pendente' %}<button class="gestao-button" name="acao" value="recusar">Não aprovar</button>{% endif %}{% endif %}</div></form>
-</article>{% empty %}<p class="gestao-empty">Nenhum cadastro encontrado para este filtro.</p>{% endfor %}
-{% if master_requests_page.paginator.num_pages > 1 %}<nav class="gestao-pagination" aria-label="Páginas de solicitações">
-{% if master_requests_page.has_previous %}<a class="gestao-button" href="?permissao={{ request_status }}&amp;solicitante={{ request_search|urlencode }}&amp;solicitacoes_pagina={{ master_requests_page.previous_page_number }}#permissoes">Anterior</a>{% endif %}<span>Página {{ master_requests_page.number }} de {{ master_requests_page.paginator.num_pages }}</span>{% if master_requests_page.has_next %}<a class="gestao-button" href="?permissao={{ request_status }}&amp;solicitante={{ request_search|urlencode }}&amp;solicitacoes_pagina={{ master_requests_page.next_page_number }}#permissoes">Próxima</a>{% endif %}</nav>{% endif %}
-</section>{% endif %}
-{% if can_review %}
-<section class="gestao-portal-section" id="revisao"><header class="gestao-section-heading"><h2>Anúncios para revisar</h2><span>{{ review_queue.paginator.count }} pendente{{ review_queue.paginator.count|pluralize:'s' }}</span></header>
-{% for table in review_queue %}<article class="gestao-master-record" id="table-{{ table.pk }}"><div><h3>{{ table.titulo }}</h3><p>{{ table.mestre.username }} · {{ table.ranks_display }}</p><p>{% if table.agenda_combinar %}Agenda a combinar{% else %}{{ table.data|timezone:'America/Sao_Paulo'|date:'d/m/Y H:i' }}{% endif %}</p><p>{{ table.get_modalidade_display }}</p><a class="gestao-button mh-text-link" href="{% url 'master_table_detail' table.pk %}">Ler anúncio completo</a></div>
-<form data-master-moderation="mesa" method="post" action="{% url 'master_table_action' table.pk %}">{% csrf_token %}<input type="hidden" name="revisao" value="{{ table.revisao }}"><div class="gestao-field"><label for="review-note-{{ table.pk }}">Retorno privado ao autor</label><input type="text" id="review-note-{{ table.pk }}" name="nota" maxlength="500"></div><div class="gestao-actions"><button class="gestao-button gestao-primary" name="acao" value="aprovar">Aprovar divulgação</button><button class="gestao-button" name="acao" value="ajustes">Pedir ajustes</button></div></form></article>{% empty %}<p class="gestao-empty">Nenhum anúncio aguardando revisão.</p>{% endfor %}
-{% if review_queue.paginator.num_pages > 1 %}<nav class="gestao-pagination" aria-label="Páginas de anúncios">{% if announcements_previous_url %}<a class="gestao-button" href="{{ announcements_previous_url }}#revisao">Anterior</a>{% endif %}<span>Página {{ review_queue.number }} de {{ review_queue.paginator.num_pages }}</span>{% if announcements_next_url %}<a class="gestao-button" href="{{ announcements_next_url }}#revisao">Próxima</a>{% endif %}</nav>{% endif %}
-</section>{% endif %}
-{% if can_authorize %}
-<section class="gestao-portal-section" id="mesas-verificadas"><header class="gestao-section-heading"><h2>Registro de missões</h2></header><p>Realização registrada pelo bot. O histórico importado da planilha permanece identificado como manual, sem nova confirmação de realização.</p><a class="gestao-button" href="{% url 'masters_directory' %}">Consultar missões por Fogueira</a></section>
-<section class="gestao-portal-section" id="vitrine-comercial"><header class="gestao-section-heading"><h2>Autorizar vitrine demonstrativa</h2></header><p>A autorização permite enviar anúncios pagos ilustrativos à revisão; não libera cobrança.</p>
-{% for master in commercial_masters %}<article class="gestao-master-record"><div><h3>{{ master.user.username }}</h3><p>{% if master.user.autorizacao_vitrine.autorizada %}Autorizado{% else %}Sem autorização comercial{% endif %}</p></div>
-<form data-master-moderation="vitrine" method="post" action="{% url 'master_authorize_listing' master.user_id %}">{% csrf_token %}<div class="gestao-field"><label for="commercial-note-{{ master.pk }}">Motivo da decisão</label><input type="text" id="commercial-note-{{ master.pk }}" name="observacao" maxlength="800" required value="{{ master.user.autorizacao_vitrine.observacao }}"></div><label class="gestao-master-check"><input type="checkbox" name="confirmar" value="sim" required><span>Confirmo a alteração da vitrine</span></label><div class="gestao-actions">{% if master.user.autorizacao_vitrine.autorizada %}<button class="gestao-button" name="acao" value="revogar">Revogar autorização</button>{% else %}<button class="gestao-button gestao-primary" name="acao" value="autorizar">Autorizar demonstração</button>{% endif %}</div></form></article>{% empty %}<p class="gestao-empty">Nenhum mestre aprovado.</p>{% endfor %}
-{% if commercial_masters.paginator.num_pages > 1 %}<nav class="gestao-pagination" aria-label="Páginas da vitrine">{% if commercial_masters.has_previous %}<a class="gestao-button" href="?vitrine_pagina={{ commercial_masters.previous_page_number }}#vitrine-comercial">Anterior</a>{% endif %}<span>Página {{ commercial_masters.number }} de {{ commercial_masters.paginator.num_pages }}</span>{% if commercial_masters.has_next %}<a class="gestao-button" href="?vitrine_pagina={{ commercial_masters.next_page_number }}#vitrine-comercial">Próxima</a>{% endif %}</nav>{% endif %}
-</section>{% endif %}
-{% include 'home/partials/master_moderation_review.html' %}
-</div>
+<section class="mh-section" id="mesas-verificadas"><div class="mh-section-head"><h2>Verificar mesas realizadas</h2></div>
+<p class="mh-intro">Confirme a realização e se houve divulgação aberta. Esta revisão não altera missões do Discord nem credita MM.</p>
+{% for adventure in completed_tables %}<article class="mh-own-table"><div><h3>{{ adventure.nome }}</h3><p>{{ adventure.mestre.username }} · {{ adventure.data|date:'d/m/Y' }}{% if adventure.verificacao_vitrine.validada %} · Verificada{% endif %}</p></div>
+<form class="mh-review-form" data-master-moderation="verificacao" method="post" action="{% url 'master_verify_table' adventure.pk %}">{% csrf_token %}
+<label for="table-evidence-{{ adventure.pk }}">Evidência da realização e divulgação</label><input id="table-evidence-{{ adventure.pk }}" name="observacao" maxlength="800" required value="{{ adventure.verificacao_vitrine.observacao }}">
+<label class="mh-check"><input type="checkbox" name="aberta" value="sim" {% if adventure.verificacao_vitrine.aberta %}checked{% endif %}> Mesa divulgada abertamente</label>
+<label class="mh-check"><input type="checkbox" name="confirmar" value="sim" required> Confirmo esta revisão independente</label>
+<div class="mh-actions"><button class="mh-button mh-button-small" name="acao" value="validar">Validar mesa</button><button class="mh-button mh-button-ghost mh-button-small" name="acao" value="invalidar">Invalidar evidência</button></div></form></article>
+{% empty %}<p class="mh-empty">Nenhuma mesa recente registrada para revisão.</p>{% endfor %}</section>
+<section class="mh-section" id="vitrine-comercial"><div class="mh-section-head"><h2>Autorizar vitrine demonstrativa</h2></div>
+<p class="mh-intro">A autorização permite enviar anúncios pagos ilustrativos à revisão; não libera cobrança.</p>
+{% for master in commercial_masters %}<article class="mh-own-table"><div><h3>{{ master.user.username }}</h3><p>{% if master.user.autorizacao_vitrine.autorizada %}Autorizado{% else %}Sem autorização comercial{% endif %}</p></div>
+<form class="mh-review-form" data-master-moderation="vitrine" method="post" action="{% url 'master_authorize_listing' master.user_id %}">{% csrf_token %}
+<label for="commercial-note-{{ master.pk }}">Motivo da decisão</label><input id="commercial-note-{{ master.pk }}" name="observacao" maxlength="800" required value="{{ master.user.autorizacao_vitrine.observacao }}">
+<label class="mh-check"><input type="checkbox" name="confirmar" value="sim" required> Confirmo a alteração da vitrine</label>
+<div class="mh-actions">{% if master.user.autorizacao_vitrine.autorizada %}<button class="mh-button mh-button-ghost mh-button-small" name="acao" value="revogar">Revogar autorização</button>{% else %}<button class="mh-button mh-button-small" name="acao" value="autorizar">Autorizar demonstração</button>{% endif %}</div></form></article>
+{% empty %}<p class="mh-empty">Nenhum mestre aprovado.</p>{% endfor %}</section>
+{% endif %}
 {% endblock %}

@@ -1,0 +1,29 @@
+{
+  "scope": "captura headless Chrome 1440x1000 de HTML autenticado gerado por Django Client no PostgreSQL DEV; usuario QA criado em transacao e revertido",
+  "routes": {
+    "criacao_ficha": {
+      "http": 200,
+      "screenshot": "builder-visual-creator-2026-10-14.png"
+    },
+    "pathbuilder": {
+      "http": 200,
+      "screenshot": "builder-visual-pathbuilder-2026-10-14.png"
+    }
+  },
+  "static_assets": "CSS e JS locais servidos pelo runserver HTTP 200",
+  "rollback": {
+    "users_before": 15,
+    "users_after": 15
+  },
+  "visual_review": "Ambos exibem nome, atributos, navegacao por etapas e previa da ficha sem controles essenciais cortados no viewport; Pathbuilder exibe barra horizontal interna na tabela de atributos, sem ocultar os campos visiveis. Captura inicial apenas; interacao JS e fluxos completos validados separadamente.",
+  "files": {
+    "builder-visual-creator-2026-10-14.png": {
+      "bytes": 654580,
+      "sha256": "58c24b517bb337ec885dff00a2c7d568f7171fc82f3953801533a8de502f688d"
+    },
+    "builder-visual-pathbuilder-2026-10-14.png": {
+      "bytes": 652889,
+      "sha256": "331a0985967dd0ec3840d130c81f68fb6448fee0a996cfc59a5a97b797032ebd"
+    }
+  }
+}

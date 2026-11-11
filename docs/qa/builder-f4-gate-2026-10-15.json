@@ -1,0 +1,90 @@
+{
+  "scope": "F4 composite gate for home on isolated PostgreSQL test_postgres",
+  "base_commit": "27d36c14cf4c32ec183baac94bdda75b73a32401",
+  "discovered_labels": 2096,
+  "coverage": {
+    "prior_passed_identified": 1417,
+    "complement_labels": 679,
+    "union": 2096,
+    "overlap": 0
+  },
+  "terminal_runs": [
+    {
+      "log": "scratch/f4-rerun-825.log",
+      "tests": 1423,
+      "exit_code": 1
+    },
+    {
+      "log": "scratch/f4-remaining-833.log",
+      "tests": 679,
+      "exit_code": 12
+    },
+    {
+      "log": "scratch/public-sheet-833.log",
+      "tests": 12,
+      "exit_code": 0
+    },
+    {
+      "log": "scratch/f4-causes-835.log",
+      "tests": 17,
+      "exit_code": 0
+    },
+    {
+      "log": "scratch/f4-consumers-835.log",
+      "tests": 26,
+      "exit_code": 0
+    },
+    {
+      "log": "scratch/f4-optin-public-836.log",
+      "tests": 1,
+      "exit_code": 0
+    },
+    {
+      "log": "scratch/f4-optin-remaining-836.log",
+      "tests": 17,
+      "exit_code": 3
+    },
+    {
+      "log": "scratch/f4-optin-retest-836.log",
+      "tests": 3,
+      "exit_code": 1
+    },
+    {
+      "log": "scratch/f4-optin-picker-retest-836.log",
+      "tests": 1,
+      "exit_code": 0
+    },
+    {
+      "log": "scratch/f4-optin-pathbuilder-retest-836.log",
+      "tests": 1,
+      "exit_code": 0
+    }
+  ],
+  "optin_labels": [
+    "home.test_achievement_profile_e2e.AchievementProfileVisualE2ETests.test_full_owner_and_public_profiles",
+    "home.test_artificer_tools_e2e.ArtificerToolsBrowserTests.test_known_tool_disabled_and_new_tool_persists",
+    "home.test_cleric_slot_repair.ClericSlotsBrowserTests.test_fifth_circle_three_charges_and_reload",
+    "home.test_cosmetic_checkout.CosmeticProfileSourceBrowserTests.test_source_labels_fit_mobile_and_desktop_selectors",
+    "home.test_creator_preview_retention.CreatorPreviewRetentionBrowserTests.test_failed_refresh_keeps_last_valid_sheet_until_recovery",
+    "home.test_criador.SanguePlanarBrowserTests.test_tres_menus_aparecem_no_criador_real",
+    "home.test_event_cosmetics.EventCosmeticBrowserTests.test_free_mobile_shop_without_character",
+    "home.test_event_cosmetics.EventCosmeticBrowserTests.test_insufficient_balance_explained_in_mobile_and_desktop_shop",
+    "home.test_event_cosmetics.EventCosmeticBrowserTests.test_mobile_shop_redeems_and_shows_owned_state",
+    "home.test_ficha_cosmetic_catalog.FichaCosmeticCatalogBrowserTests.test_mobile_and_desktop_ficha_selectors_show_owned_and_locked",
+    "home.test_pathbuilder_e2e.PathbuilderRealE2ETests.test_fluxo_real_resiliente_preview_reload_sem_persistencia",
+    "home.test_pathbuilder_e2e.PathbuilderRealE2ETests.test_q09_q10_revisao_de_mago_preserva_selecao",
+    "home.test_pathbuilder_e2e.PathbuilderRealE2ETests.test_q15_planar_menus_at_creation",
+    "home.test_primal_order_e2e.PrimalOrderBrowserTests.test_choose_reload_and_complete_shaman_spells",
+    "home.test_public_character_e2e.PublicCharacterBrowserTests.test_public_projection_on_desktop_and_mobile",
+    "home.test_spell_picker.SpellPickerBrowserTests.test_real_pages_search_preserves_choices_limits_and_context",
+    "home.test_spell_slots_e2e.SpellSlotsRealE2ETests.test_consume_restore_two_tabs_reload_and_html_fallback",
+    "home.test_transcription_focus_e2e.TranscriptionFocusE2ETests.test_quotes_in_workshop_and_sheet"
+  ],
+  "optin_final": {
+    "passed_after_focused_retests": 18,
+    "remaining_skipped": 0,
+    "remaining_failed": 0
+  },
+  "result": "composite_pass",
+  "limit": "No single full-suite exit 0; labels accepted from coverage runs and focused retests after fixture fixes."
+}

@@ -248,7 +248,7 @@ class RankCosmeticRewardsTests(TestCase):
         character = self.character()
         context = {'rank':character_rank(character),'owner':self.owner}
         template = 'home/partials/_rank_frame.html'
-        self.assertIn('rank-obsidiana-metal-v1.png',render_to_string(template,context))
+        self.assertIn('rank-obsidiana-v3.png',render_to_string(template,context))
         self.inventory().filter(cosmetico__slug='moldura-elo-obsidiana-aberta').update(
             suspenso_em=timezone.now())
         self.assertNotIn('<img',render_to_string(template,context))

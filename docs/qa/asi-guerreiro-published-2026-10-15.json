@@ -1,0 +1,62 @@
+{
+  "date": "2026-10-15",
+  "method": "Public HTTPS GET and HTML parse, read-only",
+  "url": "https://bonfiretales.com.br/jogador/classes/guerreiro/",
+  "http_status": 200,
+  "class": "guerreiro",
+  "canonical_asi_name": "Aprimoramento de Atributo ou Talento",
+  "expected_levels": [
+    4,
+    6,
+    8,
+    12,
+    14,
+    16,
+    19
+  ],
+  "published_rows": [
+    {
+      "level": 4,
+      "canonical": true,
+      "legacy": false
+    },
+    {
+      "level": 6,
+      "canonical": true,
+      "legacy": false
+    },
+    {
+      "level": 8,
+      "canonical": true,
+      "legacy": false
+    },
+    {
+      "level": 12,
+      "canonical": true,
+      "legacy": false
+    },
+    {
+      "level": 14,
+      "canonical": true,
+      "legacy": false
+    },
+    {
+      "level": 16,
+      "canonical": true,
+      "legacy": false
+    },
+    {
+      "level": 19,
+      "canonical": true,
+      "legacy": false
+    }
+  ],
+  "published_detail_heading": "Nivel 4: Aprimoramento de Atributo ou Talento",
+  "description_matches_dev_fixture": true,
+  "normalized_description_sha256": "f8435ae4160ed482c1fe3a8617ae68ee38e2acdc6ce1f9d815b65f4067eff1bf",
+  "fixture_model": "home.tbclassehabilidade",
+  "fixture_pk": 731,
+  "fixture_path": "home/fixtures/conteudo.json",
+  "code_head": "691c115",
+  "production_mutated": false
+}

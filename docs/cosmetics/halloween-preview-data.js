@@ -109,20 +109,20 @@ window.BonfireHalloweenPreview = {
       },
       {
         "slot": "banner",
-        "file": "vigilia-wax-one-v6.webp",
-        "fallback": "../../home/static/cosmetics/vigilia-wax-one-v6.webp",
-        "width": 428,
-        "height": 500,
+        "file": "vigilia-candlestick-one-v3.webp",
+        "fallback": "../../home/static/cosmetics/vigilia-candlestick-one-v3.webp",
+        "width": 400,
+        "height": 600,
         "motion": "none",
         "placement": {
           "x": 25,
           "y": 38,
-          "width": 3
+          "width": 7
         },
         "mobile": {
           "x": 22,
           "y": 42,
-          "width": 7
+          "width": 14
         },
         "sequence": {
           "columns": 1,
@@ -334,9 +334,9 @@ window.BonfireHalloweenPreview = {
             "height": 768,
             "motion": "none",
             "placement": {
-              "x": 50.8,
-              "y": 7.4,
-              "width": 20
+              "x": 50.3,
+              "y": 1.6,
+              "width": 26
             },
             "pivot": {
               "x": 50,
@@ -423,24 +423,24 @@ window.BonfireHalloweenPreview = {
         ],
         "anchor": "center",
         "sprite": "full",
-        "url": "../../home/static/cosmetics/vigilia-wax-one-v6.webp"
+        "url": "../../home/static/cosmetics/vigilia-candlestick-one-v3.webp"
       },
       {
         "slot": "banner",
-        "file": "vigilia-wax-two-v6.webp",
-        "fallback": "../../home/static/cosmetics/vigilia-wax-two-v6.webp",
-        "width": 333,
-        "height": 500,
+        "file": "vigilia-candlestick-two-v3.webp",
+        "fallback": "../../home/static/cosmetics/vigilia-candlestick-two-v3.webp",
+        "width": 500,
+        "height": 750,
         "motion": "none",
         "placement": {
           "x": 72,
           "y": 62,
-          "width": 3.4
+          "width": 10
         },
         "mobile": {
           "x": 72,
           "y": 72,
-          "width": 8
+          "width": 20
         },
         "sequence": {
           "columns": 1,
@@ -652,9 +652,9 @@ window.BonfireHalloweenPreview = {
             "height": 768,
             "motion": "none",
             "placement": {
-              "x": 47.4,
-              "y": 4.7,
-              "width": 21
+              "x": 29.3,
+              "y": 1.2,
+              "width": 22
             },
             "pivot": {
               "x": 50,
@@ -746,9 +746,9 @@ window.BonfireHalloweenPreview = {
             "height": 768,
             "motion": "none",
             "placement": {
-              "x": 59.1,
-              "y": 24.1,
-              "width": 21
+              "x": 70.1,
+              "y": 12,
+              "width": 22
             },
             "pivot": {
               "x": 50,
@@ -835,24 +835,24 @@ window.BonfireHalloweenPreview = {
         ],
         "anchor": "center",
         "sprite": "full",
-        "url": "../../home/static/cosmetics/vigilia-wax-two-v6.webp"
+        "url": "../../home/static/cosmetics/vigilia-candlestick-two-v3.webp"
       },
       {
         "slot": "banner",
-        "file": "vigilia-wax-three-v6.webp",
-        "fallback": "../../home/static/cosmetics/vigilia-wax-three-v6.webp",
-        "width": 358,
-        "height": 500,
+        "file": "vigilia-candlestick-three-v3.webp",
+        "fallback": "../../home/static/cosmetics/vigilia-candlestick-three-v3.webp",
+        "width": 560,
+        "height": 840,
         "motion": "none",
         "placement": {
           "x": 85,
           "y": 48,
-          "width": 3.5
+          "width": 11
         },
         "mobile": {
           "x": 83,
           "y": 38,
-          "width": 9
+          "width": 24
         },
         "sequence": {
           "columns": 1,
@@ -1064,9 +1064,9 @@ window.BonfireHalloweenPreview = {
             "height": 768,
             "motion": "none",
             "placement": {
-              "x": 34.8,
-              "y": 22.5,
-              "width": 22
+              "x": 21.6,
+              "y": 25.3,
+              "width": 21
             },
             "pivot": {
               "x": 50,
@@ -1158,9 +1158,9 @@ window.BonfireHalloweenPreview = {
             "height": 768,
             "motion": "none",
             "placement": {
-              "x": 52.3,
-              "y": 6.75,
-              "width": 22
+              "x": 50.8,
+              "y": 2.3,
+              "width": 21
             },
             "pivot": {
               "x": 50,
@@ -1252,9 +1252,9 @@ window.BonfireHalloweenPreview = {
             "height": 768,
             "motion": "none",
             "placement": {
-              "x": 66.9,
-              "y": 38.2,
-              "width": 22
+              "x": 78.2,
+              "y": 14.9,
+              "width": 21
             },
             "pivot": {
               "x": 50,
@@ -1341,442 +1341,12 @@ window.BonfireHalloweenPreview = {
         ],
         "anchor": "center",
         "sprite": "full",
-        "url": "../../home/static/cosmetics/vigilia-wax-three-v6.webp"
+        "url": "../../home/static/cosmetics/vigilia-candlestick-three-v3.webp"
       },
       {
         "slot": "banner",
-        "file": "vigilia-jack-fire-textured-v32.webp",
-        "fallback": "../../home/static/cosmetics/vigilia-jack-fire-textured-v32.webp",
-        "width": 2240,
-        "height": 2240,
-        "motion": "none",
-        "placement": {
-          "x": 50,
-          "y": 47,
-          "width": 25.3
-        },
-        "mobile": {
-          "x": 50,
-          "y": 47,
-          "width": 46.2
-        },
-        "sequence": {
-          "columns": 7,
-          "rows": 7,
-          "duration": 16,
-          "delay": 0,
-          "backdrop": 0,
-          "frames": [
-            {
-              "at": 0,
-              "frame": 0,
-              "opacity": 0,
-              "y": 0,
-              "scaleX": 1,
-              "scaleY": 1
-            },
-            {
-              "at": 0.05,
-              "frame": 0,
-              "opacity": 0,
-              "y": 2,
-              "scaleX": 0.98,
-              "scaleY": 0.96
-            },
-            {
-              "at": 0.053125,
-              "frame": 2,
-              "opacity": 0.68,
-              "y": 1.53333,
-              "scaleX": 0.98333,
-              "scaleY": 0.96667
-            },
-            {
-              "at": 0.05625,
-              "frame": 3,
-              "opacity": 0.68,
-              "y": 1.06667,
-              "scaleX": 0.98667,
-              "scaleY": 0.97333
-            },
-            {
-              "at": 0.059375,
-              "frame": 4,
-              "opacity": 0.68,
-              "y": 0.6,
-              "scaleX": 0.99,
-              "scaleY": 0.98
-            },
-            {
-              "at": 0.0625,
-              "frame": 5,
-              "opacity": 0.68,
-              "y": 0.13333,
-              "scaleX": 0.99333,
-              "scaleY": 0.98667
-            },
-            {
-              "at": 0.065625,
-              "frame": 6,
-              "opacity": 0.68,
-              "y": -0.33333,
-              "scaleX": 0.99667,
-              "scaleY": 0.99333
-            },
-            {
-              "at": 0.06875,
-              "frame": 7,
-              "opacity": 0.68,
-              "y": -0.8,
-              "scaleX": 1,
-              "scaleY": 1
-            },
-            {
-              "at": 0.071875,
-              "frame": 8,
-              "opacity": 0.68,
-              "y": -1.26667,
-              "scaleX": 1.00333,
-              "scaleY": 1.00667
-            },
-            {
-              "at": 0.075,
-              "frame": 9,
-              "opacity": 0.68,
-              "y": -1.73333,
-              "scaleX": 1.00667,
-              "scaleY": 1.01333
-            },
-            {
-              "at": 0.078125,
-              "frame": 10,
-              "opacity": 0.68,
-              "y": -2.2,
-              "scaleX": 1.01,
-              "scaleY": 1.02
-            },
-            {
-              "at": 0.08125,
-              "frame": 11,
-              "opacity": 0.68,
-              "y": -2.66667,
-              "scaleX": 1.01333,
-              "scaleY": 1.02667
-            },
-            {
-              "at": 0.084375,
-              "frame": 12,
-              "opacity": 0.68,
-              "y": -3.13333,
-              "scaleX": 1.01667,
-              "scaleY": 1.03333
-            },
-            {
-              "at": 0.0875,
-              "frame": 13,
-              "opacity": 0.68,
-              "y": -3.6,
-              "scaleX": 1.02,
-              "scaleY": 1.04
-            },
-            {
-              "at": 0.090625,
-              "frame": 14,
-              "opacity": 0.68,
-              "y": -4.06667,
-              "scaleX": 1.02333,
-              "scaleY": 1.04667
-            },
-            {
-              "at": 0.09375,
-              "frame": 15,
-              "opacity": 0.68,
-              "y": -4.53333,
-              "scaleX": 1.02667,
-              "scaleY": 1.05333
-            },
-            {
-              "at": 0.096875,
-              "frame": 0,
-              "opacity": 0,
-              "y": -5,
-              "scaleX": 1.03,
-              "scaleY": 1.06
-            },
-            {
-              "at": 0.4659015,
-              "frame": 0,
-              "opacity": 0,
-              "y": 2,
-              "scaleX": 0.98,
-              "scaleY": 0.96
-            },
-            {
-              "at": 0.467984831,
-              "frame": 18,
-              "opacity": 0.58,
-              "y": 1.53333,
-              "scaleX": 0.98333,
-              "scaleY": 0.96667
-            },
-            {
-              "at": 0.470068169,
-              "frame": 19,
-              "opacity": 0.58,
-              "y": 1.06667,
-              "scaleX": 0.98667,
-              "scaleY": 0.97333
-            },
-            {
-              "at": 0.4721515,
-              "frame": 20,
-              "opacity": 0.58,
-              "y": 0.6,
-              "scaleX": 0.99,
-              "scaleY": 0.98
-            },
-            {
-              "at": 0.474234831,
-              "frame": 21,
-              "opacity": 0.58,
-              "y": 0.13333,
-              "scaleX": 0.99333,
-              "scaleY": 0.98667
-            },
-            {
-              "at": 0.476318169,
-              "frame": 22,
-              "opacity": 0.58,
-              "y": -0.33333,
-              "scaleX": 0.99667,
-              "scaleY": 0.99333
-            },
-            {
-              "at": 0.4784015,
-              "frame": 23,
-              "opacity": 0.58,
-              "y": -0.8,
-              "scaleX": 1,
-              "scaleY": 1
-            },
-            {
-              "at": 0.480484831,
-              "frame": 24,
-              "opacity": 0.58,
-              "y": -1.26667,
-              "scaleX": 1.00333,
-              "scaleY": 1.00667
-            },
-            {
-              "at": 0.482568169,
-              "frame": 25,
-              "opacity": 0.58,
-              "y": -1.73333,
-              "scaleX": 1.00667,
-              "scaleY": 1.01333
-            },
-            {
-              "at": 0.4846515,
-              "frame": 26,
-              "opacity": 0.58,
-              "y": -2.2,
-              "scaleX": 1.01,
-              "scaleY": 1.02
-            },
-            {
-              "at": 0.486734831,
-              "frame": 27,
-              "opacity": 0.58,
-              "y": -2.66667,
-              "scaleX": 1.01333,
-              "scaleY": 1.02667
-            },
-            {
-              "at": 0.488818169,
-              "frame": 28,
-              "opacity": 0.58,
-              "y": -3.13333,
-              "scaleX": 1.01667,
-              "scaleY": 1.03333
-            },
-            {
-              "at": 0.4909015,
-              "frame": 29,
-              "opacity": 0.58,
-              "y": -3.6,
-              "scaleX": 1.02,
-              "scaleY": 1.04
-            },
-            {
-              "at": 0.492984831,
-              "frame": 30,
-              "opacity": 0.58,
-              "y": -4.06667,
-              "scaleX": 1.02333,
-              "scaleY": 1.04667
-            },
-            {
-              "at": 0.495068169,
-              "frame": 31,
-              "opacity": 0.58,
-              "y": -4.53333,
-              "scaleX": 1.02667,
-              "scaleY": 1.05333
-            },
-            {
-              "at": 0.4971515,
-              "frame": 0,
-              "opacity": 0,
-              "y": -5,
-              "scaleX": 1.03,
-              "scaleY": 1.06
-            },
-            {
-              "at": 0.5284015,
-              "frame": 0,
-              "opacity": 0,
-              "y": 2,
-              "scaleX": 0.98,
-              "scaleY": 0.96
-            },
-            {
-              "at": 0.532568169,
-              "frame": 34,
-              "opacity": 0.7,
-              "y": 1.53333,
-              "scaleX": 0.98333,
-              "scaleY": 0.96667
-            },
-            {
-              "at": 0.536734831,
-              "frame": 35,
-              "opacity": 0.7,
-              "y": 1.06667,
-              "scaleX": 0.98667,
-              "scaleY": 0.97333
-            },
-            {
-              "at": 0.5409015,
-              "frame": 36,
-              "opacity": 0.7,
-              "y": 0.6,
-              "scaleX": 0.99,
-              "scaleY": 0.98
-            },
-            {
-              "at": 0.545068169,
-              "frame": 37,
-              "opacity": 0.7,
-              "y": 0.13333,
-              "scaleX": 0.99333,
-              "scaleY": 0.98667
-            },
-            {
-              "at": 0.549234831,
-              "frame": 38,
-              "opacity": 0.7,
-              "y": -0.33333,
-              "scaleX": 0.99667,
-              "scaleY": 0.99333
-            },
-            {
-              "at": 0.5534015,
-              "frame": 39,
-              "opacity": 0.7,
-              "y": -0.8,
-              "scaleX": 1,
-              "scaleY": 1
-            },
-            {
-              "at": 0.557568169,
-              "frame": 40,
-              "opacity": 0.7,
-              "y": -1.26667,
-              "scaleX": 1.00333,
-              "scaleY": 1.00667
-            },
-            {
-              "at": 0.561734831,
-              "frame": 41,
-              "opacity": 0.7,
-              "y": -1.73333,
-              "scaleX": 1.00667,
-              "scaleY": 1.01333
-            },
-            {
-              "at": 0.5659015,
-              "frame": 42,
-              "opacity": 0.7,
-              "y": -2.2,
-              "scaleX": 1.01,
-              "scaleY": 1.02
-            },
-            {
-              "at": 0.570068169,
-              "frame": 43,
-              "opacity": 0.7,
-              "y": -2.66667,
-              "scaleX": 1.01333,
-              "scaleY": 1.02667
-            },
-            {
-              "at": 0.574234831,
-              "frame": 44,
-              "opacity": 0.7,
-              "y": -3.13333,
-              "scaleX": 1.01667,
-              "scaleY": 1.03333
-            },
-            {
-              "at": 0.5784015,
-              "frame": 45,
-              "opacity": 0.7,
-              "y": -3.6,
-              "scaleX": 1.02,
-              "scaleY": 1.04
-            },
-            {
-              "at": 0.582568169,
-              "frame": 46,
-              "opacity": 0.7,
-              "y": -4.06667,
-              "scaleX": 1.02333,
-              "scaleY": 1.04667
-            },
-            {
-              "at": 0.586734831,
-              "frame": 47,
-              "opacity": 0.7,
-              "y": -4.53333,
-              "scaleX": 1.02667,
-              "scaleY": 1.05333
-            },
-            {
-              "at": 0.5909015,
-              "frame": 0,
-              "opacity": 0,
-              "y": -5,
-              "scaleX": 1.03,
-              "scaleY": 1.06
-            },
-            {
-              "at": 1,
-              "frame": 0,
-              "opacity": 0,
-              "y": 0,
-              "scaleX": 1,
-              "scaleY": 1
-            }
-          ]
-        },
-        "anchor": "center",
-        "sprite": "full",
-        "url": "../../home/static/cosmetics/vigilia-jack-fire-textured-v32.webp"
-      },
-      {
-        "slot": "banner",
-        "file": "cosmetic-empty.svg",
-        "fallback": "../../home/static/cosmetics/cosmetic-empty.svg",
+        "file": "vigilia-jack-base-v3.webp",
+        "fallback": "../../home/static/cosmetics/vigilia-jack-base-v3.webp",
         "width": 640,
         "height": 640,
         "motion": "none",
@@ -1793,110 +1363,128 @@ window.BonfireHalloweenPreview = {
         "sequence": {
           "columns": 1,
           "rows": 1,
-          "duration": 16,
+          "duration": 18,
           "delay": 0,
           "backdrop": 0.82,
           "frames": [
             {
               "at": 0,
               "frame": 0,
-              "opacity": 0.95
+              "opacity": 0
             },
             {
-              "at": 0.05,
+              "at": 0.08,
+              "frame": 0,
+              "opacity": 0
+            },
+            {
+              "at": 0.14,
               "frame": 0,
               "opacity": 0.95
             },
             {
-              "at": 0.096875,
+              "at": 0.16,
               "frame": 0,
               "opacity": 0.95
+            },
+            {
+              "at": 0.18,
+              "frame": 0,
+              "opacity": 0.95
+            },
+            {
+              "at": 0.2,
+              "frame": 0,
+              "opacity": 0.95
+            },
+            {
+              "at": 0.22,
+              "frame": 0,
+              "opacity": 0.95
+            },
+            {
+              "at": 0.24,
+              "frame": 0,
+              "opacity": 0.95
+            },
+            {
+              "at": 0.26,
+              "frame": 0,
+              "opacity": 0.95
+            },
+            {
+              "at": 0.28,
+              "frame": 0,
+              "opacity": 0.95
+            },
+            {
+              "at": 0.3,
+              "frame": 0,
+              "opacity": 0.95
+            },
+            {
+              "at": 0.32,
+              "frame": 0,
+              "opacity": 0.95
+            },
+            {
+              "at": 0.34,
+              "frame": 0,
+              "opacity": 0.95
+            },
+            {
+              "at": 0.36,
+              "frame": 0,
+              "opacity": 0.95
+            },
+            {
+              "at": 0.38,
+              "frame": 0,
+              "opacity": 0.95
+            },
+            {
+              "at": 0.4,
+              "frame": 0,
+              "opacity": 0.95
+            },
+            {
+              "at": 0.42,
+              "frame": 0,
+              "opacity": 0.95
+            },
+            {
+              "at": 0.44,
+              "frame": 0,
+              "opacity": 0.95
+            },
+            {
+              "at": 0.46,
+              "frame": 0,
+              "opacity": 0.95
+            },
+            {
+              "at": 0.48,
+              "frame": 0,
+              "opacity": 0.95
+            },
+            {
+              "at": 0.5,
+              "frame": 0,
+              "opacity": 0.95
+            },
+            {
+              "at": 0.54,
+              "frame": 0,
+              "opacity": 0.95
+            },
+            {
+              "at": 0.62,
+              "frame": 0,
+              "opacity": 0
             },
             {
               "at": 1,
               "frame": 0,
-              "opacity": 0.95
-            }
-          ],
-          "backdropFrames": [
-            {
-              "at": 0,
-              "opacity": 0
-            },
-            {
-              "at": 0.05,
-              "opacity": 0
-            },
-            {
-              "at": 0.055859375,
-              "opacity": 0.0408203125
-            },
-            {
-              "at": 0.06171875,
-              "opacity": 0.1484375
-            },
-            {
-              "at": 0.067578125,
-              "opacity": 0.30058593749999996
-            },
-            {
-              "at": 0.0734375,
-              "opacity": 0.475
-            },
-            {
-              "at": 0.079296875,
-              "opacity": 0.6494140625
-            },
-            {
-              "at": 0.08515625,
-              "opacity": 0.8015625
-            },
-            {
-              "at": 0.091015625,
-              "opacity": 0.9091796875
-            },
-            {
-              "at": 0.096875,
-              "opacity": 0.95
-            },
-            {
-              "at": 0.4659015,
-              "opacity": 0.95
-            },
-            {
-              "at": 0.46980775,
-              "opacity": 0.9091796875
-            },
-            {
-              "at": 0.473714,
-              "opacity": 0.8015625
-            },
-            {
-              "at": 0.47762025,
-              "opacity": 0.6494140625
-            },
-            {
-              "at": 0.4815265,
-              "opacity": 0.475
-            },
-            {
-              "at": 0.48543275,
-              "opacity": 0.3005859375
-            },
-            {
-              "at": 0.489339,
-              "opacity": 0.1484375
-            },
-            {
-              "at": 0.49324525,
-              "opacity": 0.0408203125
-            },
-            {
-              "at": 0.4971515,
-              "opacity": 0
-            },
-            {
-              "at": 1,
               "opacity": 0
             }
           ]
@@ -1904,1315 +1492,442 @@ window.BonfireHalloweenPreview = {
         "parts": [
           {
             "slot": "banner",
-            "file": "vigilia-jack-local30-1-v30.webp",
-            "fallback": "../../home/static/cosmetics/vigilia-jack-local30-1-v30.webp",
-            "width": 3584,
-            "height": 3584,
+            "file": "vigilia-jack-pupil-v3.webp",
+            "fallback": "../../home/static/cosmetics/vigilia-jack-pupil-v3.webp",
+            "width": 128,
+            "height": 128,
             "motion": "none",
             "placement": {
-              "x": 50,
-              "y": 50,
-              "width": 110
-            },
-            "sequence": {
-              "columns": 7,
-              "rows": 7,
-              "duration": 16,
-              "delay": 0,
-              "backdrop": 0,
-              "frames": [
-                {
-                  "at": 0,
-                  "frame": 0,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.096875,
-                  "frame": 1,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.098958331,
-                  "frame": 2,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.101041669,
-                  "frame": 3,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.103125,
-                  "frame": 4,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.105208331,
-                  "frame": 5,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.107291669,
-                  "frame": 6,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.109375,
-                  "frame": 7,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.111458331,
-                  "frame": 8,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.113541669,
-                  "frame": 9,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.115625,
-                  "frame": 10,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.117708331,
-                  "frame": 11,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.119791669,
-                  "frame": 12,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.121875,
-                  "frame": 13,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.123958331,
-                  "frame": 14,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.126041669,
-                  "frame": 15,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.128125,
-                  "frame": 16,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.130208331,
-                  "frame": 17,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.132291669,
-                  "frame": 18,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.134375,
-                  "frame": 19,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.136458331,
-                  "frame": 20,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.138541669,
-                  "frame": 21,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.140625,
-                  "frame": 22,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.141875,
-                  "frame": 23,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.204375,
-                  "frame": 24,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.206458331,
-                  "frame": 25,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.208541669,
-                  "frame": 26,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.210625,
-                  "frame": 27,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.212708331,
-                  "frame": 28,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.214791669,
-                  "frame": 29,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.216875,
-                  "frame": 30,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.218958331,
-                  "frame": 31,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.221041669,
-                  "frame": 32,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.223125,
-                  "frame": 33,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.225208331,
-                  "frame": 34,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.227291669,
-                  "frame": 35,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.229375,
-                  "frame": 36,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.231458331,
-                  "frame": 37,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.233541669,
-                  "frame": 38,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.235625,
-                  "frame": 39,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.237708331,
-                  "frame": 40,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.239791669,
-                  "frame": 41,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.241875,
-                  "frame": 42,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.243958331,
-                  "frame": 43,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.246041669,
-                  "frame": 0,
-                  "opacity": 1
-                },
-                {
-                  "at": 1,
-                  "frame": 0,
-                  "opacity": 1
-                }
-              ]
-            },
-            "anchor": "center",
-            "sprite": "full",
-            "url": "../../home/static/cosmetics/vigilia-jack-local30-1-v30.webp"
-          },
-          {
-            "slot": "banner",
-            "file": "vigilia-jack-local30-2-v30.webp",
-            "fallback": "../../home/static/cosmetics/vigilia-jack-local30-2-v30.webp",
-            "width": 3584,
-            "height": 3584,
-            "motion": "none",
-            "placement": {
-              "x": 50,
-              "y": 50,
-              "width": 110
-            },
-            "sequence": {
-              "columns": 7,
-              "rows": 7,
-              "duration": 16,
-              "delay": 0,
-              "backdrop": 0,
-              "frames": [
-                {
-                  "at": 0,
-                  "frame": 0,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.246041669,
-                  "frame": 1,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.248125,
-                  "frame": 2,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.250208331,
-                  "frame": 3,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.252291669,
-                  "frame": 4,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.254375,
-                  "frame": 5,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.256458331,
-                  "frame": 6,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.258541669,
-                  "frame": 7,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.260625,
-                  "frame": 8,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.262708331,
-                  "frame": 9,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.264791669,
-                  "frame": 10,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.266875,
-                  "frame": 11,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.268958331,
-                  "frame": 12,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.271041669,
-                  "frame": 13,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.273125,
-                  "frame": 14,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.275208331,
-                  "frame": 15,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.277291669,
-                  "frame": 16,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.279375,
-                  "frame": 17,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.281458331,
-                  "frame": 18,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.283541669,
-                  "frame": 19,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.285625,
-                  "frame": 20,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.287708331,
-                  "frame": 21,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.287999312,
-                  "frame": 22,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.350499312,
-                  "frame": 23,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.352582644,
-                  "frame": 24,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.354665981,
-                  "frame": 25,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.356749313,
-                  "frame": 26,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.358832644,
-                  "frame": 27,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.360915981,
-                  "frame": 28,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.362999313,
-                  "frame": 29,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.365082644,
-                  "frame": 30,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.367165981,
-                  "frame": 31,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.369249312,
-                  "frame": 32,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.371332644,
-                  "frame": 33,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.373415981,
-                  "frame": 34,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.375499313,
-                  "frame": 35,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.377582644,
-                  "frame": 36,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.379665981,
-                  "frame": 37,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.381749312,
-                  "frame": 38,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.383832644,
-                  "frame": 39,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.385915981,
-                  "frame": 40,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.387999313,
-                  "frame": 41,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.390082644,
-                  "frame": 42,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.3909015,
-                  "frame": 43,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.4659015,
-                  "frame": 0,
-                  "opacity": 1
-                },
-                {
-                  "at": 1,
-                  "frame": 0,
-                  "opacity": 1
-                }
-              ]
-            },
-            "anchor": "center",
-            "sprite": "full",
-            "url": "../../home/static/cosmetics/vigilia-jack-local30-2-v30.webp"
-          },
-          {
-            "slot": "banner",
-            "file": "vigilia-jack-reference-smile-v27.webp",
-            "fallback": "../../home/static/cosmetics/vigilia-jack-reference-smile-v27.webp",
-            "width": 2048,
-            "height": 1024,
-            "motion": "none",
-            "placement": {
-              "x": 50,
-              "y": 50,
-              "width": 110
-            },
-            "sequence": {
-              "columns": 4,
-              "rows": 2,
-              "duration": 16,
-              "delay": 0,
-              "backdrop": 0,
-              "frames": [
-                {
-                  "at": 0,
-                  "frame": 0,
-                  "opacity": 0
-                },
-                {
-                  "at": 0.07811875,
-                  "frame": 0,
-                  "opacity": 0
-                },
-                {
-                  "at": 0.078125,
-                  "frame": 0,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.096875,
-                  "frame": 0,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.103303563,
-                  "frame": 1,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.109732125,
-                  "frame": 2,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.116160687,
-                  "frame": 3,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.122589313,
-                  "frame": 4,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.129017875,
-                  "frame": 5,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.135446437,
-                  "frame": 6,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.141875,
-                  "frame": 7,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.204375,
-                  "frame": 7,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.211339312,
-                  "frame": 6,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.218303562,
-                  "frame": 5,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.225267875,
-                  "frame": 4,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.232232125,
-                  "frame": 3,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.239196437,
-                  "frame": 2,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.246160688,
-                  "frame": 1,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.253125,
-                  "frame": 0,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.258107062,
-                  "frame": 1,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.263089063,
-                  "frame": 2,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.268071125,
-                  "frame": 3,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.273053188,
-                  "frame": 4,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.27803525,
-                  "frame": 5,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.28301725,
-                  "frame": 6,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.287999312,
-                  "frame": 7,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.350499312,
-                  "frame": 7,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.356271063,
-                  "frame": 6,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.362042812,
-                  "frame": 5,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.367814562,
-                  "frame": 4,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.37358625,
-                  "frame": 3,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.379358,
-                  "frame": 2,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.38512975,
-                  "frame": 1,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.3909015,
-                  "frame": 0,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.52839525,
-                  "frame": 0,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.5284015,
-                  "frame": 0,
-                  "opacity": 0
-                },
-                {
-                  "at": 1,
-                  "frame": 0,
-                  "opacity": 0
-                }
-              ]
-            },
-            "anchor": "center",
-            "sprite": "full",
-            "url": "../../home/static/cosmetics/vigilia-jack-reference-smile-v27.webp"
-          },
-          {
-            "slot": "banner",
-            "file": "vigilia-jack-cinematic-eyes-fx-v28.webp",
-            "fallback": "../../home/static/cosmetics/vigilia-jack-cinematic-eyes-fx-v28.webp",
-            "width": 3072,
-            "height": 3072,
-            "motion": "none",
-            "placement": {
-              "x": 50,
-              "y": 50,
-              "width": 110
-            },
-            "sequence": {
-              "columns": 6,
-              "rows": 6,
-              "duration": 16,
-              "delay": 0,
-              "backdrop": 0,
-              "frames": [
-                {
-                  "at": 0,
-                  "frame": 0,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.0625,
-                  "frame": 1,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.064522056,
-                  "frame": 2,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.066544119,
-                  "frame": 3,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.068566175,
-                  "frame": 4,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.070588237,
-                  "frame": 5,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.072610294,
-                  "frame": 6,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.07463235,
-                  "frame": 7,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.076654413,
-                  "frame": 8,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.078676469,
-                  "frame": 9,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.080698531,
-                  "frame": 10,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.082720587,
-                  "frame": 11,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.08474265,
-                  "frame": 12,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.086764706,
-                  "frame": 13,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.088786763,
-                  "frame": 14,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.090808825,
-                  "frame": 15,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.092830881,
-                  "frame": 16,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.094852944,
-                  "frame": 17,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.09686875,
-                  "frame": 18,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.096875,
-                  "frame": 0,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.4659015,
-                  "frame": 19,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.467984831,
-                  "frame": 20,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.470068169,
-                  "frame": 21,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.4721515,
-                  "frame": 22,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.474234831,
-                  "frame": 23,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.476318169,
-                  "frame": 24,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.4784015,
-                  "frame": 25,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.480484831,
-                  "frame": 26,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.482568169,
-                  "frame": 27,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.4846515,
-                  "frame": 28,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.486734831,
-                  "frame": 29,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.488818169,
-                  "frame": 30,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.4909015,
-                  "frame": 31,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.492984831,
-                  "frame": 32,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.495068169,
-                  "frame": 33,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.4971515,
-                  "frame": 34,
-                  "opacity": 1
-                },
-                {
-                  "at": 1,
-                  "frame": 0,
-                  "opacity": 1
-                }
-              ]
-            },
-            "anchor": "center",
-            "sprite": "full",
-            "url": "../../home/static/cosmetics/vigilia-jack-cinematic-eyes-fx-v28.webp"
-          },
-          {
-            "slot": "banner",
-            "file": "vigilia-jack-cinematic-smile-fx-v28.webp",
-            "fallback": "../../home/static/cosmetics/vigilia-jack-cinematic-smile-fx-v28.webp",
-            "width": 3584,
-            "height": 3584,
-            "motion": "none",
-            "placement": {
-              "x": 50,
-              "y": 50,
-              "width": 110
-            },
-            "sequence": {
-              "columns": 7,
-              "rows": 7,
-              "duration": 16,
-              "delay": 0,
-              "backdrop": 0,
-              "frames": [
-                {
-                  "at": 0,
-                  "frame": 0,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.05,
-                  "frame": 1,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.052008931,
-                  "frame": 2,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.054017856,
-                  "frame": 3,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.056026788,
-                  "frame": 4,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.058035713,
-                  "frame": 5,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.060044644,
-                  "frame": 6,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.062053569,
-                  "frame": 7,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.0640625,
-                  "frame": 8,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.066071431,
-                  "frame": 9,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.068080356,
-                  "frame": 10,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.070089287,
-                  "frame": 11,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.072098212,
-                  "frame": 12,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.074107144,
-                  "frame": 13,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.076116069,
-                  "frame": 14,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.07811875,
-                  "frame": 15,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.078125,
-                  "frame": 0,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.5284015,
-                  "frame": 16,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.530484831,
-                  "frame": 17,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.532568169,
-                  "frame": 18,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.5346515,
-                  "frame": 19,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.536734831,
-                  "frame": 20,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.538818169,
-                  "frame": 21,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.5409015,
-                  "frame": 22,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.542984831,
-                  "frame": 23,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.545068169,
-                  "frame": 24,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.5471515,
-                  "frame": 25,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.549234831,
-                  "frame": 26,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.551318169,
-                  "frame": 27,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.5534015,
-                  "frame": 28,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.555484831,
-                  "frame": 29,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.557568169,
-                  "frame": 30,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.5596515,
-                  "frame": 31,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.561734831,
-                  "frame": 32,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.563818169,
-                  "frame": 33,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.5659015,
-                  "frame": 34,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.567984831,
-                  "frame": 35,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.570068169,
-                  "frame": 36,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.5721515,
-                  "frame": 37,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.574234831,
-                  "frame": 38,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.576318169,
-                  "frame": 39,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.5784015,
-                  "frame": 40,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.580484831,
-                  "frame": 41,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.582568169,
-                  "frame": 42,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.5846515,
-                  "frame": 43,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.586734831,
-                  "frame": 44,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.588818169,
-                  "frame": 45,
-                  "opacity": 1
-                },
-                {
-                  "at": 0.5909015,
-                  "frame": 46,
-                  "opacity": 1
-                },
-                {
-                  "at": 1,
-                  "frame": 0,
-                  "opacity": 1
-                }
-              ]
-            },
-            "anchor": "center",
-            "sprite": "full",
-            "url": "../../home/static/cosmetics/vigilia-jack-cinematic-smile-fx-v28.webp"
-          },
-          {
-            "slot": "banner",
-            "file": "vigilia-jack-light-v29.webp",
-            "fallback": "../../home/static/cosmetics/vigilia-jack-light-v29.webp",
-            "width": 512,
-            "height": 512,
-            "motion": "none",
-            "placement": {
-              "x": 50,
-              "y": 50,
-              "width": 110
+              "x": 26.5,
+              "y": 37,
+              "width": 12
             },
             "sequence": {
               "columns": 1,
               "rows": 1,
-              "duration": 16,
+              "duration": 18,
               "delay": 0,
               "backdrop": 0,
               "frames": [
                 {
                   "at": 0,
                   "frame": 0,
-                  "opacity": 0,
-                  "shift": 0
+                  "opacity": 1,
+                  "x": 0,
+                  "y": 0,
+                  "rotate": 0
                 },
                 {
-                  "at": 0.096875,
+                  "at": 0.08,
                   "frame": 0,
-                  "opacity": 0,
-                  "shift": 0
+                  "opacity": 1,
+                  "x": 0,
+                  "y": 0,
+                  "rotate": 0
                 },
                 {
-                  "at": 0.109375,
+                  "at": 0.14,
                   "frame": 0,
-                  "opacity": 0.025,
-                  "shift": -4
+                  "opacity": 1,
+                  "x": 0,
+                  "y": 0,
+                  "rotate": 0
                 },
                 {
-                  "at": 0.146875,
+                  "at": 0.16,
                   "frame": 0,
-                  "opacity": 0.07,
-                  "shift": 0
+                  "opacity": 1,
+                  "x": -3,
+                  "y": -0.1,
+                  "rotate": -0.12
                 },
                 {
-                  "at": 0.1875,
+                  "at": 0.18,
                   "frame": 0,
-                  "opacity": 0.035,
-                  "shift": 3
+                  "opacity": 1,
+                  "x": -10,
+                  "y": -0.3333333333333333,
+                  "rotate": -0.4
                 },
                 {
-                  "at": 0.23125,
+                  "at": 0.2,
                   "frame": 0,
-                  "opacity": 0.075,
-                  "shift": 0
+                  "opacity": 1,
+                  "x": -22,
+                  "y": -0.7333333333333333,
+                  "rotate": -0.88
                 },
                 {
-                  "at": 0.275,
+                  "at": 0.22,
                   "frame": 0,
-                  "opacity": 0.035,
-                  "shift": -3
+                  "opacity": 1,
+                  "x": -36,
+                  "y": -1.2,
+                  "rotate": -1.44
                 },
                 {
-                  "at": 0.31875,
+                  "at": 0.24,
                   "frame": 0,
-                  "opacity": 0.08,
-                  "shift": 0
+                  "opacity": 1,
+                  "x": -50,
+                  "y": -1.6666666666666667,
+                  "rotate": -2
                 },
                 {
-                  "at": 0.3625,
+                  "at": 0.26,
                   "frame": 0,
-                  "opacity": 0.04,
-                  "shift": 4
+                  "opacity": 1,
+                  "x": -60,
+                  "y": -2,
+                  "rotate": -2.4
                 },
                 {
-                  "at": 0.40625,
+                  "at": 0.28,
                   "frame": 0,
-                  "opacity": 0.065,
-                  "shift": 0
+                  "opacity": 1,
+                  "x": -56,
+                  "y": -1.8666666666666667,
+                  "rotate": -2.24
                 },
                 {
-                  "at": 0.44375,
+                  "at": 0.3,
                   "frame": 0,
-                  "opacity": 0.025,
-                  "shift": -3
+                  "opacity": 1,
+                  "x": -45,
+                  "y": -1.5,
+                  "rotate": -1.8
                 },
                 {
-                  "at": 0.4546515,
+                  "at": 0.32,
                   "frame": 0,
-                  "opacity": 0,
-                  "shift": 0
+                  "opacity": 1,
+                  "x": -25,
+                  "y": -0.8333333333333334,
+                  "rotate": -1
+                },
+                {
+                  "at": 0.34,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": 0,
+                  "y": 0,
+                  "rotate": 0
+                },
+                {
+                  "at": 0.36,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": 25,
+                  "y": 0.8333333333333334,
+                  "rotate": 1
+                },
+                {
+                  "at": 0.38,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": 45,
+                  "y": 1.5,
+                  "rotate": 1.8
+                },
+                {
+                  "at": 0.4,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": 58,
+                  "y": 1.9333333333333333,
+                  "rotate": 2.32
+                },
+                {
+                  "at": 0.42,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": 60,
+                  "y": 2,
+                  "rotate": 2.4
+                },
+                {
+                  "at": 0.44,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": 48,
+                  "y": 1.6,
+                  "rotate": 1.92
+                },
+                {
+                  "at": 0.46,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": 32,
+                  "y": 1.0666666666666667,
+                  "rotate": 1.28
+                },
+                {
+                  "at": 0.48,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": 16,
+                  "y": 0.5333333333333333,
+                  "rotate": 0.64
+                },
+                {
+                  "at": 0.5,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": 6,
+                  "y": 0.2,
+                  "rotate": 0.24
+                },
+                {
+                  "at": 0.54,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": 0,
+                  "y": 0,
+                  "rotate": 0
+                },
+                {
+                  "at": 0.62,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": 0,
+                  "y": 0,
+                  "rotate": 0
                 },
                 {
                   "at": 1,
                   "frame": 0,
-                  "opacity": 0,
-                  "shift": 0
+                  "opacity": 1,
+                  "x": 0,
+                  "y": 0,
+                  "rotate": 0
                 }
               ]
             },
-            "mask": {
-              "file": "vigilia-jack-light-mask-v29.png"
+            "anchor": "center",
+            "sprite": "full",
+            "url": "../../home/static/cosmetics/vigilia-jack-pupil-v3.webp"
+          },
+          {
+            "slot": "banner",
+            "file": "vigilia-jack-pupil-v3.webp",
+            "fallback": "../../home/static/cosmetics/vigilia-jack-pupil-v3.webp",
+            "width": 128,
+            "height": 128,
+            "motion": "none",
+            "placement": {
+              "x": 73.5,
+              "y": 37,
+              "width": 12
+            },
+            "sequence": {
+              "columns": 1,
+              "rows": 1,
+              "duration": 18,
+              "delay": 0,
+              "backdrop": 0,
+              "frames": [
+                {
+                  "at": 0,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": 0,
+                  "y": 0,
+                  "rotate": 0
+                },
+                {
+                  "at": 0.08,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": 0,
+                  "y": 0,
+                  "rotate": 0
+                },
+                {
+                  "at": 0.14,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": 0,
+                  "y": 0,
+                  "rotate": 0
+                },
+                {
+                  "at": 0.16,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": -3,
+                  "y": -0.1,
+                  "rotate": -0.12
+                },
+                {
+                  "at": 0.18,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": -10,
+                  "y": -0.3333333333333333,
+                  "rotate": -0.4
+                },
+                {
+                  "at": 0.2,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": -22,
+                  "y": -0.7333333333333333,
+                  "rotate": -0.88
+                },
+                {
+                  "at": 0.22,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": -36,
+                  "y": -1.2,
+                  "rotate": -1.44
+                },
+                {
+                  "at": 0.24,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": -50,
+                  "y": -1.6666666666666667,
+                  "rotate": -2
+                },
+                {
+                  "at": 0.26,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": -60,
+                  "y": -2,
+                  "rotate": -2.4
+                },
+                {
+                  "at": 0.28,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": -56,
+                  "y": -1.8666666666666667,
+                  "rotate": -2.24
+                },
+                {
+                  "at": 0.3,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": -45,
+                  "y": -1.5,
+                  "rotate": -1.8
+                },
+                {
+                  "at": 0.32,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": -25,
+                  "y": -0.8333333333333334,
+                  "rotate": -1
+                },
+                {
+                  "at": 0.34,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": 0,
+                  "y": 0,
+                  "rotate": 0
+                },
+                {
+                  "at": 0.36,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": 25,
+                  "y": 0.8333333333333334,
+                  "rotate": 1
+                },
+                {
+                  "at": 0.38,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": 45,
+                  "y": 1.5,
+                  "rotate": 1.8
+                },
+                {
+                  "at": 0.4,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": 58,
+                  "y": 1.9333333333333333,
+                  "rotate": 2.32
+                },
+                {
+                  "at": 0.42,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": 60,
+                  "y": 2,
+                  "rotate": 2.4
+                },
+                {
+                  "at": 0.44,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": 48,
+                  "y": 1.6,
+                  "rotate": 1.92
+                },
+                {
+                  "at": 0.46,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": 32,
+                  "y": 1.0666666666666667,
+                  "rotate": 1.28
+                },
+                {
+                  "at": 0.48,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": 16,
+                  "y": 0.5333333333333333,
+                  "rotate": 0.64
+                },
+                {
+                  "at": 0.5,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": 6,
+                  "y": 0.2,
+                  "rotate": 0.24
+                },
+                {
+                  "at": 0.54,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": 0,
+                  "y": 0,
+                  "rotate": 0
+                },
+                {
+                  "at": 0.62,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": 0,
+                  "y": 0,
+                  "rotate": 0
+                },
+                {
+                  "at": 1,
+                  "frame": 0,
+                  "opacity": 1,
+                  "x": 0,
+                  "y": 0,
+                  "rotate": 0
+                }
+              ]
             },
             "anchor": "center",
             "sprite": "full",
-            "url": "../../home/static/cosmetics/vigilia-jack-light-v29.webp",
-            "mask_url": "data:image/png;base64,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AACAQgIAAAoJAAAoJAAAoJAAAIBCAgAACgkAACgkAACgkAAAgEICAAAKCQAAKCQAAKCQAACAQgIAAAoJAAAoJAAAoJAAAIBCAgAACgkAACgkAACgkAAAgEICAAAKCQAAKCQAAKCQAACAQgIAAAoJAAAoJAAAoJAAAIBCAgAACgkAACgkAACgkAAAgEICAAAKCQAAKCQAAKCQAACAQgIAAAoJAAAoJAAAoJAAAIBCAgAACgkAACgkAACgkAAAgEICAAAKCQAAKCQAAKCQAACAQgIAAAoJAAAoJAAAoJAAAIBCAgAACgkAACgkAACgkAAAgEICAAAKCQAAKCQAAKCQAACAQgIAAAoJAAAoJAAAoJAAAIBCAgAACgkAACgkAACgkAAAgEICAAAKCQAAKCQAAKCQAACAQgIAAAoJAAAoJAAAoJAAAIBCAgAACgkAACgkAACgkAAAgEICAAAKCQAAKCQAAKCQAACAQgIAAAoJAAAoJAAAoJAAAIBCAgAACgkAACgkAACgkAAAgEICAAAKCQAAKCQAAKCQAACAQgIAAAoJAAAoJAAAoJAAAIBCAgAACgkAACgkAACgkAAAgEICAAAKCQAAKCQAAKCQAACAQgIAAAoJAAAoJAAAoJAAAIBCAgAACgkAACgkAACgkAAAgEICAAAKCQAAKCQAAKCQAACAQgIAAAoJAAAoJAAAoJAAAIBCAgAACgkAACgkAACgkAAAgEICAAAKCQAAKCQAAKCQAACAQgIAAAoJAAAoJAAAoJAAAIBCAgAACgkAACgkAACgkAAAgEICAAAKCQAAKCQAAKCQAACAQgIAAAoJAAAoJAAAoJAAAIBCAgAACgkAACgkAACgkAAAgEICAAAKCQAAKCQAAKCQAACAQgIAAAoJAAAoJAAAoJAAAIBCAgAACgkAACgkAAAgff4PK+uHEBjWch8AAAAASUVORK5CYII="
+            "url": "../../home/static/cosmetics/vigilia-jack-pupil-v3.webp"
           }
         ],
         "anchor": "center",
         "sprite": "full",
-        "url": "../../home/static/cosmetics/cosmetic-empty.svg"
+        "url": "../../home/static/cosmetics/vigilia-jack-base-v3.webp"
       }
     ],
     "ornament": [],

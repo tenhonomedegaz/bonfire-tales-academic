@@ -384,6 +384,15 @@ _RANK_OURO = {'Obsidiana': 120, 'Ametista': 250, 'Topázio': 400, 'Esmeralda': 6
 
 # Identidade visual das patentes. Mantida no motor de progressão para que ficha,
 # Pathbuilder e futuras vitrines consumam o mesmo dado, sem mapas em templates.
+_RANK_ICON_URL = {
+    'Obsidiana': 'https://i.imgur.com/qGyiU87.png',
+    'Ametista': 'https://i.imgur.com/BcEwj4f.png',
+    'Topázio': 'https://i.imgur.com/XDubFYE.png',
+    'Esmeralda': 'https://i.imgur.com/i5CiTbS.png',
+    'Âmbar': 'https://i.imgur.com/1SVmQAz.png',
+    'Rubi': 'https://i.imgur.com/GNcQiwM.png',
+    'Diamante': 'https://i.imgur.com/w6Iaeey.png',
+}
 
 
 def nivel_por_aventuras(n):
@@ -419,8 +428,7 @@ def rank_icone_url(rank):
     from django.utils.text import slugify
 
     name = str(rank or '').strip()
-    return static('icons/ranks/' + slugify(name) + '-metal-v1.png') if name in {
-        faixa[2] for faixa in _RANK_FAIXA} else ''
+    return static('icons/ranks/' + slugify(name) + '.png') if name in _RANK_ICON_URL else ''
 
 
 def nivel_label(nivel):
@@ -1668,7 +1676,7 @@ def _resolve_ability_choice_refs(text, feature_choices):
 
 def _grants_de_tag(
         tag, escolhas, catalog, nivel_total, casts_selection=False,
-        feature_choices=None, class_scopes=None, class_level=None):
+        feature_choices=None, class_scopes=None):
     """(fixas, escolha, reservado) de UMA tag. fixas=[(slug,nivel)] (magia específica garantida);
     escolha=None | dict normalizado:
       {'opcoes':[slug], 'qtd':K, 'rotulo':str}                 (lista concreta de opções)
@@ -1705,9 +1713,7 @@ def _grants_de_tag(
         return h if h in catalog else None
 
     m = re.search(r'requires:lvl\{(\d+)\}', s)
-    # Class features unlock on their source class, never a multiclass total.
-    grant_level = class_level if class_level is not None else nivel_total
-    if m and grant_level < int(m.group(1)):
+    if m and nivel_total < int(m.group(1)):
         return [], None, []
     # match(var){…} — concessão por escolha já feita (vertente, veste-lunar…)
     if re.search(r'spell_selection:match\(', s):
@@ -1727,39 +1733,8 @@ def _grants_de_tag(
                 if c:
                     fixas.append((c, catalog[c]))
     s_wo = _CAST_BLOCK_RE.sub('', s)
-    if re.search(r'\blist\b', s_wo):
-        from .tag_engine.parser import parse_tag
-        try:
-            parse_tag(s_wo)
-        except ValueError:
-            return fixas, None, []
     for scope, scope_extra, body in _iter_spell_selections(s_wo):
         full = scope_extra + ' ' + body
-        # Explicit lists are closed catalogs, never an invitation to an open pool.
-        if re.search(r'\blist\b', body):
-            from .tag_engine.parser import parse_tag
-            try:
-                nodes = [node for node in parse_tag(body).nodes if node.name == 'list']
-            except ValueError:
-                continue
-            if len(nodes) != 1 or nodes[0].operator != ':':
-                continue
-            value = str(nodes[0].value or '').strip()
-            if not re.fullmatch(r'\[\s*[a-z0-9_-]+(?:\s*,\s*[a-z0-9_-]+)*\s*\]', value):
-                continue
-            resolved = [_cat(token.strip()) for token in value[1:-1].split(',')]
-            if any(slug is None for slug in resolved):
-                continue
-            options = list(dict.fromkeys(resolved))
-            qtd = _qtd_de(body, grant_level)
-            if qtd is None and casts_selection:
-                qtd = 1
-            if not qtd:
-                continue
-            qtd = min(qtd, len(options))
-            escolha = {'opcoes': options, 'qtd': qtd,
-                       'rotulo': _rotulo_escolha(None, qtd)}
-            break
         # (a) escopo é uma MAGIA concreta sempre-preparada
         scope_cat = _cat(scope)
         if scope_cat:
@@ -1790,7 +1765,7 @@ def _grants_de_tag(
                         break
             continue
         # (d) escolha qtd:K de uma classe / união de classes / `any` (sem filtro de classe)
-        qtd = _qtd_de(body, grant_level)
+        qtd = _qtd_de(body, nivel_total)
         classes = None
         scope_map = _spell_class_scope_map() if class_scopes is None else class_scopes
         if scope == 'any':
@@ -2097,8 +2072,7 @@ def magias_concedidas(personagem, *, ruleset=None):
         for tag in feat_tags:
             fixas, escolha, _reserved = _grants_de_tag(
                 tag, escolhas, catalog, nivel_total, casts_selection,
-                feature_choices=feature_choices, class_scopes=class_scopes,
-                class_level=_cl if _o in ('classe', 'subclasse') else None)
+                feature_choices=feature_choices, class_scopes=class_scopes)
             for slug, nivel in fixas:
                 if slug not in seen:
                     seen.add(slug)
@@ -4285,8 +4259,6 @@ def _derive(personagem, *, ruleset=None):
     apply_mutagen_checks(personagem, ruleset, state)
     from .epic_relentless_resistance import apply_resistance_state
     apply_resistance_state(state, personagem, ruleset=ruleset)
-    from .movement_contract import character_movement
-    state['movimento'] = character_movement(personagem.velocidade, state)
     state.pop('_ctx', None)
     state.pop('_tag', None)
     return state

@@ -2,28 +2,6 @@
 
 Data: 13 de setembro de 2026. Documento de planejamento para o projeto `BonfireSite-main`.
 
-## Historico automatizado das fichas do bot
-
-Entrega local de 06/11/2026: [importador de historico](docs/character_log_import.md),
-em `/gestao/fichas-bot/`, com leitura de XLSX/planilha cadastrada, cruzamento de
-missoes, previa e recibo. Nao converte personagens legados nem concede progresso.
-Estado das correcoes relacionadas a catalogos e confirmacao de nivel:
-[limites e verificacao](docs/qa/20261106-character-history-levelup.md).
-Essas entregas ainda nao foram instaladas nem verificadas com os dados reais de
-producao; a existencia da ferramenta nao encerra o rework integral do Cacador.
-
-## Planejamento da nova Central de Gestao
-
-Direcionamento de 06/11/2026: substituir a experiencia administrativa por fluxos de tarefa,
-conforme [Central de Gestao: arquitetura e plano](docs/planos/20261106-central-gestao.md).
-O PO determinou a remocao efetiva de `is_staff` e a preservacao de `is_superuser` como
-Administrador. Staff, Rulesmaster, Loremaster e Jornalista serao cargos; a migracao de
-identidade precisa preservar contas e vinculos. Este marco e planejamento, nao uma
-implementacao concluida nem autorizacao para alterar acessos ou banco de producao.
-O plano inclui [auditoria ampliada](docs/planos/20261106-auditoria-admin.md), com
-42 achados confirmados e oito verificacoes abertas, e o
-[inventario de destino dos 75 modelos](docs/planos/20261106-admin-inventario.md).
-
 ## Prioridade vigente do PO: matriz do builder antes do release
 
 Direcionamento de fechamento em 13/10/2026: seguir [Fechamento finito do release DEV](docs/qa/BUILDER_RELEASE_CLOSEOUT.md), etapas F1-F6. Consolidar causas da matriz, corrigir a lista residual, executar QA final e entregar commit/push dev. Nao ampliar o release com melhorias opcionais nem substituir evidencias por percentual historico.

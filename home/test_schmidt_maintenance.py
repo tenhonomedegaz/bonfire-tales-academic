@@ -15,7 +15,6 @@ from django.utils import timezone
 from .master_participation import participation
 from .context_processors import master_review
 from .models import TbItemMundano, TbPerfilMestre
-from .master_application_testdata import application_data
 
 
 @override_settings(TEMPLATES=[{
@@ -47,10 +46,9 @@ class SchmidtMaintenanceTests(TestCase):
         self.assertIn(reverse('mundo_organizacoes'), links)
         self.assertIn(reverse('mundo_cronicas'), links)
 
-    @override_settings(MASTER_APPLICATIONS_OPEN=True)
     def test_request_appears_in_staff_queue_without_changing_permission(self):
         self.client.force_login(self.player)
-        self.assertEqual(self.client.post(reverse('master_request'), application_data()).status_code, 302)
+        self.assertEqual(self.client.post(reverse('master_request')).status_code, 302)
         profile = TbPerfilMestre.objects.get(user=self.player)
         self.assertEqual(profile.status_mestre, 'pendente')
         partial = render_to_string('home/partials/master_profile_editor.html', {

@@ -10,7 +10,6 @@
 img[data-cosmetic-sequence]{visibility:hidden}
 .cosmetic-positioned>.cosmetic-atlas{position:relative;display:block;overflow:hidden;opacity:0}
 .cosmetic-positioned>.cosmetic-atlas--rig{overflow:visible}
-.cosmetic-positioned>.cosmetic-atlas--masked{overflow:hidden;mask-mode:alpha}
 .cosmetic-part{--cosmetic-pivot-x:50%;--cosmetic-pivot-y:50%;--cosmetic-mobile-x:initial;--cosmetic-mobile-y:initial;--cosmetic-mobile-width:initial}
 .cosmetic-atlas>.cosmetic-atlas-image{position:absolute;left:0;top:0;display:block;height:100%;max-width:none;object-fit:fill}
 .cosmetic-sequence-shade{position:absolute;inset:0;pointer-events:none;background:#030504;opacity:0}
@@ -22,11 +21,6 @@ img[data-cosmetic-sequence]{visibility:hidden}
 .cosmetic-layers--ornament{top:12px;right:16px;width:min(28%,200px);height:42px;z-index:2;opacity:.65}
 .cosmetic-layers--ornament .cosmetic-layer{object-fit:contain}
 .cosmetic-layers--avatar{inset:-16%;z-index:3;overflow:visible}
-.cosmetic-layers--avatar>.cosmetic-layer,.cosmetic-retract-viewport,.cosmetic-retract-viewport>.cosmetic-layer--retract{position:absolute;inset:0}
-.cosmetic-retract-viewport{display:block;overflow:hidden;mask-size:100% 100%;-webkit-mask-size:100% 100%;mask-repeat:no-repeat;-webkit-mask-repeat:no-repeat}
-.cosmetic-retract-viewport>.cosmetic-layer--retract{object-fit:contain;transform:translate(0%,0%) rotate(0deg);transition:transform var(--cosmetic-retract-duration) cubic-bezier(.2,.75,.25,1) var(--cosmetic-retract-delay),opacity calc(var(--cosmetic-retract-duration) * .65) ease calc(var(--cosmetic-retract-delay) + var(--cosmetic-retract-duration) * .35)}
-:is(.profile-avatar-wrapper,.public-profile-avatar,.banner-character-avatar,.cw-card-portrait):is(:hover,:active,:focus-within) .cosmetic-layer--retract,.cw-card-identity:focus-visible .cosmetic-layer--retract{transform:translate(var(--cosmetic-retract-x),var(--cosmetic-retract-y)) rotate(var(--cosmetic-retract-rotate));opacity:0}
-@media(prefers-reduced-motion:reduce){.cosmetic-retract-viewport>.cosmetic-layer--retract{transition:none!important}}
 :is(.profile-avatar-wrapper,.public-profile-avatar,.banner-character-avatar).is-packaged{position:relative;overflow:visible;isolation:isolate;background:transparent;border-color:transparent;box-shadow:none;animation:none}
 :is(.profile-avatar-wrapper,.public-profile-avatar,.banner-character-avatar).is-packaged::before{display:none}
 :is(.profile-avatar-wrapper,.public-profile-avatar,.banner-character-avatar).is-packaged>img{border-radius:50%;width:100%;height:100%;object-fit:cover}
@@ -92,7 +86,6 @@ img[data-cosmetic-sequence]{visibility:hidden}
 .rank-art-pair>img,.bf-rank .rank-art-pair>img{position:absolute;top:0;left:0;width:200%;height:100%;max-width:none;object-fit:fill;filter:none;pointer-events:none}
 .rank-art-pair--closed>img,.bf-rank .rank-art-pair--closed>img{left:-100%}
 .bf-rank>.rank-art-pair{display:block}
-.bf-rank>img.rank-insignia{display:block;width:40px;height:40px;flex:0 0 40px;object-fit:contain;filter:none}
 .rank-portrait-frame.rank-art-pair{filter:drop-shadow(0 2px 2px #0008)}
 .cw-card-portrait.rank-portrait{background:#171315}
 .cw-card-portrait.is-packaged{position:relative;overflow:visible;border-radius:50%;background:#171315;border-color:transparent;margin:12px 8px;isolation:isolate}

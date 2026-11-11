@@ -15,7 +15,6 @@
   <meta property="og:url" content="{% if canonical_path %}{{ site_origin }}{{ canonical_path }}{% else %}{{ site_origin }}{{ request.path }}{% endif %}" />
   {% if adsense_publisher_id %}<meta name="google-adsense-account" content="{{ adsense_publisher_id }}">{% endif %}
   {% if adsense_enabled and ads_enabled %}
-  <script src="{% static 'js/privacy-choices.js' %}?v=1" defer></script>
   <script async crossorigin="anonymous" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ adsense_publisher_id }}"></script>
   {% endif %}
   <link rel="icon" type="image/png" href="{% static 'brand/icon.png' %}" />
@@ -77,23 +76,21 @@
   <link rel="stylesheet" href="{% static 'css/pages/magias.css' %}?v=7">
   {% block extra_head %}{% endblock %}
   <link rel="stylesheet" href="{% static 'css/pages/responsive.css' %}?v=1">
-  <link rel="stylesheet" href="{% static 'css/brand.css' %}?v=2">
+  <link rel="stylesheet" href="{% static 'css/brand.css' %}?v=1">
   <link rel="stylesheet" href="{% static 'css/brand-world.css' %}?v=2">
   <link rel="stylesheet" href="{% static 'css/components/ranks.css' %}?v=1">
   <link rel="stylesheet" href="{% static 'css/components/theme-compositions.css' %}?v=1">
-  <link rel="stylesheet" href="{% static 'css/components/cosmetic-presentation.css' %}?v=15">
-  <link rel="stylesheet" href="{% static 'css/components/character-card.css' %}?v=1">
-  <script src="{% static 'cosmetics/renderer.js' %}?v=14" defer></script>
-  <link rel="stylesheet" href="{% static 'css/components/cosmetic-catalog.css' %}?v=2">
-  <script src="{% static 'js/cosmetic-catalog.js' %}?v=2" defer></script>
+  <link rel="stylesheet" href="{% static 'css/components/cosmetic-presentation.css' %}?v=12">
+  <script src="{% static 'cosmetics/renderer.js' %}?v=11" defer></script>
+  <link rel="stylesheet" href="{% static 'css/components/cosmetic-catalog.css' %}?v=1">
+  <script src="{% static 'js/cosmetic-catalog.js' %}?v=1" defer></script>
   <link rel="stylesheet" href="{% static 'css/components/navigation-access.css' %}?v=1">
   <link rel="stylesheet" href="{% static 'css/components/master-review.css' %}?v=1">
   <link rel="stylesheet" href="{% static 'css/components/editorial-ad.css' %}?v=2">
   <link rel="stylesheet" href="{% static 'css/components/profile-effects.css' %}?v=2">
   <link rel="stylesheet" href="{% static 'css/components/profile-theme-motifs.css' %}?v=2">
-  <link rel="stylesheet" href="{% static 'css/components/illustrated-theme-skins.css' %}?v=3">
-  <link rel="stylesheet" href="{% static 'css/components/rank-theme-skins.css' %}?v=1">
-  <script src="{% static 'js/profile-effects.js' %}?v=3" defer></script>
+  <link rel="stylesheet" href="{% static 'css/components/illustrated-theme-skins.css' %}?v=1">
+  <script src="{% static 'js/profile-effects.js' %}?v=2" defer></script>
   <script src="{% static 'js/navigation-access.js' %}?v=1" defer></script>
   <script src="{% static 'js/brand.js' %}?v=1" defer></script>
   <script src="{% static 'js/theme-composition-preview.js' %}?v=1" defer></script>
@@ -109,9 +106,7 @@
         <a href="{% url 'master_dashboard' %}?permissao=pendente#permissoes">Avaliar solicitações →</a>
       </aside>
       {% endif %}
-      {% if pending_character_stories_count %}<aside class="bft-review-notice" aria-label="Histórias aguardando aprovação"><span>{{ pending_character_stories_count }} história{{ pending_character_stories_count|pluralize:'s' }} de personagem aguardando aprovação.</span><a href="{% url 'gestao:editorial' %}?source=historia">Revisar histórias →</a></aside>{% endif %}
-      {% if character_story_changes_count %}<aside class="bft-review-notice" aria-label="Devolutivas de histórias"><span>O Loremaster solicitou ajustes em {{ character_story_changes_count }} história{{ character_story_changes_count|pluralize:'s' }}.</span><a href="{% url 'character_stories_inbox' %}">Ver devolutivas →</a></aside>{% endif %}
-
+      
       <div class="flex-1 flex flex-row w-full justify-center">
           {% block ad_containers %}
           {% if adsense_enabled and ads_enabled and adsense_sidebar_slot %}

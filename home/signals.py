@@ -4,7 +4,6 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
-from django.contrib.auth.signals import user_logged_in
 from django.utils.text import slugify
 
 from .models import (
@@ -29,19 +28,6 @@ from .security import find_sql_danger
 
 
 logger = logging.getLogger(__name__)
-
-
-@receiver(user_logged_in)
-def reconcile_registered_master_on_login(sender, user, **kwargs):
-    # Password login must also repair claims for an already verified Discord link.
-    from django.db import DatabaseError, transaction
-    from .master_legacy import claim_discord_masters
-    discord_id = str(getattr(getattr(user, 'profile', None), 'discord_user_id', '') or '')
-    try:
-        with transaction.atomic():
-            claim_discord_masters(user, discord_id)
-    except (DatabaseError, ValidationError):
-        logger.warning('Conciliacao de mestre pendente para conta %s; login preservado.', user.pk)
 
 
 @receiver(post_save, sender='home.TbPersonagem')

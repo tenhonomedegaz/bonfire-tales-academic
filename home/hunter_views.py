@@ -3,7 +3,6 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render
 from django.views.decorators.http import require_GET
 
-from .class_publication import CATALOG_ERRORS, resolve_class_catalog
 from .hunter_rework import catalog, prepare
 from django.shortcuts import get_object_or_404, redirect
 from django.views.decorators.http import require_http_methods
@@ -12,8 +11,10 @@ from django.views.decorators.http import require_http_methods
 @login_required(login_url='/login/')
 @require_http_methods(['GET', 'POST'])
 def regularization_preview(request, pk):
-    from .models import TbPersonagem, TbPersonagemClasse
+    from django.conf import settings
+    from .models import TbPersonagem, TbPersonagemClasse, TbRuleset
     from .hunter_regularization import preview_legacy_hunter, apply_regularization
+    from .class_publication import published_catalog
 
     person = get_object_or_404(TbPersonagem, pk=pk, dono=request.user, arquivado=False)
     pc = get_object_or_404(TbPersonagemClasse, id_personagem=person, id_classe__slug='cacador')
@@ -21,8 +22,13 @@ def regularization_preview(request, pk):
         from django.http import Http404
         raise Http404('Hunter already has a bound revision.')
     try:
-        ruleset = resolve_class_catalog(pc.id_classe).ruleset
-    except CATALOG_ERRORS:
+        published = published_catalog(pc.id_classe)
+        if published:
+            ruleset = published[0]
+        else:
+            checksum = getattr(settings, 'HUNTER_CREATOR_RULESET_CHECKSUM', '')
+            ruleset = TbRuleset.objects.filter(checksum=checksum).first() if checksum else None
+    except (ObjectDoesNotExist, ValueError, KeyError, TypeError):
         ruleset = None
     comparison = None
     error = None
@@ -65,25 +71,25 @@ def regularization_preview(request, pk):
 @login_required(login_url='/login/')
 @require_GET
 def laboratory(request):
-    from .models import TbClasse
+    from .views import _criador_hunter_catalog_args, HunterCreatorCatalogUnavailable
     from .content_versions import resolve_content
-    from .versioned_classes import EVALUATOR, VOCABULARY
+    from .versioned_classes import EVALUATOR, VOCABULARY, VersionedClassCatalog
     from django.utils.text import slugify
 
     published = None
     try:
-        live = TbClasse.objects.get(slug='cacador')
-        selection = resolve_class_catalog(live)
-        published = selection.ruleset
+        binding = _criador_hunter_catalog_args()
+        published = binding.get('hunter_ruleset')
         data = (resolve_content(published, 'hunter-rework',
                 evaluator_version=EVALUATOR, vocabulary_version=VOCABULARY)
                 if published else catalog())
-        class_catalog = selection.catalog
-        order_ids = (resolve_content(published, 'class-catalog:%s' % live.pk,
+        class_catalog = (VersionedClassCatalog(published, binding['hunter_class_id'])
+                         if published else None)
+        order_ids = (resolve_content(published, 'class-catalog:%s' % binding['hunter_class_id'],
                      evaluator_version=EVALUATOR, vocabulary_version=VOCABULARY)
                      .get('hunter_order_replacements', {}).get('order_ids', {})
                      if published else {})
-    except CATALOG_ERRORS:
+    except (HunterCreatorCatalogUnavailable, ObjectDoesNotExist, ValueError):
         return render(request, 'home/pages/hunter_laboratory.html', {
             'error': 'A revisão publicada do Caçador está indisponível. Tente novamente após a correção do catálogo.',
         }, status=503)

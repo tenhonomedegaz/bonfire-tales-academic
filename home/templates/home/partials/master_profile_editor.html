@@ -7,10 +7,8 @@
     <div class="mh-application"><span class="mh-state" data-state="pendente">Solicitação enviada</span><h3>A administração vai avaliar seu pedido</h3><p>Seu pedido está na fila de permissões de mestre da administração deste site, não no Discord. Quando for avaliado, o resultado e o retorno da equipe aparecerão nesta aba.</p>{% if community.solicitado_em %}<p>Enviado em {{ community.solicitado_em|date:'d/m/Y H:i' }}.</p>{% endif %}</div>
   {% elif community.status_mestre == 'suspenso' %}
     <div class="mh-application"><span class="mh-state" data-state="ajustes">Permissão suspensa</span><h3>Converse com a administração</h3><p>Seu portfólio foi preservado, mas a divulgação e a edição estão desativadas até uma nova autorização.</p></div>
-  {% elif not community.applications_open %}
-    <div class="mh-application"><span class="mh-state">Solicitações encerradas</span><h3>Novos cadastros temporariamente indisponíveis</h3><p>O formulário de participação está em revisão. Os cadastros de Fogueira existentes permanecem preservados.</p></div>
   {% else %}
-    <div class="mh-application"><p class="mh-eyebrow">Da primeira ideia à sua próxima mesa</p><h3>Quer contar histórias em Cinéria?</h3><p>Consulte os requisitos e solicite à administração a participação como mestre no site.</p><a class="mh-button" href="{% url 'master_request' %}">Solicitar participação</a></div>
+    <div class="mh-application"><p class="mh-eyebrow">Da primeira ideia à sua próxima mesa</p><h3>Quer contar histórias em Cinéria?</h3><p>Consulte os requisitos e solicite à administração a participação como mestre no site.</p><form method="post" action="{% url 'master_request' %}">{% csrf_token %}<button class="mh-button" type="submit">Solicitar participação</button></form></div>
   {% endif %}
   {% if community.is_master or my_tables %}{% include 'home/partials/master_own_tables.html' %}{% endif %}
   {% if community.is_master or my_works %}<div class="mh-panel"><h3>Minha galeria</h3><p>Os trabalhos ficam privados até a revisão da equipe.</p><a class="mh-text-link" href="{% url 'master_gallery' %}">Ver trabalhos e revisões →</a></div>{% endif %}

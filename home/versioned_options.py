@@ -27,17 +27,12 @@ def snapshot_options(*, author=None):
 
 class VersionedOptions:
     def __init__(self, ruleset):
-        self.data = deepcopy(resolve_content(ruleset, IDENTITY,
-            evaluator_version=EVALUATOR, vocabulary_version=VOCABULARY))
+        self.data = resolve_content(ruleset, IDENTITY,
+            evaluator_version=EVALUATOR, vocabulary_version=VOCABULARY)
         if self.data.get('schema') != 1:
             raise ValueError('Unsupported option snapshot.')
         for key, model in (('options', TbOpcaojogo), ('access', TbAcessoopcao)):
             fields = {f.attname for f in model._meta.concrete_fields}
-            if model is TbOpcaojogo:
-                for row in self.data[key]:
-                    # Old sealed revisions predate the editorial archive flag.
-                    if set(row) == fields - {'arquivado'}:
-                        row['arquivado'] = False
             if any(set(row) != fields for row in self.data[key]):
                 raise ValueError('Incompatible option snapshot fields.')
         ids = {o['id_opcao'] for o in self.data['options']}
@@ -48,7 +43,7 @@ class VersionedOptions:
         out = {}
         for o in self.data['options']:
             name = o['tipo']
-            if name and not o['arquivado']:
+            if name:
                 slug = slugify(name)
                 out[slug] = out[slug.replace('-', '_')] = name
         return out
@@ -68,7 +63,7 @@ class VersionedOptions:
             sub = next((s for s in self.data['subclasses'] if s['slug'] == slug), None)
             subclasse = sub['id_subclasse'] if sub else None
             classe = sub['id_classe_id'] if sub else None
-        options = [o for o in self.data['options'] if o['tipo'] == tipo and not o['arquivado']]
+        options = [o for o in self.data['options'] if o['tipo'] == tipo]
         if listed:
             options = [o for o in options if o['slug'].replace('_', '-') in listed]
             return [{'id': o['id_opcao'], 'slug': o['slug'], 'nome': o['nome'],

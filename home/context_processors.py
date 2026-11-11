@@ -7,15 +7,9 @@ def master_review(request):
     """Expose the review queue only to users allowed to authorize masters."""
     from .master_participation import can_authorize
     from .models import TbPerfilMestre
-    from .gestao.policy import can, can_review_editorial
-    from .gestao.workflows import review_queues
 
     allowed = can_authorize(request.user)
-    from .character_stories import notification_context
     return {
-        **notification_context(request.user),
-        'management_access': can(request.user, 'people.view') or can(request.user, 'character_history.review') or can(request.user, 'masters.authorize') or can_review_editorial(request.user) or bool(review_queues(request.user)),
-        'can_review_history': can(request.user, 'character_history.review'),
         'master_review_access': allowed,
         'pending_master_requests_count': (
             TbPerfilMestre.objects.filter(status_mestre='pendente').count() if allowed else 0
@@ -26,8 +20,6 @@ def master_review(request):
 def user_profile(request):
     """Ensure `profile` is always available in templates for authenticated users."""
     if request.user.is_authenticated:
-        if request.path.startswith('/gestao/'):
-            return {'user_profile': UserProfile.objects.filter(user=request.user).first()}
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
         return {'user_profile': profile}
     return {'user_profile': None}
@@ -40,7 +32,7 @@ def site_presentation(request):
     conteúdo editorial. Views editoriais precisam declarar ``ads_enabled=True``.
     """
     private_prefixes = (
-        '/admin/', '/gestao/', '/api/', '/wiki/', '/login/', '/logout/', '/cadastro/',
+        '/admin/', '/api/', '/wiki/', '/login/', '/logout/', '/cadastro/',
         '/recuperar-senha/', '/perfil/', '/sistemas/criacao-de-ficha/',
         '/sistemas/pathbuilder/', '/jogador/personagens/', '/mestre/mercado-de-mestre/',
         '/mercado/comunidade/',
@@ -50,7 +42,6 @@ def site_presentation(request):
     tool_paths = ('/mapa/', '/mapa')
     return {
         'site_origin': getattr(settings, 'SITE_ORIGIN', 'https://bonfiretales.com.br').rstrip('/'),
-        'master_applications_open': bool(getattr(settings, 'MASTER_APPLICATIONS_OPEN', False)),
         'adsense_publisher_id': getattr(settings, 'ADSENSE_PUBLISHER_ID', ''),
         'adsense_enabled': bool(getattr(settings, 'ADSENSE_ENABLED', False)),
         'adsense_sidebar_slot': getattr(settings, 'ADSENSE_SIDEBAR_SLOT', ''),

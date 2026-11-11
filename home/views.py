@@ -4,7 +4,6 @@ import hashlib
 import logging
 import re
 import unicodedata
-from functools import wraps
 from uuid import UUID, uuid4
 from urllib.parse import quote, unquote, urlsplit
 from .item_mecanica import (
@@ -35,7 +34,7 @@ from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.http import Http404, JsonResponse, HttpResponseBadRequest, HttpResponse, HttpResponseNotAllowed
-from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
+from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, render, redirect
 from django.views.decorators.http import require_POST, require_http_methods, require_safe
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
@@ -177,11 +176,7 @@ SITE_TABLES = {
 
 
 class StaffSignupForm(UserCreationForm):
-    email = forms.EmailField(label="Email", required=True)
-
-    def clean_email(self):
-        from .email_identity import available_email
-        return available_email(self.cleaned_data['email'])
+    email = forms.EmailField(label="Email", required=False)
 
     class Meta(UserCreationForm.Meta):
         fields = ("username", "email", "password1", "password2")
@@ -194,11 +189,7 @@ class EmailOrUsernameAuthenticationForm(AuthenticationForm):
         username_or_email = self.cleaned_data.get("username", "").strip()
         if "@" in username_or_email:
             User = get_user_model()
-            from .email_identity import email_accounts
-            candidates = list(email_accounts(username_or_email)[:2])
-            if len(candidates) > 1:
-                raise forms.ValidationError('Este e-mail precisa de conciliação pela equipe. Entre com seu nome de usuário.')
-            user = candidates[0] if candidates else None
+            user = User.objects.filter(email__iexact=username_or_email).order_by("id").first()
             if user:
                 self.cleaned_data["username"] = user.get_username()
         return super().clean()
@@ -734,8 +725,8 @@ def robots_txt_view(request):
 def ads_txt_view(request):
     from django.conf import settings
 
-    publisher_id = getattr(settings, 'ADSENSE_PUBLISHER_ID', '').strip().removeprefix('ca-')
-    if not re.fullmatch(r'pub-[0-9]{16}', publisher_id):
+    publisher_id = getattr(settings, 'ADSENSE_PUBLISHER_ID', '').strip()
+    if not publisher_id:
         raise Http404
     return HttpResponse(
         'google.com, %s, DIRECT, f08c47fec0942fa0\n' % publisher_id,
@@ -809,16 +800,11 @@ def register_view(request):
         if form.is_valid():
             user = form.save(commit=False)
             user.email = form.cleaned_data.get("email") or ""
-            try:
-                with transaction.atomic():
-                    user.save()
-            except IntegrityError:
-                form.add_error('email', 'Este e-mail ou usuário já pertence a outra conta.')
-            else:
-                login(request, user)
-                if user.email:
-                    _enviar_verificacao_email(request, user)
-                return redirect("home")
+            user.save()
+            login(request, user)
+            if user.email:
+                _enviar_verificacao_email(request, user)
+            return redirect("home")
     else:
         form = StaffSignupForm()
 
@@ -1156,8 +1142,6 @@ def _appearance_context(theme='bonfire', frame='none', effect='none',
     # A partial catalog can contain paid items without its baseline entries.
     # Keep catalog ownership checks intact while rendering the built-in defaults.
     theme_item = themes.get(theme_key) or APPEARANCE_THEMES['bonfire']
-    from .cosmetics import theme_category
-    category = theme_category(theme_item)
     frame_item = frames.get(frame_key) or APPEARANCE_FRAMES['none']
     effect_item = effects.get(effect_key) or APPEARANCE_EFFECTS['none']
     # Definição sanitizada do tema-dado escolhido (get_catalog já sanitiza; o dict
@@ -1195,7 +1179,6 @@ def _appearance_context(theme='bonfire', frame='none', effect='none',
         'frame_class': frame_item['class'],
         'effect_class': effect_item['class'],
         'theme_label': theme_item['label'],
-        'theme_category': category,
         'theme_motif': definicao.get('motif', 'none') if not is_custom else 'none',
         'custom': custom,
         'background_url': (background or '').strip(),
@@ -1298,7 +1281,7 @@ def profile_view(request):
 
         elif action == 'update_profile':
             new_username = request.POST.get('username', '').strip()
-            new_email = request.POST.get('email', '').strip().lower()
+            new_email = request.POST.get('email', '').strip()
             new_avatar = request.POST.get('avatar_url', '').strip()
             new_banner = request.POST.get('banner_url', '').strip()
             new_background = request.POST.get('background_url', '').strip()
@@ -1342,9 +1325,9 @@ def profile_view(request):
                 try:
                     if new_email:
                         validate_email(new_email)
-                    from .email_identity import email_accounts
-                    if new_email and email_accounts(new_email).exclude(pk=user.pk).exists():
-                        errors.append('Esse e-mail já pertence a outra conta.')
+                    if new_email and UserProfile.objects.filter(
+                            user__email__iexact=new_email, email_verified=True).exclude(user=user).exists():
+                        errors.append('Esse e-mail já está confirmado em outra conta.')
                     else:
                         user.email = new_email
                         user_changed = True
@@ -1353,11 +1336,7 @@ def profile_view(request):
                     errors.append('E-mail inválido.')
 
             if user_changed:
-                try:
-                    with transaction.atomic():
-                        user.save()
-                except IntegrityError:
-                    errors.append('Esse e-mail ou usuário já pertence a outra conta.')
+                user.save()
 
             try:
                 avatar_upload = request.FILES.get('avatar_file')
@@ -1456,6 +1435,12 @@ def profile_view(request):
     appearance = _appearance_context(
         profile.profile_theme, profile.avatar_frame, profile.profile_effect,
         profile.theme_custom, profile.background_url, user=user)
+    preview_hidden = _conquistas.visibilidade_conquistas_de_personagem([user])[1][user.pk]
+    preview_appearance = _appearance_context(
+        _public_appearance_choice(profile.profile_theme, 'theme', preview_hidden),
+        _public_appearance_choice(profile.avatar_frame, 'frame', preview_hidden),
+        _public_appearance_choice(profile.profile_effect, 'effect', preview_hidden),
+        profile.theme_custom, profile.background_url, user=user)
     theme_options = _appearance_options(user, 'theme')
     frame_options = _appearance_options(user, 'frame')
     effect_options = _appearance_options(user, 'effect')
@@ -1514,6 +1499,17 @@ def profile_view(request):
         'conquistas_nao_lidas': TbConquistaNotificacao.objects.filter(
             concessao__user=user, concessao__revogada_em__isnull=True,
             concessao__conquista__ativo=True, lida_em__isnull=True).count(),
+        # PRÉVIA VIVA — estado INICIAL do painel: a aparência ATUALMENTE SALVA,
+        # renderizada pelo mesmo partial do perfil público. Dali em diante quem
+        # atualiza é o POST /perfil/previa/ (perfil_preview_view).
+        'preview_appearance': preview_appearance,
+        'preview_badges': [badge for badge in _badges.badges_do_usuario(user)
+                           if badge['slug'] not in preview_hidden],
+        'preview_titulo': (title if (title := _badges.titulo_do_usuario(user)) and
+                          title['slug'] not in preview_hidden else None),
+        'preview_conquistas': _conquistas.conquistas_do_usuario(
+            user, pode_ver_privados=False),
+        'preview_personagens': _perfil_personagens(user, False),
         # Social do PRÓPRIO perfil: contagens + listas simples (sem feed por ora).
         'social': _social.estado_social(user, user),
         'social_seguidores': _social.lista_seguidores(user),
@@ -1562,7 +1558,6 @@ def conquista_notificacao_ler_view(request, notificacao_id):
 
 @cosmetic_read_scope
 def public_profile_view(request, username):
-    from .profile_comments import wall_context
     from .models import UserProfile
     from . import permissions as perms
     from .master_participation import participation
@@ -1621,7 +1616,6 @@ def public_profile_view(request, username):
         # Social — contagens de curtidas/seguidores + o estado do VISITANTE (curtiu/
         # segue). Anônimo recebe só as contagens (curtiu/segue=False, sem botões).
         'social': _social.estado_social(viewed_user, request.user),
-        **wall_context(viewed_user, request.user, request.GET.get('comentarios_page'), request=request),
     })
 
 
@@ -2045,7 +2039,7 @@ def discord_callback(request):
         return redirect('/login/?discord=erro_token')
     discord_id = str(duser.get('id') or '')
     discord_name = duser.get('global_name') or duser.get('username') or ''
-    discord_email = (duser.get('email') or '').strip().lower()
+    discord_email = duser.get('email')
     if not discord_id:
         return redirect('/login/?discord=erro')
     User = get_user_model()
@@ -2069,14 +2063,12 @@ def discord_callback(request):
             prof.discord_user_id = discord_id
             prof.discord_username = discord_name
             prof.save(update_fields=['discord_user_id', 'discord_username'])
-        _reconcile_user_master_identity(request.user)
         _reconcile_user_payment_identity(request.user)
         return redirect('/perfil/?discord=vinculado')
 
     # 2) Não logado → achar conta pelo discord_user_id
     prof = UserProfile.objects.filter(discord_user_id=discord_id).select_related('user').first()
     if prof:
-        _reconcile_user_master_identity(prof.user)
         _reconcile_user_payment_identity(prof.user)
         login(request, prof.user)
         return redirect(nxt)
@@ -2084,14 +2076,10 @@ def discord_callback(request):
     # 3) Casar por e-mail (vincula a conta existente) ou criar nova
     user = User.objects.filter(email__iexact=discord_email).first() if discord_email else None
     if user is None:
-        try:
-            with transaction.atomic():
-                user = User.objects.create_user(username=_discord_unique_username(User, discord_name or ('discord_' + discord_id)),
-                                                email=discord_email or '')
-                user.set_unusable_password()
-                user.save()
-        except IntegrityError:
-            return redirect('/login/?discord=erro')
+        user = User.objects.create_user(username=_discord_unique_username(User, discord_name or ('discord_' + discord_id)),
+                                        email=discord_email or '')
+        user.set_unusable_password()
+        user.save()
     prof, _ = UserProfile.objects.get_or_create(user=user)
     prof.discord_user_id = discord_id
     prof.discord_username = discord_name
@@ -2101,7 +2089,6 @@ def discord_callback(request):
         user__email__iexact=discord_email, email_verified=True).exclude(user=user).exists()
     prof.email_verified = bool(discord_email and duser.get('verified') and not ja_verif)
     prof.save(update_fields=['discord_user_id', 'discord_username', 'email_verified'])
-    _reconcile_user_master_identity(user)
     _reconcile_user_payment_identity(user)
     login(request, user)
     return redirect(nxt)
@@ -2266,19 +2253,17 @@ def classe_detail_view(request, slug):
 
 
 def _postgres_classe_detail_view(request, slug):
+    from django.core.exceptions import ObjectDoesNotExist
     live_class = get_object_or_404(TbClasse, slug=slug)
     all_classes = TbClasse.objects.all().order_by('nome')
-    from .class_publication import CATALOG_ERRORS, resolve_class_catalog
+    from .class_publication import published_catalog
 
     try:
-        selection = resolve_class_catalog(live_class)
-    except CATALOG_ERRORS:
+        published_class = published_catalog(live_class)
+    except (ObjectDoesNotExist, ValueError, KeyError, TypeError):
         return HttpResponse('Revisao publica da classe indisponivel.', status=503)
-    published_class = ((selection.ruleset, selection.catalog)
-                       if selection.catalog is not None else None)
-    legacy_hunter_publication = (slug == 'cacador' and
-        (selection.catalog is None or selection.catalog.presentation_source != 'catalog'))
-    if published_class is not None and not legacy_hunter_publication:
+    legacy_hunter_publication = published_class is None and slug == 'cacador'
+    if published_class is not None:
         _, catalog = published_class
         classe = catalog.classe
         all_classes = [classe if item.pk == classe.pk else item for item in all_classes]
@@ -2937,7 +2922,6 @@ def _postgres_raca_detail_view(request, slug):
         'tracos_base': tracos_base,
         'linhagens': linhagens,
         'essencias': essencias,
-        'race_origin_options': {e.slug: _essencia_vertentes(e) for e in essencias},
         'stats': stats,
         'talents': talents,
         'levels': [1, 5, 9, 13, 17],
@@ -3089,10 +3073,7 @@ def sistemas_missoes_view(request):
         'finished': 'Finalizada',
     }
     try:
-        from .models import TbRevisaoMissaoBot
-        excluded_missions = TbRevisaoMissaoBot.objects.filter(
-            decision__in=('duplicate', 'no_record')).values_list('quest_id', flat=True)
-        queryset = BotQuest.objects.filter(isPublished=True).exclude(pk__in=excluded_missions)
+        queryset = BotQuest.objects.filter(isPublished=True)
         if status:
             queryset = queryset.filter(status=status)
         else:
@@ -3444,19 +3425,6 @@ def _claim_transactions_for_member(member, emails):
     return len(claimed_ids)
 
 
-def _reconcile_user_master_identity(user):
-    from django.core.exceptions import ValidationError
-    from django.db import DatabaseError
-    from .master_legacy import claim_discord_masters
-    discord_id = str(getattr(getattr(user, 'profile', None), 'discord_user_id', '') or '')
-    try:
-        with transaction.atomic():
-            return claim_discord_masters(user, discord_id)
-    except (DatabaseError, ValidationError):
-        logger.warning('Conciliacao de mestre pendente para conta %s; login preservado.', user.pk)
-        return 0
-
-
 def _reconcile_user_payment_identity(user):
     """Liga compras por e-mail ao Discord quando a conta passa a ter as duas identidades."""
     from .models import AsaasCheckoutOrder
@@ -3518,14 +3486,19 @@ def _create_asaas_checkout(order, product, display_name, callback_base):
         },
         'items': [{
             'externalReference': order.product_code,
-            'name': product['name'][:30],
+            'name': product['name'],
             'description': product['description'],
             'quantity': 1,
             'value': float(product['amount']),
         }],
     }
-    # Partial customerData is rejected by Asaas. Collect fiscal/address data on
-    # its hosted page; the beneficiary remains pinned to this local order.
+    customer_data = {}
+    if display_name:
+        customer_data['name'] = display_name[:100]
+    if order.email:
+        customer_data['email'] = order.email
+    if customer_data:
+        payload['customerData'] = customer_data
     if order.mode == 'recurring':
         payload['subscription'] = {
             'cycle': 'MONTHLY',
@@ -3536,9 +3509,7 @@ def _create_asaas_checkout(order, product, display_name, callback_base):
     checkout_id = str((checkout or {}).get('id') or '').strip()
     if not checkout_id:
         raise AsaasAPIError('Checkout sem identificador.')
-    checkout_host = ('https://sandbox.asaas.com' if 'sandbox' in settings.ASAAS_API_BASE
-                     else 'https://asaas.com')
-    checkout_url = '%s/checkoutSession/show?id=%s' % (checkout_host, checkout_id)
+    checkout_url = 'https://asaas.com/checkoutSession/show?id=%s' % checkout_id
     order.asaas_checkout_id = checkout_id
     order.asaas_checkout_url = checkout_url
     order.save(update_fields=['asaas_checkout_id', 'asaas_checkout_url', 'updated_at'])
@@ -4035,12 +4006,12 @@ def _classe_nv1_sources(classe, *, ruleset=None):
         id_classe=classe, id_subclasse__isnull=True, niveladquirido=1))
 
 
-def _classe_maestria_n(classe, nivel=1, *, ruleset=None):
+def _classe_maestria_n(classe, nivel=1):
     total = 0
-    for src in _classe_nv1_sources(classe, ruleset=ruleset):
+    for src in _classe_nv1_sources(classe):
         for tag in (getattr(src, 'tags_json', None) or []):
             for m in _PICK_ARMA_RE.finditer(str(tag)):
-                total += _pick_count_for_tag(classe, nivel, m.group(1), tag, ruleset=ruleset) or 0
+                total += _pick_count_for_tag(classe, nivel, m.group(1), tag) or 0
     return total
 
 
@@ -4290,7 +4261,7 @@ def _uses_label(count, reset):
 
 def _uses_meta_from_text(text, ctx=None):
     s = str(text or '').lower()
-    if re.search(r'\bat[-_]will\b', s):
+    if re.search(r'\bat-will\b', s):
         return {'maximo': 0, 'reset': 'at-will', 'label': 'at-will'}
 
     patterns = [
@@ -4359,31 +4330,22 @@ def _resource_resets_on_rest(reset, longo):
 
 
 def _innate_spell_uses_from_features(features, catalog, ficha=None, *, ruleset=None,
-                                     talent_attrs=None, choices=None, spell_grants=()):
+                                     talent_attrs=None):
     """Compila usos inatos de fontes e catalogo ja resolvidos.
 
     Mantem o leitor independente de talento, classe e persistencia: qualquer fonte
     que declare ``cast`` sem slot e um limite de usos recebe o mesmo contrato.
     """
-    from .character_engine import _resolve_match
     out = {}
-    selected_by_source = {}
-    for grant in spell_grants:
-        selected_by_source.setdefault(grant['fonte'], set()).add(grant['slug'])
     for (_origem, _fonte, obj, _cl) in features:
         fonte = getattr(obj, 'nome', '') or ''
-        tags = [_resolve_match(str(t), choices or {}, outer_only=True)
-                for t in (getattr(obj, 'tags_json', None) or [])]
+        tags = [str(t) for t in (getattr(obj, 'tags_json', None) or [])]
         if talent_attrs is not None:
             from .character_engine import _feature_talent_attr_sig
             if (any('attr:talent_attr_score+' in tag for tag in tags)
                     and not _feature_talent_attr_sig(obj, talent_attrs)):
                 continue
         ctx = _uses_eval_ctx(ficha, _cl)
-        grant_level = _cl if _cl is not None else ctx['lvl']
-        tags = [tag for tag in tags if not (
-            (gate := re.search(r'requires:lvl\{(\d+)\}', tag))
-            and grant_level < int(gate.group(1)))]
         source_meta = None
         for t in tags:
             source_meta = source_meta or _uses_meta_from_text(t, ctx)
@@ -4406,15 +4368,7 @@ def _innate_spell_uses_from_features(features, catalog, ficha=None, *, ruleset=N
                 # contrato para um consumidor de efeitos temporarios, sem inventar
                 # comportamento neste caminho.
                 meta['without_lethargy'] = 'lethargy' in omissions
-                targets = set()
-                for target in re.findall(r'spell:([a-z0-9_-]+)', body):
-                    if target == 'spell_selection':
-                        targets.update(selected_by_source.get(fonte, ()))
-                    elif target not in ('pick', 'active'):
-                        targets.add(target)
-                for slug in sorted(targets):
-                    if slug not in catalog:
-                        slug = slug.replace('_', '-')
+                for slug in re.findall(r'spell:([a-z0-9-]+)', body):
                     if ruleset is not None and slug not in catalog:
                         raise ValueError('Innate spell absent from pinned ruleset: %s' % slug)
                     if slug in catalog:
@@ -4422,25 +4376,16 @@ def _innate_spell_uses_from_features(features, catalog, ficha=None, *, ruleset=N
     return out
 
 
-def _innate_spell_uses(personagem, ficha=None, *, ruleset=None, spell_grants=None):
+def _innate_spell_uses(personagem, ficha=None, *, ruleset=None):
     """Mapeia (fonte, spell_slug) -> metadados de uso inato vindos das tags."""
-    from .character_engine import _features_do_personagem, _talent_attr_map, _collect_escolhas
+    from .character_engine import _features_do_personagem, _talent_attr_map
     from .versioned_spells import spell_catalog
     features = _features_do_personagem(personagem, ruleset=ruleset)
-    if spell_grants is None:
-        if any('spell:spell_selection' in str(tag)
-               for _, _, feature, _ in features
-               for tag in (getattr(feature, 'tags_json', None) or [])):
-            from .character_engine import magias_concedidas
-            spell_grants = magias_concedidas(personagem, ruleset=ruleset)['concedidas']
-        else:
-            spell_grants = ()
     catalog = ({m.slug for m in spell_catalog(ruleset).values()} if ruleset is not None
                else set(TbMagia.objects.values_list('slug', flat=True)))
     return _innate_spell_uses_from_features(
         features, catalog, ficha, ruleset=ruleset,
-        talent_attrs=_talent_attr_map(personagem, ruleset=ruleset),
-        choices=_collect_escolhas(personagem, features)[0], spell_grants=spell_grants)
+        talent_attrs=_talent_attr_map(personagem, ruleset=ruleset))
 
 
 def _innate_spell_labels(personagem, *, ruleset=None):
@@ -5301,44 +5246,55 @@ class HunterCreatorCatalogUnavailable(ClassCreatorCatalogUnavailable):
 
 def _criador_hunter_catalog_args():
     """Select the server-published Hunter revision; client input cannot change it."""
-    from .class_publication import CATALOG_ERRORS, resolve_class_catalog
+    from .class_publication import published_catalog
     live = TbClasse.objects.filter(slug='cacador').first()
-    if live is None:
+    bound = published_catalog(live) if live else None
+    checksum = (bound[0].checksum if bound else
+                getattr(settings, 'HUNTER_CREATOR_RULESET_CHECKSUM', ''))
+    if not checksum:
         return {}
-    from .versioned_classes import EVALUATOR, VOCABULARY
+    if live is None:
+        raise HunterCreatorCatalogUnavailable('Hunter class is unavailable.')
+    from .models import TbRuleset
+    from .versioned_classes import EVALUATOR, VOCABULARY, VersionedClassCatalog
     from .content_versions import resolve_content
+    from django.core.exceptions import ObjectDoesNotExist
     try:
-        selection = resolve_class_catalog(live)
-        if selection.ruleset is None:
-            return {}
-        ruleset = selection.ruleset
+        ruleset = TbRuleset.objects.get(checksum=checksum)
         class_id = live.pk
+        if VersionedClassCatalog(ruleset, class_id).classe.slug != 'cacador':
+            raise ValueError('Published Hunter class identity differs from its snapshot.')
         resolve_content(ruleset, 'hunter-rework', evaluator_version=EVALUATOR,
                         vocabulary_version=VOCABULARY)
-    except CATALOG_ERRORS as exc:
+    except (ObjectDoesNotExist, ValueError, KeyError) as exc:
         raise HunterCreatorCatalogUnavailable() from exc
     return {'hunter_ruleset': ruleset, 'hunter_class_id': class_id}
 
 
 def _criador_public_resolution(data):
-    from .class_publication import CATALOG_ERRORS, resolve_class_catalog
+    from .class_publication import published_catalog
+    from django.core.exceptions import ObjectDoesNotExist
 
     slug = data.get('classe')
     live = TbClasse.objects.filter(slug=slug).first() if isinstance(slug, str) else None
     if live is not None:
         try:
-            selection = resolve_class_catalog(live)
-            if selection.ruleset is not None:
-                return _criador_resolver(data, ruleset=selection.ruleset, class_id=live.pk)
-        except CATALOG_ERRORS as exc:
+            published = published_catalog(live)
+            if published is not None:
+                return _criador_resolver(data, ruleset=published[0], class_id=live.pk)
+        except (ObjectDoesNotExist, ValueError, KeyError, TypeError) as exc:
             raise ClassCreatorCatalogUnavailable() from exc
+    # Compatibility for the legacy Hunter checksum until publication is bound.
+    if slug == 'cacador':
+        args = _criador_hunter_catalog_args()
+        if args:
+            return _criador_resolver(data, ruleset=args['hunter_ruleset'],
+                                     class_id=args['hunter_class_id'])
     return _criador_resolver(data)
 
 
 def _criador_catalogos(*, hunter_ruleset=None, hunter_class_id=None,
                       hunter_only=False):
-    from .class_publication import CATALOG_ERRORS, resolve_class_catalog
-    from .versioned_classes import VersionedClassCatalog
     from .models import (TbRaca, TbLinhagem, TbEssencia, TbClasse, TbAntecedente,
                          TbTalento, TbTracoracial, TbIdioma, TbItemMundano, TbOpcaojogo,
                          TbClassehabilidade)
@@ -5410,7 +5366,7 @@ def _criador_catalogos(*, hunter_ruleset=None, hunter_class_id=None,
         # por todos. MESMO critério (pré-requisito "Clã X") dos talentos/perícias/picks; NÃO
         # usa `_vertente_de`, que varre a DESCRIÇÃO e casaria 'ifrit' citado como exemplo num
         # traço elemental genérico.
-        return [{'nome': _nome_duplo(t), 'desc': (t.descricao or '').strip(),
+        return [{'nome': _nome_duplo(t), 'desc': _criador_resumo_md(t.descricao, 400),
                  'vertente': (cla_de_traco(t, clas) if clas else '')} for t in qs]
 
     # Perícias que a raça/linhagem/essência CONCEDE automaticamente (traços não-talento com
@@ -5483,9 +5439,6 @@ def _criador_catalogos(*, hunter_ruleset=None, hunter_class_id=None,
     racas = []
     for r in origin_query(TbRaca).all().order_by('nome'):
         linhagens = [{'slug': l.slug, 'nome': getattr(l, 'nome', l.slug),
-                      'tracos': _tracos_de(origin_query(TbTracoracial).filter(
-                          id_linhagem=l, talento_racial=False,
-                          nivel_requisito__lte=1).order_by('nome')),
                       'desc': _criador_resumo_md(getattr(l, 'descricao', '') or getattr(l, 'lore_presentation', ''), 200)}
                      for l in origin_query(TbLinhagem).filter(id_raca=r).order_by('nome')]
         tracos = _tracos_de(origin_query(TbTracoracial).filter(
@@ -5504,46 +5457,39 @@ def _criador_catalogos(*, hunter_ruleset=None, hunter_class_id=None,
             continue
         if hunter_ruleset is not None and not hunter_only and c.pk == hunter_class_id:
             continue
-        try:
-            pinned = (hunter_ruleset if hunter_ruleset is not None and c.pk == hunter_class_id
-                      else resolve_class_catalog(c).ruleset)
-            if pinned is not None:
-                c = VersionedClassCatalog(pinned, c.pk).classe
-            n, lista = _parse_skills_lvl1(c.tags_json)
-            sub = _tag_levels(c.tags_json, 'subclass-choices')
-            esc1 = _classe_escolhas_nv1(c, ruleset=pinned)
-            classes.append({'slug': c.slug, 'nome': c.nome, 'pericias_n': n, 'pericias_lista': lista,
-                            'pericias_concedidas': _classe_pericias_concedidas(c, ruleset=pinned),
-                            'equipamento': (c.equipamento or '').strip(),
-                            'equipamento_inicial': starting_equipment_for_class(c, ruleset=pinned),
-                            'tagline': (c.tagline or '').strip(),
-                            'hit_die': _dado_de_vida_classe(c) or 0,
-                            'atributo_principal': (c.atributo_principal or '').strip(),
-                            'saves': _classe_saves(c),
-                            'features1': ([{'nome': _nome_duplo(row[2]),
-                                           'desc': _criador_resumo_md(row[2].descricao, 200)}
-                                          for row in VersionedClassCatalog(pinned, c.pk).features(1)
-                                          if not row[2].table_only] if pinned else _classe_features1(c)),
-                            'resumo': _criador_resumo_md(c.tagline or '', 320),
-                            'maestria_n': _classe_maestria_n(c, 1, ruleset=pinned),
-                            'estilo_n': esc1['estilo_n'], 'expertise_n': esc1['expertise_n'],
-                            'expertise_fixa': esc1['expertise_fixa'],
-                            'opcao_picks': esc1.get('opcao_picks', []),
-                            'conjuracao': _classe_conjuracao(c, ruleset=pinned),
-                            'armaduras_prof': _classe_armaduras_prof(c),
-                            # Todos os picks resolviveis usam o mesmo registry. Expertise
-                            # ainda tem UI dedicada porque seu universo depende das pericias
-                            # selecionadas nos passos anteriores, mas persiste pelo registry.
-                            'pick_groups': [{k: v for k, v in g.items() if k != 'ruleset'}
-                                            for g in _picks.resolve_builder(c, ruleset=pinned)
-                                            if g['kind'] != 'pericia_expertise'],
-                            'hunter_rework': pinned is not None and c.slug == 'cacador',
-                            'subclasse_nivel': min(sub) if sub else None})
-        except CATALOG_ERRORS as exc:
-            if hunter_only:
-                raise ClassCreatorCatalogUnavailable() from exc
-            # Refuse only this class; another valid class must remain selectable.
-            continue
+        pinned = hunter_ruleset if hunter_ruleset is not None and c.pk == hunter_class_id else None
+        if pinned is not None:
+            c = VersionedClassCatalog(pinned, c.pk).classe
+        n, lista = _parse_skills_lvl1(c.tags_json)
+        sub = _tag_levels(c.tags_json, 'subclass-choices')
+        esc1 = _classe_escolhas_nv1(c, ruleset=pinned)
+        classes.append({'slug': c.slug, 'nome': c.nome, 'pericias_n': n, 'pericias_lista': lista,
+                        'pericias_concedidas': _classe_pericias_concedidas(c, ruleset=pinned),
+                        'equipamento': (c.equipamento or '').strip(),
+                        'equipamento_inicial': starting_equipment_for_class(c, ruleset=pinned),
+                        'tagline': (c.tagline or '').strip(),
+                        'hit_die': _dado_de_vida_classe(c) or 0,
+                        'atributo_principal': (c.atributo_principal or '').strip(),
+                        'saves': _classe_saves(c),
+                        'features1': ([{'nome': _nome_duplo(row[2]),
+                                       'desc': _criador_resumo_md(row[2].descricao, 200)}
+                                      for row in VersionedClassCatalog(pinned, c.pk).features(1)
+                                      if not row[2].table_only] if pinned else _classe_features1(c)),
+                        'resumo': _criador_resumo_md(c.tagline or '', 320),
+                        'maestria_n': (0 if pinned else _classe_maestria_n(c, 1)),
+                        'estilo_n': esc1['estilo_n'], 'expertise_n': esc1['expertise_n'],
+                        'expertise_fixa': esc1['expertise_fixa'],
+                        'opcao_picks': esc1.get('opcao_picks', []),
+                        'conjuracao': _classe_conjuracao(c, ruleset=pinned),
+                        'armaduras_prof': _classe_armaduras_prof(c),
+                        # Todos os picks resolviveis usam o mesmo registry. Expertise
+                        # ainda tem UI dedicada porque seu universo depende das pericias
+                        # selecionadas nos passos anteriores, mas persiste pelo registry.
+                        'pick_groups': [{k: v for k, v in g.items() if k != 'ruleset'}
+                                        for g in _picks.resolve_builder(c, ruleset=pinned)
+                                        if g['kind'] != 'pericia_expertise'],
+                        'hunter_rework': bool(pinned),
+                        'subclasse_nivel': min(sub) if sub else None})
     # catálogo global de vertentes + sub-escolha por essência: helpers no nível do módulo
     # (compartilhados com _criador_resolver, que valida a sub-escolha no POST).
     vertentes_catalogo = _vertentes_catalogo(ruleset=hunter_ruleset)
@@ -5859,7 +5805,6 @@ def glossario_view(request):
 @login_required(login_url='/login/')
 def criacao_ficha_view(request):
     """Criação de Ficha — point-buy + identidade + classe + antecedente + talentos."""
-    from .class_publication import CATALOG_ERRORS
     from . import point_buy
     from . import permissions as perms
     from .character_history import level_one_rebuild_status
@@ -5877,23 +5822,19 @@ def criacao_ficha_view(request):
             return redirect(reverse('ficha_detail', args=[recriar.pk]) + '?recriar=bloqueado')
     atributos = [('FOR', 'Força'), ('DES', 'Destreza'), ('CON', 'Constituição'),
                  ('INT', 'Inteligência'), ('SAB', 'Sabedoria'), ('CAR', 'Carisma')]
-    hunter_unavailable = False
     try:
-        try:
-            hunter_args = _criador_hunter_catalog_args()
-        except HunterCreatorCatalogUnavailable:
-            if request.GET.get('hunter') == '1':
-                raise
-            hunter_args = {}
-            hunter_unavailable = True
+        hunter_args = _criador_hunter_catalog_args()
         hunter_only = request.GET.get('hunter') == '1' and bool(hunter_args) and not recriar
         if hunter_only:
             catalogos = _criador_catalogos(**hunter_args, hunter_only=True)
         else:
             catalogos = _criador_catalogos()
-    except (ClassCreatorCatalogUnavailable, *CATALOG_ERRORS):
-        logger.warning('Revisao publica de classe indisponivel no criador.')
-        return HttpResponse('A revisao da classe esta indisponivel. Tente novamente mais tarde.', status=503)
+            if hunter_args and not recriar:
+                catalogos['classes'] = [c for c in catalogos['classes']
+                                       if c['slug'] != 'cacador']
+    except (HunterCreatorCatalogUnavailable, ObjectDoesNotExist, ValueError, KeyError):
+        logger.warning('Revisao publicada do Cacador indisponivel no criador.')
+        return HttpResponse('A revisao do Cacador esta indisponivel. Tente novamente mais tarde.', status=503)
     return render(request, 'home/pages/criacao_ficha.html', {
         'page_title': ('Recriar nível 1 — %s' % recriar.nome) if recriar else 'Criação de Ficha',
         'atributos': atributos,
@@ -5915,25 +5856,25 @@ def criacao_ficha_view(request):
 def pathbuilder_view(request):
     """Entrada do laboratório: reutiliza o criador, mas nunca oferece persistência."""
     from . import point_buy
-    from .class_publication import CATALOG_ERRORS
+    from .class_publication import published_catalog
+    from django.core.exceptions import ObjectDoesNotExist
     atributos = [('FOR', 'Força'), ('DES', 'Destreza'), ('CON', 'Constituição'),
                  ('INT', 'Inteligência'), ('SAB', 'Sabedoria'), ('CAR', 'Carisma')]
-    hunter_unavailable = False
     try:
-        try:
-            hunter_args = _criador_hunter_catalog_args()
-        except HunterCreatorCatalogUnavailable:
-            if request.GET.get('hunter') == '1':
-                raise
-            hunter_args = {}
-            hunter_unavailable = True
+        hunter_class = TbClasse.objects.filter(slug='cacador').first()
+        published_hunter = published_catalog(hunter_class) if hunter_class else None
+        hunter_args = ({'hunter_ruleset': published_hunter[0],
+                        'hunter_class_id': hunter_class.pk} if published_hunter else {})
         hunter_only = request.GET.get('hunter') == '1' and bool(hunter_args)
         if hunter_only:
             catalog = _criador_catalogos(**hunter_args, hunter_only=True)
         else:
             catalog = _criador_catalogos()
-    except (ClassCreatorCatalogUnavailable, *CATALOG_ERRORS):
-        return HttpResponse('A revisao da classe esta indisponivel. Tente novamente mais tarde.',
+            if hunter_args:
+                catalog['classes'] = [row for row in catalog['classes']
+                                      if row['slug'] != 'cacador']
+    except (HunterCreatorCatalogUnavailable, ObjectDoesNotExist, ValueError, KeyError):
+        return HttpResponse('A revisao do Cacador esta indisponivel. Tente novamente mais tarde.',
                             status=503)
     return render(request, 'home/pages/criacao_ficha.html', {
         'page_title': 'Pathbuilder',
@@ -6873,10 +6814,6 @@ def _pendencias_talento_racial(personagem, ignore_talento_id=None):
                 if _linhagem_ok(o) and _source_ok(o) and _cla_ok(o)]
     tiers = sorted({o.nivel_requisito for o in eligible + [t for t, _ in borrowed]
                     if o.nivel_requisito})
-    if not any(tier <= total and tier not in picked_tiers for tier in tiers):
-        return []
-    from .racial_prerequisites import prerequisite_filter
-    prerequisites_ok = prerequisite_filter(personagem, ca_targets)
     for tier in tiers:
         if tier > total or tier in picked_tiers:
             continue
@@ -6898,13 +6835,12 @@ def _pendencias_talento_racial(personagem, ignore_talento_id=None):
                 continue
             if not _cla_ok(o):
                 continue
-            if not prerequisites_ok(o, tier):
-                continue
             seen.add(o.nome)
             opcoes.append(o)
-        out.append({'nivel': tier, 'opcoes': [
-            {'nome': o.nome, 'descricao': (o.descricao or '').strip(),
-             'pre': (o.pre_requisito or '').strip()} for o in opcoes]})
+        if opcoes:
+            out.append({'nivel': tier, 'opcoes': [
+                {'nome': o.nome, 'descricao': (o.descricao or '').strip(),
+                 'pre': (o.pre_requisito or '').strip()} for o in opcoes]})
     return out
 
 
@@ -7339,7 +7275,7 @@ def editar_ficha_view(request, pk):
 def personagem_treinamento(request, pk):
     """Staff registra/remove proficiÃªncia obtida em jogo por treinamento."""
     from . import permissions as perms_mod
-    from .models import TbPersonagemProficiencia
+    from .models import TbIdioma, TbItemMundano, TbPersonagemProficiencia
     p = _ficha_editavel(request, pk)
     if not perms_mod.is_staff_user(request.user):
         raise Http404()
@@ -7359,13 +7295,18 @@ def personagem_treinamento(request, pk):
             tipo__in=('idioma', 'ferramenta')).delete()
         return done('removido' if apagada else 'invalido')
 
-    from .market_services import register_completed_training
-    from django.core.exceptions import ValidationError
-    try:
-        _proficiency, created = register_completed_training(p, request.POST.get('treinamento'))
-    except ValidationError:
+    tipo, sep, slug = (request.POST.get('treinamento') or '').partition(':')
+    if not sep or tipo not in {'idioma', 'ferramenta'} or not slug:
         return done('invalido')
-    return done('ok' if created else 'invalido')
+    catalog = (TbIdioma.objects.filter(slug=slug).first() if tipo == 'idioma'
+               else TbItemMundano.objects.filter(
+                   slug=slug, categoria='ferramenta').first())
+    if catalog is None or p.proficiencias.filter(
+            tipo=tipo, nome__iexact=catalog.nome).exists():
+        return done('invalido')
+    TbPersonagemProficiencia.objects.create(
+        id_personagem=p, origem='Treinamento', tipo=tipo, nome=catalog.nome)
+    return done('ok')
 
 
 @login_required(login_url='/login/')
@@ -7379,10 +7320,6 @@ def personagem_subir_nivel(request, pk):
       • POST → wrapper PRG LEGADO (1 passo): sobe 1 nível da classe. Mantido por
         compatibilidade (redireciona pra ficha)."""
     p = _ficha_editavel(request, pk)
-    if request.method == 'GET':
-        from .character_history import imported_initial_configuration_pending
-        if imported_initial_configuration_pending(p):
-            return redirect(reverse('criacao_ficha') + '?recriar=%s' % p.pk)
     if request.method == 'POST':
         from .character_history import capture_build, register_revision
         from .models import TbPersonagem
@@ -7421,21 +7358,13 @@ def _subir_nivel_experiencia(request, p):
     pc = (p.classes.filter(id_classe_id=sel_id).first() if sel_id else None) \
         or p.classes.filter(principal=True).first() or p.classes.first()
     classe_id = pc.id_classe_id if pc else None
-    ruleset = _resource_ruleset(p)
+    ruleset = _hunter_ruleset_for_class(pc)
     ficha_atual = derive(p, ruleset=ruleset)
     status = _levelup_status(p, ficha_atual)
     con_mod = ((ficha_atual.get('atributos') or {}).get('CON') or {}).get('mod', 0) or 0
     nivel_atual_total = int(ficha_atual.get('nivel_total') or 0)
     pode_subir = status['pode_subir']
     classes_multiclasse = _classes_multiclasse(p, ficha_atual) if nivel_atual_total < 20 else []
-    nova_classe = request.GET.get('multiclasse')
-    multiclass_payload = None
-    if nova_classe:
-        if not pode_subir or str(nova_classe) not in {str(c['id']) for c in classes_multiclasse}:
-            return HttpResponse('Classe de multiclasse indisponivel.', status=400)
-        classe_id = int(nova_classe)
-        multiclass_payload = {'classe': classe_id,
-                              'hunter_ability': request.GET.get('hunter_ability', '')}
     grupos_antes = {(str(g['classe_id']), g['slug'], g['origem']): g['limite']
                     for g in _opcao_grupos(p, classe_id)}
     # recursos ANTES (p/ marcar o que cresce no nível-alvo)
@@ -7455,12 +7384,7 @@ def _subir_nivel_experiencia(request, p):
     ganhos = recursos_delta = None
     with transaction.atomic():
         if pode_subir:
-            errors = (_lvl_aplicar_adicionar_classe(p, multiclass_payload)
-                      if multiclass_payload else _lvl_aplicar_subir_nivel(p, {'classe': classe_id}))
-            if errors:
-                transaction.set_rollback(True)
-                return HttpResponse('; '.join(errors), status=400)
-            ruleset = _resource_ruleset(p)
+            _lvl_aplicar_subir_nivel(p, {'classe': classe_id})
             _sync_magias_concedidas(p, ruleset=ruleset)
         ficha_alvo = derive(p, ruleset=ruleset)
         pend = _pendencias_nivel(p, classe_id)
@@ -7507,10 +7431,7 @@ def _subir_nivel_experiencia(request, p):
         recursos_delta = _levelup_recursos_delta(rec_antes, recursos_do_nivel())
         nivel_alvo_total = int(ficha_alvo.get('nivel_total') or nivel_atual_total)
         preview_resumo = _criador_preview_resumo(ficha_alvo)
-        classes_alvo = list(p.classes.select_related('id_classe').order_by('-principal', 'id'))
         transaction.set_rollback(True)
-
-    p.refresh_from_db()
 
     sem_pendencias = not (pend['subclasse'] or pend['asi_pendentes']
                           or (pendm and (pendm['cantrips_pend'] or pendm['known_pend']))
@@ -7525,8 +7446,6 @@ def _subir_nivel_experiencia(request, p):
         'status': status, 'pode_subir': pode_subir,
         'nivel_atual': nivel_atual_total, 'nivel_alvo': nivel_alvo_total,
         'classe_id': classe_id, 'classes_atuais': classes_atuais,
-        'multiclass_payload': multiclass_payload,
-        'classes_alvo': classes_alvo, 'nivel_classe_alvo': nivel_classe_alvo,
         'classes_multiclasse': classes_multiclasse,
         'ganhos': ganhos, 'recursos_delta': recursos_delta,
         'pend': pend, 'pend_magias': pendm,
@@ -7729,18 +7648,6 @@ def _sync_magias_concedidas(personagem, *, ruleset=None):
     by_slug = {m.slug: m for m in catalog.values()} if catalog is not None else None
     info = magias_concedidas(personagem, ruleset=ruleset)
     intended = {c['slug']: c for c in info['concedidas']}
-    # Limited innate casts need a persistent row for the existing usage endpoint,
-    # but are not additions to the class spell list or its preparation budget.
-    # Discovery needs the unlock level, not a full sheet evaluation. Actual use
-    # counts are evaluated with the derived sheet by the display/casting reader.
-    innate = _innate_spell_uses(personagem, {
-        'nivel_total': sum(personagem.classes.values_list('nivel', flat=True))},
-        ruleset=ruleset, spell_grants=info['concedidas'])
-    innate_catalog = by_slug if by_slug is not None else {
-        m.slug: m for m in TbMagia.objects.filter(slug__in={slug for _, slug in innate})}
-    for (source, slug) in innate:
-        intended.setdefault(slug, {'slug': slug, 'nivel': innate_catalog[slug].nivel,
-                                  'fonte': source})
     existing = {}
     for m in (TbPersonagemMagia.objects.filter(id_personagem=personagem, sempre_preparada=True)
               .select_related('id_magia')):
@@ -8384,7 +8291,6 @@ def _classe_req(cl):
 
 def _hunter_multiclass_publication():
     """Only the corrected, published snapshot can create a new Hunter binding."""
-    from .class_publication import CATALOG_ERRORS
     try:
         args = _criador_hunter_catalog_args()
         if not args:
@@ -8394,7 +8300,7 @@ def _hunter_multiclass_publication():
         if _classe_req(frozen) != 'dex>=13, wis>=13':
             return None
         return args['hunter_ruleset'], frozen
-    except (HunterCreatorCatalogUnavailable, *CATALOG_ERRORS):
+    except (HunterCreatorCatalogUnavailable, ValueError, KeyError):
         return None
 
 
@@ -8402,9 +8308,9 @@ def _multiclass_publication(classe):
     """Resolve the same public revision used by creation for a new class link."""
     if classe.slug == 'cacador':
         return _hunter_multiclass_publication()
-    from .class_publication import resolve_class_catalog
-    selection = resolve_class_catalog(classe)
-    return (selection.ruleset, selection.catalog.classe) if selection.catalog else (None, classe)
+    from .class_publication import published_catalog
+    published = published_catalog(classe)
+    return (published[0], published[1].classe) if published else (None, classe)
 
 
 def _multiclass_revision_compatible(personagem, ruleset):
@@ -8444,7 +8350,7 @@ def _multiclass_atende_classes(personagem, atributos, nova_classe=None):
 def _classes_multiclasse(p, ficha):
     """Classes que o personagem pode adicionar por multiclasse (pré-req atendido, não-possuída)."""
     from .models import TbClasse
-    from .class_publication import CATALOG_ERRORS
+    from django.core.exceptions import ObjectDoesNotExist
     atuais = set(p.classes.values_list('id_classe_id', flat=True))
     out = []
     if not _multiclass_atende_classes(p, ficha['atributos']):
@@ -8464,7 +8370,7 @@ def _classes_multiclasse(p, ficha):
             if (ruleset is not None and pinned is not None and ruleset.pk != pinned.pk
                     or not _multiclass_revision_compatible(p, ruleset)):
                 continue
-        except CATALOG_ERRORS:
+        except (ObjectDoesNotExist, ValueError, KeyError, TypeError):
             continue
         req = _classe_req(effective)
         if _multiclass_atende_classes(p, ficha['atributos'], effective):
@@ -8925,7 +8831,7 @@ def _lvl_aplicar_adicionar_classe(personagem, payload):
     """Adiciona uma classe por multiclasse (nível 1) se o pré-requisito for atendido.
     Multiclasse também SOBE o nível total — respeita o mesmo teto de aventuras (BUG-1)."""
     from .models import TbClasse, TbPersonagemClasse, TbPersonagemCacador
-    from .class_publication import CATALOG_ERRORS
+    from django.core.exceptions import ObjectDoesNotExist
     from .character_engine import derive, nivel_por_aventuras
     if (personagem.nivel or 0) >= 20:
         return [_ERR_MC_MAX]
@@ -8943,7 +8849,7 @@ def _lvl_aplicar_adicionar_classe(personagem, payload):
         if (ruleset is not None and pinned is not None and ruleset.pk != pinned.pk
                 or not _multiclass_revision_compatible(personagem, ruleset)):
             return [_ERR_MC_INVALIDO]
-    except CATALOG_ERRORS:
+    except (ObjectDoesNotExist, ValueError, KeyError, TypeError):
         return [_ERR_MC_INVALIDO]
     if cl.slug == 'cacador':
         if (payload or {}).get('hunter_ability') not in ('int', 'wis'):
@@ -8961,7 +8867,7 @@ def _lvl_aplicar_adicionar_classe(personagem, payload):
             personagem.save(update_fields=['nivel', 'atualizado_em'])
             if ruleset is not None:
                 derive(personagem, ruleset=ruleset)
-    except CATALOG_ERRORS:
+    except (ObjectDoesNotExist, ValueError, KeyError, TypeError):
         personagem.refresh_from_db(fields=['nivel'])
         return [_ERR_MC_INVALIDO]
     return []
@@ -9352,7 +9258,7 @@ _LVL_ORDEM = {'subir_nivel': 0, 'adicionar_classe': 1, 'subclasse': 2, 'asi': 3,
 def _levelup_pendencias(personagem, classe_id=None):
     """Resumo das pendências de progressão restantes (mesmos critérios de editar_ficha_view)."""
     pend = _pendencias_nivel(personagem, classe_id)
-    ruleset = _resource_ruleset(personagem)
+    ruleset = _hunter_ruleset_for_class(_personagem_classe_contexto(personagem, classe_id))
     pendm = _pendencias_magias(personagem, classe_id=classe_id, ruleset=ruleset)
     tr = _pendencias_talento_racial(personagem)
     grupos = _opcao_grupos(personagem, classe_id)
@@ -9477,9 +9383,6 @@ def _levelup_aplicar_lote(personagem, acoes):
     ressincroniza (responsabilidade do endpoint). Ordem preservada entre ações do mesmo
     tipo (sort estável)."""
     from . import picks as _picks
-    erros = _levelup_validar_acoes(acoes)
-    if erros:
-        return erros
     anteriores = {
         (str(g['classe_id']), g['persist_tipo'], g['origem']): {
             'n': int(g['n']),
@@ -9506,32 +9409,12 @@ def _levelup_aplicar_lote(personagem, acoes):
     return erros
 
 
-def _levelup_validar_acoes(acoes):
-    if not isinstance(acoes, list):
-        return ['Informe uma lista de ações de level-up.']
-    avancos = 0
-    for acao in acoes:
-        if (not isinstance(acao, dict) or not isinstance(acao.get('tipo'), str)
-                or acao['tipo'] not in {*_LVL_ACTIONS, 'trocar_opcao'}
-                or not isinstance(acao.get('payload', {}), dict)):
-            return ['Ação de level-up inválida.']
-        avancos += acao['tipo'] in {'subir_nivel', 'adicionar_classe'}
-    if avancos > 1:
-        return ['Confirme apenas um avanço de nível por vez.']
-    return []
-
-
 def _levelup_acoes_do_body(request):
     """Extrai a lista de ações do corpo JSON — aceita `{"acoes": [...]}` ou um array puro."""
-    try:
-        body = json.loads(request.body.decode('utf-8'))
-    except (UnicodeDecodeError, json.JSONDecodeError):
-        raise ValueError('Envie um JSON válido.') from None
-    acoes = body if isinstance(body, list) else body.get('acoes', []) if isinstance(body, dict) else None
-    erros = _levelup_validar_acoes(acoes)
-    if erros:
-        raise ValueError(erros[0])
-    return acoes
+    body = _json_body(request)
+    if isinstance(body, list):
+        return body
+    return (body.get('acoes') if isinstance(body, dict) else None) or []
 
 
 def _levelup_classe_id_acoes(acoes):
@@ -9545,25 +9428,8 @@ def _levelup_classe_id_acoes(acoes):
     return None
 
 
-def _levelup_catalog_guard(view):
-    @wraps(view)
-    def guarded(request, pk):
-        try:
-            return view(request, pk)
-        except (ValueError, KeyError, ObjectDoesNotExist):
-            # The view's atomic block has exited before an error response is built.
-            reference = uuid4().hex
-            logger.exception('Falha de contexto na progressao: personagem=%s referencia=%s', pk, reference)
-            return JsonResponse({'ok': False, 'ready': False,
-                'code': 'levelup_context_unavailable', 'reference': reference,
-                'erros': ['As regras vinculadas da ficha precisam de revisao. '
-                          'Nenhuma alteracao deste lote foi salva. Referencia: ' + reference + '.']}, status=409)
-    return guarded
-
-
 @login_required(login_url='/login/')
 @require_POST
-@_levelup_catalog_guard
 def personagem_levelup_aplicar(request, pk):
     """Aplica um LOTE de escolhas de level-up numa ÚNICA transação (padrão
     `criar_personagem_view`). Corpo: `{"acoes": [{"tipo": <str>, "payload": {…}}, …]}`.
@@ -9571,15 +9437,9 @@ def personagem_levelup_aplicar(request, pk):
     ressincroniza magias/vitais UMA vez e devolve `{ok, ficha, pendencias}`."""
     from .character_engine import derive
     p = _ficha_editavel(request, pk)
-    try:
-        acoes = _levelup_acoes_do_body(request)
-    except ValueError as exc:
-        return JsonResponse({'ok': False, 'erros': [str(exc)]}, status=400)
-    body = json.loads(request.body.decode('utf-8'))
-    request_id = body.get('request_id') if isinstance(body, dict) else None
-    if request_id is not None and (not isinstance(request_id, str) or not 1 <= len(request_id) <= 128):
-        return JsonResponse({'ok': False, 'erros': ['Identificador de confirmação inválido.']}, status=400)
+    acoes = _levelup_acoes_do_body(request)
     classe_id = _levelup_classe_id_acoes(acoes)
+    ruleset = _hunter_ruleset_for_class(_personagem_classe_contexto(p, classe_id))
     tem_avanco = any(
         isinstance(acao, dict)
         and acao.get('tipo') in {'subir_nivel', 'adicionar_classe'}
@@ -9589,19 +9449,6 @@ def personagem_levelup_aplicar(request, pk):
     from .models import TbPersonagem
     with transaction.atomic():
         p = TbPersonagem.objects.select_for_update().get(pk=p.pk)
-        # Store the receipt with the existing build revision, under the same lock.
-        # A lost HTTP response must not turn a retry into another level advance.
-        if request_id is not None:
-            anterior = p.revisoes_build.filter(
-                snapshot_json__levelup_confirmation__request_id=request_id).first()
-            if anterior:
-                receipt = anterior.snapshot_json['levelup_confirmation']
-                latest = p.revisoes_build.filter(revertida=False).order_by('-criado_em', '-id_revisao').first()
-                if anterior.revertida or latest.pk != anterior.pk or receipt['acoes'] != acoes:
-                    return JsonResponse({'ok': False, 'erros': [
-                        'Esta confirmação já foi usada. Recarregue a ficha antes de continuar.',
-                    ]}, status=409)
-                return JsonResponse(receipt['response'])
         snapshot_antes = capture_build(p)
         nivel_antes = int(p.nivel or 1)
         pendencias_antes = _levelup_pendencias(p, classe_id)
@@ -9614,75 +9461,64 @@ def personagem_levelup_aplicar(request, pk):
         # pendente; portanto não use a quantidade final como prova de progresso.
         if erros:
             transaction.set_rollback(True)
-            return JsonResponse({'ok': False, 'erros': erros}, status=400)
         else:
             # A multiclasse pode criar agora o vínculo Caçador que não existia
             # quando o lote começou; os consumidores seguintes devem usá-lo.
-            ruleset = _resource_ruleset(p)
+            ruleset = _hunter_ruleset_for_class(_personagem_classe_contexto(p, classe_id))
             # ordem idêntica aos wrappers legados: materializa concedidas, depois vitais.
             _sync_magias_concedidas(p, ruleset=ruleset)
             _refresh_vitais_derivados(p, ruleset=ruleset)
             p.refresh_from_db(fields=['nivel'])
-            # Build and serialize the response before committing any part of the batch.
-            ficha = derive(p, ruleset=ruleset)
-            pendencias = _levelup_pendencias(p, classe_id)
-            status = _levelup_status(p, ficha)
-            continuar_pendencias = not pendencias['sem_pendencias']
-            result = {
-                'ok': True,
-                'ficha': _criador_preview_resumo(ficha),
-                'pendencias': pendencias,
-                'continuar': bool(status['pode_subir'] or continuar_pendencias),
-                'continuar_pendencias': continuar_pendencias,
-                'proximo_nivel': status['nivel_alvo'] if status['pode_subir'] else None,
-            }
-            response = JsonResponse(result)
-            if request_id is not None:
-                snapshot_antes['levelup_confirmation'] = {
-                    'request_id': request_id, 'acoes': acoes, 'response': result,
-                }
             register_revision(
                 p, tipo='level_up', snapshot=snapshot_antes, user=request.user,
                 descricao='Progressao do nivel %d para o nivel %d' % (
                     nivel_antes, int(p.nivel or nivel_antes)),
                 nivel_antes=nivel_antes, nivel_depois=int(p.nivel or nivel_antes),
             )
-    return response
+    if erros:
+        return JsonResponse({'ok': False, 'erros': erros}, status=400)
+    ficha = derive(p, ruleset=ruleset)
+    pendencias = _levelup_pendencias(p, classe_id)
+    status = _levelup_status(p, ficha)
+    # O próximo GET reabre o wizard já no novo estado: ele inclui tanto eventuais
+    # escolhas recém-liberadas quanto a âncora do nível seguinte. Não exigir
+    # ``sem_pendencias`` aqui, senão justamente essas escolhas quebram o encadeamento.
+    continuar_pendencias = not pendencias['sem_pendencias']
+    continuar = bool(status['pode_subir'] or continuar_pendencias)
+    return JsonResponse({
+        'ok': True,
+        'ficha': _criador_preview_resumo(ficha),
+        'pendencias': pendencias,
+        'continuar': continuar,
+        'continuar_pendencias': continuar_pendencias,
+        'proximo_nivel': status['nivel_alvo'] if status['pode_subir'] else None,
+    })
 
 
 @login_required(login_url='/login/')
 @require_POST
-@_levelup_catalog_guard
 def personagem_levelup_preview(request, pk):
     """Prévia AO VIVO do lote de level-up: aplica tudo numa transação REVERTIDA (padrão
     `criar_personagem_preview_view`) e devolve o derive previsto + as pendências restantes,
     SEM persistir nada. Ações inválidas não gravam, apenas aparecem em `erros` (a prévia
     reflete o subconjunto válido, como no criador)."""
     p = _ficha_editavel(request, pk)
-    try:
-        acoes = _levelup_acoes_do_body(request)
-    except ValueError as exc:
-        return JsonResponse({'ok': False, 'ready': False, 'erros': [str(exc)]}, status=400)
+    acoes = _levelup_acoes_do_body(request)
     classe_id = _levelup_classe_id_acoes(acoes)
-    ruleset = _resource_ruleset(p)
+    ruleset = _hunter_ruleset_for_class(_personagem_classe_contexto(p, classe_id))
     preview = pend = None
     erros = []
     try:
         with transaction.atomic():
             erros = _levelup_aplicar_lote(p, acoes)
-            ruleset = _resource_ruleset(p)
+            ruleset = _hunter_ruleset_for_class(_personagem_classe_contexto(p, classe_id))
             _sync_magias_concedidas(p, ruleset=ruleset)
             ficha = _refresh_vitais_derivados(p, ruleset=ruleset)
             preview = _criador_preview_resumo(ficha)
             pend = _levelup_pendencias(p, classe_id)
             transaction.set_rollback(True)
-    except (ValueError, KeyError, ObjectDoesNotExist):
-        raise
     except Exception:
-        reference = uuid4().hex
-        logger.exception('Falha na previa de progressao: personagem=%s referencia=%s', pk, reference)
-        return JsonResponse({'ok': True, 'ready': False, 'reference': reference,
-            'erros': erros + ['Nao foi possivel calcular a previa. Referencia: ' + reference + '.']})
+        return JsonResponse({'ok': True, 'ready': False, 'erros': erros})
     return JsonResponse({'ok': True, 'ready': True, 'preview': preview,
                          'pendencias': pend, 'erros': erros})
 
@@ -11267,7 +11103,6 @@ def ficha_publica_view(request, pk):
     from .models import TbPersonagem
     from .character_engine import derive
     from .ranks import character_rank
-    from .permissions import pode_ver_ficha
     p = get_object_or_404(
         TbPersonagem.objects.select_related('dono', 'id_raca', 'id_linhagem', 'id_essencia')
         .prefetch_related('classes__id_classe', 'classes__id_subclasse'), pk=pk)
@@ -11323,7 +11158,6 @@ def ficha_publica_view(request, pk):
         'noindex': preview,
         'mechanics': mechanics,
         'preview': preview, 'published': p.publico and not p.arquivado,
-        'can_open_full_sheet': not preview and pode_ver_ficha(request.user, p),
         'rank': character_rank(p), 'character_pk': p.pk,
         'character_owner': p.dono,
         'appearance': _appearance_context(
@@ -11468,7 +11302,6 @@ def ficha_detail_view(request, pk):
     opcoes = _opcoes_ficha(p)
     from .character_history import (
         latest_active_revision, level_one_rebuild_status, revision_status,
-        imported_initial_configuration_pending,
     )
     revisoes_build = list(p.revisoes_build.select_related(
         'criado_por', 'revertida_por').all()[:50]) if pode_editar else []
@@ -11484,11 +11317,7 @@ def ficha_detail_view(request, pk):
     )
     # Botão de level-up: só quem edita, e só quando elegível (ou com pendências abertas).
     levelup_status = _levelup_status(p, ficha) if pode_editar else None
-    from .character_stories import story_context, reviewer_allowed
     return render(request, 'home/pages/ficha_detail.html', {
-        'story_review': story_context(p),
-        'can_read_story_feedback': p.dono_id == request.user.pk or reviewer_allowed(request.user),
-        'configuracao_inicial_pendente': pode_editar and imported_initial_configuration_pending(p),
         'page_title': p.nome,
         'p': p,
         'ficha': ficha,
@@ -11953,10 +11782,8 @@ def personagem_info_salvar(request, pk):
     p = get_object_or_404(TbPersonagem, pk=pk)
     if not (p.dono_id == request.user.id or perms.is_staff_user(request.user)):
         raise Http404()
-    if 'historia' in request.POST:
-        return JsonResponse({'ok': False, 'error': 'A história agora usa o editor com envio ao Loremaster. Reabra a ficha antes de salvar.'}, status=409)
     campos = ['jogador', 'idade', 'altura', 'peso', 'tamanho', 'genero', 'olhos', 'cabelo',
-              'pele', 'aparencia', 'anotacoes', 'foto_url', 'token_url',
+              'pele', 'aparencia', 'historia', 'anotacoes', 'foto_url', 'token_url',
               'banner_url', 'ficha_background_url']
     for c in campos:
         if c in request.POST:
@@ -12593,6 +12420,10 @@ def _criador_persistir(user, data, R, *, strict_spell_choices=False):
     # `to` já foi resolvido e validado como obrigatório na fase de validação acima.
     if to:
         TbPersonagemTalento.objects.create(id_personagem=p, id_talento=to, categoria='origem', nivel=1, nome=to.nome)
+    if R.get('talento_racial_nome'):
+        TbPersonagemTalento.objects.create(
+            id_personagem=p, categoria='racial', nivel=1,
+            nome=R['talento_racial_nome'])
     # (Estilo de Luta migrou para o loop genérico `generic_picks` acima — kind `opcao`.)
     # Expertise variavel e materializada pelo registry em TbPersonagemEscolha.
     # Somente o legado sem pick explicito continua marcando a coluna diretamente.
@@ -12630,20 +12461,6 @@ def _criador_persistir(user, data, R, *, strict_spell_choices=False):
         for nivel, row, preparada in spell_rows:
             TbPersonagemMagia.objects.create(id_personagem=p, id_magia_id=row['id'],
                 nivel=nivel, nome=row['nome'], preparada=preparada, origem=conj['origem'])
-    if R.get('talento_racial_nome'):
-        # Independent grants may satisfy a prerequisite; the candidate cannot.
-        _criador_aplicar_magias_concedidas(p, data, ruleset=ruleset)
-        candidates = _talentos_raciais_criador(raca, linhagem, essencia,
-            data.get('vertente'), ruleset=ruleset)
-        candidate = next((row for row in candidates if row.nome == R['talento_racial_nome']), None)
-        from .racial_prerequisites import prerequisite_filter
-        borrowed = _count_as_racial_targets(R['racial_sources'],
-            linhagem_slug=getattr(linhagem, 'slug', None))
-        if candidate is None or not prerequisite_filter(p, borrowed, ruleset=ruleset)(candidate, 1):
-            raise CriadorEscolhasError(['Pré-requisito não atendido para o talento racial: %s.'
-                                       % R['talento_racial_nome']])
-        TbPersonagemTalento.objects.create(id_personagem=p, categoria='racial', nivel=1,
-                                          nome=R['talento_racial_nome'])
     # Magias da Essência (vertente): concede as fixas do nível atual (cantrips + 1º
     # ciclo no nível 1). As de escolha (2º ciclo) ficam pendentes até o nível 5.
     p._criador_spell_groups = _criador_aplicar_magias_concedidas(
@@ -12722,8 +12539,6 @@ def criar_personagem_preview_view(request):
             ficha = derive(p, ruleset=R.get('ruleset'))
             pending_spell_choices = getattr(p, '_criador_spell_groups', [])
             transaction.set_rollback(True)
-    except CriadorEscolhasError as exc:
-        return JsonResponse({'ok': True, 'ready': False, 'erros': exc.erros})
     except Exception:
         logger.exception(
             'Falha ao montar preview do criador para user_id=%s classe=%s raca=%s',
@@ -14761,7 +14576,6 @@ def talentos_view(request):
 
 @ensure_csrf_cookie  # edição inline (wiki) lê o csrftoken do cookie
 def opcoes_view(request):
-    archived_ids = {str(pk) for pk in TbOpcaojogo.objects.filter(arquivado=True).values_list('pk', flat=True)}
     def with_access(opcoes):
         by_id = {opcao['id']: opcao for opcao in opcoes if opcao['id'] is not None}
         for opcao in opcoes:
@@ -14794,8 +14608,6 @@ def opcoes_view(request):
         opcoes_docs = _site_docs('options', [('Nome', 1)])
         opcoes_lista = []
         for op in opcoes_docs:
-            if str(op.get('Id_Opcao')) in archived_ids:
-                continue
             opcoes_lista.append({
                 'id': op.get('Id_Opcao'),
                 'nome': op.get('Nome') or '',
@@ -14813,7 +14625,7 @@ def opcoes_view(request):
     except SiteDataUnavailable:
         pass
 
-    opcoes_docs = TbOpcaojogo.objects.filter(arquivado=False).order_by('nome')
+    opcoes_docs = TbOpcaojogo.objects.all().order_by('nome')
     opcoes_lista = []
     for op in opcoes_docs:
         opcoes_lista.append({
@@ -15960,13 +15772,11 @@ def _perfil_mestre(user):
     return perfil
 
 
-@transaction.atomic
 def _creditar_mm(user, tipo, descricao, delta):
     """Credita/debita MM no perfil do mestre + registra no ledger. Em GANHO (delta>0)
     acumula `mm_ganhas_total` e concede 1 Moeda de Evento a cada 100 MM ganhas. Retorna o saldo."""
     from .models import TbTransacaoMestre
     perfil = _perfil_mestre(user)
-    perfil = type(perfil).objects.select_for_update().get(pk=perfil.pk)
     delta = int(delta)
     perfil.moedas_mestragem = int(perfil.moedas_mestragem or 0) + delta
     fields = ['moedas_mestragem']
@@ -15990,33 +15800,21 @@ def mercado_mestre_view(request):
     histórico, Rei da Colina e Mestre Ouro. Gated por is_mestre."""
     from .models import MestreOuroDireito, TbRecompensaMestre, TbReiDaColina
     from .mestre_ouro import has_unreconciled_mestre_ouro_history
-    from .master_market import quantity_limit, redemption_token
-    from .master_legacy import market_identity_context
     from . import permissions as perms
     if not perms.is_mestre(request.user):
         raise Http404
     perfil = _perfil_mestre(request.user)
     ouro_vitalicio = MestreOuroDireito.objects.filter(user=request.user).exists()
-    rdc = TbReiDaColina.objects.select_related('holder').first() or TbReiDaColina()
-    recompensas = list(TbRecompensaMestre.objects.filter(ativo=True).exclude(tipo='assinatura'))
-    selecionada = next((r.pk for r in recompensas
-                        if str(r.pk) == request.GET.get('recompensa')), recompensas[0].pk if recompensas else None)
-    for recompensa in recompensas:
-        recompensa.selecionada = recompensa.pk == selecionada
-        recompensa.quantidade_maxima = quantity_limit(recompensa)
-        recompensa.custo_unitario = rdc.preco_atual if recompensa.tipo == 'leilao' else recompensa.preco_mm
-        recompensa.operacao_token = redemption_token(
-            request.user.pk, recompensa.pk, recompensa.custo_unitario, recompensa.efeito)
+    rdc = TbReiDaColina.objects.select_related('holder').first()
     meus = [{'id': p.id_personagem, 'nome': p.nome}
             for p in request.user.personagens.filter(arquivado=False).only('id_personagem', 'nome')]
     return render(request, 'home/pages/mercado_mestre.html', {
         'page_title': 'Mercado de Mestre',
         'saldo': perfil.moedas_mestragem or 0,
         'moedas_evento': perfil.moedas_evento or 0,
-        **market_identity_context(request.user),
-        'recompensas': recompensas,
+        'recompensas': list(TbRecompensaMestre.objects.filter(ativo=True).exclude(tipo='assinatura')),
         'aventuras': list(request.user.aventuras_mestradas.all()[:20]),
-        'transacoes': list(request.user.transacoes_mm.select_related('personagem')[:30]),
+        'transacoes': list(request.user.transacoes_mm.all()[:30]),
         'rei_colina': rdc,
         'sou_rei': bool(rdc and rdc.holder_id == request.user.id),
         'mestre_ouro_ativo': ouro_vitalicio,
@@ -16025,36 +15823,6 @@ def mercado_mestre_view(request):
         'meus_personagens': meus,
         'msg': request.GET.get('m'),
     })
-
-
-@login_required(login_url='/login/')
-@require_POST
-def mercado_mestre_resgatar(request):
-    from .master_market import RedemptionError, redeem_reward
-    from . import permissions as perms
-    if not perms.is_mestre(request.user):
-        raise Http404
-    _perfil_mestre(request.user)
-    try:
-        result = redeem_reward(
-            request.user, request.POST.get('recompensa'), request.POST.get('quantidade'),
-            request.POST.get('operacao_token'), character_id=request.POST.get('personagem'),
-            use_event_coins=request.POST.get('usar_moedas_evento'))
-    except RedemptionError as exc:
-        result = str(exc)
-    if result == 'slots':
-        return redirect('character_slots')
-    return redirect(reverse('mestre_mercado') + '?m=' + result)
-
-
-@login_required(login_url='/login/')
-@require_POST
-def mercado_mestre_resgatar_braseiros(request):
-    """Retire the standalone conversion without reinterpreting old POSTs as purchases."""
-    from . import permissions as perms
-    if not perms.is_mestre(request.user):
-        raise Http404
-    return redirect(reverse('mestre_mercado') + '?m=resgate_conjunto')
 
 
 @login_required(login_url='/login/')
@@ -16118,20 +15886,37 @@ def mestre_registrar_aventura(request):
 @require_POST
 def mestre_resgatar(request):
     """Resgata recompensas atuais; ofertas legadas de assinatura vão à página de slots."""
-    from .master_market import RedemptionError, redeem_reward
+    from .models import TbRecompensaMestre, TbReiDaColina
     from . import permissions as perms
     if not perms.is_mestre(request.user):
         raise Http404
+    r = TbRecompensaMestre.objects.filter(id_recompensa=request.POST.get('recompensa'), ativo=True).first()
     dest = reverse('mestre_mercado')
-    _perfil_mestre(request.user)
-    try:
-        result = redeem_reward(request.user, request.POST.get('recompensa'),
-                               request.POST.get('quantidade'), request.POST.get('operacao_token'))
-    except RedemptionError as exc:
-        result = str(exc)
-    if result == 'slots':
+    if not r:
+        return redirect(dest + '?m=invalido')
+    if r.tipo == 'assinatura':
         return redirect('character_slots')
-    return redirect(dest + '?m=' + result)
+    perfil = _perfil_mestre(request.user)
+    saldo = perfil.moedas_mestragem or 0
+
+    if r.tipo == 'leilao':
+        rdc = TbReiDaColina.objects.first() or TbReiDaColina.objects.create(id=1)
+        if rdc.holder_id == request.user.id:
+            return redirect(dest + '?m=ja_rei')
+        if saldo < rdc.preco_atual:
+            return redirect(dest + '?m=saldo')
+        with transaction.atomic():
+            preco = rdc.preco_atual
+            _creditar_mm(request.user, 'leilao', 'Rei da Colina (lance %d MM)' % preco, -preco)
+            rdc.holder, rdc.preco_atual, rdc.desde = request.user, preco + 100, timezone.now()
+            rdc.save(update_fields=['holder', 'preco_atual', 'desde'])
+        return redirect(dest + '?m=rei')
+
+    # normal: resgate simples (debita MM; a staff cumpre o efeito pelo histórico)
+    if saldo < r.preco_mm:
+        return redirect(dest + '?m=saldo')
+    _creditar_mm(request.user, 'resgate', 'Resgate: %s' % r.nome, -r.preco_mm)
+    return redirect(dest + '?m=resgatado')
 
 
 def organizacoes_view(request):
@@ -16200,7 +15985,6 @@ def organizacoes_view(request):
 
 
 def api_opcoes(request):
-    archived_ids = {str(pk) for pk in TbOpcaojogo.objects.filter(arquivado=True).values_list('pk', flat=True)}
     tipo_filter = request.GET.get('tipo', '').strip()
     classe_filter = request.GET.get('classe', '').strip()
     subclasse_filter = request.GET.get('subclasse', '').strip()
@@ -16218,8 +16002,6 @@ def api_opcoes(request):
         opcoes_docs = _site_docs('options', [('Nome', 1)], query=query if tipo_filter else None)
         opcoes_lista = []
         for op in opcoes_docs:
-            if str(op.get('Id_Opcao')) in archived_ids:
-                continue
             opcoes_lista.append({
                 'id': op.get('Id_Opcao'),
                 'nome': op.get('Nome') or '',
@@ -16233,7 +16015,7 @@ def api_opcoes(request):
     except SiteDataUnavailable:
         pass
 
-    qs = TbOpcaojogo.objects.filter(arquivado=False).order_by('nome')
+    qs = TbOpcaojogo.objects.all().order_by('nome')
     if tipo_filter:
         qs = qs.filter(tipo__iexact=tipo_filter)
     if classe_filter or subclasse_filter:
@@ -17659,15 +17441,13 @@ def _cronica_pending_snapshot(cronica):
     return hashlib.sha256(encoded).hexdigest()
 
 
-@login_required(login_url='login')
-@never_cache
+@login_required
 def cronicas_review_view(request):
     if not _can_review_cronica(request.user):
         raise PermissionDenied
-    from .gestao.editorial_views import review_page
-    pendentes, pagination = review_page(request, TbCronica.objects.filter(
+    pendentes = list(TbCronica.objects.filter(
         Q(status='pendente') | Q(status='aprovada', revisao_edicao__estado='pendente')
-    ).select_related('autor').order_by('data_submissao', 'pk'))
+    ).select_related('autor').order_by('data_submissao'))
     for cronica in pendentes:
         cronica.review_forwarding = (cronica.revisao_edicao or {}).get('triagem_lore') or {}
         cronica.review_snapshot = _cronica_pending_snapshot(cronica) if cronica.status == 'pendente' else ''
@@ -17679,17 +17459,14 @@ def cronicas_review_view(request):
         })
         cronica.review_data.territorio_label = ', '.join(_coerce_multi_value(cronica.review_data.territorio))
         cronica.review_data.regiao_label = ', '.join(_coerce_multi_value(cronica.review_data.regiao))
-    from .gestao.views import _workspace
-    return render(request, 'home/pages/cronicas_review.html', _workspace(request, 'Revisar crônicas',
-        management_section='editorial', **{
-        **pagination,
+    return render(request, 'home/pages/cronicas_review.html', {
         'pendentes': pendentes,
         'can_triage': request.user.has_perm('home.triage_tbcronica'),
         'can_decide_forwarded': request.user.has_perm('home.change_tbcronica'),
-    }))
+    })
 
 
-@login_required(login_url='login')
+@login_required
 def cronica_review_action(request, cronica_id):
     if not _can_review_cronica(request.user):
         raise PermissionDenied

@@ -12,44 +12,6 @@ from .models import (TbClasse, TbCosmetico, TbPersonagem,
 
 
 class PublicCharacterSheetTests(TestCase):
-    def test_full_sheet_shortcut_uses_existing_access_policy(self):
-        TbPersonagem.objects.filter(pk=self.character.pk).update(publico=True)
-        public = reverse('ficha_publica', args=[self.character.pk])
-        operational = reverse('ficha_detail', args=[self.character.pk])
-        admin = get_user_model().objects.create_user(
-            'public-sheet-admin', is_superuser=True, is_staff=False)
-        for user in (self.owner, self.staff, admin):
-            with self.subTest(user=user.username):
-                self.client.force_login(user)
-                response = self.client.get(public)
-                self.assertContains(response, 'Abrir ficha completa')
-                self.assertContains(response, f'href="{operational}"')
-                self.assertInHTML(
-                    f'<a class="bf-legacy-link" href="{operational}">'
-                    'Abrir ficha completa &rarr;</a>', response.content.decode())
-                self.assertNotContains(response, self.character.anotacoes)
-                self.assertNotContains(response, self.character.notas_jogador)
-        self.character.refresh_from_db()
-        self.assertTrue(self.character.publico)
-        self.assertEqual(self.character.dono_id, self.owner.pk)
-
-    def test_full_sheet_shortcut_is_hidden_from_visitors_and_owner_preview(self):
-        TbPersonagem.objects.filter(pk=self.character.pk).update(publico=True)
-        public = reverse('ficha_publica', args=[self.character.pk])
-        operational = reverse('ficha_detail', args=[self.character.pk])
-        for user in (None, self.other):
-            with self.subTest(user=user):
-                self.client.logout()
-                if user is not None:
-                    self.client.force_login(user)
-                response = self.client.get(public)
-                self.assertNotContains(response, 'Abrir ficha completa')
-                self.assertNotContains(response, f'href="{operational}"')
-                self.assertRedirects(self.client.get(operational), public)
-        self.client.force_login(self.owner)
-        self.assertNotContains(self.client.get(public + '?preview=1'),
-                               'Abrir ficha completa')
-
     def tearDown(self):
         invalidate_cosmetic_cache()
 

@@ -7,8 +7,6 @@ function media(entry) {
   return {...entry, anchor:entry.anchor || 'center', sprite:entry.sprite || 'full',
     url:'../../home/static/cosmetics/' + entry.file,
     fallback:'../../home/static/cosmetics/' + entry.fallback,
-    // Chromium blocks file:// CSS masks; the offline preview embeds only the mask.
-    ...(entry.mask ? {mask_url:'data:' + ({'.png':'image/png','.webp':'image/webp','.svg':'image/svg+xml','.gif':'image/gif'}[path.extname(entry.mask.file)]) + ';base64,' + fs.readFileSync(path.join(root, entry.mask.file)).toString('base64')} : {}),
     ...(entry.parts ? {parts:entry.parts.map(media)} : {})};
 }
 for (const type of ['moldura', 'efeito']) {

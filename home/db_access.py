@@ -29,7 +29,6 @@ class ModelAccess:
     filterable: tuple
     sortable: tuple
     json_references: tuple = ()
-    create_only: tuple = ()  # Additional POST fields; never accepted by PATCH.
 
 
 @dataclass(frozen=True)
@@ -107,37 +106,12 @@ MODEL_ALLOWLIST = {
         ('id_linhagem', 'id_raca', 'slug', 'nome'),
         ('id_linhagem', 'id_raca', 'slug', 'nome'),
     ),
-    # Mutable source catalog only, not sealed revisions or published/pinned rulesets.
-    'classe': ModelAccess(
-        home_models.TbClasse,
-        ('id_classe', 'slug', 'nome', 'tagline', 'tags_json'),
-        (),
-        ('id_classe', 'slug', 'nome'),
-        ('id_classe', 'slug', 'nome'),
-    ),
-    'subclasse': ModelAccess(
-        home_models.TbSubclasse,
-        ('id_subclasse', 'id_classe', 'slug', 'nome', 'tagline'),
-        (),
-        ('id_subclasse', 'id_classe', 'slug', 'nome'),
-        ('id_subclasse', 'id_classe', 'slug', 'nome'),
-    ),
-    'classe_habilidade': ModelAccess(
-        home_models.TbClassehabilidade,
-        ('id_habilidade', 'id_classe', 'id_subclasse', 'niveladquirido',
-         'nome', 'nome_ingles', 'descricao', 'table_only', 'tags_json'),
-        ('nome', 'nome_ingles', 'descricao', 'niveladquirido', 'table_only', 'tags_json'),
-        ('id_habilidade', 'id_classe', 'id_subclasse', 'niveladquirido', 'nome'),
-        ('id_habilidade', 'id_classe', 'id_subclasse', 'niveladquirido', 'nome'),
-        # Source edits do not revise/publish rulesets or rebind pinned characters.
-        create_only=('id_classe', 'id_subclasse'),
-    ),
     'opcao_jogo': ModelAccess(
         home_models.TbOpcaojogo,
         ('id_opcao', 'nome', 'slug', 'tipo', 'descricao', 'pre_requisito',
-         'etiquetas_adicionais', 'tags_json', 'arquivado'),
-        ('arquivado',),
-        ('id_opcao', 'slug', 'tipo', 'arquivado'),
+         'etiquetas_adicionais', 'tags_json'),
+        (),
+        ('id_opcao', 'slug', 'tipo'),
         ('id_opcao', 'slug', 'nome', 'tipo'),
     ),
     'acesso_opcao': ModelAccess(
@@ -271,8 +245,7 @@ def row_version(instance, access):
 
 
 def clean_values(access, payload, *, partial):
-    allowed = access.writable if partial else access.writable + access.create_only
-    unknown = sorted(set(payload) - set(allowed))
+    unknown = sorted(set(payload) - set(access.writable))
     if unknown:
         raise ApiProblem(400, 'invalid_field', 'Campos nao permitidos.', details=unknown)
     if not payload:
@@ -282,9 +255,6 @@ def clean_values(access, payload, *, partial):
     for name, value in payload.items():
         field = _field(access, name)
         try:
-            if (access.model is home_models.TbClassehabilidade and name == 'niveladquirido'
-                    and isinstance(value, (bool, float))):
-                raise ValidationError('O nivel deve ser um inteiro entre 1 e 20.')
             if value is None:
                 if not field.null:
                     raise ValidationError('null nao permitido')
@@ -324,13 +294,6 @@ def clean_values(access, payload, *, partial):
 def validate_instance(instance, access, *, exclude_untouched=()):
     try:
         instance.full_clean(exclude=list(exclude_untouched), validate_unique=True)
-        if access.model is home_models.TbClassehabilidade:
-            if not 1 <= instance.niveladquirido <= 20:
-                raise ValidationError({'niveladquirido': 'O nivel deve estar entre 1 e 20.'})
-            if (instance.id_subclasse_id is not None
-                    and not home_models.TbSubclasse.objects.filter(
-                        pk=instance.id_subclasse_id, id_classe_id=instance.id_classe_id).exists()):
-                raise ValidationError({'id_subclasse': 'A subclasse deve pertencer a classe.'})
         if 'tags_json' in access.writable and 'tags_json' not in exclude_untouched:
             from .tag_engine.library import Library
             from .tag_engine.validator import ERROR, validate_tags_json
@@ -418,8 +381,7 @@ def schema_document():
                     field.remote_field.model._meta.label_lower
                     if isinstance(field, models.ForeignKey) else None
                 ),
-                'writable': field_name in access.writable or field_name in access.create_only,
-                'create_only': field_name in access.create_only,
+                'writable': field_name in access.writable,
                 'filterable': field_name in access.filterable,
                 'sortable': field_name in access.sortable,
                 'choices': list(field.flatchoices) if field.choices else [],

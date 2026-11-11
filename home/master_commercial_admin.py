@@ -64,17 +64,17 @@ class VerifiedTableAdmin(ReviewAdmin):
     form = EvidenceForm
     list_display = ('aventura', 'aberta', 'validada', 'validado_por', 'validado_em')
     list_filter = ('validada', 'aberta')
-    readonly_fields = ('aventura', 'aberta', 'validada', 'observacao', 'validado_por', 'validado_em')
+    readonly_fields = ('validado_por', 'validado_em')
     raw_id_fields = ('aventura',)
 
-    def has_add_permission(self, request):
-        return False
-
-    def has_change_permission(self, request, obj=None):
-        return False
+    def get_readonly_fields(self, request, obj=None):
+        return self.readonly_fields + (('aventura',) if obj else ())
 
     def save_model(self, request, obj, form, change):
-        raise PermissionDenied('Histórico de verificações manuais: somente leitura.')
+        if not can_authorize(request.user) or obj.aventura.mestre_id == request.user.pk:
+            raise PermissionDenied('Você não pode verificar a própria mesa.')
+        obj.validado_por = request.user
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(TbAutorizacaoVitrine)

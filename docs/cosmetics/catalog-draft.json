@@ -1,0 +1,16 @@
+{
+  "status": "banner-effects-reclassification-ready",
+  "art_direction": "cartoon-cel-shaded-v2",
+  "activate_in_production": false,
+  "pending": ["Publicar os temas no catalogo pelo admin, sem conceder inventario automaticamente","Definir obtencao das molduras lunares","Definir elegibilidade e periodo do Halloween"],
+  "cosmetics": [
+    {"slug":"efeito-lua-vermelha","tipo":"efeito","nome":"Lua Vermelha","css_class":"","origem":"staff","ativo":true,"preco":null,"requer_plano":"","descricao":"Tema liberado individualmente pela administracao.","escopo":"ambos","raridade":"epico"},
+    {"slug":"efeito-lua-negra","tipo":"efeito","nome":"Lua Negra","css_class":"","origem":"staff","ativo":true,"preco":null,"requer_plano":"","descricao":"Tema liberado individualmente pela administracao.","escopo":"ambos","raridade":"epico"},
+    {"slug":"efeito-lua-cristal","tipo":"efeito","nome":"Lua de Cristal","css_class":"","origem":"staff","ativo":true,"preco":null,"requer_plano":"","descricao":"Tema liberado individualmente pela administracao.","escopo":"ambos","raridade":"epico"},
+    {"slug":"moldura-lua-vermelha","tipo":"moldura","nome":"Moldura da Lua Vermelha","css_class":"frame-lua-vermelha","origem":"staff","ativo":false,"escopo":"ambos","raridade":"epico","animado":false,"asset_url":"/static/cosmetics/avatar-blood-moon-v5.webp"},
+    {"slug":"moldura-lua-negra","tipo":"moldura","nome":"Moldura da Lua Negra","css_class":"frame-lua-negra","origem":"staff","ativo":false,"escopo":"ambos","raridade":"epico","animado":false,"asset_url":"/static/cosmetics/avatar-black-moon-v6.webp"},
+    {"slug":"moldura-lua-cristal","tipo":"moldura","nome":"Moldura da Lua de Cristal","css_class":"frame-lua-cristal","origem":"staff","ativo":false,"escopo":"ambos","raridade":"epico","animado":false,"asset_url":"/static/cosmetics/avatar-crystal-moon-v6.webp"},
+    {"slug":"moldura-vigilia-das-lanternas","tipo":"moldura","nome":"Moldura Vigilia das Lanternas","css_class":"frame-vigilia-das-lanternas","origem":"staff","ativo":false,"escopo":"ambos","raridade":"raro","animado":true,"asset_url":"/static/cosmetics/frame-vigilia-das-lanternas-v2.png"},
+    {"slug":"efeito-vigilia-das-lanternas","tipo":"efeito","nome":"Vigilia das Lanternas","css_class":"","origem":"staff","ativo":false,"escopo":"ambos","raridade":"raro"}
+  ]
+}

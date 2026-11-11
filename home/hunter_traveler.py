@@ -7,7 +7,6 @@ from decimal import Decimal, InvalidOperation
 from django.db import transaction
 
 from .hunter_preparation import preparation
-from .hunter_spells import uses_tag_spell_grants
 from .models import TbOperacaoRecurso, TbPersonagem, TbPersonagemCacador
 from .resource_engine import spend_resource
 
@@ -20,8 +19,6 @@ FINAL_SPELLS = (
 
 
 def final_options(profile):
-    if uses_tag_spell_grants(profile):
-        return []
     from .versioned_spells import spell_catalog
 
     catalog = list(spell_catalog(profile.ruleset).values())
@@ -37,8 +34,6 @@ def final_options(profile):
 
 
 def final_grants(profile):
-    if uses_tag_spell_grants(profile):
-        return []
     prepared = preparation(profile, selected=[], allow_pending_order=True)
     if (prepared['order'] != ORDER or prepared['level'] < 18
             or not any(row['id'] == 'caminho-final' for row in prepared['exclusive'])):
@@ -72,8 +67,7 @@ def panel(profile):
     rupture_max = veil_max = rupture_current = veil_current = 0
     modifier = 0
     options = []
-    tagged_grants = uses_tag_spell_grants(profile)
-    final_eligible = not tagged_grants and prepared['level'] >= 18 and any(
+    final_eligible = prepared['level'] >= 18 and any(
         row['id'] == 'caminho-final' for row in prepared['exclusive'])
     if final_eligible:
         options = final_options(profile)
@@ -100,9 +94,9 @@ def panel(profile):
                 ability_modifier=modifier,
                 final_eligible=final_eligible,
                 final_options=options,
-                final_choices=[] if tagged_grants else state.get('final_choices', []),
-                final_used=[] if tagged_grants else state.get('final_used', []),
-                final_selection_open=False if tagged_grants else state.get('final_selection_open', False))
+                final_choices=state.get('final_choices', []),
+                final_used=state.get('final_used', []),
+                final_selection_open=state.get('final_selection_open', False))
 
 
 def _distance(value, *, limit, label):
@@ -130,8 +124,6 @@ def command(*, character_id, owner_id, operation_id, expected_version, action,
         pk=character_id, dono_id=owner_id, arquivado=False)
     profile = TbPersonagemCacador.objects.select_for_update().select_related(
         'ruleset', 'personagem_classe').get(personagem_classe__id_personagem=person)
-    if action in ('select_final', 'cast_final') and uses_tag_spell_grants(profile):
-        raise ValueError('Use a escolha comum de magias da ficha nesta revisao.')
     operation_id = uuid.UUID(str(operation_id))
     version = int(expected_version)
     label, rune_id = str(label).strip(), str(rune_id).strip()
@@ -290,8 +282,6 @@ def command(*, character_id, owner_id, operation_id, expected_version, action,
 def grant_long_rest(person):
     for profile in TbPersonagemCacador.objects.select_for_update().select_related(
             'ruleset', 'personagem_classe').filter(personagem_classe__id_personagem=person):
-        if uses_tag_spell_grants(profile):
-            continue
         prepared = preparation(profile, selected=[], allow_pending_order=True)
         if (prepared['order'] != ORDER or prepared['level'] < 18
                 or not any(row['id'] == 'caminho-final' for row in prepared['exclusive'])):

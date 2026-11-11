@@ -1,33 +1,41 @@
-<fieldset class="cosmetic-catalog" data-cosmetic-catalog data-catalog-type="{{ tipo }}" data-catalog-url="{% if preview_url %}{{ preview_url }}{% else %}{{ items.0.preview_url }}{% endif %}" data-catalog-scope="{% if escopo %}{{ escopo }}{% elif select_name == 'foto_frame' or select_name == 'ficha_effect' %}ficha{% else %}perfil{% endif %}">
+<fieldset class="cosmetic-catalog" data-cosmetic-catalog>
   <legend id="{{ select_id }}-legend" class="cosmetic-catalog-legend">{{ label }}</legend>
   <select id="{{ select_id }}" name="{{ select_name }}" class="{{ select_class }}" aria-labelledby="{{ select_id }}-legend" data-catalog-select>
-    {% for item in items %}<option value="{{ item.key }}"{% if item.selected %} selected{% endif %}{% if item.locked %} disabled{% endif %}>{{ item.label }}{% if item.posse_origem %} ({{ item.posse_origem }}){% elif item.locked %} ({% if item.unlock_hint %}{{ item.unlock_hint }}{% else %}bloqueado{% endif %}){% endif %}</option>{% endfor %}
+    {% for item in items %}
+    <option value="{{ item.key }}"{% if item.selected %} selected{% endif %}{% if item.locked %} disabled{% endif %}>{{ item.label }}{% if item.posse_origem %} ({{ item.posse_origem }}){% elif item.locked %} ({% if item.unlock_hint %}{{ item.unlock_hint }}{% else %}bloqueado{% endif %}){% endif %}</option>
+    {% endfor %}
   </select>
-  <div data-catalog-controls hidden>
-    <button class="cosmetic-catalog-launcher" type="button" data-catalog-open aria-haspopup="dialog" aria-controls="{{ select_id }}-dialog" aria-expanded="false">
-      <span class="cosmetic-launcher-art" data-catalog-selected-art aria-hidden="true">{% for item in items %}{% if item.selected %}{% if item.thumbnail_url %}<img src="{{ item.thumbnail_url }}" alt="" width="48" height="48" loading="lazy">{% else %}<span>◇</span>{% endif %}{% endif %}{% endfor %}</span>
-      <span class="cosmetic-launcher-name" data-catalog-selected-name>{% for item in items %}{% if item.selected %}{{ item.label }}{% endif %}{% endfor %}</span><span aria-hidden="true">›</span>
-    </button>
-  </div>
-  <dialog class="cosmetic-catalog-dialog" id="{{ select_id }}-dialog" aria-labelledby="{{ select_id }}-dialog-title" data-catalog-dialog>
-    <header class="cosmetic-catalog-header"><h2 id="{{ select_id }}-dialog-title">{{ label }}</h2><button type="button" class="cosmetic-catalog-close" data-catalog-close aria-label="Fechar catálogo" title="Fechar catálogo">×</button></header>
-    <div class="cosmetic-catalog-body">
-      <section class="cosmetic-catalog-browser" aria-label="Opções">
-        <label class="cosmetic-catalog-filter" for="{{ select_id }}-filter">Buscar<input type="search" id="{{ select_id }}-filter" data-catalog-filter autocomplete="off" aria-controls="{{ select_id }}-tiles"></label>
-        {% if tipo == 'tema' %}<div class="cosmetic-catalog-categories" role="group" aria-label="Categoria"><button type="button" data-catalog-category="classico" aria-pressed="true">Clássicos</button><button type="button" data-catalog-category="especial" aria-pressed="false">Especiais</button></div>{% endif %}
-        <div class="cosmetic-catalog-grid" id="{{ select_id }}-tiles" role="listbox" aria-label="{{ label }}">
-          {% for item in items %}<button type="button" class="cosmetic-catalog-tile{% if item.locked %} is-locked{% endif %}" data-catalog-tile data-catalog-key="{{ item.key }}" data-catalog-label="{{ item.label }}" data-catalog-search="{{ item.label }} {{ item.unlock_hint }} {{ item.posse_origem }}" data-catalog-item-category="{{ item.category|default:'classico' }}" data-catalog-hint="{{ item.unlock_hint }}" data-catalog-origin="{{ item.posse_origem }}" role="option" aria-selected="false" aria-label="{{ item.label }}{% if item.locked %} · Bloqueado{% endif %}" title="{{ item.label }}" tabindex="-1">{% if item.thumbnail_url %}<img src="{{ item.thumbnail_url }}" alt="" width="64" height="64" loading="lazy" decoding="async">{% else %}<span class="cosmetic-catalog-placeholder" aria-hidden="true">◇</span>{% endif %}{% if item.locked %}<span class="cosmetic-catalog-lock" aria-hidden="true">▣</span>{% endif %}</button>{% endfor %}
-        </div>
-        <p data-catalog-empty hidden>Nenhum resultado.</p>
-      </section>
-      <section class="cosmetic-catalog-detail" aria-labelledby="{{ select_id }}-candidate">
-        <div class="cosmetic-catalog-live" data-catalog-preview></div>
-        <h3 id="{{ select_id }}-candidate" data-catalog-name></h3><p data-catalog-description></p><p class="cosmetic-catalog-hint" data-catalog-hint-text></p>
-        <a class="cosmetic-catalog-acquisition" data-catalog-acquisition hidden></a>
-        <p class="cosmetic-catalog-status" data-catalog-status role="status" aria-live="polite"></p>
-        <button type="button" data-catalog-retry hidden aria-label="Tentar novamente" title="Tentar novamente">↻</button>
-      </section>
+  <div class="cosmetic-catalog-enhanced" data-catalog-controls hidden>
+    <label class="cosmetic-catalog-filter" for="{{ select_id }}-filter">Filtrar {{ label|lower }}
+      <input type="search" id="{{ select_id }}-filter" data-catalog-filter autocomplete="off" placeholder="Buscar por nome" aria-controls="{{ select_id }}-tiles">
+    </label>
+    <div class="cosmetic-catalog-grid" id="{{ select_id }}-tiles">
+      {% for item in items %}
+      <label class="cosmetic-catalog-tile{% if item.locked %} is-locked{% endif %}" data-catalog-tile data-catalog-search="{{ item.label }} {{ item.unlock_hint }} {{ item.posse_origem }}">
+        <input type="radio" name="catalog_{{ select_id }}" value="{{ item.key }}" data-catalog-radio{% if item.selected %} checked{% endif %}{% if item.locked %} disabled{% endif %} aria-describedby="{{ select_id }}-hint-{{ forloop.counter }}">
+        <span class="cosmetic-catalog-tile-body">
+          <span class="cosmetic-catalog-preview" aria-hidden="true">
+            {% if tipo == 'moldura' %}
+            <span class="banner-character-avatar cosmetic-catalog-avatar {{ item.class }}{% if item.package.avatar %} is-packaged{% endif %}">
+              <span class="cosmetic-catalog-initial">B</span>
+              {% include 'home/partials/_cosmetic_preview.html' with layers=item.package.avatar slot='avatar' %}
+            </span>
+            {% else %}
+            <span class="cosmetic-effect-sample {{ item.class }}">
+              {% if not item.package.avatar %}<span class="cosmetic-catalog-effect-mark">Bonfire</span>{% endif %}
+              {% include 'home/partials/_cosmetic_preview.html' with layers=item.package.banner slot='banner' %}
+              {% include 'home/partials/_cosmetic_preview.html' with layers=item.package.ornament slot='ornament' %}
+              {% if item.package.avatar %}<span class="banner-character-avatar cosmetic-catalog-avatar is-packaged"><span class="cosmetic-catalog-initial">B</span>{% include 'home/partials/_cosmetic_preview.html' with layers=item.package.avatar slot='avatar' %}</span>{% endif %}
+            </span>
+            {% endif %}
+          </span>
+          <span class="cosmetic-catalog-name">{{ item.label }}</span>
+          <span class="cosmetic-catalog-hint" id="{{ select_id }}-hint-{{ forloop.counter }}">{% if item.locked %}Bloqueado{% if item.unlock_hint %} · {{ item.unlock_hint }}{% endif %}{% elif item.posse_origem %}{{ item.posse_origem }}{% else %}Disponível{% endif %}</span>
+          <span class="cosmetic-catalog-selected">Selecionado</span>
+        </span>
+      </label>
+      {% endfor %}
     </div>
-    <footer class="cosmetic-catalog-footer"><button type="button" data-catalog-close>Cancelar</button><button type="button" class="cosmetic-catalog-apply" data-catalog-apply disabled>Aplicar</button></footer>
-  </dialog>
+    <p class="cosmetic-catalog-empty" data-catalog-empty role="status" hidden>Nenhum resultado.</p>
+  </div>
 </fieldset>

@@ -106,9 +106,9 @@ class ExportPersonagemVttTests(TestCase):
         # topo FIXO em 1 (o compilador valida com z.literal(1) — igualdade exata);
         # a evolução aditiva v1.1 é sinalizada por versao_menor.
         self.assertEqual(data['versao_contrato'], 1)
-        self.assertEqual(data['versao_menor'], 3)
+        self.assertEqual(data['versao_menor'], 1)
         for chave in ('personagem', 'derive', 'recursos', 'habilidades',
-                      'magias', 'acesso_magias', 'estado_mesa', 'moedas', 'inspiracao', 'avisos'):
+                      'magias', 'estado_mesa', 'moedas', 'inspiracao', 'avisos'):
             self.assertIn(chave, data)
 
         pers = data['personagem']
@@ -125,10 +125,6 @@ class ExportPersonagemVttTests(TestCase):
         self.assertEqual(d['atributos']['INT'], {'valor': 16, 'mod': 3})
         # PV: d6 principal (6+2, depois 4+2 ×2) + d8 (5+2 ×2) = 34
         self.assertEqual(d['pv_max'], 34)
-        self.assertEqual(d['movimento']['schema'], 1)
-        self.assertEqual(d['movimento']['unit'], 'ft')
-        self.assertEqual(d['movimento']['speeds']['walk'], 30)
-        self.assertEqual(d['deslocamento'], '9 m / 30 ft')
         # Percepção não-proficiente ⇒ passiva = 10 + mod SAB (1)
         self.assertEqual(d['percepcao_passiva'], 11)
         self.assertEqual(len(d['pericias']), 18)
@@ -240,79 +236,3 @@ class ExportPersonagemVttTests(TestCase):
                           'circulo': 3, 'origem': 'classe', 'preparada': True})
         self.assertEqual(por_pk[self.chama.pk]['origem'], 'concedida')
         self.assertEqual(por_pk[self.chama.pk]['circulo'], 1)
-
-    def test_acesso_magias_e_aditivo_e_nao_materializa_concessao(self):
-        virtual = TbMagia.objects.create(
-            nome='Virtual Teste', slug='virtual-teste-vtt', nivel=1,
-            tags_json=['cast{action, spell:virtual_teste_vtt}'])
-        self.hab_mago.tags_json = ['cast{spell:virtual_teste_vtt, always_prepared}']
-        self.hab_mago.save(update_fields=['tags_json'])
-        before = list(self.p.magias.order_by('id').values())
-        data = exportar_personagem(self.p)
-        self.assertEqual(list(self.p.magias.order_by('id').values()), before)
-        self.assertNotIn(virtual.pk, {spell['magia_pk'] for spell in data['magias']})
-        access = data['acesso_magias']
-        self.assertIs(access['conjuracao_automatica'], False)
-        by_pk = {spell['magia_pk']: spell for spell in access['magias']}
-        self.assertEqual(by_pk[virtual.pk]['slug'], virtual.slug)
-        self.assertEqual(by_pk[virtual.pk]['tags'], virtual.tags_json)
-        self.assertIs(by_pk[virtual.pk]['persistida'], False)
-        self.assertIs(by_pk[virtual.pk]['concedida'], True)
-        self.assertIs(by_pk[virtual.pk]['preparada'], True)
-        self.assertIs(by_pk[virtual.pk]['sempre_preparada'], True)
-        self.assertEqual(by_pk[virtual.pk]['fontes'][0]['fonte'], self.hab_mago.nome)
-        self.assertIs(by_pk[self.bola.pk]['preparada'], True)
-        self.assertIs(by_pk[self.chama.pk]['sempre_preparada'], True)
-
-    def test_acesso_fixado_preserva_catalogo_e_concessao_sem_escritas(self):
-        from django.db import connection
-        from home.content_versions import create_revision, seal_ruleset
-        from home.versioned_classes import inventory_class, EVALUATOR, VOCABULARY
-        from home.versioned_options import snapshot_options
-        from home.versioned_origins import snapshot_origins
-        from home.versioned_items import snapshot_magic_items
-        from home.versioned_spells import snapshot_spells
-        from home.vtt_spell_access import effective_spell_access
-
-        virtual = TbMagia.objects.create(
-            nome='Pinned Virtual', slug='pinned-virtual-vtt', nivel=1,
-            tags_json=['cast{action, spell:pinned_virtual_vtt}'])
-        self.hab_mago.tags_json = ['cast{spell:pinned_virtual_vtt, always_prepared}']
-        self.hab_mago.save(update_fields=['tags_json'])
-        pinned = seal_ruleset([
-            create_revision('class-catalog:%s' % classe.pk, inventory_class(classe.pk))
-            for classe in (self.mago, self.clerigo)
-        ] + [snapshot_options(), snapshot_origins(), snapshot_magic_items(), snapshot_spells()],
-            evaluator_version=EVALUATOR, vocabulary_version=VOCABULARY)
-        self.p.classes.update(ruleset=pinned)
-        before = effective_spell_access(self.p)
-        self.assertIn(virtual.pk, {m['magia_pk'] for m in before['magias']})
-        self.hab_mago.tags_json = []
-        self.hab_mago.save(update_fields=['tags_json'])
-        virtual.nome, virtual.slug, virtual.nivel = 'Current changed', 'current-changed-vtt', 9
-        virtual.tags_json = ['cast{current}']
-        virtual.save()
-        rows_before = list(self.p.magias.order_by('id').values())
-        attempted_writes = []
-
-        def readonly(execute, sql, params, many, context):
-            if not sql.lstrip().upper().startswith('SELECT'):
-                attempted_writes.append(sql)
-                self.fail('Export attempted a non-SELECT statement: ' + sql)
-            return execute(sql, params, many, context)
-
-        with connection.execute_wrapper(readonly):
-            data = exportar_personagem(self.p)
-            again = exportar_personagem(self.p)
-        self.assertEqual(attempted_writes, [])
-        self.assertEqual(serializar(data), serializar(again))
-        self.assertEqual(data['acesso_magias'], before)
-        entry = next(m for m in before['magias'] if m['magia_pk'] == virtual.pk)
-        self.assertEqual((entry['nome'], entry['slug'], entry['circulo']),
-                         ('Pinned Virtual', 'pinned-virtual-vtt', 1))
-        self.assertEqual(entry['tags'], ['cast{action, spell:pinned_virtual_vtt}'])
-        self.assertIs(entry['preparada'], True)
-        self.assertIs(entry['sempre_preparada'], True)
-        self.assertEqual(before['catalogo']['ruleset_pk'], pinned.pk)
-        self.assertEqual(before['catalogo']['revisao'], pinned.manifest['spell-catalog'])
-        self.assertEqual(list(self.p.magias.order_by('id').values()), rows_before)

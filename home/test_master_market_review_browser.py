@@ -14,12 +14,11 @@ from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.db import connection
 from django.urls import reverse
 
-from .models import (TbAventuraMestre, TbPersonagem, TbRecompensaMestre,
-                     TbTransacaoMestre, UserProfile)
+from .models import TbAventuraMestre, TbPersonagem, TbRecompensaMestre, UserProfile
 
 
 class MasterMarketReviewBrowserTests(StaticLiveServerTestCase):
-    def test_mobile_review_cancels_actions_and_confirms_joint_delivery(self):
+    def test_mobile_review_cancels_three_actions_and_confirms_registration(self):
         if connection.vendor != 'postgresql' or not connection.settings_dict['NAME'].startswith('test_'):
             self.skipTest('Requires isolated PostgreSQL test database.')
         try:
@@ -39,8 +38,7 @@ class MasterMarketReviewBrowserTests(StaticLiveServerTestCase):
         profile.moedas_evento = 2
         profile.save(update_fields=['moedas_mestragem', 'moedas_evento'])
         TbPersonagem.objects.create(dono=user, nome='Aventureira')
-        TbRecompensaMestre.objects.create(slug='review-reward', nome='Prêmio de teste',
-            preco_mm=10, ativo=True, efeito='aventura_recompensa')
+        TbRecompensaMestre.objects.create(slug='review-reward', nome='Prêmio de teste', preco_mm=10, ativo=True)
         self.client.force_login(user)
 
         with tempfile.TemporaryDirectory(prefix='bonfire-mm-review-', ignore_cleanup_errors=True) as directory:
@@ -109,21 +107,18 @@ class MasterMarketReviewBrowserTests(StaticLiveServerTestCase):
                 self.assertTrue(js('!!document.querySelector("form[data-mm-review=registro]")'))
                 self.assertTrue(js('''(() => {
                     const guide = document.querySelector('#mm-area-eventos .mm-guide');
-                    return guide && guide.textContent.includes('não há troca isolada') &&
-                        !document.querySelector('form[data-mm-review=eventos]');
+                    return guide && guide.textContent.includes('100 MM') &&
+                        guide.textContent.includes('BP dele');
                 })()'''))
 
                 for kind, expected in (
+                    ('eventos', ['Aventureira', '2']),
                     ('registro', ['Mesa de teste', '4', '120']),
-                    ('recompensa', ['Prêmio de teste', '10', 'Aventureira', 'Moedas de Evento']),
+                    ('recompensa', ['Prêmio de teste', '10']),
                 ):
                     state = json.loads(js('''JSON.stringify((() => {
                         const form = document.querySelector('form[data-mm-review="%s"]');
-                        if (form.elements.namedItem('personagem')) {
-                            const select = form.elements.namedItem('personagem');
-                            select.value = select.options[1].value;
-                            form.elements.namedItem('usar_moedas_evento').checked = true;
-                        }
+                        if (form.elements.namedItem('moedas')) form.elements.namedItem('moedas').value = '2';
                         if (form.elements.namedItem('nome')) {
                             form.elements.namedItem('nome').value = 'Mesa de teste';
                             form.elements.namedItem('jogadores').value = '4';
@@ -167,36 +162,45 @@ class MasterMarketReviewBrowserTests(StaticLiveServerTestCase):
 
                 call('Page.navigate', {'url': self.live_server_url + reverse('mestre_mercado')})
                 for _ in range(100):
-                    if js('document.readyState === "complete" && !!document.querySelector("form[data-mm-review=recompensa]")'):
+                    if js('document.readyState === "complete" && !!document.querySelector("form[data-mm-review=eventos]")'):
                         break
                     time.sleep(.1)
                 js('''(() => {
-                    const form = document.querySelector('form[data-mm-review="recompensa"]');
-                    const select = form.elements.namedItem('personagem');
-                    select.value = select.options[1].value;
-                    form.elements.namedItem('quantidade').value = '2';
-                    form.elements.namedItem('quantidade').dispatchEvent(new Event('input'));
-                    form.elements.namedItem('usar_moedas_evento').checked = true;
-                    form.elements.namedItem('usar_moedas_evento').dispatchEvent(new Event('change'));
+                    const form = document.querySelector('form[data-mm-review="eventos"]');
+                    form.elements.namedItem('moedas').value = '2';
                     form.requestSubmit();
                     document.querySelector('#mm-review-confirm').click();
                 })()''')
                 for _ in range(100):
-                    if js('location.search.includes("m=entregue")'):
+                    if js('location.search.includes("m=braseiros")'):
                         break
                     time.sleep(.1)
-                self.assertTrue(js('location.search.includes("m=entregue")'))
-                notice('status', 'Aventura e recompensa entregues')
+                self.assertTrue(js('location.search.includes("m=braseiros")'))
+                notice('status', 'Braseiros creditados')
                 profile.refresh_from_db()
                 self.assertEqual(profile.moedas_evento, coins_after_table - 2)
-                character = TbPersonagem.objects.get(dono=user)
-                self.assertEqual((character.aventuras, character.braseiros), (2, 4))
-                receipt = TbTransacaoMestre.objects.get(personagem=character)
-                self.assertEqual(receipt.detalhes_json['moedas_evento_gastas'], 2)
-                self.assertEqual(profile.moedas_mestragem, 150)
+                self.assertGreater(TbPersonagem.objects.get(dono=user).braseiros, 0)
+
+                call('Page.navigate', {'url': self.live_server_url + reverse('mestre_mercado')})
+                for _ in range(100):
+                    if js('document.readyState === "complete" && !!document.querySelector("form[data-mm-review=recompensa]")'):
+                        break
+                    time.sleep(.1)
+                js('''(() => {
+                    document.querySelector('form[data-mm-review="recompensa"]').requestSubmit();
+                    document.querySelector('#mm-review-confirm').click();
+                })()''')
+                for _ in range(100):
+                    if js('location.search.includes("m=resgatado")'):
+                        break
+                    time.sleep(.1)
+                self.assertTrue(js('location.search.includes("m=resgatado")'))
+                notice('status', 'Recompensa resgatada')
+                profile.refresh_from_db()
+                self.assertEqual(profile.moedas_mestragem, 160)
 
                 call('Page.navigate', {'url': self.live_server_url + reverse('mestre_mercado') + '?m=sem_evento'})
-                notice('alert', 'Moedas de Evento insuficientes')
+                notice('alert', 'Você não tem Moedas de Evento')
             finally:
                 if ws:
                     ws.close()

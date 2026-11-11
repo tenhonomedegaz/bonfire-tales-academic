@@ -172,16 +172,6 @@ def _target_orders(ruleset, target, *, applying=False):
     return {pk: target.subclasses[pk] for pk in ids.values()}
 
 
-def _legacy_features(pc):
-    if pc.ruleset_id:
-        return [row[2] for row in VersionedClassCatalog(pc.ruleset, pc.id_classe_id).features(
-            pc.nivel, pc.id_subclasse_id)]
-    return list(TbClassehabilidade.objects.filter(
-        id_classe_id=pc.id_classe_id, niveladquirido__lte=pc.nivel,
-    ).filter(Q(id_subclasse__isnull=True) | Q(id_subclasse_id=pc.id_subclasse_id))
-        .order_by('niveladquirido', 'nome', 'pk'))
-
-
 def preview_legacy_hunter(person, pc, ruleset, *, candidate_order_id=None):
     """Compare both catalogs without assuming feature or order equivalence."""
     if pc.id_personagem_id != person.pk or pc.id_classe.slug != 'cacador':
@@ -202,7 +192,10 @@ def preview_legacy_hunter(person, pc, ruleset, *, candidate_order_id=None):
             raise ValueError('Selecione uma Ordem da revisão de destino.')
     else:
         order_id = pc.id_subclasse_id if pc.id_subclasse_id in target_orders else None
-    current = _legacy_features(pc)
+    live = TbClassehabilidade.objects.filter(
+        id_classe_id=pc.id_classe_id, niveladquirido__lte=pc.nivel,
+    ).filter(Q(id_subclasse__isnull=True) | Q(id_subclasse_id=pc.id_subclasse_id))
+    current = list(live.order_by('niveladquirido', 'nome', 'pk'))
     proposed = [feature for _, _, feature, _ in target.features(pc.nivel, order_id)]
     def rows(features):
         return [{'level': feature.niveladquirido, 'name': feature.nome,
@@ -280,8 +273,6 @@ def apply_regularization(*, person_id, owner_id, ruleset, ability, order_id,
         'id_classe', 'id_subclasse').get(id_personagem=person, id_classe__slug='cacador')
     if TbPersonagemCacador.objects.filter(personagem_classe=pc).exists():
         raise ValueError('Esta ficha já foi regularizada.')
-    if person.classes.exclude(pk=pc.pk).exclude(ruleset__isnull=True).exclude(ruleset=ruleset).exists():
-        raise ValueError('Outra classe possui uma revisão diferente. Revise os vínculos antes de migrar.')
     if pc.nivel != int(expected_level) or pc.id_subclasse_id != expected_order_id:
         raise ValueError('A ficha mudou desde a prévia. Recarregue antes de confirmar.')
     target = VersionedClassCatalog(ruleset, pc.id_classe_id)
@@ -361,22 +352,21 @@ def apply_regularization(*, person_id, owner_id, ruleset, ability, order_id,
         raise ValueError('Prepare os Segredos antigos correspondentes antes de aplicar.')
     from .character_engine import derive
     from .hunter_views import linked_sheet_context
-    from .views import _resource_ruleset
-    old_ruleset = _resource_ruleset(person)
-    old_sheet = derive(person, ruleset=old_ruleset)
+    old_sheet = derive(person)
     old_order = pc.id_subclasse_id
     old_vitals = {'pv_maximo': person.pv_maximo, 'pv_atual': person.pv_atual,
                   'ca': person.ca}
-    old_features = [{'id_habilidade': row.pk, 'nome': row.nome,
-                     'niveladquirido': row.niveladquirido} for row in _legacy_features(pc)]
+    old_features = list(TbClassehabilidade.objects.filter(
+        id_classe_id=pc.id_classe_id, niveladquirido__lte=pc.nivel)
+        .filter(Q(id_subclasse__isnull=True) | Q(id_subclasse_id=old_order))
+        .order_by('pk').values('id_habilidade', 'nome', 'niveladquirido'))
     starting_before = _starting_proficiency_choices(person, pc)
     spells_before = list(person.magias.select_for_update().order_by('pk').values())
     inventory_before = list(person.inventario.select_for_update().order_by('pk').values())
     adventures_before = list(person.aventuras_ledger.select_for_update().order_by('pk').values())
     wallet_before = (person.carteira_pc, person.aventuras, person.braseiros)
     pc.id_subclasse_id = order_id
-    pc.ruleset = ruleset
-    pc.save(update_fields=['id_subclasse', 'ruleset'])
+    pc.save(update_fields=['id_subclasse'])
     profile = TbPersonagemCacador.objects.create(
         personagem_classe=pc, ruleset=ruleset, ability=ability,
         selected=result['selected'], regularization={
@@ -386,7 +376,6 @@ def apply_regularization(*, person_id, owner_id, ruleset, ability, order_id,
             'acquired_spell_ids': [row['id'] for row in spells_before],
             'preserved_starting_choices': starting_before,
             'ruleset_checksum': ruleset.checksum,
-            'old_ruleset_checksum': old_ruleset.checksum if old_ruleset else None,
             'explicit_ability': ability, 'explicit_secrets': result['selected'],
             'transferred_style': style_transfer,
             'transferred_secrets': secret_transfers,

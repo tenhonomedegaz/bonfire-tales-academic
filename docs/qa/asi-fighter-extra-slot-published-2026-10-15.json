@@ -1,0 +1,84 @@
+{
+  "site": "published",
+  "flow": "QA login > pathbuilder fighter N4 > fighter N6 > ASI preview",
+  "n4": {
+    "before": {
+      "title": "Aprimoramento de Atributo ou Talento",
+      "counter": "0/2 pontos",
+      "status": "Nível 4 · nenhum personagem salvo",
+      "plusDisabled": false
+    },
+    "after": {
+      "title": "Aprimoramento de Atributo ou Talento",
+      "counter": "1/2 pontos",
+      "status": "Nível 4 · nenhum personagem salvo",
+      "forBonus": "+1"
+    }
+  },
+  "n6": {
+    "before": {
+      "title": "Aprimoramento de Atributo ou Talento",
+      "counter": "1/4 pontos",
+      "status": "Nível 6 · nenhum personagem salvo"
+    },
+    "after": {
+      "title": "Aprimoramento de Atributo ou Talento",
+      "counter": "4/4 pontos",
+      "status": "Nível 6 · nenhum personagem salvo",
+      "wisBonus": "+2",
+      "dexBonus": "+1",
+      "plusDisabled": true
+    }
+  },
+  "posts": [
+    {
+      "path": "/cdn-cgi/rum",
+      "blocked": true
+    },
+    {
+      "path": "/sistemas/criacao-de-ficha/preview/",
+      "blocked": false
+    },
+    {
+      "path": "/sistemas/pathbuilder/iniciar/",
+      "blocked": false
+    },
+    {
+      "path": "/sistemas/pathbuilder/preview/",
+      "blocked": false
+    },
+    {
+      "path": "/cdn-cgi/rum",
+      "blocked": true
+    },
+    {
+      "path": "/sistemas/pathbuilder/preview/",
+      "blocked": false
+    },
+    {
+      "path": "/sistemas/pathbuilder/preview/",
+      "blocked": false
+    },
+    {
+      "path": "/sistemas/pathbuilder/preview/",
+      "blocked": false
+    },
+    {
+      "path": "/sistemas/pathbuilder/preview/",
+      "blocked": false
+    },
+    {
+      "path": "/sistemas/pathbuilder/preview/",
+      "blocked": false
+    },
+    {
+      "path": "/sistemas/pathbuilder/preview/",
+      "blocked": false
+    },
+    {
+      "path": "/sistemas/pathbuilder/preview/",
+      "blocked": false
+    }
+  ],
+  "character_saved": false
+}

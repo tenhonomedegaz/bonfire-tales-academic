@@ -15,20 +15,8 @@ from .db_access import (
 )
 from .db_access_models import DbAccessIdempotency, ManagedApiKey
 from .catalog_api_preview import catalog_upsert_preview
-from .master_registration import registration_audit
-from .email_identity import account_email_audit
 from .class_revision_editor import class_revision_operation, class_revision_preview_operation
-from .spell_catalog_revision import (
-    spell_catalog_revision_operation, spell_catalog_revision_preview_operation)
 from .class_publication import class_publication_operation, class_publication_preview_operation
-from .class_catalog_api import class_catalog_read_operation
-from .character_log_api import character_logs_read, character_log_preview, character_log_apply
-from .character_history_delivery_api import history_delivery_preview, history_delivery_apply
-from .master_legacy_api import (legacy_import_preview, legacy_import_operation,
-                                legacy_discover_operation, legacy_report_operation, legacy_bind_operation,
-                                legacy_confirm_operation, master_missions_audit_operation,
-                                legacy_bot_preview_operation, legacy_bot_apply_operation,
-                                mission_review_preview_operation, mission_review_apply_operation)
 from .catalog_sync_api import (
     bestiary_patch_operation, bestiary_patch_preview_operation,
     catalog_sync_operation, catalog_sync_preview_operation,
@@ -50,47 +38,6 @@ register_operation_handler('bestiary-patch-preview', bestiary_patch_preview_oper
 register_operation_handler('bestiary-patch', bestiary_patch_operation, scope='publish')
 register_operation_handler('catalog-upsert-preview', catalog_upsert_preview,
                            require_base_version=False, scope='read')
-register_operation_handler('class-catalog-read', class_catalog_read_operation,
-                           require_base_version=False, scope='read')
-register_operation_handler('spell-catalog-revision-preview', spell_catalog_revision_preview_operation,
-                           scope='read')
-register_operation_handler('spell-catalog-revision', spell_catalog_revision_operation, scope='write')
-register_operation_handler('master-legacy-preview', legacy_import_preview,
-                           require_base_version=False, scope='read')
-register_operation_handler('master-legacy-import', legacy_import_operation,
-                           require_base_version=False, scope='publish')
-register_operation_handler('master-legacy-discover', legacy_discover_operation,
-                           require_base_version=False, scope='publish')
-register_operation_handler('master-legacy-report', legacy_report_operation,
-                           require_base_version=False, scope='read')
-register_operation_handler('master-registration-audit', registration_audit,
-                           require_base_version=False, scope='read')
-register_operation_handler('account-email-audit', account_email_audit,
-                           require_base_version=False, scope='read')
-register_operation_handler('master-legacy-bind', legacy_bind_operation,
-                           require_base_version=False, scope='publish')
-register_operation_handler('master-legacy-confirm', legacy_confirm_operation,
-                           require_base_version=False, scope='publish')
-register_operation_handler('master-missions-audit', master_missions_audit_operation,
-                           require_base_version=False, scope='read')
-register_operation_handler('master-legacy-bot-preview', legacy_bot_preview_operation,
-                           require_base_version=False, scope='read')
-register_operation_handler('master-legacy-bot-apply', legacy_bot_apply_operation,
-                           require_base_version=True, scope='publish')
-register_operation_handler('master-mission-review-preview', mission_review_preview_operation,
-                           require_base_version=False, scope='read')
-register_operation_handler('master-mission-review-apply', mission_review_apply_operation,
-                           require_base_version=True, scope='publish')
-register_operation_handler('character-logs-read', character_logs_read,
-                           require_base_version=False, scope='read')
-register_operation_handler('character-log-preview', character_log_preview,
-                           require_base_version=False, scope='read')
-register_operation_handler('character-log-apply', character_log_apply,
-                           require_base_version=True, scope='write')
-register_operation_handler('character-history-delivery-preview', history_delivery_preview,
-                           require_base_version=False, scope='read')
-register_operation_handler('character-history-delivery', history_delivery_apply,
-                           require_base_version=True, scope='publish')
 
 
 def _response(payload, status=200, *, version=None):

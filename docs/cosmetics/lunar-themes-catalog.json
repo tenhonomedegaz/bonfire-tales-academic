@@ -1,0 +1,28 @@
+{
+  "status": "approved-ready-for-publication",
+  "activate_in_production": false,
+  "policy": "Novos registros de tema; nunca reclassificar os efeitos existentes. Liberacao manual por administrador, sem concessoes publicas.",
+  "cosmetics": [
+    {
+      "slug": "tema-lua-vermelha", "tipo": "tema", "nome": "Tema da Lua Vermelha",
+      "css_class": "skin-illustrated skin-lua-vermelha", "origem": "staff", "ativo": false,
+      "escopo": "ambos", "raridade": "epico", "preco": null, "requer_plano": "",
+      "descricao": "Vinho, ouro envelhecido e acabamento lunar ilustrado. Liberacao manual pela administracao.",
+      "definicao_json": {"accent":"#e8b86e","accent2":"#d57171","surface":"#23171c","deep":"#140f13","gradiente":false,"glow":false,"particula":"nenhuma","vel":"lenta","motif":"none"}
+    },
+    {
+      "slug": "tema-lua-negra", "tipo": "tema", "nome": "Tema da Lua Negra",
+      "css_class": "skin-illustrated skin-lua-negra", "origem": "staff", "ativo": false,
+      "escopo": "ambos", "raridade": "epico", "preco": null, "requer_plano": "",
+      "descricao": "Obsidiana, verde espectral e metal antigo. Liberacao manual pela administracao.",
+      "definicao_json": {"accent":"#91cbae","accent2":"#c7b67c","surface":"#181e1c","deep":"#0d1110","gradiente":false,"glow":false,"particula":"nenhuma","vel":"lenta","motif":"none"}
+    },
+    {
+      "slug": "tema-lua-cristal", "tipo": "tema", "nome": "Tema da Lua de Cristal",
+      "css_class": "skin-illustrated skin-lua-cristal", "origem": "staff", "ativo": false,
+      "escopo": "ambos", "raridade": "epico", "preco": null, "requer_plano": "",
+      "descricao": "Prata, cristal azulado e luz lunar purificada. Liberacao manual pela administracao.",
+      "definicao_json": {"accent":"#bde5ed","accent2":"#d4dce8","surface":"#19262d","deep":"#10191f","gradiente":false,"glow":false,"particula":"nenhuma","vel":"lenta","motif":"none"}
+    }
+  ]
+}

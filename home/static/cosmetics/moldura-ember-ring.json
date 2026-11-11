@@ -4,18 +4,6 @@
   "type": "moldura",
   "scope": "ambos",
   "layers": [
-    {
-      "slot": "avatar",
-      "file": "community-frame-ember-ring-v1.webp",
-      "fallback": "community-frame-ember-ring-v1.png",
-      "width": 512,
-      "height": 512,
-      "motion": "none",
-      "aperture": {
-        "cx": 48.828,
-        "cy": 49.609,
-        "diameter": 69.926
-      }
-    }
+    {"slot": "avatar", "file": "ember-ring.svg", "fallback": "ember-ring.svg", "width": 160, "height": 160, "anchor": "center", "motion": "pulse"}
   ]
 }

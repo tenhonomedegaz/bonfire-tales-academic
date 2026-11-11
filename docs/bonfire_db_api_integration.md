@@ -1,12 +1,5 @@
 # Guia operacional da API geral do Bonfire
 
-## Historico das fichas do bot
-
-A entrega local adiciona operacoes administrativas de consulta, previa e
-confirmacao de historico, reutilizando a chave existente. Contrato, limites e
-instalacao: [importador de fichas do bot](character_log_import.md). Ainda nao
-presumir que essas rotas estao presentes na producao antes de instalar o lote.
-
 ## Atualizacao: catalogos e comparacao por slug
 
 Esta entrega adiciona GET/POST/PATCH de `talento`, `magia`, `bestiario`, `item_mundano` e `item_magico`, com descricoes e tags completas, mantendo PKs imutaveis, escopos, versao e idempotencia. A chave existente pode ser reutilizada apos instalar o codigo; nao e necessario rotaciona-la. `schema/` passa a listar os campos/choices/referencias. A nova operacao `catalog-upsert-preview` compara lotes por slug sem gravar conteudo. Procedimento completo e exemplos: [API de catalogos](catalog_api.md). O manifesto de 31 epicos em `docs/integracao/talentos-epicos-api-plan.json` e desejado/nao aplicado, nao uma confirmacao da producao.

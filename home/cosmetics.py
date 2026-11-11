@@ -34,19 +34,6 @@ _PARTICULA_CHOICES = ('subir', 'cair', 'flutuar', 'nenhuma')
 _VEL_CHOICES = ('lenta', 'media', 'rapida')
 THEME_MOTIFS = ('none', 'facets', 'runes', 'sun', 'leaves', 'flames',
                 'thorns', 'crystal', 'moon', 'eclipse', 'bats')
-THEME_CATEGORIES = ('classico', 'especial')
-
-
-def theme_category(item):
-    """Presentation metadata never changes the item's entitlement."""
-    definition = item.get('definicao')
-    category = item.get('categoria')
-    if category not in THEME_CATEGORIES and isinstance(definition, dict):
-        category = definition.get('categoria')
-    if category in THEME_CATEGORIES:
-        return category
-    return ('especial' if 'skin-illustrated' in (item.get('class') or '') or
-            item.get('css_url') else 'classico')
 
 
 def sanitize_definicao_tema(raw):
@@ -77,24 +64,6 @@ def sanitize_definicao_tema(raw):
     motif = raw.get('motif', 'none')
     out['motif'] = motif if isinstance(motif, str) and motif in THEME_MOTIFS else 'none'
     return out
-
-def sanitize_catalog_theme_definition(raw):
-    """Validate stored metadata separately from the CSS-only presentation schema."""
-    from django.core.exceptions import ValidationError
-    result = sanitize_definicao_tema(raw)
-    if isinstance(raw, dict) and 'categoria' in raw:
-        if raw['categoria'] not in THEME_CATEGORIES:
-            raise ValidationError('Categoria de tema invalida; use classico ou especial.')
-        result['categoria'] = raw['categoria']
-    if isinstance(raw, dict) and 'desbloqueio' in raw:
-        from .rank_cosmetic_rewards import rank_unlock_metadata
-        metadata, _ = rank_unlock_metadata(raw)
-        if not metadata:
-            raise ValidationError('Metadados de desbloqueio invalidos; corrija-os antes de salvar.')
-        result['desbloqueio'] = {key: metadata[key] for key in (
-            'schema_version', 'metric', 'rank', 'min_level', 'min_adventures', 'permanent')}
-    return result
-
 
 # Mapeia o "tipo interno" de aparência (usado por perfil/ficha) para o `tipo` do
 # catálogo. Permite falar a mesma língua dos helpers antigos (theme/frame/effect).
@@ -256,11 +225,6 @@ def _load_catalog(tipo):
             'definicao': sanitize_definicao_tema(c.definicao_json) if c.tipo == 'tema' else {},
             'css_url': css_url,
         }
-        if c.tipo == 'tema':
-            category = (c.definicao_json.get('categoria')
-                        if isinstance(c.definicao_json, dict) else None)
-            # Keep inferred defaults out of authored metadata: the picker may use its registry.
-            catalogo[valor]['categoria'] = category if category in THEME_CATEGORIES else ''
     cache.set(key, catalogo, _CACHE_TTL)
     return catalogo
 
@@ -451,7 +415,6 @@ def catalog_options(user, tipo, escopo='ambos', selected=None):
             # Prévia do seletor (WP3): definição sanitizada + css do tema-dado.
             'definicao': item.get('definicao', {}),
             'css_url': item.get('css_url', ''),
-            'categoria': item.get('categoria', '') if tipo == 'tema' else '',
             'estado': estado,
             'posse_origem': (ownership_sources.get(valor) or 'Acesso Colab'
                             if estado == 'possui' else ''),

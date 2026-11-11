@@ -44,17 +44,18 @@ def rank_catalog():
 
 
 def can_review(user):
-    from .gestao.policy import can
-    return can(user, 'editorial.announcements')
+    return bool(getattr(user, 'is_authenticated', False) and getattr(user, 'is_active', False) and (
+        getattr(user, 'is_superuser', False) or (
+            getattr(user, 'is_staff', False) and user.has_perm('home.revisar_mesa_anuncio'))))
 
 
 def can_authorize(user):
-    from .gestao.policy import can
-    return can(user, 'masters.authorize')
+    return bool(getattr(user, 'is_authenticated', False) and getattr(user, 'is_active', False) and (
+        getattr(user, 'is_superuser', False) or (
+            getattr(user, 'is_staff', False) and user.has_perm('home.autorizar_mestres'))))
 
 
 def participation(profile=None):
-    from .master_registration import applications_open
     get = profile.get if isinstance(profile, dict) else lambda key, default='': getattr(profile, key, default)
     mode = get('modo', 'jogador')
     mode = mode if mode in dict(ROLE_CHOICES) else 'jogador'
@@ -62,7 +63,6 @@ def participation(profile=None):
     master = status == 'aprovado'
     mode = mode if master else 'jogador'
     return dict(modo=mode, role_label=dict(ROLE_CHOICES)[mode], is_master=master,
-                applications_open=applications_open(),
                 status_mestre=status, solicitado=status != 'nenhum', versao=get('versao', 0),
                 nota_avaliacao=get('nota_avaliacao'),
                 solicitado_em=get('solicitado_em'),

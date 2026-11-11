@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "id": "hunter-markdown-20260930",
+  "artifact": "ref/backups/hunter_markdown_publicacao_db_20260930.sql",
+  "artifact_sha256": "9d5ab77ac02a4cb2f0310663223bf0898bec2c3f43a9eff0f3b863bfd5b341bf",
+  "statement_count": 14,
+  "base_ruleset_checksum": "da099956cb1abed5d158f64855076825d66e509a5d5aee0e4f19944291ce6289",
+  "target_ruleset_checksum": "ed230c319a8959a78cce978a1e72d11281f9f03bbe49b4c3f0e0158eb2a6e0a2",
+  "target_revision_identity": "class-catalog:4",
+  "target_revision_checksum": "da1219599e6582fa95f95aa8583ca9dffd15d9c3ef7b0155038a1d9bf16fa464",
+  "expected_entries": 21,
+  "evaluator_version": "class-features-v1",
+  "vocabulary_version": "class-catalog-v1",
+  "activation_setting": "HUNTER_CREATOR_RULESET_CHECKSUM"
+}

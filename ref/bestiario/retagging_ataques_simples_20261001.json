@@ -1,0 +1,158 @@
+{
+  "version": 1,
+  "source_sha256": "41e9c80b84fc08ed9cffa6fa1def5d0356f6fca4dc34ada46f21b8095f99b326",
+  "rows": [
+    {
+      "pk": 112,
+      "slug": "animated-armor",
+      "before_sha256": "c395138429edc08f504f08169a7bbac4bba96cd4e32beccfcc127f7c67ba4b16",
+      "after_sha256": "98553a7648c94b65a6ff9305bbed56d60b6c46deaa93af11280fc06a0eb71c4f",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Slam",
+          "source_entries_sha256": "4472b7dfcb42a357a2b23c2a404aa2b34b49dad73c86da4c6e7c205387da702c",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d6+2(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 114,
+      "slug": "animated-broom",
+      "before_sha256": "f638c4e3e8a491cf31ee363618a554462d54830ec59277c858031a9d8dac51a7",
+      "after_sha256": "0fff0ded951e915e6f25cb601b902bcee2cd2b860475f1cf0c6e9c647fa43e91",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Slam",
+          "source_entries_sha256": "13395b7446b72cf29081e1fee4f284faaf14ebe76702e424c7fffdadfd17151c",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d4+3(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 115,
+      "slug": "animated-flying-sword",
+      "before_sha256": "e7926f6ab9ed187d7ba30c74e7b928d170c4875c25fd8c1be7df2cb494940f2b",
+      "after_sha256": "e1d7039f037e734c8957b2b420426790ad61b608b8b6d89dfbcd5e56244826ad",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Slash",
+          "source_entries_sha256": "2e093302202ad48220a9e3c6817167d7b777657490ec5cd595d86e6ee53c25ce",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d8+2(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 120,
+      "slug": "ape",
+      "before_sha256": "8ba508b21341b4ed508129440959729fc30c0a41d72e01fc02b12aca7fd9982c",
+      "after_sha256": "f7e4ea657ba314a254d53d98a866c3cf69986f6b07c840a8053a20313950e270",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Fist",
+          "source_entries_sha256": "13395b7446b72cf29081e1fee4f284faaf14ebe76702e424c7fffdadfd17151c",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d4+3(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 138,
+      "slug": "axe-beak",
+      "before_sha256": "15be2e9b3b12a89cead1d606a21e074b1daa0ab2fd9f836113836b630e5588e0",
+      "after_sha256": "3f345f7facac59891d2d429ec95a6b05c75f8706eaadb76086d5970001d26a9f",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Beak",
+          "source_entries_sha256": "ee0faa0bd6013687314ad989bd70d4c4520d2c6c8a3810d3288d2bcaea6341f1",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d6+2(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 148,
+      "slug": "bandit",
+      "before_sha256": "d3ebeb1a74723be0c7103e128760ea739a3b2fca28db27dccc7982653d22b6a7",
+      "after_sha256": "e7f6931e6878096da6445922ea177785570b82a95a0dfd4a4e5288db11874eb8",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Scimitar",
+          "source_entries_sha256": "1d73f094e6ed0858513cfe04a61f6d1933e48d0c9d6410444c457cd478310c5a",
+          "tags": [
+            "instant{attack:melee, attack:+3, reach:5ft, dmg:1d6+1(cortante)}"
+          ]
+        },
+        {
+          "index": 1,
+          "name_en": "Light Crossbow",
+          "source_entries_sha256": "9beba090b247ed36e12136bea425bd080905413ba1989ad0ee716fcce340edc7",
+          "tags": [
+            "instant{attack:ranged, attack:+3, range:80/320ft, dmg:1d8+1(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 169,
+      "slug": "black-bear",
+      "before_sha256": "f23bf1a1190d21f008da2f3b54d702298db75849cb296067e5c9457b7f76d6f4",
+      "after_sha256": "a98e410231891b8ae3902985c6e005ef6adf1acd1c63a8af710bdbd6649b59b4",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "ee0faa0bd6013687314ad989bd70d4c4520d2c6c8a3810d3288d2bcaea6341f1",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d6+2(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 174,
+      "slug": "blink-dog",
+      "before_sha256": "cda065c47eead2c63c3cd18e48399b38957d0497a224915d6cc5d56370b0ee9a",
+      "after_sha256": "c949a524fe8e21da44376da1706d0941df4798b3174567ca2fd4a71d3cc45697",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bite",
+          "source_entries_sha256": "b70532cb807a44983fce3fb9421b5289fe985b1e0dfbbc1e4c0a888000400d09",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d4+3(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 200,
+      "slug": "brown-bear",
+      "before_sha256": "e188e402e0274331687486f76f92d4cacfabf0a7de369a7464277f4ad4054e22",
+      "after_sha256": "8a0343f92159198bf36e9fcb9f9fde179d8d76cafc4f67b86c9845e763f1ae53",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "336ea4a6e016c7902c7900c368bac4a445779272f6ada1b38db76fa431dd57a4",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d8+3(perfurante)}"
+          ]
+        }
+      ]
+    }
+  ]
+}

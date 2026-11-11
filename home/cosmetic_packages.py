@@ -20,33 +20,9 @@ _ASSET = re.compile(r'^[a-z0-9]+(?:-[a-z0-9]+)*\.(?:png|webp|gif|svg)$')
 _TYPES = {'tema', 'moldura', 'efeito', 'banner_preset'}
 _SLOTS = {'banner', 'ornament', 'avatar'}
 _ANCHORS = {'center', 'left', 'right'}
-_MOTIONS = {'none', 'float', 'pulse', 'helmet', 'breeze', 'drift', 'retract'}
+_MOTIONS = {'none', 'float', 'pulse', 'helmet', 'breeze', 'drift'}
 _SPRITES = {'full', 'open', 'closed'}
 _MAX_ASSET_BYTES = 4 * 1024 * 1024
-_RETRACT_BOUNDS = {'x': (-100, 100), 'y': (-100, 100), 'rotate': (-45, 45),
-                   'duration': (100, 1500), 'delay': (0, 500)}
-
-
-def _retract_layer(layer, output):
-  """Slide a full avatar image inside an optional stationary opening mask."""
-  if output['motion'] != 'retract':
-    return not any(key in layer for key in ('retract', 'retract_mask'))
-  if (layer['slot'] != 'avatar' or output['sprite'] != 'full'
-      or any(key in layer for key in ('sequence', 'parts', 'placement'))
-      or not _numeric_schema(layer.get('retract'), _RETRACT_BOUNDS)):
-    return False
-  output['retract'] = dict(layer['retract'])
-  units = {'x': '%', 'y': '%', 'rotate': 'deg', 'duration': 'ms', 'delay': 'ms'}
-  output['retract_style'] = ';'.join(
-    f'--cosmetic-retract-{key}:{output["retract"][key]}{unit}' for key, unit in units.items())
-  if 'retract_mask' in layer:
-    mask_url = _asset_url(layer['retract_mask'])
-    if not mask_url:
-      return False
-    output['retract_mask_url'] = mask_url
-    output['retract_mask_style'] = (
-      f'mask-image:url({json.dumps(mask_url)});-webkit-mask-image:url({json.dumps(mask_url)})')
-  return True
 
 
 def _numeric_schema(value, bounds):
@@ -117,7 +93,7 @@ def _sequence_layer(layer, output):
   if (output['motion'] not in ('none', 'float') or output['sprite'] != 'full'
       or layer['slot'] != 'banner' or 'placement' not in output
       or not isinstance(seq, dict)
-      or seq.keys() - {'columns', 'rows', 'duration', 'delay', 'backdrop', 'frames', 'backdropFrames'}
+      or seq.keys() - {'columns', 'rows', 'duration', 'delay', 'backdrop', 'frames'}
       or not {'columns', 'duration', 'delay', 'backdrop', 'frames'} <= seq.keys()):
     return False
   columns = seq['columns']
@@ -141,19 +117,6 @@ def _sequence_layer(layer, output):
     previous = frame['at']
   if seq['frames'][0]['at'] != 0 or seq['frames'][-1]['at'] != 1:
     return False
-  if 'backdropFrames' in seq:
-    backdrop_frames = seq['backdropFrames']
-    if (seq['backdrop'] <= 0 or not isinstance(backdrop_frames, list)
-        or not 4 <= len(backdrop_frames) <= 64):
-      return False
-    previous = -1
-    for frame in backdrop_frames:
-      if (not _numeric_schema(frame, {'at': (0, 1), 'opacity': (0, 1)})
-          or frame['at'] <= previous):
-        return False
-      previous = frame['at']
-    if backdrop_frames[0]['at'] != 0 or backdrop_frames[-1]['at'] != 1:
-      return False
   output['sequence'] = seq
   output['sequence_json'] = json.dumps(seq, separators=(',', ':'), allow_nan=False)
   return True
@@ -201,8 +164,6 @@ def parse_package(raw, slug, tipo, escopo='perfil', *, _depth=0):
       'motion': motion, 'width': width, 'height': height,
       'sprite': sprite, 'overlay': overlay,
     })
-    if not _retract_layer(layer, result[slot][-1]):
-      return None
     if 'opacity' in layer:
       if not _numeric_schema({'opacity': layer['opacity']}, {'opacity': (0, 1)}):
         return None
@@ -212,16 +173,6 @@ def parse_package(raw, slug, tipo, escopo='perfil', *, _depth=0):
       return None
     if not _sequence_layer(layer, result[slot][-1]):
       return None
-    if 'mask' in layer:
-      mask = layer['mask']
-      sequence = result[slot][-1].get('sequence', {})
-      if (not isinstance(mask, dict) or mask.keys() != {'file'}
-          or sequence.get('columns') != 1 or sequence.get('rows', 1) != 1):
-        return None
-      mask_url = _asset_url(mask['file'])
-      if not mask_url:
-        return None
-      result[slot][-1]['mask_url'] = mask_url
     if 'parts' in layer:
       parts = layer['parts']
       sequence = result[slot][-1].get('sequence', {})

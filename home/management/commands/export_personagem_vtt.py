@@ -28,19 +28,16 @@ entrada em `avisos` e o resto sai (nada é inventado).
 import json
 import re
 import subprocess
-from copy import deepcopy
 
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.text import slugify
 
 VERSAO_CONTRATO = 1
 # versao_menor: 0 = contrato v1 original; 1 = +salvaguardas, +atributo nas
-# perícias; 2 = +movimento numerico sem remover deslocamento textual;
-# 3 = +acesso_magias readonly, sem alterar a lista persistida em magias.
-# Só cresce em mudança ADITIVA (o consumidor zod é não-estrito e
+# perícias. Só cresce em mudança ADITIVA (o consumidor zod é não-estrito e
 # ignora campos que não conhece; breaking change exigiria subir VERSAO_CONTRATO
 # em conjunto com o schema do compilador).
-VERSAO_MENOR = 3
+VERSAO_MENOR = 1
 
 # Ordem CANÔNICA das siglas de atributo (a mesma da ficha/_ATTR_EN do derive):
 # listas do contrato precisam de ordem estável para o re-export byte-idêntico.
@@ -104,10 +101,6 @@ def _bloco_derive(state):
         'pv_max': int((state.get('pv') or {}).get('maximo_calculado') or 0),
         'percepcao_passiva': 10 + int(perc),
         'deslocamento': state.get('velocidade') or '',
-        'movimento': deepcopy(state.get('movimento') or {
-            'schema': 1, 'unit': 'ft', 'speeds': {},
-            'warnings': ['Numeric movement was not supplied by derive.'],
-        }),
         'iniciativa': int(state.get('iniciativa') or 0),
         'salvaguardas': salvaguardas,
         'pericias': pericias,
@@ -240,7 +233,6 @@ def exportar_personagem(personagem, gerado_de=None):
     """Monta o dict do contrato v1 para UM personagem. Nunca lança por dado quebrado:
     o que faltar vira aviso e o restante sai."""
     from home.character_engine import derive
-    from home.vtt_spell_access import effective_spell_access
     avisos = []
 
     classes = list(personagem.classes.select_related('id_classe', 'id_subclasse')
@@ -286,9 +278,6 @@ def exportar_personagem(personagem, gerado_de=None):
     pv_max = int((state.get('pv') or {}).get('maximo_calculado') or 0) if state \
         else int(personagem.pv_maximo or 0)
 
-    acesso_magias = effective_spell_access(personagem)
-    avisos.extend(acesso_magias['avisos'])
-
     data = {
         'versao_contrato': VERSAO_CONTRATO,
         'versao_menor': VERSAO_MENOR,
@@ -297,7 +286,6 @@ def exportar_personagem(personagem, gerado_de=None):
         'recursos': recursos,
         'habilidades': _habilidades(personagem, classes),
         'magias': _magias(personagem),
-        'acesso_magias': acesso_magias,
         # A ficha só exporta uma concessão já registrada no livro de recursos.
         'inspiracao': bool(personagem.recursos.filter(
             chave='heroic_inspiration', atual=1, maximo=1).exclude(origem='').exists()),

@@ -18,61 +18,9 @@ Base: `https://bonfiretales.com.br/api/db/v1/`. Sempre HTTPS e `Authorization: B
 
 Continuam disponiveis regra, idioma, condicao, raca e linhagem; opcao_jogo e acesso_opcao permanecem apenas leitura. Nao ha acesso a contas, jogadores, personagens, chaves, SQL livre ou DELETE. PKs nao sao gravaveis. O autor do bestiario nao e exposto. Um campo JSON nao implica que contenha a descricao: tags e narrativa devem ser lidas separadamente.
 
-### Ampliacao Local De Classes (04/11/2026; Ainda Nao Implantada)
-
-`classe` e `subclasse` ganham GET filtrado/paginado de identidades e vinculos.
-`classe_habilidade` ganha GET, POST e PATCH de conteudo (nome, nome_ingles,
-descricao, niveladquirido, table_only, tags_json). `id_classe` e `id_subclasse`
-sao aceitos somente no POST, nunca no PATCH; `schema/` declara `create_only`.
-PK continua imutavel, nivel e 1..20 e a subclasse deve pertencer a classe.
-Demais protecoes de escopo, HTTPS, idempotencia, tags e If-Match permanecem.
-
-Exemplos de leitura apos deploy:
-`GET classe/?filter[slug]=clerigo`,
-`GET subclasse/?filter[id_classe]=<pk>&page_size=100`,
-`GET classe_habilidade/?filter[id_subclasse]=<pk>&page_size=25`.
-Numeros devem vir do GET atual, nao de um fixture local.
-
-Essas rotas sao **linhas-fonte mutaveis**, nao consulta ou edicao dos snapshots
-publicados/fixados. `version`/ETag e hash da linha, nao checksum de ruleset.
-Alterar a habilidade nao publica a classe nem migra uma ficha antiga. Continuar
-usando revisao/publicacao especializada para esses estados; nao ampliar escopos
-ou editar relacoes de personagem para contornar essa separacao.
-
 `classes_slugs` e a fonte mecanica do acesso de magias; `classes` permanece texto editorial. A API valida os slugs enviados, mas nao reescreve automaticamente o rotulo. Editar somente `classes` nao substitui a lista mecanica.
 
 ## GET e paginacao
-
-### Catalogo publicado de uma classe
-
-`POST /api/db/v1/operations/class-catalog-read/` exige escopo `read` e uma
-`Idempotency-Key` nova para cada leitura atual; nao exige `base_version`.
-
-```json
-{"class_id":123,"section":"subclasse","offset":0,"limit":25,"fields":["id_subclasse","slug","nome"]}
-```
-
-`123` e exemplo: obtenha a identidade real por GET de classe. Secoes: `classe`,
-`subclasse`, `habilidade`, `recurso`. Campos seguem a allowlist de cada secao;
-`descricao` de habilidade somente quando solicitada explicitamente. Retorna
-`mode`, `ruleset_checksum`, `class_id`, `section`, `total`, `offset`, `limit`,
-`rows`. Paginar ate `total`, com `limit` de 1 a 100. Resposta maior que 64 KiB e
-recusada inteira: reduzir pagina/campos, nunca interpretar como descricao vazia.
-
-Classe publicada retorna seu snapshot, nao linhas-fonte novas ou legadas. Sem
-publicacao, uma entrada em `CLASS_CATALOG_RULESETS` retorna `mode:configured`
-e o checksum selecionado no servidor. Esse mapa JSON usa slug de classe como
-chave; a configuracao legada `HUNTER_CREATOR_RULESET_CHECKSUM` entra somente como
-alias de compatibilidade quando nao existe uma entrada explicita no mapa.
-Ponteiro publicado tem prioridade sobre configuracao. Sem ambos retorna
-`mode:source` e checksum nulo. Snapshot selecionado invalido retorna 409,
-sem fallback silencioso. Nenhuma publicacao ou personagem e alterado; o envelope
-operacional continua registrando auditoria/recibo. Repetir a mesma chave devolve
-a leitura anterior, nao atualiza a consulta. Consultas de fonte e publicada sao
-complementares; editar fonte ainda nao publica automaticamente uma revisao.
-
-Esta ampliacao faz parte do lote de 04/11/2026 e depende do `/site-update`;
-schema/rotas instaladas devem ser conferidos antes de usa-la em producao.
 
 ```text
 GET talento/?filter[tipo]=epico&fields=id_talento,slug,nome,tipo&page_size=100&page=1
@@ -127,40 +75,6 @@ Somente modelos editaveis com identidade `slug`. De um a dez registros por chama
 Esta rota nao aplica o lote. Depois da revisao, usar POST para registros ausentes e PATCH para os existentes, com as PKs/versoes devolvidas. Reler se o banco mudar; o preview nao e uma reserva de escrita nem garante que sinais/constraints futuros nao recusem a aplicacao. Nao existe exclusao implicita: registro omitido do lote continua no banco. Nao e merge de backup por PK.
 
 Cada conferencia nova usa uma Idempotency-Key nova. Repetir a mesma chave/corpo retorna a previa anterior armazenada, nao uma nova leitura do estado do banco.
-
-## Acrescentar Magias A Um Catalogo Imutavel
-
-`POST operations/spell-catalog-revision-preview/` exige `read`;
-`POST operations/spell-catalog-revision/` exige `write`. Ambas usam o envelope
-comum de idempotencia e `base_version` (checksum de ruleset, nao ETag de linha).
-
-```json
-{"base_version":"<checksum-da-revisao>","spells":[{"id":123,"version":"<version-do-GET-magia-123>"}]}
-```
-
-IDs sao exemplos, obtidos do GET atual. De uma a dez magias distintas, com limite
-individual de 64 KiB e listas mecanicas de textos. Copia os
-campos completos da origem somente quando sua versao coincide com a revisada;
-mudanca concorrente retorna 412. PK ou slug ja vinculados a conteudo diferente
-retornam 409: nao substitui identidades nem reescreve uma revisao antiga.
-Registro ja identico e `unchanged`. Tags novas passam pelo vocabulario pinado
-na revisao de base, nao por um fallback de biblioteca atual.
-
-A previa nao cria conteudo. A aplicacao sela outro catalogo de magias e outro
-ruleset, conservando todas as outras entradas/dependencias do manifesto. Retorna
-`ruleset_checksum`, `revision_checksum`, `items`, `added`, `activated:false`.
-Repetir a mesma intencao nao duplica; acrescentar de novo ao alvo identico nao
-cria outra revisao. Nenhum personagem, magia-fonte ou ponteiro publico e gravado.
-
-Criar nao significa ativar. Publicacao continua separada e sujeita ao contrato
-de apresentacao da classe. Catalogos antigos selecionados por configuracao
-exigem trocar o checksum no ambiente e reiniciar pelo fluxo monitorado, apos
-verificar a existencia/integridade do alvo. Nao trocar a configuracao antes de
-criar e conferir a revisao; nao migrar fichas pinadas automaticamente.
-
-Essa operacao e generica para magias e nao contem nomes de classes ou magias.
-Nao e conjuracao automatizada, atualizacao de regras existentes ou sincronizacao
-integral do catalogo vivo sobre o pinado.
 
 ## Pacote preparado dos 31 epicos
 

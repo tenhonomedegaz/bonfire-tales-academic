@@ -13,7 +13,6 @@ dist-ssr
 *.local
 .env
 .env.*
-!.env.example
 staticfiles/
 AI_CONTEXT_DO_NOT_COMMIT.md
 admin_console_history.jsonl

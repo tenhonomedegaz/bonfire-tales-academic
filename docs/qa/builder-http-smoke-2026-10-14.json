@@ -1,0 +1,69 @@
+{
+  "scope": "PostgreSQL DEV; Django Client com host localhost; personagem Guerreiro temporario em transaction.atomic com rollback",
+  "creation": {
+    "http": 200,
+    "choices_persisted": 4
+  },
+  "preview_level_1_to_2": {
+    "http": 200,
+    "ready": true
+  },
+  "apply_level_1_to_2": {
+    "http": 200,
+    "ok": true,
+    "character_level": 2,
+    "class_level": 2,
+    "choices_after": 4
+  },
+  "reopen": {
+    "sheet_http": 200,
+    "levelup_http": 200
+  },
+  "rollback": {
+    "characters_before": 0,
+    "characters_after": 0
+  },
+  "limits": "Smoke HTTP de DEV; gate F4 completo e QA visual permanecem separados.",
+  "multiclass_preview_apply": {
+    "scope": "PostgreSQL DEV localhost; Django Client; transaction rollback",
+    "levelup_page_http": 200,
+    "subclass_step_present": true,
+    "preview_http": 200,
+    "preview_did_not_persist": true,
+    "apply_http": 200,
+    "apply_ok": true,
+    "character_level": 9,
+    "paladin_level": 6,
+    "sorcerer_level": 3,
+    "sorcerer_subclass_set": true,
+    "sheet_http": 200,
+    "rollback": {
+      "characters_before": 0,
+      "characters_after": 0,
+      "users_before": 15,
+      "users_after": 15
+    }
+  },
+  "elemental_regression_restore": {
+    "scope": "PostgreSQL DEV localhost; Django Client; transaction rollback",
+    "progression": [3, 6, 11, 17],
+    "persisted_choices": 4,
+    "regressed": {"level": 3, "visible": ["agua"], "rows_retained": 4},
+    "restored": {"level": 17, "visible": ["agua", "ar", "fogo", "terra"], "pending": 0},
+    "sheet_http": [200, 200, 200],
+    "rollback": {"users_before": 15, "users_after": 15, "characters_before": 0, "characters_after": 0}
+  },
+  "sealed_elemental_regression_restore": {
+    "scope": "PostgreSQL DEV; existing sealed ruleset 4; transaction rollback",
+    "progression": [
+      {"level": 3, "visible": ["agua"]},
+      {"level": 6, "visible": ["agua", "ar"]},
+      {"level": 11, "visible": ["agua", "ar", "fogo"]},
+      {"level": 17, "visible": ["agua", "ar", "fogo", "terra"]}
+    ],
+    "regressed": {"level": 3, "visible": ["agua"], "rows_retained": 4},
+    "restored": {"level": 17, "visible": ["agua", "ar", "fogo", "terra"], "pending": 0},
+    "sheet_http": [200, 200, 200],
+    "rollback": {"users_before": 15, "users_after": 15, "characters_before": 0, "characters_after": 0}
+  }
+}

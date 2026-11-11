@@ -3,27 +3,12 @@ import json
 import re
 
 from django import template
-from django.templatetags.static import static
 
 from home.cosmetic_packages import PACKAGE_ROOT, parse_package
 from home.editorial_links import safe_editorial_image
 
 
 register = template.Library()
-
-
-@register.filter
-def collaborator_icon(product_code):
-    """Resolve catalog artwork only; product and checkout data stay unchanged."""
-    filename = {
-        'colaborador-conde-1m': 'conde-condessa.png',
-        'colaborador-marques-1m': 'marques-marquesa.png',
-        'colaborador-duque-1m': 'duque-duquesa.png',
-        'token-missao': 'missao-especial.png',
-        'token-boost': 'boost.png',
-        'token-superboost': 'superboost.png',
-    }.get(product_code)
-    return static('icons/collaborator/' + filename) if filename else ''
 
 
 @register.filter

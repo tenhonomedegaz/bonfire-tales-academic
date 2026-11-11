@@ -81,7 +81,6 @@
       layer.dataset.cosmeticLayers = '';
       layer.setAttribute('aria-hidden', 'true');
       for (const entry of pack[slot]) {
-        if (!entry || !validRetraction(entry, slot)) continue;
         if (entry.aperture) {
           layer.dataset.apertureX = entry.aperture.cx;
           layer.dataset.apertureY = entry.aperture.cy;
@@ -113,24 +112,7 @@
         image.height = entry.height;
         if (entry.sequence) image.dataset.cosmeticSequence = JSON.stringify(entry.sequence);
         if (entry.parts) image.dataset.cosmeticParts = JSON.stringify(entry.parts);
-        if (entry.mask_url) image.dataset.cosmeticMask = entry.mask_url;
         applyOpacity(image, entry);
-        if (entry.motion === 'retract') {
-          const viewport = document.createElement('span');
-          viewport.className = 'cosmetic-retract-viewport';
-          if (entry.retract_mask_url) {
-            const mask = 'url(' + JSON.stringify(entry.retract_mask_url) + ')';
-            viewport.style.maskImage = viewport.style.webkitMaskImage = mask;
-          }
-          for (const [key, unit] of Object.entries({x:'%', y:'%', rotate:'deg', duration:'ms', delay:'ms'})) {
-            image.style.setProperty('--cosmetic-retract-' + key, entry.retract[key] + unit);
-          }
-          image.decoding = 'async';
-          image.loading = 'lazy';
-          viewport.appendChild(image);
-          layer.appendChild(viewport);
-          continue;
-        }
         if (entry.placement && slot === 'banner') {
           const positioned = document.createElement('span');
           positioned.className = 'cosmetic-positioned';
@@ -162,23 +144,6 @@
       root.appendChild(layer);
     }
     mount(root);
-  }
-
-  function validRetraction(entry, slot) {
-    if (typeof entry !== 'object' || Array.isArray(entry)) return false;
-    if (entry.motion !== 'retract') {
-      return !['retract', 'retract_mask', 'retract_mask_url', 'retract_mask_style'].some(key => Object.hasOwn(entry, key));
-    }
-    const bounds = {x:[-100,100], y:[-100,100], rotate:[-45,45], duration:[100,1500], delay:[0,500]};
-    const value = entry.retract;
-    return slot === 'avatar' && entry.sprite === 'full' &&
-      !['sequence', 'parts', 'placement', 'mobile', 'pivot', 'motion_params'].some(key => Object.hasOwn(entry, key)) &&
-      value && typeof value === 'object' && !Array.isArray(value) &&
-      Object.keys(value).length === 5 && Object.entries(bounds).every(([key, [low, high]]) =>
-        Object.hasOwn(value, key) && typeof value[key] === 'number' && Number.isFinite(value[key]) &&
-        value[key] >= low && value[key] <= high) &&
-      (!Object.hasOwn(entry, 'retract_mask_url') ||
-        (typeof entry.retract_mask_url === 'string' && entry.retract_mask_url.length > 0));
   }
 
   function spriteNode(entry, sprite, extraClass) {
@@ -223,16 +188,6 @@
         !Number.isInteger(height) || height < 32 || height > 4096) {
       image.remove(); return;
     }
-    if (Object.hasOwn(seq, 'backdropFrames') &&
-        (seq.backdrop <= 0 || !Array.isArray(seq.backdropFrames) ||
-         seq.backdropFrames.length < 4 || seq.backdropFrames.length > 64 ||
-         !seq.backdropFrames.every((f, i) => f && typeof f === 'object' && !Array.isArray(f) &&
-           Object.keys(f).length === 2 && Object.hasOwn(f, 'at') && Object.hasOwn(f, 'opacity') &&
-           finite(f.at) && f.at >= 0 && f.at <= 1 && (!i || f.at > seq.backdropFrames[i - 1].at) &&
-           finite(f.opacity) && f.opacity >= 0 && f.opacity <= 1) ||
-         seq.backdropFrames[0].at !== 0 || seq.backdropFrames.at(-1).at !== 1)) {
-      image.remove(); return;
-    }
     const viewport = document.createElement('span');
     viewport.className = 'cosmetic-layer cosmetic-atlas';
     viewport.classList.toggle('cosmetic-atlas--ambient', seq.backdrop === 0 && seq.frames.every(f => f.opacity > 0));
@@ -243,14 +198,6 @@
     }
     viewport.style.aspectRatio = (width / seq.columns) + ' / ' + (height / rows);
     viewport.style.transformOrigin = 'var(--cosmetic-pivot-x,50%) var(--cosmetic-pivot-y,50%)';
-    if (seq.columns === 1 && rows === 1 && image.dataset.cosmeticMask) {
-      const maskImage = 'url(' + JSON.stringify(image.dataset.cosmeticMask) + ')';
-      viewport.classList.add('cosmetic-atlas--masked');
-      viewport.style.maskImage = maskImage;
-      viewport.style.webkitMaskImage = maskImage;
-      viewport.style.maskSize = viewport.style.webkitMaskSize = '100% 100%';
-      viewport.style.maskRepeat = viewport.style.webkitMaskRepeat = 'no-repeat';
-    }
     const opacityValue = image.style.getPropertyValue('--cosmetic-opacity');
     const opacity = opacityValue === '' ? 1 : Number(opacityValue);
     image.replaceWith(viewport);
@@ -280,7 +227,7 @@
       shade.className = 'cosmetic-sequence-shade';
       group.shade = shade;
       layer.prepend(shade);
-      schedule(shade, (seq.backdropFrames || seq.frames).map(f => ({offset:f.at, opacity:f.opacity * seq.backdrop})));
+      schedule(shade, seq.frames.map(f => ({offset:f.at, opacity:f.opacity * seq.backdrop})));
     }
     if (!parentGroup && seq.columns === 1 && rows === 1 && image.dataset.cosmeticParts) {
       let parts;
@@ -304,7 +251,6 @@
           child.src = part.url;
           child.dataset.fallback = part.fallback;
           child.dataset.cosmeticSequence = JSON.stringify(part.sequence);
-          if (part.mask_url) child.dataset.cosmeticMask = part.mask_url;
           child.width = part.width;
           child.height = part.height;
           child.alt = '';

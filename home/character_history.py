@@ -185,36 +185,11 @@ def revision_status(personagem, revision, *, staff=False):
     return True, ''
 
 
-def imported_initial_configuration_pending(personagem):
-    """An attested history shell is not a build already used in a new session."""
-    if (int(personagem.nivel or 1) != 1 or personagem.classes.exists()
-            or any(getattr(personagem, field) for field in (
-                'id_raca_id', 'id_linhagem_id', 'id_essencia_id', 'id_antecedente_id'))
-            or personagem.revisoes_build.filter(revertida=False).exists()
-            or any(getattr(personagem, relation).exists()
-                   for relation in ('escolhas', 'talentos', 'magias'))):
-        return False
-    sources = set(personagem.external_logs.filter(owner_id=personagem.dono_id)
-                  .values_list('pk', flat=True))
-    if not sources:
-        return False
-    rows = list(personagem.aventuras_ledger.filter(revertido=False)
-                .values('qtd_aventuras', 'detalhes_json'))
-    if not rows or sum(row['qtd_aventuras'] for row in rows) != int(personagem.aventuras or 0):
-        return False
-    return all(isinstance(row['detalhes_json'], dict)
-               and row['detalhes_json'].get('contract') == 'historical-log-delivery:v1'
-               and row['detalhes_json'].get('history_authority') == 'registered_staff_log'
-               and row['detalhes_json'].get('source_id') in sources for row in rows)
-
-
 def level_one_rebuild_status(personagem, *, staff=False):
     if staff:
         return True, ''
     if int(personagem.nivel or 1) != 1:
         return False, 'Volte os level-ups antes de recriar o nivel 1.'
-    if imported_initial_configuration_pending(personagem):
-        return True, ''
     last = personagem.revisoes_build.filter(
         tipo='nivel_1', revertida=False).order_by('-criado_em', '-id_revisao').first()
     if last:

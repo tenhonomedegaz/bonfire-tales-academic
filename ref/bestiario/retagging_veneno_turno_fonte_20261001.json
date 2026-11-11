@@ -1,0 +1,196 @@
+{
+  "version": 1,
+  "source_sha256": "41e9c80b84fc08ed9cffa6fa1def5d0356f6fca4dc34ada46f21b8095f99b326",
+  "rows": [
+    {
+      "pk": 132,
+      "slug": "assassin",
+      "before_sha256": "4d594685729d6de5be60c283f3f99d4dc7547fb0199e7d650ed4972b3dbce3bb",
+      "after_sha256": "453145b324c273d678b0b075aae5133b46236c8b8d529844598b03a223446d51",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Shortsword",
+          "source_entries_sha256": "806a987674e96ce5ff74cf586aa4084106b43bddf0b180b0478cab1fab99d9c5",
+          "expected_tags": [
+            "instant{attack:melee, attack:+7, reach:5ft, dmg:1d6+4(perfurante), dmg:5d6(veneno), instant{trigger=hit, apply:envenenado(duration:until_turn_start)}}"
+          ],
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:5ft, dmg:1d6+4(perfurante), dmg:5d6(veneno), instant{trigger=hit, apply:envenenado(duration:until_source_turn_start)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 160,
+      "slug": "bearded-devil",
+      "before_sha256": "bf9d4193d637a8660624c7e24a22771e632b0c7e78afd205976a7f8a01874803",
+      "after_sha256": "7957cbbfa0ab7046b97a83110903921a2dfeadf94e4ca871bbcdc1c8ace23fa6",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Beard",
+          "source_entries_sha256": "d185fd0f5f046369e4a30e0755290f3f09110e300180fc53e64e992b0b7974e4",
+          "expected_tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d8+3(perfurante), instant{trigger=hit, apply:envenenado(duration:until_turn_start)}, while_active{requires:target{condition{envenenado, source:self}}, restricts{heal,target}}}"
+          ],
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d8+3(perfurante), instant{trigger=hit, apply:envenenado(duration:until_source_turn_start)}, while_active{requires:target{condition{envenenado, source:self}}, restricts{heal,target}}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 184,
+      "slug": "bone-devil",
+      "before_sha256": "ed7d45f15c40224e12f9b9564939d40d0b2228865196b2941619500db7dac5d5",
+      "after_sha256": "683e1ca4e4e24bbf0a87db06eeaf6cee05644454271b62809bf51a0dd6599216",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Infernal Sting",
+          "source_entries_sha256": "f24b00a688257e9da16cea42c345e7565d82a1e58a5edfb309f34929bb5e600b",
+          "expected_tags": [
+            "instant{attack:melee, attack:+8, reach:10ft, dmg:2d10+4(perfurante), dmg:4d8(veneno), instant{trigger=hit, apply:envenenado(duration:until_turn_start)}, while_active{requires:target{condition{envenenado, source:self}}, restricts{heal,target}}}"
+          ],
+          "tags": [
+            "instant{attack:melee, attack:+8, reach:10ft, dmg:2d10+4(perfurante), dmg:4d8(veneno), instant{trigger=hit, apply:envenenado(duration:until_source_turn_start)}, while_active{requires:target{condition{envenenado, source:self}}, restricts{heal,target}}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 284,
+      "slug": "dire-worg",
+      "before_sha256": "f779f18f2dcc6acc6cc1595746501bdb008c5ae36d1c6a58dce844f20609c142",
+      "after_sha256": "4c8dabcbe4cad261438adcfac721adbbcb2519053819e43390b2da6f10d2724d",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "e8cd4d6a8bdc1dee12d64c80210bb97df2a08bf1efe2ef6e425fd6abb74fe613",
+          "expected_tags": [
+            "instant{attack:melee, attack:+10, reach:5ft, dmg:2d8+6(perfurante), dmg:2d6(veneno), instant{trigger=hit, apply:envenenado(duration:until_turn_start)}, while_active{requires:target{condition{envenenado, source:self}}, restricts{heal,target}}}"
+          ],
+          "tags": [
+            "instant{attack:melee, attack:+10, reach:5ft, dmg:2d8+6(perfurante), dmg:2d6(veneno), instant{trigger=hit, apply:envenenado(duration:until_source_turn_start)}, while_active{requires:target{condition{envenenado, source:self}}, restricts{heal,target}}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 357,
+      "slug": "ettercap",
+      "before_sha256": "fb24d9ab7ba1cc630ed6c3e5a58f03abebbbda7c440a70ddb06cc48bf2bc3412",
+      "after_sha256": "e37b009213ee6f125a2c60c63676dd55d23bce9785a4f6102eedc9b3bbcd32c4",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "63215fe9fcfc411930f5635945a64d5611ab5ed3a830bb16bb11036ce90c6e4f",
+          "expected_tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d6+2(perfurante), dmg:1d4(veneno), instant{trigger=hit, apply:envenenado(duration:until_turn_start)}}"
+          ],
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d6+2(perfurante), dmg:1d4(veneno), instant{trigger=hit, apply:envenenado(duration:until_source_turn_start)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 404,
+      "slug": "giant-centipede",
+      "before_sha256": "181f3071f7acd7c41dab91d98693052c3caf0b8f29d2b15bcad3f22163a21e4b",
+      "after_sha256": "f56b54b935b28488da5ddf875ae90f0dcae404c3839868635b5331bb67faa55d",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bite",
+          "source_entries_sha256": "b5a04cb0e221123d17c3774cf5458bf5d85c45a054870f4ae45bbdee164655b5",
+          "expected_tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d4+2(perfurante), instant{trigger=hit, apply:envenenado(duration:until_turn_start)}}"
+          ],
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d4+2(perfurante), instant{trigger=hit, apply:envenenado(duration:until_source_turn_start)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 447,
+      "slug": "gnoll-fang-of-yeenoghu",
+      "before_sha256": "bea8a916953097bfcd43bab1c5a092fcd101eb76f236f68f3f9d903aa08ee226",
+      "after_sha256": "1104f37074e01e176576f8b813a236afc0f348bd678104d41e83c47b75fa0598",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "5658c69b6846d81d7fda9defcb51d2256a7240c5255a375328af1d0ee9398ab0",
+          "expected_tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d6+3(perfurante), dmg:2d6(veneno), instant{trigger=hit, apply:envenenado(duration:until_turn_start)}}"
+          ],
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d6+3(perfurante), dmg:2d6(veneno), instant{trigger=hit, apply:envenenado(duration:until_source_turn_start)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 683,
+      "slug": "quasit",
+      "before_sha256": "6720db062ddccd9971f421ee41df00d56cdebf7aadf2a6d6b6eb0abd2cacc64b",
+      "after_sha256": "2b7680834ae20c9c91344166bde48743e91885134d890ace004a440eebc54be0",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "feb5702983f81870777bd99e52a0c904f65cc93414ab4621a6809a854b875301",
+          "expected_tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d4+3(cortante), instant{trigger=hit, apply:envenenado(duration:until_turn_start)}}"
+          ],
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d4+3(cortante), instant{trigger=hit, apply:envenenado(duration:until_source_turn_start)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 830,
+      "slug": "vampire-umbral-lord",
+      "before_sha256": "218e249d64f94fe9d662d2ff9cc55f8163acfafe8a176d81f843188a0307a926",
+      "after_sha256": "c214de1afb0367e36a741ebe8d6d05ffb4a0cc0f5cd2677bcfd40380e351de50",
+      "features": [
+        {
+          "index": 3,
+          "name_en": "Sickening Ray",
+          "source_entries_sha256": "213e83d122602b4dc61267b4abb5c38866e57933ab9c8952d201c1b53d79b790",
+          "expected_tags": [
+            "instant{attack:ranged, attack:+10, range:120ft, dmg:2d10+5(necrotico), instant{trigger=hit, apply:envenenado(duration:until_turn_start)}}"
+          ],
+          "tags": [
+            "instant{attack:ranged, attack:+10, range:120ft, dmg:2d10+5(necrotico), instant{trigger=hit, apply:envenenado(duration:until_source_turn_start)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 876,
+      "slug": "wyvern",
+      "before_sha256": "b1667aed58cbb8ed7d9b76a52bcdae3cb111203bca1d500da33124a6abc39e83",
+      "after_sha256": "2245abf9010f4341a2f989506bbcfe228a9434abe14d6b885c63389dd5779875",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Sting",
+          "source_entries_sha256": "a76e8662e65aa32a9759d8c103eb37e2f5bb4ecfd3193a4328ad181f4028c2ca",
+          "expected_tags": [
+            "instant{attack:melee, attack:+7, reach:10ft, dmg:2d6+4(perfurante), dmg:7d6(veneno), instant{trigger=hit, apply:envenenado(duration:until_turn_start)}}"
+          ],
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:10ft, dmg:2d6+4(perfurante), dmg:7d6(veneno), instant{trigger=hit, apply:envenenado(duration:until_source_turn_start)}}"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -265,7 +265,7 @@ class PublicPresentationTests(TestCase):
         self.assertNotContains(sitemap, '/mapa/')
         self.assertContains(robots, 'Disallow: /admin/')
         self.assertContains(robots, 'Sitemap: http://testserver/sitemap.xml')
-        self.assertContains(ads, 'google.com, pub-1634793837919535, DIRECT')
+        self.assertContains(ads, 'google.com, ca-pub-1634793837919535, DIRECT')
 
     def test_sitemap_only_promotes_world_pages_with_lore(self):
         TbMapLayer.objects.update_or_create(

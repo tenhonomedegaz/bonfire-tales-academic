@@ -1,0 +1,174 @@
+[
+  {
+    "nome": "Instinto de Sobrevivência",
+    "descricao": "Você pode usar sua **Reação** quando for atingido por um ataque para se mover até metade do seu deslocamento sem provocar Ataques de Oportunidade. Você pode usar essa característica uma vez por **Descanso Curto**."
+  },
+  {
+    "nome": "Habilidoso",
+    "descricao": "Sua curiosidade natural o leva a aprender um pouco de tudo. Você ganha proficiência em **duas Perícias** à sua escolha."
+  },
+  {
+    "nome": "Poliglota",
+    "descricao": "Onde há civilização, há humanos negociando. Você aprende **dois idiomas adicionais** à sua escolha, além do Comum."
+  },
+  {
+    "nome": "Jeitinho Humano",
+    "descricao": "Você sempre tem um jeitinho para resolver seus problemas. Você ganha proficiência em **duas Ferramentas** à sua escolha."
+  },
+  {
+    "nome": "Determinação Comum",
+    "descricao": "Você recebe um **Talento de Origem** de sua escolha no 1º nível. Você deve cumprir os pré-requisitos do talento normalmente."
+  },
+  {
+    "nome": "Versatilidade Prática",
+    "descricao": "Sempre que você terminar um **Descanso Longo**, você pode escolher uma das perícias ou ferramentas concedidas pelo traço Habilidoso e trocá-la por outra proficiência de perícia ou ferramenta de sua escolha."
+  },
+  {
+    "nome": "Instinto Humano",
+    "descricao": "Você tem Vantagem em Testes de Resistência para evitar **Exaustão**."
+  },
+  {
+    "nome": "Eco Ancestral",
+    "descricao": "Você conhece um Truque (Cantrip) da lista de magias de Mago ou Druida. Além disso, escolha uma magia de nível 1 dessa mesma lista que não cause dano. Você pode conjurar essa magia de nível 1 um número de vezes igual ao seu **Bônus de Proficiência** por Descanso Longo, sem gastar espaço de magia. Sua habilidade de conjuração é Inteligência, Sabedoria ou Carisma."
+  },
+  {
+    "nome": "Visão no Escuro",
+    "descricao": "Você enxerga na meia-luz num raio de **18 metros [60 pés]** como se fosse luz plena, e na escuridão como se fosse meia-luz. Você não discerne cores na escuridão, apenas tons de cinza."
+  },
+  {
+    "nome": "Ancestralidade Feérica",
+    "descricao": "Você tem Vantagem em Testes de Resistência para evitar ou encerrar a condição **Enfeitiçado**. Além disso, a magia não pode colocar você para dormir. Você satisfaz os pré-requisitos para talentos raciais de **Elfos** ou **Humanos** (mas não Erthari)."
+  },
+  {
+    "nome": "Sangue Élfico",
+    "descricao": "Como um mestiço, você é capaz de escolher evoluções raciais tanto de humano quanto de Anão, respeitando os respectivos pre-requisitos. (mas não Erthari)."
+  },
+  {
+    "nome": "Vigor do Clã",
+    "descricao": "Seu corpo é denso como rocha. Seu máximo de Pontos de Vida aumenta em **1** no nível 1, e aumenta em **+1** para cada nível que você ganhar posteriormente."
+  },
+  {
+    "nome": "Resiliência da Pedra",
+    "descricao": "Você tem Resistência a dano de **Veneno** e Vantagem em Testes de Resistência para evitar a condição **Envenenado**."
+  },
+  {
+    "nome": "Visão no Escuro",
+    "descricao": "Você possui Visão no Escuro com alcance de **18 metros [60 pés]**."
+  },
+  {
+    "nome": "Sangue Anão",
+    "descricao": "Como um mestiço, você é capaz de escolher evoluções raciais tanto de humano quanto de Anão, respeitando os respectivos pre-requisitos. (mas não Erthari)."
+  },
+  {
+    "nome": "Legado Implacável",
+    "descricao": "Quando você é reduzido a **0 Pontos de Vida** mas não morre imediatamente, você pode escolher cair para **1 Ponto de Vida** em vez disso. Você deve terminar um **Descanso Longo** para poder usar essa característica novamente."
+  },
+  {
+    "nome": "Ameaça Latente",
+    "descricao": "Você ganha proficiência na perícia **Intimidação**. Se você já for proficiente, pode escolher outra perícia entre Atletismo ou Sobrevivência."
+  },
+  {
+    "nome": "Visão no Escuro",
+    "descricao": "Você possui Visão no Escuro com alcance de **18 metros [60 pés]**."
+  },
+  {
+    "nome": "Sangue Órquico",
+    "descricao": "Como um mestiço, você é capaz de escolher evoluções raciais tanto de humano quanto de Anão, respeitando os respectivos pre-requisitos. (mas não Erthari)."
+  },
+  {
+    "nome": "Cultura Adotada",
+    "descricao": "Você viveu tempo suficiente entre outro povo para mimetizar sua biologia ou costumes. Escolha uma Raça Humanoide diferente da sua.\nVocê é considerado dessa raça para satisfazer pré-requisitos de itens mágicos e Talentos Raciais.\n(Nenhuma Essência é elegivel para essa escolha.)"
+  },
+  {
+    "nome": "Tatuagens Arcanas",
+    "descricao": "Escolha uma escola de magia: Abjuração, Conjuração, Encantamento, Evocação, Ilusão, Necromancia ou Transmutação. Você aprende um Truque (Cantrip) da lista de Mago associado a essa escola. Sua habilidade de conjuração para este truque é Inteligência, Sabedoria ou Carisma (escolha ao adquirir o talento)."
+  },
+  {
+    "nome": "Prodígio Nato",
+    "descricao": "Você ganha proficiência em uma Perícia de sua escolha, proficiência em uma Ferramenta de sua escolha e fluência em um Idioma de sua escolha."
+  },
+  {
+    "nome": "Aprendiz Prático",
+    "descricao": "Quando você termina um **Descanso Longo**, você pode escolher uma Perícia ou Ferramenta na qual não tenha proficiência. Você ganha proficiência nela até o final do seu próximo Descanso Longo. Você perde essa proficiência se escolher uma diferente no dia seguinte."
+  },
+  {
+    "nome": "Tatuagens Aprimoradas",
+    "descricao": "Você aprende uma magia de nível 1 da mesma escola escolhida no talento Tatuagens Arcanas. Você pode conjurá-la uma vez sem gastar espaço de magia por **Descanso Longo**, ou utilizando seus próprios espaços de magia."
+  },
+  {
+    "nome": "Improvisador Sagaz",
+    "descricao": "Você pode adicionar metade do seu **Bônus de Proficiência** (arredondado para baixo) a qualquer teste de Habilidade (Perícia) que você faça que não já utilize seu bônus de proficiência (Essa habilidade não se acumula com a habilidade Pau pra toda obra (Jack of all trades) do Bardo). Além disso, você pode usar uma **Ação Bônus** para realizar um teste de Inteligência (Investigação) ou Sabedoria (Percepção) em combate."
+  },
+  {
+    "nome": "Adaptabilidade Ambiental",
+    "descricao": "Escolha entre **Frio** ou **Fogo**. Você ganha Resistência ao tipo de dano escolhido. Além disso, você não sofre penalidades por climas extremos (muito quentes ou muito frios) relacionados à resistência escolhida."
+  },
+  {
+    "nome": "Elo Tático",
+    "descricao": "Criaturas voluntárias (Willing) a até **18 metros [60 pés]** de você nunca são consideradas Invisíveis para você, permitindo que você as veja para conjurar magias de cura e suporte. Além disso, você pode usar a ação de **Ajuda** como uma **Ação Bônus**."
+  },
+  {
+    "nome": "Recuperação Acelerada",
+    "descricao": "Sempre que você gastar Dados de Vida (Hit Dice) durante um **Descanso Curto**, você pode rolar o dado duas vezes e escolher o melhor resultado para determinar a quantidade de cura."
+  },
+  {
+    "nome": "Tatuagens Virtuosas",
+    "descricao": "Você aprende uma magia de nível 3 da mesma escola escolhida no talento Tatuagens Arcanas. Você pode conjurá-la uma vez sem gastar espaço de magia por **Descanso Longo**."
+  },
+  {
+    "nome": "Alma Cooperativa",
+    "descricao": "Quando você usa a ação de **Ajuda** para auxiliar um aliado em um ataque ou teste de habilidade, esse aliado ganha um bônus de **+1d4** na rolagem, além da Vantagem. Se você tiver Expertise na perícia que está ajudando, o bônus aumenta para **+1d6**."
+  },
+  {
+    "nome": "Memória Vívida",
+    "descricao": "Você tem Vantagem em testes de História, Religião ou Arcanismo para recordar informações. Além disso, você não pode ser surpreendido enquanto estiver consciente."
+  },
+  {
+    "nome": "Vontade de Ferro",
+    "descricao": "Você ganha proficiência em testes de resistência de **Sabedoria**. Se você já tiver essa proficiência, você ganha proficiência em Inteligência ou Carisma (à sua escolha)."
+  },
+  {
+    "nome": "Mestre da Improvisação",
+    "descricao": "Você é proficiente com Armas Improvisadas. O dano de suas armas improvisadas torna-se **1d6** (ou 1d8 se empunhada com duas mãos). Quando você acerta um ataque com uma arma improvisada, você pode usar uma **Ação Bônus** para tentar empurrar o alvo ou derrubá-lo (Caído)."
+  },
+  {
+    "nome": "Multi-talentoso",
+    "descricao": "Você pode escolher um Talento (Feat) de qualquer para a qual cumpra os pré-requisitos, você não recebe bônus de atributo para esse Talento, mesmo que ele normalmente conceda."
+  },
+  {
+    "nome": "Persistência Teimosa",
+    "descricao": "Uma vez por **Descanso Longo**, se você falhar em um Teste de Resistência contra uma condição negativa, você pode imediatamente rerolar o teste e deve usar o novo resultado."
+  },
+  {
+    "nome": "Treinamento de Elite",
+    "descricao": "Você escolhe duas armas com as quais tem proficiência. Você aprende a propriedade de **Maestria** dessas armas e pode utilizá-la. Se você já possui Maestria nelas, você ganha +2 nas rolagens de dano com essas armas específicas."
+  },
+  {
+    "nome": "Caminhante Incansável",
+    "descricao": "Seu deslocamento aumenta em **3 metros [10 pés]**. Você ignora terreno difícil não-mágico e tem Vantagem em testes de resistência para evitar Exaustão."
+  },
+  {
+    "nome": "Especialista Versátil",
+    "descricao": "Escolha duas perícias nas quais você seja proficiente. Você ganha **Expertise** (o dobro do bônus de proficiência) nessas perícias."
+  },
+  {
+    "nome": "Presença Heroica",
+    "descricao": "Uma vez por **Descanso Longo**, como uma ação, você concede a si mesmo e a até 10 aliados a **18 metros [60 pés]** vantagem em todos os Testes de Resistência por 1 minuto ou até você ficar Incapacitado."
+  },
+  {
+    "nome": "Frio e Calculista",
+    "descricao": "Adicione seu modificador de Inteligência ou Sabedoria à sua Iniciativa. Quando for alvo de um ataque, você pode usar sua **Reação** para ganhar **+5 na CA** contra aquele ataque, potencialmente fazendo-o errar."
+  },
+  {
+    "nome": "Voz da Razão",
+    "descricao": "Você tem Vantagem em testes de Carisma (Persuasão). Uma vez por dia, você pode conjurar a magia **Santuário** (CD 8 + proficiência + mod. Carisma) sobre si mesmo como uma Ação Bônus, sem gastar espaço de magia. Se uma criatura falhar no teste de resistência para te atacar sob este efeito, ela perde o ataque (não pode escolher outro alvo)."
+  },
+  {
+    "nome": "Espírito Indomável",
+    "descricao": "Se você começar seu turno com 0 Pontos de Vida, você pode gastar 1 Dado de Vida para recuperar PV igual ao resultado da rolagem + seu modificador de Constituição e se levantar imediatamente. Você pode usar esta habilidade uma vez por **Descanso Longo**."
+  },
+  {
+    "nome": "Auge do Potencial",
+    "descricao": "Uma vez por **Descanso Longo**, se você falhar em uma jogada de ataque, teste de habilidade ou teste de resistência, você pode tratar a rolagem do d20 como um **20 natural**."
+  }
+]

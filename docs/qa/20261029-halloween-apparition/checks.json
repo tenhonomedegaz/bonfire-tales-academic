@@ -1,0 +1,90 @@
+{
+  "phases": [
+    {
+      "width": 130.1875,
+      "name": "absent",
+      "opacity": 0,
+      "shade": 0,
+      "x": 0,
+      "count": 3
+    },
+    {
+      "width": 130.1875,
+      "name": "front",
+      "opacity": 0.95,
+      "shade": 0.779,
+      "x": 0,
+      "count": 3
+    },
+    {
+      "width": 130.1875,
+      "name": "left",
+      "opacity": 0.95,
+      "shade": 0.779,
+      "x": -130.187,
+      "count": 3
+    },
+    {
+      "width": 130.1875,
+      "name": "right",
+      "opacity": 0.95,
+      "shade": 0.779,
+      "x": -260.375,
+      "count": 3
+    },
+    {
+      "width": 130.1875,
+      "name": "gone",
+      "opacity": 0,
+      "shade": 0,
+      "x": 0,
+      "count": 3
+    },
+    {
+      "width": 248.390625,
+      "name": "absent",
+      "opacity": 0,
+      "shade": 0,
+      "x": 0,
+      "count": 3
+    },
+    {
+      "width": 248.390625,
+      "name": "front",
+      "opacity": 0.95,
+      "shade": 0.779,
+      "x": 0,
+      "count": 3
+    },
+    {
+      "width": 248.390625,
+      "name": "left",
+      "opacity": 0.95,
+      "shade": 0.779,
+      "x": -248.391,
+      "count": 3
+    },
+    {
+      "width": 248.390625,
+      "name": "right",
+      "opacity": 0.95,
+      "shade": 0.779,
+      "x": -496.781,
+      "count": 3
+    },
+    {
+      "width": 248.390625,
+      "name": "gone",
+      "opacity": 0,
+      "shade": 0,
+      "x": 0,
+      "count": 3
+    }
+  ],
+  "serverParity": true,
+  "offscreenPause": true,
+  "hiddenPause": true,
+  "reducedMotion": true,
+  "failedAssetCleanup": true,
+  "errors": []
+}

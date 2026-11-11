@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bonfire | Três Luas sobre banner</title>
+<link rel="stylesheet" href="../../home/static/css/components/cosmetic-presentation.css?v=12">
+<script src="../../home/static/cosmetics/renderer.js?v=11" defer></script>
+<script src="blood-moon-preview-data.js?v=10" defer></script>
+<script src="20261027-art-direction.js?v=5" defer></script>
+<script type="application/json" id="moon-config">
+{
+  "families": {
+    "vermelha": {"label":"Lua Vermelha","manifest":"efeito-lua-vermelha.json","frameManifest":"moldura-lua-vermelha.json","family":"blood-moon"},
+    "negra": {"label":"Lua Negra","manifest":"efeito-lua-negra.json","frameManifest":"moldura-lua-negra.json","family":"black-moon"},
+    "cristal": {"label":"Lua de Cristal","manifest":"efeito-lua-cristal.json","frameManifest":"moldura-lua-cristal.json","family":"crystal-moon"}
+  },
+  "roles": {"disc":"Lua","clouds":"Nuvens","branches":"Galhos","foreground-left":"Foreground esquerdo","foreground-right":"Foreground direito","charms":"Pingentes"}
+}
+</script>
+<style>
+*{box-sizing:border-box;letter-spacing:0}body{margin:0;background:#101114;color:#edf0f3;font:14px/1.5 system-ui,sans-serif}main{max-width:1360px;margin:auto;padding:24px}h1{font-size:28px;line-height:1.3;margin:0}h2{font-size:18px;line-height:1.4;margin:0}p{color:#b7bec8;margin:8px 0 0}button,input{font:inherit}button{cursor:pointer}a{color:#b8d0df}header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:20px}.preview-controls{display:flex;align-items:center;flex-wrap:wrap;gap:12px 20px;padding:14px 0;margin-bottom:20px;border-block:1px solid #41464e}.preview-controls button{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:7px 12px;border:1px solid #5a6370;border-radius:4px;background:#242932;color:#edf0f3}.banner-file{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:12px}.banner-file input{max-width:100%;min-width:0;font-size:12px}#banner-reset{width:38px;padding:0;font-size:21px}#preview-status{margin:0 0 14px;color:#d0c7a6;font-size:12px}.moon-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.moon-card{min-width:0;border:1px solid #424953;border-radius:8px;overflow:hidden;background:#1b1e24}.moon-card>h2{padding:14px 16px}.hero{position:relative;isolation:isolate;overflow:hidden;min-height:220px;padding:0;background:#121920}.hero-banner{position:absolute;inset:0;z-index:0;display:block;width:100%;height:100%;object-fit:cover}.moon-hero>.cosmetic-layers--banner{z-index:1}.hero-copy{position:absolute;z-index:4;bottom:0;left:0;right:0;display:flex;align-items:center;gap:12px;padding:16px;background:linear-gradient(transparent,#080b10c9)}.portrait{display:block;flex:none;width:46px;height:46px;border-radius:50%;border:1px solid #d0d9e2;object-fit:cover}.hero-copy strong{display:block;font:600 17px/1.4 Georgia,serif;text-shadow:0 1px 3px #000}.hero-copy small{display:block;color:#f2f4f6;font-size:11px;text-shadow:0 1px 3px #000}.layer-controls{min-width:0;border:0;margin:0;padding:14px 16px 16px}.layer-controls legend{padding:0 0 6px;font-size:12px;font-weight:600}.layer-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px}.layer-options label{display:flex;align-items:flex-start;gap:7px;min-width:0;font-size:12px;line-height:1.4;overflow-wrap:anywhere}.layer-options input{flex:none;margin:2px 0 0;accent-color:#9ecacb}.theme-status{padding:0 16px 12px;font-size:12px;color:#c1cad6}.preview-paused .moon-hero :is(.cosmetic-layer,.cosmetic-breeze,.cosmetic-positioned){animation-play-state:paused!important}details{margin-top:22px;padding-top:16px;border-top:1px solid #41464e}summary{cursor:pointer;font-size:14px;font-weight:600}.asset-groups{display:grid;gap:20px;margin-top:18px}.asset-group h3{font-size:15px;margin:0 0 10px}.asset-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}.asset-grid figure{margin:0;min-width:0;border:1px solid #414953;border-radius:4px;overflow:hidden;background:#1b1e24}.asset-grid img{display:block;width:100%;height:115px;object-fit:contain;background-color:#383e48;background-image:linear-gradient(45deg,#515966 25%,transparent 25%,transparent 75%,#515966 75%),linear-gradient(45deg,#515966 25%,transparent 25%,transparent 75%,#515966 75%);background-size:20px 20px;background-position:0 0,10px 10px}.asset-grid figcaption{padding:8px;font-size:11px;overflow-wrap:anywhere}.comparison-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px}.comparison-grid section{min-width:0}.comparison-grid h2{font-size:15px;margin-bottom:10px}.arcane{background:url('../../home/static/cosmetics/arcane-banner.svg') center/cover no-repeat}.original-red{display:block;width:100%;height:auto;max-height:420px;object-fit:contain}.document-note{margin-top:20px;font-size:12px}button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid #9ecacb;outline-offset:3px}[hidden]{display:none!important}
+@media(max-width:1000px){.moon-grid{grid-template-columns:1fr}.moon-card{display:grid;grid-template-columns:minmax(0,1fr) minmax(240px,.75fr)}.moon-card>h2{grid-column:1/-1}.moon-card>.hero{min-height:230px}.theme-status{grid-column:1/-1}.asset-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:600px){main{padding:16px}h1{font-size:24px}.moon-card{display:block}.layer-options{gap:12px}.hero-copy{padding:14px}.comparison-grid{grid-template-columns:1fr}.asset-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.banner-file{width:100%}}
+@media(prefers-reduced-motion:reduce){.moon-hero *{animation:none!important;transition:none!important}}
+.preview-avatar{position:relative;display:block;flex:none;width:46px;height:46px;border-radius:50%}.preview-avatar>img{display:block;width:100%;height:100%;border-radius:50%;object-fit:cover}.hero-copy>.preview-avatar{width:40px;height:40px;margin:7px}.hero-copy>div:last-child{min-width:0;overflow-wrap:anywhere}.avatar-samples{grid-column:1/-1;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:32px;padding:28px 22px 30px;border-top:1px solid #41464e}.avatar-samples figure{margin:0;display:grid;justify-items:center;gap:22px;flex:none}.avatar-samples figcaption{font-size:11px;color:#b7bec8}.preview-avatar--medium{width:120px;height:120px}.frame-option{grid-column:1/-1}.preview-paused :is(.cosmetic-layer,.cosmetic-breeze,.cosmetic-positioned){animation-play-state:paused!important}
+</style>
+<main>
+  <header><h1>Três Luas</h1><p>Propostas transparentes sobre o banner real</p></header>
+  <div class="preview-controls">
+    <button id="toggle-wind" type="button" aria-pressed="false">Pausar vento</button>
+    <label class="banner-file" for="local-banner">Banner local<input id="local-banner" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label>
+    <button id="banner-reset" type="button" title="Restaurar banner original" aria-label="Restaurar banner original">↺</button>
+  </div>
+  <p id="preview-status" role="status" aria-live="polite" hidden></p>
+  <div class="moon-grid">
+    <article class="moon-card" data-moon-card="vermelha">
+      <h2>Lua Vermelha</h2>
+      <section class="hero moon-hero cosmetic-has-banner" data-moon-hero="vermelha" aria-label="Lua Vermelha sobre banner real">
+        <img class="hero-banner" src="../../home/static/brand/world.webp" alt="">
+        <div class="hero-copy"><img class="portrait" src="../../home/static/brand/human.webp" alt="Retrato de demonstração"><div><strong>Aventureiro de Cinéria</strong><small>Lua Vermelha</small></div></div>
+      </section>
+      <fieldset class="layer-controls"><legend>Camadas</legend><div class="layer-options" data-layer-controls="vermelha"></div></fieldset>
+      <p class="theme-status" data-theme-status="vermelha" hidden></p>
+    </article>
+    <article class="moon-card" data-moon-card="negra">
+      <h2>Lua Negra</h2>
+      <section class="hero moon-hero cosmetic-has-banner" data-moon-hero="negra" aria-label="Lua Negra sobre banner real">
+        <img class="hero-banner" src="../../home/static/brand/world.webp" alt="">
+        <div class="hero-copy"><img class="portrait" src="../../home/static/brand/human.webp" alt="Retrato de demonstração"><div><strong>Aventureiro de Cinéria</strong><small>Lua Negra</small></div></div>
+      </section>
+      <fieldset class="layer-controls"><legend>Camadas</legend><div class="layer-options" data-layer-controls="negra"></div></fieldset>
+      <p class="theme-status" data-theme-status="negra" hidden></p>
+    </article>
+    <article class="moon-card" data-moon-card="cristal">
+      <h2>Lua de Cristal</h2>
+      <section class="hero moon-hero cosmetic-has-banner" data-moon-hero="cristal" aria-label="Lua de Cristal sobre banner real">
+        <img class="hero-banner" src="../../home/static/brand/world.webp" alt="">
+        <div class="hero-copy"><img class="portrait" src="../../home/static/brand/human.webp" alt="Retrato de demonstração"><div><strong>Aventureiro de Cinéria</strong><small>Lua de Cristal</small></div></div>
+      </section>
+      <fieldset class="layer-controls"><legend>Camadas</legend><div class="layer-options" data-layer-controls="cristal"></div></fieldset>
+      <p class="theme-status" data-theme-status="cristal" hidden></p>
+    </article>
+  </div>
+  <details><summary>Assets transparentes por família</summary><div class="asset-groups" id="asset-groups"></div></details>
+  <details id="original-comparisons"><summary>Comparações preservadas · Arcano e Lua Vermelha original</summary><div class="comparison-grid">
+    <section><h2>Arcano original</h2><div class="hero arcane"><div class="hero-copy"><img class="portrait" src="../../home/static/brand/human.webp" alt=""><div><strong>Aventureiro de Cinéria</strong><small>Referência preservada</small></div></div></div></section>
+    <section><h2>Lua Vermelha original</h2><a href="../../home/static/cosmetics/proposal-blood-moon-v1.png"><img class="original-red" src="../../home/static/cosmetics/proposal-blood-moon-v1.png" alt="Composição original preservada para comparação" loading="lazy"></a></section>
+  </div></details>
+  <p class="document-note">Prévia local de arte. Não salva preferências, não concede inventário e não publica ofertas. O arquivo de banner escolhido fica apenas neste navegador.</p>
+</main>
+</html>

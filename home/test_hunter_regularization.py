@@ -47,7 +47,7 @@ class HunterRegularizationPreviewTests(TestCase):
 
     def test_owner_sees_comparison_and_existing_assets_remain_untouched(self):
         self.client.force_login(self.owner)
-        with override_settings(CLASS_CATALOG_RULESETS={'cacador': self.ruleset.checksum}):
+        with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=self.ruleset.checksum):
             response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Habilidade atual alterada')
@@ -194,7 +194,7 @@ class HunterRegularizationApplyTests(_CriadorBase):
         payload = {'ruleset_checksum': self.ruleset.checksum,
             'expected_level': '1', 'expected_order_id': '',
             'ability': 'wis', 'confirm': '1'}
-        with override_settings(CLASS_CATALOG_RULESETS={'cacador': self.ruleset.checksum}):
+        with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=self.ruleset.checksum):
             preview = self.client.get(url)
             self.assertEqual(preview.status_code, 200)
             self.assertContains(preview, 'Confirmar regularização')
@@ -217,7 +217,7 @@ class HunterRegularizationApplyTests(_CriadorBase):
         linked = self.client.get(reverse('hunter_sheet', args=[person.pk]))
         self.assertEqual(linked.status_code, 200)
         self.assertContains(linked, 'aquisição preservada; indisponível nesta revisão')
-        with override_settings(CLASS_CATALOG_RULESETS={'cacador': self.ruleset.checksum}):
+        with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=self.ruleset.checksum):
             self.assertEqual(self.client.post(url, payload).status_code, 404)
 
     def test_inventory_or_adventure_mutation_rolls_back_regularization(self):

@@ -209,9 +209,6 @@
     let originMode = '';
     let activeElement = 'undine';
     let portraits = {};
-    let originOptions = {};
-    try { originOptions = JSON.parse(container.querySelector('#raceOriginOptions')?.textContent || '{}'); }
-    catch (error) { console.warn('Catálogo de manifestações indisponível.'); }
     try { portraits = JSON.parse(container.querySelector('#racePortraitData')?.textContent || '{}'); }
     catch (error) { console.warn('Catálogo visual indisponível; usando arte editorial.'); }
     const defaultSex = portraits.defaultSex || 'feminino';
@@ -232,8 +229,7 @@
       container.querySelector('.race-hero-media')?.scrollIntoView({block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
     });
     elementSelect?.addEventListener('change', () => {
-      const essence = container.getAttribute('data-active-essence') || '';
-      if (!(originOptions[essence] || []).some(option => option.slug === elementSelect.value)) return;
+      if (!portraits.elements?.[elementSelect.value]) return;
       activeElement = elementSelect.value;
       updateSelection();
     });
@@ -248,8 +244,7 @@
     container.addEventListener('race:restore-visual', event => {
       const state = event.detail || {};
       if (['linhagem', 'essencia', ''].includes(state.mode)) originMode = state.mode;
-      const essence = container.getAttribute('data-active-essence') || '';
-      if ((originOptions[essence] || []).some(option => option.slug === state.element)) activeElement = state.element;
+      if (portraits.elements?.[state.element]) activeElement = state.element;
       if (['feminino', 'masculino', 'editorial'].includes(state.sex)) portraitSex = state.sex;
       updateSelection();
     });
@@ -311,16 +306,6 @@
       const activeLineage = container.getAttribute('data-active-lineage') || '';
       const activeEssence = container.getAttribute('data-active-essence') || '';
       const elemental = activeEssence === 'elemental';
-      if (elementSelect) {
-        const options = originOptions[activeEssence] || [];
-        const signature = JSON.stringify(options);
-        if (elementSelect.dataset.catalog !== signature) {
-          elementSelect.replaceChildren(...options.map(option => new Option(option.nome, option.slug)));
-          elementSelect.dataset.catalog = signature;
-        }
-        if (!options.some(option => option.slug === activeElement)) activeElement = options[0]?.slug || '';
-        elementSelect.disabled = !options.length;
-      }
       container.dataset.originMode = originMode;
       container.dataset.activeElement = elemental ? activeElement : '';
       modeInputs.forEach(input => { input.checked = input.value === originMode; });

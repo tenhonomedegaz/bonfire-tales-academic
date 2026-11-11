@@ -1,12 +1,4 @@
 /* Raster nine-slice skins. Catalog data selects the class; no per-item rules engine. */
-.skin-colaborador-fogueira {
-    --lunar-edge: url('../../cosmetics/themes/community-forge-panel-v1.webp');
-    --lunar-accent: #e7bd7e;
-    --lunar-secondary: #c57e54;
-    --lunar-surface: #202124;
-    --lunar-deep: #111315;
-    --lunar-halo: #d29c4120;
-}
 .skin-lua-vermelha {
     --lunar-edge: url('../../cosmetics/themes/blood-panel-v1.webp');
     --lunar-accent: #e8b86e;
@@ -55,15 +47,15 @@
     overflow-wrap: anywhere;
 }
 .skin-illustrated :is(.public-profile-main,.profile-hero-copy) { min-width: 0; }
-/* The 280px source corners include whole pendants: smaller slices repeat severed
-   corner ornaments along the edges. Round repeats only the remaining edge. */
+/* Fixed corner size keeps the ornament proportions across wide and narrow panels.
+   Round repeats the painted edge instead of stretching its jewelry horizontally. */
 .skin-illustrated :is(
     .profile-header,.profile-editor-group,.profile-section:not(.profile-editor),
     .public-profile-card,.public-profile-section,.ficha-header,.ficha-card,.cw-public-panel
 ),
 .player-card.skin-illustrated {
     border: 1px solid var(--lunar-accent);
-    border-image: var(--lunar-edge) 280 / 40px / 0 round;
+    border-image: var(--lunar-edge) 128 / 26px / 0 round;
     border-radius: 0;
     background-color: var(--profile-surface, var(--lunar-surface));
     box-shadow: inset 0 0 22px var(--lunar-halo);
@@ -98,7 +90,7 @@
 }
 .tema-swatch-preview.skin-illustrated .tema-swatch-mini {
     border: 1px solid transparent;
-    border-image: var(--lunar-edge) 280 / 12px / 0 round;
+    border-image: var(--lunar-edge) 128 / 12px / 0 round;
     border-radius: 0;
 }
 @media (prefers-reduced-motion: reduce) {

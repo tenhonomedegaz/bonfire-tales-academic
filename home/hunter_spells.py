@@ -2,17 +2,8 @@
 from .content_versions import resolve_content
 from .hunter_preparation import preparation
 from .models import TbPersonagemCacador
-from .versioned_classes import EVALUATOR, VOCABULARY, VersionedClassCatalog
+from .versioned_classes import EVALUATOR, VOCABULARY
 from .versioned_spells import spell_catalog
-
-
-def uses_tag_spell_grants(profile):
-    """Select the grant reader from the linked class snapshot, not its name."""
-    pc = profile.personagem_classe
-    if pc.ruleset_id is not None and pc.ruleset_id != profile.ruleset_id:
-        raise ValueError('Hunter profile and class ruleset differ.')
-    return VersionedClassCatalog(profile.ruleset, pc.id_classe_id).contracts.get(
-        'spell_grants') == 'tags-v1'
 
 
 def grants_at(ruleset, *, level, order=''):
@@ -46,8 +37,6 @@ def granted_spells(person, ruleset):
         raise ValueError('Hunter profile and spell ruleset differ.')
     result = []
     for profile in profiles:
-        if uses_tag_spell_grants(profile):
-            continue
         prepared = preparation(profile, selected=[], allow_pending_order=True)
         result.extend(grants_at(ruleset, level=prepared['level'], order=prepared['order']))
         from .hunter_traveler import final_grants

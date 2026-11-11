@@ -44,7 +44,7 @@ def catalogos():
         TbTalento,
     )
     from .views import _eh_feature_asi, _tag_levels
-    from .class_publication import resolve_class_catalog
+    from .class_publication import published_catalog
 
     subclasses = {}
     for sub in TbSubclasse.objects.select_related("id_classe").order_by(
@@ -68,8 +68,7 @@ def catalogos():
 
     classes = []
     for classe in class_rows:
-        selection = resolve_class_catalog(classe)
-        published = (selection.ruleset, selection.catalog) if selection.catalog else None
+        published = published_catalog(classe)
         if published is not None:
             ruleset, frozen = published
             page_class = frozen.classe
@@ -95,13 +94,6 @@ def catalogos():
             shown_asi_name = asi_names.get(classe.pk, "")
             shown_levels = sorted(asi_levels[classe.pk])
             subclass_min = _subclass_min_level(classe)
-        ability_choices = []
-        if ruleset is not None and classe.slug == 'cacador' and 'hunter-rework' in ruleset.manifest:
-            from .content_versions import resolve_content
-            from .versioned_classes import EVALUATOR, VOCABULARY
-            ability_choices = resolve_content(ruleset, 'hunter-rework',
-                evaluator_version=EVALUATOR, vocabulary_version=VOCABULARY).get(
-                    'spellcasting_ability_choices', [])
         classes.append({
             "slug": classe.slug,
             "nome": page_class.nome if published is not None else classe.nome,
@@ -110,7 +102,6 @@ def catalogos():
             "subclasse_nivel": subclass_min,
             "subclasses": shown_subclasses,
             "ruleset_checksum": ruleset.checksum if ruleset is not None else None,
-            "permanent_ability_choices": ability_choices,
         })
 
     # `grupo` = cabecalho da lista (nao se repete em `meta`, senao o payload dobra de peso)
@@ -275,9 +266,8 @@ def _int_between(value, minimum, maximum, label):
 
 def _apply_classes(personagem, creator_data, build):
     from .character_engine import _subclass_min_level
-    from .models import TbClasse, TbPersonagemClasse, TbPersonagemCacador, TbSubclasse
+    from .models import TbClasse, TbPersonagemClasse, TbSubclasse
     from .versioned_classes import VersionedClassCatalog
-    from .class_publication import CATALOG_ERRORS, resolve_class_catalog
 
     requested = build.get("classes") or []
     if not isinstance(requested, list) or not requested:
@@ -303,22 +293,9 @@ def _apply_classes(personagem, creator_data, build):
         raise PathbuilderError("Uma das classes selecionadas nao existe.")
 
     existing = {row.id_classe_id: row for row in personagem.classes.all()}
-    try:
-        revisions = {pc.ruleset_id: pc.ruleset for pc in existing.values() if pc.ruleset_id}
-        for classe in by_slug.values():
-            selection = resolve_class_catalog(classe)
-            if selection.ruleset is not None:
-                revisions[selection.ruleset.pk] = selection.ruleset
-        if len(revisions) > 1:
-            raise PathbuilderError('As classes selecionadas possuem revisoes incompativeis.')
-        active_ruleset = next(iter(revisions.values()), None)
-        catalogs = {c.pk: VersionedClassCatalog(active_ruleset, c.pk)
-                    for c in by_slug.values()} if active_ruleset else {}
-    except PathbuilderError:
-        raise
-    except CATALOG_ERRORS as exc:
-        raise PathbuilderError('Nao foi possivel resolver uma revisao compativel para estas classes.') from exc
-    hunter_ability = None
+    initial_row = existing.get(by_slug[initial_slug].pk)
+    active_ruleset = (initial_row.ruleset if initial_row is not None
+                      and initial_row.ruleset_id else None)
     normalized = []
     total = 0
     for row in requested:
@@ -326,20 +303,16 @@ def _apply_classes(personagem, creator_data, build):
         nivel = _int_between(row.get("nivel", 1), 1, 20, "Nivel de classe")
         total += nivel
         classe = by_slug[slug]
+        if active_ruleset is not None:
+            from django.core.exceptions import ObjectDoesNotExist
+            try:
+                VersionedClassCatalog(active_ruleset, classe.pk)
+            except (ObjectDoesNotExist, ValueError, KeyError) as exc:
+                raise PathbuilderError("Classe %s indisponivel nesta revisao."
+                                       % classe.nome) from exc
         existing_row = existing.get(classe.pk)
-        frozen = catalogs.get(classe.pk)
-        if frozen is not None and classe.slug == 'cacador' and 'hunter-rework' in active_ruleset.manifest:
-            from .content_versions import resolve_content
-            from .versioned_classes import EVALUATOR, VOCABULARY
-            data = resolve_content(active_ruleset, 'hunter-rework',
-                                   evaluator_version=EVALUATOR, vocabulary_version=VOCABULARY)
-            profile = (TbPersonagemCacador.objects.filter(personagem_classe=existing_row).first()
-                       if existing_row else None)
-            hunter_ability = row.get('ability') or (profile.ability if profile else None)
-            if hunter_ability not in data.get('spellcasting_ability_choices', []):
-                raise PathbuilderError('Escolha Inteligencia ou Sabedoria para o Cacador.')
-            if profile and (profile.ruleset_id != active_ruleset.pk or profile.ability != hunter_ability):
-                raise PathbuilderError('Refaca a base para alterar o atributo permanente da classe.')
+        frozen = (VersionedClassCatalog(existing_row.ruleset, classe.pk)
+                  if existing_row is not None and existing_row.ruleset_id else None)
         subclasse = None
         sub_slug = str(row.get("subclasse") or "").strip()
         if sub_slug:
@@ -351,7 +324,7 @@ def _apply_classes(personagem, creator_data, build):
                 raise PathbuilderError("Subclasse fora da revisao publicada de %s."
                                        % frozen.classe.nome)
             minimo = _subclass_min_level(
-                classe, ruleset=active_ruleset if frozen is not None else None)
+                classe, ruleset=existing_row.ruleset if frozen is not None else None)
             if minimo and nivel < minimo:
                 raise PathbuilderError(
                     "%s exige nivel %d em %s." % (subclasse.nome, minimo, classe.nome))
@@ -369,7 +342,7 @@ def _apply_classes(personagem, creator_data, build):
     for classe, subclasse, nivel in normalized:
         row = existing.get(classe.pk)
         if row is None:
-            row = TbPersonagemClasse.objects.create(
+            TbPersonagemClasse.objects.create(
                 id_personagem=personagem, id_classe=classe,
                 id_subclasse=subclasse, nivel=nivel,
                 principal=classe.slug == initial_slug,
@@ -379,14 +352,9 @@ def _apply_classes(personagem, creator_data, build):
             row.id_subclasse = subclasse
             row.nivel = nivel
             row.principal = classe.slug == initial_slug
-            row.ruleset = active_ruleset
-            row.save(update_fields=['id_subclasse', 'nivel', 'principal', 'ruleset'])
-        if hunter_ability and classe.slug == 'cacador':
-            TbPersonagemCacador.objects.get_or_create(personagem_classe=row,
-                defaults={'ruleset': active_ruleset, 'ability': hunter_ability, 'selected': []})
+            row.save(update_fields=['id_subclasse', 'nivel', 'principal'])
     personagem.nivel = total
     personagem.save(update_fields=["nivel", "atualizado_em"])
-    return active_ruleset
 
 
 def _apply_attribute_bonus(personagem, build):
@@ -716,7 +684,6 @@ def _choice_options(group):
 
 
 def _choice_groups(personagem, build):
-    from .pathbuilder_preparations import expertise_groups, preparation_groups
     incoming = build.get("escolhas") or {}
     groups = []
     for group in _groups_with_keys(personagem):
@@ -757,7 +724,7 @@ def _choice_groups(personagem, build):
                 str(value) for value in incoming.get(group["pathbuilder_key"], []) if value)),
             "opcoes": options,
         })
-    return groups + preparation_groups(personagem) + expertise_groups(personagem, build)
+    return groups
 
 
 def _attack_rows(ficha):
@@ -989,24 +956,17 @@ def simulate_build(user, creator_data, build):
     try:
         with transaction.atomic():
             personagem = _criador_persistir(user, creator_data, resolved)
-            ruleset = _apply_classes(personagem, creator_data, build)
+            _apply_classes(personagem, creator_data, build)
             talent_issues = _apply_talents(personagem, build)
             _apply_attribute_bonus(personagem, build)
+            racial_groups, racial_issues = _apply_racial_talents(personagem, build)
             _apply_items(personagem, build)
             _apply_choices(personagem, build)
-            _apply_spells(personagem, build, ruleset=ruleset)
-            racial_groups, racial_issues = _apply_racial_talents(personagem, build)
-            # Newly selected racial talents can declare their own pick groups.
-            _apply_choices(personagem, build)
-            from .pathbuilder_preparations import apply_expertise_choices, apply_preparations
-            try:
-                apply_preparations(personagem, build)
-                apply_expertise_choices(personagem, build)
-            except ValueError as exc:
-                raise PathbuilderError(str(exc)) from exc
+            ruleset = resolved.get('ruleset')
             if any(group.get('spell_table') for group in _groups_with_keys(personagem)):
                 from .views import _sync_magias_concedidas
                 _sync_magias_concedidas(personagem, ruleset=ruleset)
+            _apply_spells(personagem, build, ruleset=ruleset)
             ficha = derive(personagem, ruleset=ruleset)
             result = _summary(
                 ficha, personagem, build, racial_groups,

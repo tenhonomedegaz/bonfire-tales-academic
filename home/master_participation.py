@@ -11,16 +11,14 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST, require_http_methods
-from django.views.decorators.cache import never_cache
 
 from .models import TbMesaAnuncio, TbPerfilMestre
 from .master_hub import can_review
-from .master_registration import applications_open, roster_for
 
 
 def can_authorize(user):
-    from .master_hub import can_authorize as authorized
-    return authorized(user)
+    return bool(user.is_authenticated and user.is_active and (
+        user.is_superuser or (user.is_staff and user.has_perm('home.autorizar_mestres'))))
 
 
 def participation(profile):
@@ -28,7 +26,6 @@ def participation(profile):
     mode = profile.modo if approved else 'jogador'
     return {
         'is_master': approved,
-        'applications_open': applications_open(),
         'status_mestre': profile.status_mestre if profile else 'nenhum',
         'role_label': dict(TbPerfilMestre._meta.get_field('modo').choices)[mode],
         'nota_avaliacao': profile.nota_avaliacao if profile else '',
@@ -56,12 +53,22 @@ class ParticipationForm(forms.ModelForm):
 
 
 def masters_directory(request):
-    from .master_roster import directory
-    return directory(request)
+    search = request.GET.get('q', '').strip()[:120]
+    profiles = TbPerfilMestre.objects.filter(
+        status_mestre='aprovado', listado=True, user__is_active=True,
+    ).select_related('user', 'user__profile')
+    if search:
+        profiles = profiles.filter(Q(user__username__icontains=search) |
+                                   Q(estilo__icontains=search) |
+                                   Q(apresentacao__icontains=search))
+    masters = [{'user': item.user, 'community': participation(item),
+                'portfolio_banner': item.banner_portfolio_url}
+               for item in profiles.order_by('user__username')[:100]]
+    return render(request, 'home/pages/master_directory.html', {
+        'masters': masters, 'search': search, 'page_title': 'Mestres da comunidade'})
 
 
 @login_required(login_url='/login/')
-@never_cache
 def master_dashboard(request):
     authorizer = can_authorize(request.user)
     reviewer = can_review(request.user)
@@ -86,59 +93,39 @@ def master_dashboard(request):
             requests = requests.filter(user__username__icontains=request_search)
         ordering = ('solicitado_em', 'pk') if request_status == 'pendente' else ('-solicitado_em', '-pk')
         requests_page = Paginator(requests.order_by(*ordering), 25).get_page(request.GET.get('solicitacoes_pagina'))
-    requests = list(requests_page.object_list) if requests_page else []
-    from .models import TbMestreLegado
-    identities = list(TbMestreLegado.objects.filter(user_id__in=[p.user_id for p in requests]))
-    for applicant in requests:
-        from .master_application import application_answers
-        applicant.candidatura_respostas = application_answers(applicant.candidatura_json)
-        applicant.fogueiras = [f'F{identity.numero:02d}' for identity in identities
-                               if identity.user_id == applicant.user_id]
-        applicant.portfolio_links = [{'label': f'F{identity.numero:02d}',
-            'url': reverse('master_roster_portfolio', args=[identity.numero])}
-            for identity in identities if identity.user_id == applicant.user_id]
-    from .gestao.editorial_views import review_page
-    review_queue, review_pagination = (review_page(request, TbMesaAnuncio.objects.filter(
-        estado='pendente').select_related('mestre').order_by('atualizado_em', 'pk'),
-        item_parameter='anuncio', page_parameter='anuncios_pagina') if reviewer else ([], {}))
-    commercial_masters = (Paginator(TbPerfilMestre.objects.filter(
+    requests = requests_page.object_list if requests_page else []
+    review_queue = (TbMesaAnuncio.objects.filter(estado='pendente').select_related(
+        'mestre').order_by('-atualizado_em')[:100] if reviewer else [])
+    from datetime import timedelta
+    from .models import TbAventuraMestre
+    since = timezone.localdate() - timedelta(days=29)
+    completed_tables = (TbAventuraMestre.objects.filter(
+        data__gte=since, data__lte=timezone.localdate()).exclude(mestre=request.user).select_related(
+        'mestre', 'verificacao_vitrine').order_by('-data')[:100] if authorizer else [])
+    commercial_masters = (TbPerfilMestre.objects.filter(
         status_mestre='aprovado', user__is_active=True).exclude(user=request.user).select_related(
-        'user', 'user__autorizacao_vitrine').order_by('user__username', 'pk'), 25).get_page(
-        request.GET.get('vitrine_pagina')) if authorizer else [])
-    from .gestao.views import _workspace
-    return render(request, 'home/pages/master_dashboard.html', _workspace(request, 'Mestres e divulgação',
-        management_section='masters', **{
+        'user', 'user__autorizacao_vitrine').order_by('user__username')[:100] if authorizer else [])
+    return render(request, 'home/pages/master_dashboard.html', {
         'can_authorize': authorizer, 'can_review': reviewer,
         'can_review_work': work_reviewer,
         'master_requests': requests, 'review_queue': review_queue,
         'master_requests_page': requests_page, 'pending_master_count': pending_count,
-        'announcements_previous_url': review_pagination.get('previous_url', ''),
-        'announcements_next_url': review_pagination.get('next_url', ''),
-        'master_applications_open': applications_open(),
         'request_status': request_status, 'request_status_options': status_choices,
         'request_search': request_search,
-        'commercial_masters': commercial_masters,
-        'notice': request.GET.get('salvo')}))
+        'completed_tables': completed_tables, 'commercial_masters': commercial_masters,
+        'page_title': 'Permissões de mestre', 'notice': request.GET.get('salvo')})
 
 
 @login_required(login_url='/login/')
-@require_http_methods(['GET', 'POST'])
+@require_POST
 def master_request(request):
-    if not applications_open():
-        return HttpResponse('Novas solicitacoes de mestre estao temporariamente encerradas.', status=403)
-    from .master_application import MasterApplicationForm
-    form = MasterApplicationForm(request.POST if request.method == 'POST' else None)
-    if request.method == 'GET' or not form.is_valid():
-        return render(request, 'home/pages/master_application.html', {'application_form': form},
-                      status=400 if request.method == 'POST' else 200)
     with transaction.atomic():
         profile, _ = TbPerfilMestre.objects.select_for_update().get_or_create(user=request.user)
         if profile.status_mestre in ('nenhum', 'recusado'):
             profile.status_mestre = 'pendente'
             profile.solicitado_em = timezone.now()
-            profile.candidatura_json = form.snapshot()
             profile.versao += 1
-            profile.save(update_fields=['status_mestre', 'solicitado_em', 'candidatura_json', 'versao', 'atualizado_em'])
+            profile.save(update_fields=['status_mestre', 'solicitado_em', 'versao', 'atualizado_em'])
     return redirect(reverse('profile') + '?aba=mestre#perfil-mestre')
 
 
@@ -162,8 +149,6 @@ def master_authorize(request, pk):
                    'recusar': ('pendente',), 'suspender': ('aprovado',)}
         if profile.status_mestre not in allowed[action] or not profile.user.is_active:
             return HttpResponse('Transição indisponível.', status=409)
-        if action == 'autorizar' and not roster_for(profile.user_id).exists():
-            return HttpResponse('Vincule primeiro a conta a uma Fogueira do cadastro vigente.', status=409)
         profile.status_mestre = {'autorizar': 'aprovado', 'recusar': 'recusado',
                                  'suspender': 'suspenso'}[action]
         profile.avaliador = request.user

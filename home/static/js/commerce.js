@@ -30,24 +30,6 @@
     filter();
   }
   const dialog = document.getElementById('co-review');
-  for (const form of document.querySelectorAll('[data-subscription-plan]')) {
-    const plan = form.querySelector('[data-co-plan]');
-    const recurring = form.querySelector('input[value="recurring"]');
-    function syncPlan() {
-      const option = plan.selectedOptions[0];
-      const supportsRecurring = option.dataset.recurring === 'true';
-      recurring.disabled = !supportsRecurring;
-      form.querySelector('[data-co-recurring]').hidden = !supportsRecurring;
-      if (!supportsRecurring && recurring.checked) form.querySelector('input[value="single"]').checked = true;
-      const renews = recurring.checked && supportsRecurring;
-      form.dataset.product = form.dataset.tier + ' · ' + option.dataset.period;
-      form.dataset.amount = 'R$ ' + option.dataset.price + (renews ? '/mês' : '');
-      form.dataset.mode = renews ? 'Assinatura mensal recorrente' : 'Pagamento único · ' + option.dataset.period;
-      form.querySelector('[data-co-total]').textContent = form.dataset.amount + ' · ' + (renews ? 'renovação mensal' : 'total do período, sem renovação');
-    }
-    form.addEventListener('change', syncPlan);
-    syncPlan();
-  }
   if (!dialog || typeof dialog.showModal !== 'function') return;
   let pending = null;
   let opener = null;

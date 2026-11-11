@@ -6,7 +6,7 @@ responderam200 com type efeito e scope ambos. Acao administrativa nova presente.
 ## Protecao anterior
 
 Backup completo salvo pelo admin em
-`[local-path]`, JSON valido,
+`C:/Users/helio/Downloads/backup_completo_20261028_211742.json`, JSON valido,
 27.823.024 bytes, SHA256
 `2f6e95d0ceb7e4f811e36812588de63ce677aa5fd010831ea0908d6683762482`.
 Arquivo contem dados privados: nao versionar nem compartilhar como evidencia.

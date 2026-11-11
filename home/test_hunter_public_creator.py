@@ -47,8 +47,7 @@ class HunterPublicCreatorTests(_CriadorBase):
         TbClassPublication.objects.create(id_classe=self.classe, ruleset=self.ruleset)
         self.client.force_login(self.user)
         before = TbPersonagem.objects.count()
-        with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=self.ruleset.checksum,
-                               CLASS_CATALOG_RULESETS={'cacador': self.ruleset.checksum}):
+        with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=self.ruleset.checksum):
             published = next(row for row in catalogos()['classes']
                              if row['slug'] == 'cacador')
             self.assertEqual({row['slug'] for row in published['subclasses']}, set(expected))
@@ -94,8 +93,7 @@ class HunterPublicCreatorTests(_CriadorBase):
         TbClassPublication.objects.create(id_classe=self.classe, ruleset=self.ruleset)
         self.client.force_login(self.user)
         before = TbPersonagem.objects.count()
-        with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=self.ruleset.checksum,
-                               CLASS_CATALOG_RULESETS={'cacador': self.ruleset.checksum}):
+        with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=self.ruleset.checksum):
             TbClasse.objects.filter(pk=self.classe.pk).update(
                 nome='Caçador vivo alterado', tags_json=[])
             live_only = TbSubclasse.objects.create(
@@ -152,17 +150,14 @@ class HunterPublicCreatorTests(_CriadorBase):
         self.assertEqual(self.valid_payload('int')[1], [])
         self.payload['ruleset'] = 'cliente-nao-escolhe-revisao'
         self.client.force_login(self.user)
-        with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=self.ruleset.checksum,
-                               CLASS_CATALOG_RULESETS={'cacador': self.ruleset.checksum}):
+        with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=self.ruleset.checksum):
             TbClasse.objects.filter(pk=self.classe.pk).update(nome='Classe viva alterada', tags_json=[])
             TbRaca.objects.filter(slug='anao').update(nome='Raça viva alterada')
             TbAntecedente.objects.filter(slug='acolito').update(nome='Antecedente vivo alterado')
             default_page = self.client.get(reverse('criacao_ficha'))
             self.assertEqual(default_page.status_code, 200)
-            common_hunter = next(c for c in default_page.context['catalogos']['classes']
-                                 if c['slug'] == 'cacador')
-            self.assertTrue(common_hunter['hunter_rework'])
-            self.assertEqual(common_hunter['nome'], self.classe.nome)
+            self.assertNotIn('cacador', [c['slug'] for c in default_page.context['catalogos']['classes']])
+            self.assertContains(default_page, 'Criar Caçador')
             page = self.client.get(reverse('criacao_ficha') + '?hunter=1')
             self.assertEqual(page.status_code, 200)
             self.assertEqual([c['slug'] for c in page.context['catalogos']['classes']], ['cacador'])
@@ -187,7 +182,7 @@ class HunterPublicCreatorTests(_CriadorBase):
         self.assertEqual(TbPersonagemCacador.objects.get(
             personagem_classe__id_personagem=person).ruleset_id, self.ruleset.pk)
 
-    @override_settings(HUNTER_CREATOR_RULESET_CHECKSUM='', CLASS_CATALOG_RULESETS={})
+    @override_settings(HUNTER_CREATOR_RULESET_CHECKSUM='')
     def test_client_cannot_select_revision_when_server_has_not_published_it(self):
         self.setup_creation()
         TbClassPublication.objects.filter(id_classe=self.classe).delete()
@@ -205,8 +200,7 @@ class HunterPublicCreatorTests(_CriadorBase):
         self.setup_creation()
         self.assertEqual(self.valid_payload('wis')[1], [])
         self.client.force_login(self.user)
-        with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=self.ruleset.checksum,
-                               CLASS_CATALOG_RULESETS={'cacador': self.ruleset.checksum}):
+        with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=self.ruleset.checksum):
             self.payload['hunter_ability'] = ''
             preview = self.client.post(reverse('criar_personagem_preview'),
                 data=json.dumps(self.payload), content_type='application/json').json()
@@ -214,18 +208,9 @@ class HunterPublicCreatorTests(_CriadorBase):
             self.assertIn('Ca', ' '.join(preview['erros']))
             response = self._post_criar(self.user, self.payload)
             self.assertEqual(response.status_code, 400)
-        with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM='0' * 64,
-                               CLASS_CATALOG_RULESETS={'cacador': '0' * 64}):
-            creator = self.client.get(reverse('criacao_ficha'))
-            self.assertEqual(creator.status_code, 200)
-            self.assertNotIn('cacador', {row['slug'] for row in creator.context['catalogos']['classes']})
-            self.assertEqual(self.client.get(reverse('criacao_ficha') + '?hunter=1').status_code, 503)
-            page = self.client.get(reverse('pathbuilder'))
-            self.assertEqual(page.status_code, 200)
-            available = {row['slug'] for row in page.context['catalogos']['classes']}
-            self.assertNotIn('cacador', available)
-            self.assertIn('guerreiro', available)
-            self.assertEqual(self.client.get(reverse('pathbuilder') + '?hunter=1').status_code, 503)
+        with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM='0' * 64):
+            self.assertEqual(self.client.get(reverse('criacao_ficha')).status_code, 503)
+            self.assertEqual(self.client.get(reverse('pathbuilder')).status_code, 200)
             self.assertEqual(self.client.get(reverse('pathbuilder_laboratorio')).status_code, 200)
             self.assertEqual(self._post_criar(self.user, self.payload).status_code, 503)
         self.assertFalse(TbPersonagem.objects.exists())

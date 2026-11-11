@@ -1,0 +1,214 @@
+{
+  "version": 1,
+  "source_sha256": "41e9c80b84fc08ed9cffa6fa1def5d0356f6fca4dc34ada46f21b8095f99b326",
+  "rows": [
+    {
+      "pk": 63,
+      "slug": "aboleth",
+      "before_sha256": "1cf2900114a274e541e423a000bc76bdedee52f1c5453bd39848f826ff8da01d",
+      "after_sha256": "167416146d780b69cf78032408b9c7205975792f3d75a2b87c5d2878ab8f0c0d",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Tentacle",
+          "source_entries_sha256": "5a2289c93ec7580a3a9ad099d3d902cfa0e8aa2436adb6b9b1e0b01d3ac16868",
+          "tags": [
+            "instant{attack:melee, attack:+9, reach:15ft, dmg:2d6+5(concussao), instant{trigger=hit, requires:target{size<=grande}, apply:agarrado(escape_cd:14)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 154,
+      "slug": "barbed-devil",
+      "before_sha256": "900b9e5a36f0ef9dd4fa0ce28c87ed7aadb62e6c92dd57cd8ab188ecd65c5b3a",
+      "after_sha256": "911085d701f399eaa48a06e0efcb6e7eddda930dff3ed4a5483847590e9c1677",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Claws",
+          "source_entries_sha256": "eb13202b43b33d3c7cfebbc553c51389636a08fd646b5cc81491a9b6e179ed0b",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:2d6+3(perfurante), instant{trigger=hit, requires:target{size<=grande}, apply:agarrado(escape_cd:13)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 202,
+      "slug": "bugbear-warrior",
+      "before_sha256": "c6892976f42451a2fc636ed3d19e7736f38dadb883636bc33ebd61a5040cef3b",
+      "after_sha256": "3ea8d60d2273fed7b6451400ff0b22f271894c2c1ca486107c729eb8da9677cb",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Grab",
+          "source_entries_sha256": "3813bf1c95b2588d7cffdac80ba5a44079045fd857b46ba6b3925ef3db5d3906",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:10ft, dmg:2d6+2(concussao), instant{trigger=hit, requires:target{size<=medio}, apply:agarrado(escape_cd:12)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 225,
+      "slug": "chuul",
+      "before_sha256": "b78ac61b3df0282023d3dedbf089c06445e9d591011e50569d6cdcb1f06016f1",
+      "after_sha256": "be29b000f2fd711db2efa8c232111707b5ec161f0789b10979e85e26e03a103d",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Pincer",
+          "source_entries_sha256": "2869a09102c95446f6a7405dd38455f5115adf3275136fdeb6fa44b0f9cb899b",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:10ft, dmg:1d10+4(concussao), instant{trigger=hit, requires:target{size<=grande}, apply:agarrado(escape_cd:14)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 406,
+      "slug": "giant-crab",
+      "before_sha256": "0e050ae0ae8e5b51b6c9434da9bd8462c5ec3daa2590806e058a0519427a70dc",
+      "after_sha256": "f9ed01c19371993b6aa13d60d2c7178889485acd34575f1e288e9bc054f4a1df",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Claw",
+          "source_entries_sha256": "80a8171dd53d9d2400fcb2b335a11128721236bb619ed502505f3abb0b125f51",
+          "tags": [
+            "instant{attack:melee, attack:+3, reach:5ft, dmg:1d6+1(concussao), instant{trigger=hit, requires:target{size<=medio}, apply:agarrado(escape_cd:11)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 411,
+      "slug": "giant-frog",
+      "before_sha256": "13b87259d1443f02355791f83dfe5e1a19a8c3296dc01aacac7794001870fc00",
+      "after_sha256": "70026b3583fc952812c564036d8e6947095fa915f1dbfb7ff16d2b474819bce4",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bite",
+          "source_entries_sha256": "94b756b7793cc3f6208e251b02c11236f20ab5f07bb811791f5f56edf9f9e6e9",
+          "tags": [
+            "instant{attack:melee, attack:+3, reach:5ft, dmg:1d6+2(perfurante), instant{trigger=hit, requires:target{size<=medio}, apply:agarrado(escape_cd:11)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 418,
+      "slug": "giant-scorpion",
+      "before_sha256": "ff42ce172a4e09446351bed6e98c30bb447ca46b177de8eb41d338d831d92057",
+      "after_sha256": "d4373c0f418027f2ac32dabc493053b003993219da2e62214781c1ad20a06aa7",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Claw",
+          "source_entries_sha256": "fd6d0a5fdb4cb282408d15c96a8c35eb69cb5a236263eeec90a156fbab90cc3c",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d6+3(concussao), instant{trigger=hit, requires:target{size<=grande}, apply:agarrado(escape_cd:13)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 444,
+      "slug": "glabrezu",
+      "before_sha256": "6caf966c99eaf2f94a854c36a48c4a1c23ab08f6067164519d61882b69296471",
+      "after_sha256": "6371c47c25b7405a0a77262d9e911d57f5db572dea638b95234b00ebe6a4bc58",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Pincer",
+          "source_entries_sha256": "46c4c3b2fc670fe5799b40433f50f1309e80e1716aef2c7a07b8fab58d62c07d",
+          "tags": [
+            "instant{attack:melee, attack:+9, reach:10ft, dmg:2d10+5(cortante), instant{trigger=hit, requires:target{size<=medio}, apply:agarrado(escape_cd:15)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 473,
+      "slug": "grick",
+      "before_sha256": "7936dce4ba420bd17b14bb3e5bfcdf2cae0bce9e19c0f430f31b5a23df74bdc3",
+      "after_sha256": "0e1284b528e40fb90e174d491db3bd77dc83680524645b8e2b2da8c914fcfc33",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Tentacles",
+          "source_entries_sha256": "dca361c739b1f21fe79f193569e9dc86879aabe933faafe13fbe0d4f52350c64",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d10+2(cortante), instant{trigger=hit, requires:target{size<=medio}, apply:agarrado(escape_cd:12)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 474,
+      "slug": "grick-ancient",
+      "before_sha256": "4717d6e71e5cf9681b75877638a090eed30e6ac2e3aa8817283d3ba421116ccd",
+      "after_sha256": "b64afbece1ddc017aa869c5a06bc8c77717b1f356dae5c08cbdf172ce3c17012",
+      "features": [
+        {
+          "index": 3,
+          "name_en": "Tentacles",
+          "source_entries_sha256": "ee0e963d2eea00ddddd124529198d971e90b18e71ab19d64f8907fe9efa00f56",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:10ft, dmg:2d10+4(cortante), instant{trigger=hit, requires:target{size<=grande}, apply:agarrado(escape_cd:14)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 475,
+      "slug": "griffon",
+      "before_sha256": "bf9578160ba76f81a36636cc7161186d549e350b3b1c83cfaa97dddfc6912c5d",
+      "after_sha256": "9b70475e29cf90e9b56b47dfa84d47453664814b3079d13eaacce83e7a53ab21",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "3d3ccf7a5aa9b4550638d52572153686334e12f386b1b684e40637153c57b50a",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:1d8+4(perfurante), instant{trigger=hit, requires:target{size<=medio}, apply:agarrado(escape_cd:14)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 649,
+      "slug": "otyugh",
+      "before_sha256": "12540c5e70de610502cb18e3d3919d7461a083df74a50d7b043552c8678caedf",
+      "after_sha256": "2ced62abb68a84b129250d84ed747d64497dd88d0733487f211990b00b6c0615",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Tentacle",
+          "source_entries_sha256": "5521d8060c52ec2c5ae3473ddbc226c74585b21d8b5f6b66b4026ddfa64fd366",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:10ft, dmg:2d8+3(perfurante), instant{trigger=hit, requires:target{size<=medio}, apply:agarrado(escape_cd:13)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 829,
+      "slug": "vampire-spawn",
+      "before_sha256": "bdac6766429217aa7215628daee24af91a82be3fb886431673267f4cce1c2b80",
+      "after_sha256": "d0273b7417702fd0cf1bcf0fd72ddb24456094e9aab73d31745cb4e5c4a7235b",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Claw",
+          "source_entries_sha256": "ebc6a12da03e32428eac1bbbe5ce6149f86af9d1bc11b01c4c1976efe7161fa0",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:2d4+3(cortante), instant{trigger=hit, requires:target{size<=medio}, apply:agarrado(escape_cd:13)}}"
+          ]
+        }
+      ]
+    }
+  ]
+}

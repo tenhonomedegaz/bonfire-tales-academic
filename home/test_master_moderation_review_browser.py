@@ -46,12 +46,6 @@ class MasterModerationReviewBrowserTests(StaticLiveServerTestCase):
         adventure = TbAventuraMestre.objects.create(
             mestre=master, nome='Mesa concluída', data=timezone.localdate()-timedelta(days=1),
             jogadores=4, recompensa_mm=0)
-        TbVerificacaoMesa.objects.create(
-            aventura=adventure, aberta=True, validada=True,
-            observacao='Registro legado preservado', validado_por=staff)
-        verification_fields = ('pk', 'aventura_id', 'aberta', 'validada',
-                               'observacao', 'validado_por_id', 'validado_em')
-        old_verifications = list(TbVerificacaoMesa.objects.order_by('pk').values(*verification_fields))
         table = TbMesaAnuncio.objects.create(
             mestre=master, titulo='A torre das cinzas', descricao='Aventura de teste.',
             agenda_combinar=True, rank='Obsidiana', ranks=['Obsidiana'],
@@ -208,15 +202,35 @@ class MasterModerationReviewBrowserTests(StaticLiveServerTestCase):
                 self.assertEqual((applicant_profile.status_mestre, applicant_profile.nota_avaliacao),
                                  ('recusado', 'Precisa atualizar o perfil'))
 
+                navigate('master_dashboard', 'verificacao')
+                js('''(() => {
+                    const form = document.querySelector('form[data-master-moderation="verificacao"]');
+                    form.elements.namedItem('observacao').value = 'Registro público conferido';
+                    form.elements.namedItem('aberta').checked = true;
+                    form.elements.namedItem('confirmar').checked = true;
+                    form.querySelector('button[value="validar"]').click();
+                })()''')
+                state = json.loads(js('''JSON.stringify((() => {
+                    const dialog = document.querySelector('[data-master-moderation-dialog]');
+                    return {open:dialog.open, text:dialog.textContent};
+                })())'''))
+                self.assertTrue(state['open'], state)
+                self.assertIn(adventure.nome, state['text'])
+                self.assertIn('Registro público conferido', state['text'])
+                self.assertIn('Divulgação aberta: sim', state['text'])
+                js('document.querySelector("[data-master-moderation-cancel]").click()')
+                self.assertFalse(TbVerificacaoMesa.objects.filter(aventura=adventure).exists())
+                js('document.querySelector("form[data-master-moderation=verificacao] button[value=validar]").click()')
+                js('document.querySelector("[data-master-moderation-confirm]").click()')
+                for _ in range(100):
+                    if TbVerificacaoMesa.objects.filter(aventura=adventure, validada=True).exists():
+                        break
+                    time.sleep(.1)
+                verification = TbVerificacaoMesa.objects.get(aventura=adventure)
+                self.assertEqual((verification.validada, verification.aberta, verification.observacao),
+                                 (True, True, 'Registro público conferido'))
+
                 navigate('master_dashboard', 'vitrine')
-                self.assertFalse(js('!!document.querySelector("form[data-master-moderation=verificacao]")'))
-                self.assertFalse(js('document.body.textContent.includes("Verificar mesas realizadas")'))
-                self.assertEqual(self.client.post(reverse('master_verify_table', args=[adventure.pk]), {
-                    'acao': 'invalidar', 'observacao': 'Tentativa no fluxo encerrado',
-                    'confirmar': 'sim',
-                }).status_code, 410)
-                self.assertEqual(list(TbVerificacaoMesa.objects.order_by('pk').values(
-                    *verification_fields)), old_verifications)
                 js('''(() => {
                     const form = document.querySelector('form[data-master-moderation="vitrine"]');
                     form.elements.namedItem('observacao').value = 'Piloto demonstrativo autorizado';
@@ -242,11 +256,6 @@ class MasterModerationReviewBrowserTests(StaticLiveServerTestCase):
                 listing = TbAutorizacaoVitrine.objects.get(user=master)
                 self.assertEqual((listing.autorizada, listing.observacao),
                                  (True, 'Piloto demonstrativo autorizado'))
-                self.assertEqual(list(TbVerificacaoMesa.objects.order_by('pk').values(
-                    *verification_fields)), old_verifications)
-                adventure.refresh_from_db()
-                self.assertEqual((adventure.mestre_id, adventure.jogadores, adventure.recompensa_mm),
-                                 (master.pk, 4, 0))
             finally:
                 if ws:
                     ws.close()

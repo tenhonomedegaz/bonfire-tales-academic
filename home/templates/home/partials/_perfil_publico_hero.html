@@ -32,7 +32,7 @@ no servidor, então o cliente sobrepõe .public-profile-banner-media,
 {% cosmetic_package 'tema' appearance.theme_key viewed_user as theme_package %}
 {% cosmetic_package 'moldura' appearance.frame_key viewed_user as frame_package %}
 {% cosmetic_package 'efeito' appearance.effect_key viewed_user as effect_package %}
-<section class="public-profile-page {{ appearance.theme_class }} {{ appearance.effect_class }}{% if appearance.background_url|safe_profile_image %} profile-has-bg{% endif %}{% if preview_mode %} is-preview{% endif %}" data-theme-category="{{ appearance.theme_category|default:'classico' }}" data-theme-motif="{{ appearance.theme_motif|default:'none' }}"{% if appearance.fx_particula %} data-fx-particula="{{ appearance.fx_particula }}" data-fx-vel="{{ appearance.fx_vel }}"{% endif %}{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %}>
+<section class="public-profile-page {{ appearance.theme_class }} {{ appearance.effect_class }}{% if appearance.background_url|safe_profile_image %} profile-has-bg{% endif %}{% if preview_mode %} is-preview{% endif %}" data-theme-motif="{{ appearance.theme_motif|default:'none' }}"{% if appearance.fx_particula %} data-fx-particula="{{ appearance.fx_particula }}" data-fx-vel="{{ appearance.fx_vel }}"{% endif %}{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %}>
   {% if preview_mode %}
   <div class="perfil-preview-bg"{% if appearance.background_url|safe_profile_image %} style="background-image:url('{{ appearance.background_url|safe_profile_image }}');"{% else %} style="display:none"{% endif %}></div>
   {% else %}
@@ -159,9 +159,14 @@ no servidor, então o cliente sobrepõe .public-profile-banner-media,
     {% if personagens %}
     <div class="public-character-grid">
       {% for c in personagens %}
-      <article class="cw-character-card profile-character-card">
-        {% include 'home/partials/_personagem_card_identity.html' with public_card=True %}
-      </article>
+      <div class="bf-character-rank-card">
+      <a href="{% if c.obj.publico %}{% url 'ficha_publica' c.obj.id_personagem %}{% else %}{% url 'ficha_detail' c.obj.id_personagem %}{% endif %}{% if players_demo %}?demo=1{% endif %}" class="public-character-card"{% if preview_mode %} tabindex="-1"{% endif %}>
+        {% if c.obj.banner_url|safe_profile_image %}<span class="public-character-banner" style="background-image:url('{{ c.obj.banner_url|safe_profile_image }}');"></span>{% endif %}
+        <strong>{{ c.obj.nome }}</strong>
+        <span>{{ c.raca }} · {{ c.classe }}</span>
+        <em>Nivel {{ c.nivel }}</em>
+      </a>
+      </div>
       {% endfor %}
     </div>
     {% else %}
@@ -170,5 +175,4 @@ no servidor, então o cliente sobrepõe .public-profile-banner-media,
   </div>
   {% endif %}
 </div>
-{% if profile_wall and not preview_mode %}{% include 'home/partials/_profile_wall.html' with wall=profile_wall %}{% endif %}
 </section>

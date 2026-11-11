@@ -1,0 +1,31 @@
+{
+  "method": "published page GET with candidate local race CSS intercepted in Chrome mobile 390x844",
+  "http_status": 200,
+  "css_intercepts": [
+    "raca_detail.css"
+  ],
+  "closed_top": {
+    "position": "relative",
+    "top": 65,
+    "expanded": "false",
+    "scrollWidth": 390
+  },
+  "closed_scrolled": {
+    "position": "relative",
+    "top": -635,
+    "scrollY": 700,
+    "viewportHeight": 844
+  },
+  "open": {
+    "position": "fixed",
+    "expanded": "true",
+    "bodyOpen": true,
+    "bottom": 26
+  },
+  "reclosed": {
+    "position": "relative",
+    "expanded": "false",
+    "bodyOpen": false
+  },
+  "production_mutated": false
+}

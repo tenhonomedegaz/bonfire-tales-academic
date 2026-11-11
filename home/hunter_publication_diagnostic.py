@@ -1,8 +1,8 @@
 """Resolve the published Hunter once for the public page and protected status."""
+from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import DatabaseError
 from django.utils.text import slugify
-
-from .class_publication import CATALOG_ERRORS, resolve_class_catalog
 
 
 class HunterPublicationUnavailable(Exception):
@@ -12,30 +12,40 @@ class HunterPublicationUnavailable(Exception):
 
 
 def resolve_publication():
+    from django.core.exceptions import ObjectDoesNotExist
     """Return only a fully reviewed catalog; never fall back to live legacy rows."""
     from .content_versions import resolve_content
     from .hunter_regularization import _reviewed_target, _target_orders
     from .models import TbClasse, TbRecursoclasse, TbRuleset
-    from .versioned_classes import EVALUATOR, VOCABULARY
+    from .versioned_classes import EVALUATOR, VOCABULARY, VersionedClassCatalog
 
+    from .class_publication import published_catalog
     try:
         live = TbClasse.objects.get(slug='cacador')
     except TbClasse.DoesNotExist as exc:
         raise HunterPublicationUnavailable('class_missing') from exc
     try:
-        selection = resolve_class_catalog(live)
+        bound = published_catalog(live)
+    except (ObjectDoesNotExist, ValueError, KeyError, TypeError) as exc:
+        raise HunterPublicationUnavailable('class_snapshot_invalid') from exc
+    checksum = bound[0].checksum if bound else settings.HUNTER_CREATOR_RULESET_CHECKSUM
+    if not checksum:
+        raise HunterPublicationUnavailable('config_missing')
+    try:
+        ruleset = TbRuleset.objects.get(checksum=checksum)
     except TbRuleset.DoesNotExist as exc:
         raise HunterPublicationUnavailable('ruleset_missing') from exc
-    except CATALOG_ERRORS as exc:
+    try:
+        catalog = VersionedClassCatalog(ruleset, live.pk)
+        if catalog.classe.slug != 'cacador':
+            raise ValueError('Invalid class identity')
+    except (ValueError, KeyError, TypeError, ObjectDoesNotExist) as exc:
         raise HunterPublicationUnavailable('class_snapshot_invalid') from exc
-    if selection.mode == 'source':
-        raise HunterPublicationUnavailable('config_missing')
-    ruleset, catalog = selection.ruleset, selection.catalog
     try:
         data = resolve_content(ruleset, 'hunter-rework',
                                evaluator_version=EVALUATOR,
                                vocabulary_version=VOCABULARY)
-    except CATALOG_ERRORS as exc:
+    except (ValueError, KeyError, TypeError, ObjectDoesNotExist) as exc:
         raise HunterPublicationUnavailable('rework_snapshot_invalid') from exc
     try:
         if not _reviewed_target(ruleset, live.pk, data):
@@ -54,17 +64,25 @@ def resolve_publication():
                 slugify(row.nome).startswith('dado-de-ca')]
         if len(dice) != 1:
             raise HunterPublicationUnavailable('hunter_die_incomplete')
-    except CATALOG_ERRORS as exc:
+    except (ValueError, KeyError, TypeError, ObjectDoesNotExist) as exc:
         raise HunterPublicationUnavailable('catalog_invalid') from exc
     return {'class': catalog.classe, 'catalog': catalog, 'orders': orders,
-            'progression': progression, 'hunter_die_resource_id': dice[0].pk,
-            'ruleset': ruleset, 'mode': selection.mode}
+            'progression': progression, 'hunter_die_resource_id': dice[0].pk}
 
 
 def publication_status():
     """Read-only, minimal status; no personal data, SQL or internal traceback."""
+    from django.core.exceptions import ObjectDoesNotExist
+    from .class_publication import published_catalog
+    from .models import TbClasse
+    live = TbClasse.objects.filter(slug='cacador').first()
+    try:
+        bound = published_catalog(live) if live else None
+    except (ObjectDoesNotExist, ValueError, KeyError, TypeError):
+        bound = None
+    checksum = bound[0].checksum if bound else settings.HUNTER_CREATOR_RULESET_CHECKSUM
     status = {'schema': 1, 'published': False, 'code': 'config_missing',
-              'checksum_prefix': None}
+              'checksum_prefix': checksum[:12] if checksum else None}
     try:
         resolved = resolve_publication()
     except HunterPublicationUnavailable as exc:
@@ -74,6 +92,5 @@ def publication_status():
         status['code'] = 'database_unavailable'
         return status
     status.update(published=True, code='ok', orders=len(resolved['orders']),
-                  levels=len(resolved['progression']),
-                  checksum_prefix=resolved['ruleset'].checksum[:12])
+                  levels=len(resolved['progression']))
     return status

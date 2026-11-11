@@ -12,7 +12,7 @@ Copie `production.env.example` para `.env.production` e ajuste:
 - `POSTGRES_URL`
 - `SITE_ORIGIN` (na produção: `https://bonfiretales.com.br`)
 - `ADSENSE_ENABLED` (`1` para habilitar publicidade nas páginas elegíveis)
-- `ADSENSE_PUBLISHER_ID` (por padrão, `ca-pub-[discord-id]`)
+- `ADSENSE_PUBLISHER_ID` (por padrão, `ca-pub-1634793837919535`)
 
 Os anúncios automáticos funcionam somente com o publisher configurado. Caso a equipe
 crie unidades manuais no AdSense, informe também `ADSENSE_SIDEBAR_SLOT` e

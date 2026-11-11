@@ -1,0 +1,160 @@
+{
+  "version": 1,
+  "source_sha256": "41e9c80b84fc08ed9cffa6fa1def5d0356f6fca4dc34ada46f21b8095f99b326",
+  "rows": [
+    {
+      "pk": 124,
+      "slug": "archdruid",
+      "before_sha256": "454b7a42755ef4230da2993f216510e20b3124d15b7c5ce49296658f63c12490",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Staff",
+          "source_entries_sha256": "641efc3e81dcc2b17702b86675c18df422b3b796c943d5e475c63ff9986c3464",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:1d6+2(concussao), dmg:6d6(veneno)}"
+          ]
+        }
+      ],
+      "after_sha256": "98ab07ea377c16a80e19a92a5efa63fd846bc9d2d439ba8e6727ecf0ebc7c0d1"
+    },
+    {
+      "pk": 132,
+      "slug": "assassin",
+      "before_sha256": "feee5b1f4cbb1ece5501ad3f0890a563b90105a18f88953f0810f0ac31922eac",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Light Crossbow",
+          "source_entries_sha256": "4074a6c39f159f0d6e82de62be92cecbb191e70b41239312c790823bf6aa6c0f",
+          "tags": [
+            "instant{attack:ranged, attack:+7, range:80/320ft, dmg:1d8+4(perfurante), dmg:6d6(veneno)}"
+          ],
+          "correct_dual_range": true
+        }
+      ],
+      "after_sha256": "3503be8daf5a3977f93d2df8bb73ad1b4fe03c566b786b66bf4f3356a946fb38"
+    },
+    {
+      "pk": 150,
+      "slug": "bandit-crime-lord",
+      "before_sha256": "7252f50a16074a9eb9846de68dd4508f58981f0a2523a038e1d2ac6aa8b83987",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Scimitar",
+          "source_entries_sha256": "536c04147728ec13344de9e698d4af5ab7b803900ce6cd0d65c563e2741a948a",
+          "tags": [
+            "instant{attack:melee, attack:+9, reach:5ft, dmg:2d6+5(cortante), dmg:4d6(veneno)}"
+          ]
+        },
+        {
+          "index": 2,
+          "name_en": "Pistol",
+          "source_entries_sha256": "6d813ebc2fde509182de0f0b1de7d855aa5a0927dce882943fdbda076ec2fc51",
+          "tags": [
+            "instant{attack:ranged, attack:+9, range:30/90ft, dmg:1d10+5(perfurante), dmg:4d6(veneno)}"
+          ],
+          "correct_dual_range": true
+        }
+      ],
+      "after_sha256": "8454f8fd063364ac635ddd1c30affe0522c1123f807a3a74955b279046005a75"
+    },
+    {
+      "pk": 158,
+      "slug": "basilisk",
+      "before_sha256": "41b5f10a9de5cdb135ae395742f97ad68bf5d4dfc325a0b6268ae72d13d77c0f",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bite",
+          "source_entries_sha256": "3d4e8373d3e77e60a22ec02f8b60cd9ff364d1077fe52c5af6a13e15c70595c1",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:2d6+3(perfurante), dmg:2d6(veneno)}"
+          ]
+        }
+      ],
+      "after_sha256": "dc0289b3127d90e4d6fad05db7e0d8455d83f0ff89e519f8c5a76ba41576a536"
+    },
+    {
+      "pk": 206,
+      "slug": "bullywug-bog-sage",
+      "before_sha256": "81b5ef514954fc0dc90b99d7aee695d34f7255314f3e8992dce30512503d38bc",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bog Staff",
+          "source_entries_sha256": "078e115d046aa88c4c9d2fe6f3e05b9088f69e663a79f5d612613deae3fef629",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d8+3(concussao), dmg:3d6(veneno)}"
+          ]
+        }
+      ],
+      "after_sha256": "b36ad7b9bf09a8b7b99b75dcfebad2abcc3eefc1c9ecdd1456a839e640938cd5"
+    },
+    {
+      "pk": 207,
+      "slug": "bullywug-warrior",
+      "before_sha256": "ea456117e0ff42e38f8b7a7291fe42e2d9d5c8cca78118cb939934819e01dd33",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Insectile Rapier",
+          "source_entries_sha256": "0a5254073cd4b22f837148ec3fcb0e5489d024f2ea68ec914b227022947f8dea",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d8+2(perfurante), dmg:1d4(veneno)}"
+          ]
+        }
+      ],
+      "after_sha256": "96bd13009f2ebc0cada2b2b73617db25cf5df09075f19b6e6ea7d79dfb205d75"
+    },
+    {
+      "pk": 212,
+      "slug": "carrion-crawler",
+      "before_sha256": "443afcbfb96281bd9b8115bcd55763abcc48992b2930688b509805f8f494a2aa",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "8202ff8f6e26d91357a91a5fdfa483aac2cf506780efab007936a5d6d563c740",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:2d4+2(perfurante), dmg:1d6(veneno)}"
+          ]
+        }
+      ],
+      "after_sha256": "f97497b7248c19aa29ca318fad7bcfc92f2a533c9b6263a6c0a8311ad6e62732"
+    },
+    {
+      "pk": 217,
+      "slug": "centaur-warden",
+      "before_sha256": "c414a85f4dba9bf3ad5448c8553082cc41c9b3f9fffa85dd98e9b62409df790b",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Forest Staff",
+          "source_entries_sha256": "9b192454e38e5948b0069e69e51d15d053db4049f8f8ef08ca0918a07025e723",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:5ft, dmg:2d8+4(concussao), dmg:4d6(veneno)}"
+          ]
+        }
+      ],
+      "after_sha256": "8a625c91a2aabdf44affbe5aadfd5ca739537e804a496ec5afe039300a59a842"
+    },
+    {
+      "pk": 242,
+      "slug": "corpse-flower",
+      "before_sha256": "9186e527f4630226b363dc888b078f290b91cdc7986153202be70d8c59f9b728",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Tentacle",
+          "source_entries_sha256": "9d383b3f4524dc37fc119a322523999f0097e205bc92ea8e3d3d4b52e7a75c6e",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:10ft, dmg:2d6+2(concussao), dmg:3d6(veneno)}"
+          ]
+        }
+      ],
+      "after_sha256": "40741852c6b5845eca535027246bfbeda8dcd80d7fe977854c74f0928a55c6c6"
+    }
+  ]
+}

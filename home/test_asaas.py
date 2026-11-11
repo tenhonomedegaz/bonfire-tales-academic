@@ -114,7 +114,7 @@ class AsaasCheckoutTests(TestCase):
         self.assertEqual(order.amount, Decimal('19.90'))
         payload = api_request.call_args.args[2]
         self.assertEqual(payload['externalReference'], order.external_reference)
-        self.assertNotIn('customerData', payload)
+        self.assertEqual(payload['customerData']['email'], self.user.email)
         self.assertEqual(payload['chargeTypes'], ['DETACHED'])
         api_request.assert_called_once()
 
@@ -133,7 +133,7 @@ class AsaasCheckoutTests(TestCase):
         order = AsaasCheckoutOrder.objects.get()
         self.assertEqual(order.email, 'checkout@example.com')
         self.assertEqual(order.discord_user_id, '')
-        self.assertNotIn('customerData', api_request.call_args.args[2])
+        self.assertEqual(api_request.call_args.args[2]['customerData']['email'], order.email)
 
     @patch('home.views._asaas_api_request')
     def test_discord_only_account_can_start_checkout(self, api_request):
@@ -150,7 +150,7 @@ class AsaasCheckoutTests(TestCase):
         order = AsaasCheckoutOrder.objects.get()
         self.assertEqual(order.email, '')
         self.assertEqual(order.discord_user_id, '123456789')
-        self.assertNotIn('customerData', api_request.call_args.args[2])
+        self.assertNotIn('email', api_request.call_args.args[2]['customerData'])
 
     def test_rejects_unknown_product(self):
         response = self.client.post(reverse('colaborador_checkout'), {
@@ -213,7 +213,7 @@ class AsaasDiscordCheckoutTests(TestCase):
         self.assertEqual(order.product_code, 'token-boost')
         self.assertEqual(order.email, '')
         resolve_member.assert_called_once_with(discord_id='987654321')
-        self.assertNotIn('customerData', api_request.call_args.args[2])
+        self.assertNotIn('email', api_request.call_args.args[2]['customerData'])
 
     def test_expired_or_tampered_discord_checkout_is_rejected(self):
         expired = self.client.get(reverse('colaborador_discord_checkout'), {

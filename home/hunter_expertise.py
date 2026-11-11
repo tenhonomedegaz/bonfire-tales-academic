@@ -46,17 +46,6 @@ def apply_expertise(person, ruleset, skills, proficiency, warnings):
                 skill['bonus'] += proficiency
 
 
-def validate_selection(state, selected, *, complete=True):
-    selected = list(selected)
-    if (state is None or not state['valid'] or len(selected) > state['limit']
-            or (complete and len(selected) != state['limit'])
-            or len(set(selected)) != len(selected)
-            or not set(selected) <= {s['id'] for s in state['options']}
-            or not set(state['selected']) <= set(selected)):
-        raise ValueError('Escolha perícias distintas já proficientes de INT/SAB, preservando escolhas anteriores.')
-    return selected
-
-
 @transaction.atomic
 def save_expertise(*, character_id, owner_id, selected, expected_version):
     from .character_engine import derive
@@ -67,7 +56,12 @@ def save_expertise(*, character_id, owner_id, selected, expected_version):
     if profile.version != int(expected_version):
         raise ValueError('A ficha mudou. Recarregue antes de escolher perícias.')
     state = choice_state(profile, derive(person, ruleset=profile.ruleset)['pericias'])
-    selected = validate_selection(state, selected)
+    selected = list(selected)
+    if (state is None or not state['valid'] or len(selected) != state['limit']
+            or len(set(selected)) != len(selected)
+            or not set(selected) <= {s['id'] for s in state['options']}
+            or not set(state['selected']) <= set(selected)):
+        raise ValueError('Escolha perícias distintas já proficientes de INT/SAB, preservando escolhas anteriores.')
     added = [s for s in selected if s not in state['selected']]
     for slot, value in enumerate(added, start=len(state['selected'])):
         TbPersonagemEscolha.objects.create(id_personagem=person,

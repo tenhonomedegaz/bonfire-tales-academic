@@ -17,13 +17,6 @@ VOCABULARY = 'class-catalog-v1'
 MODELS = (TbClasse, TbSubclasse, TbClassehabilidade, TbRecursoclasse)
 
 
-def validate_class_contracts(value):
-    if (not isinstance(value, dict) or set(value) - {'spell_grants'}
-            or ('spell_grants' in value and value['spell_grants'] != 'tags-v1')):
-        raise ValueError('Unsupported class consumer contract.')
-    return dict(value)
-
-
 @lru_cache(maxsize=1)
 def _legacy_tag_supplements():
     path = Path(__file__).parent / 'rules' / 'legacy_choice_supplements.json'
@@ -67,7 +60,6 @@ class VersionedClassCatalog:
                                   evaluator_version=EVALUATOR, vocabulary_version=VOCABULARY)
         if payload.get('schema') != 1 or payload.get('class_id') != class_id:
             raise ValueError('Invalid class snapshot.')
-        self.contracts = validate_class_contracts(payload.get('contracts', {}))
         self.presentation_source = payload.get('presentation_source')
         if self.presentation_source not in (None, 'catalog'):
             raise ValueError('Unsupported class presentation source.')

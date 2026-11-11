@@ -62,7 +62,6 @@ body::before{opacity:.025}
 .bft-account-panel form{border-top:1px solid var(--stroke);margin-top:7px;padding-top:7px}
 .bft-mobile-menu{display:none}
 .bft-footer{background:#100d0b;border-top:1px solid #543922}
-.bft-privacy-choices{background:none;border:0;padding:0;color:inherit;font:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:3px}.bft-privacy-choices[hidden]{display:none}.bft-privacy-choices:focus-visible{outline:2px solid var(--ember);outline-offset:4px}
 .bft-footer-top{display:grid;grid-template-columns:1.4fr 1fr 1fr 1.1fr;gap:48px;padding-block:62px}
 .bft-footer-brand p{font:500 19px/1.3 var(--bft-display);color:#c5b4a0;margin:23px 0}
 .bft-socials{display:flex;flex-wrap:wrap;gap:17px}

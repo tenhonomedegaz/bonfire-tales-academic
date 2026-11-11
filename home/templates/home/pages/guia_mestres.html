@@ -26,7 +26,7 @@
 
       <div class="flex flex-wrap justify-center gap-2.5 mt-6">
         <a href="{% url 'profile' %}?aba=mestre" class="px-5 py-2 rounded bg-[var(--flame)] hover:bg-[var(--ember)] text-white font-bold transition-all shadow-lg hover:-translate-y-0.5">
-          {% if master_applications_open %}Solicitar permissão no perfil{% else %}Consultar cadastro no perfil{% endif %}
+          Solicitar permissão no perfil
         </a>
         <a href="https://discord.gg/eyqe7rj2AX" target="_blank" class="px-5 py-2 rounded border border-[var(--stroke)] text-[var(--text)] hover:bg-[var(--bg1)] font-bold transition-all">
           Abrir Missão (Bot)
@@ -182,7 +182,7 @@
           <span>Como solicitar a avaliação</span>
         </div>
         <div class="p-3 bg-[var(--bg0)] overflow-x-auto">
-          <p class="text-[var(--muted)] text-sm leading-relaxed">{% if master_applications_open %}Abra a aba <a class="mh-text-link" href="{% url 'profile' %}?aba=mestre">Mestre no seu perfil</a> e envie o pedido de participação. A equipe avaliará os requisitos antes de conceder a permissão.{% else %}Novas solicitações estão temporariamente encerradas enquanto o formulário é revisado. Você pode consultar seu cadastro existente na aba <a class="mh-text-link" href="{% url 'profile' %}?aba=mestre">Mestre no seu perfil</a>.{% endif %}</p>
+          <p class="text-[var(--muted)] text-sm leading-relaxed">Abra a aba <a class="mh-text-link" href="{% url 'profile' %}?aba=mestre">Mestre no seu perfil</a> e envie o pedido de participação. A equipe avaliará os requisitos antes de conceder a permissão.</p>
         </div>
       </div>
     </section>

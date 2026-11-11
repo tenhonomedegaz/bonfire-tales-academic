@@ -84,7 +84,7 @@ Os modificadores tambem podem ficar na linha seguinte, util quando o editor esti
 {position:right,length:40%}
 ```
 
-Modificadores ï¿½teis:
+Modificadores úteis:
 
 - `position:right` ou `position:left`: alinha a imagem na direita/esquerda e deixa o texto contornar.
 - `position:center`: centraliza a imagem. Ideal para imagem em destaque, sem texto contornando.

@@ -3,8 +3,6 @@
 .bft-commerce .co-product .shop-visual{display:grid;place-items:center;width:6rem;height:4.5rem;object-fit:contain;color:var(--flame)}
 .bft-commerce .co-product .shop-visual-glyph{font-size:2rem;line-height:1}
 
-.bft-commerce .co-collaborator-icon{display:block;width:64px;height:64px;max-width:none;object-fit:contain;flex-shrink:0}
-
 /* Shared purchase review for plans, cosmetics and event redemptions. */
 .bft-commerce .co-dialog{box-sizing:border-box;width:min(32rem,calc(100vw - 2rem));max-height:calc(100dvh - 2rem);overflow:auto;margin:auto;padding:1.25rem;border:1px solid var(--ember);border-radius:.5rem;background:var(--bg1);color:var(--text);box-shadow:0 1.5rem 4rem rgba(0,0,0,.65)}
 .bft-commerce .co-dialog::backdrop{background:rgba(0,0,0,.76)}
@@ -19,16 +17,3 @@
 .bft-commerce .co-dialog-actions{justify-content:flex-end;flex-wrap:wrap;margin-top:1.25rem}.bft-commerce .co-dialog-actions .co-btn{min-height:2.75rem;align-items:center;cursor:pointer}
 .bft-commerce .co-dialog :is(button:focus-visible){outline:2px solid var(--spark);outline-offset:2px}
 @media(max-width:400px){.bft-commerce .co-dialog .co-summary{grid-template-columns:1fr}.bft-commerce .co-dialog-actions .co-btn{flex:1}}
-.bft-commerce [data-subscription-plan]{display:grid;gap:.75rem;min-width:0}
-.bft-commerce [data-co-plan]{width:100%;min-width:0;max-width:100%;padding:.65rem;background:var(--bg0);color:var(--text);border:1px solid var(--stroke);border-radius:4px;font:inherit}
-.bft-commerce .co-payment-modes{display:grid;gap:.5rem;margin:0;padding:.65rem;border:1px solid var(--stroke);min-width:0}
-.bft-commerce .co-payment-modes label{display:flex;gap:.5rem;align-items:flex-start;font-size:.875rem;line-height:1.4}
-.bft-commerce .co-payment-modes input{flex:0 0 auto;margin-top:.15rem}
-.bft-commerce .co-payment-modes [hidden]{display:none}
-.bft-commerce .co-selected-total{margin:0;font-size:.875rem;overflow-wrap:anywhere}
-.bft-commerce .co-hero h1{font-size:36px;line-height:1.2;margin:.5rem 0 1rem}
-.bft-commerce .co-section-head h2{font-size:28px;line-height:1.25;margin:.5rem 0}
-.bft-commerce .co-plan h3{font-size:22px;line-height:1.3;margin:.5rem 0}
-.bft-commerce .co-price{font-size:26px;font-weight:700;margin:.5rem 0}
-.bft-commerce .co-price small{font-size:14px;font-weight:400}
-@media(max-width:640px){.bft-commerce .co-hero h1{font-size:28px}.bft-commerce .co-section-head h2{font-size:24px}}

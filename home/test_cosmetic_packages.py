@@ -21,10 +21,6 @@ class CosmeticPackageTests(SimpleTestCase):
         raw = json.loads(path.read_text(encoding='utf-8'))
         self.assertEqual(path.stem, raw['slug'])
         package = parse_package(raw, raw['slug'], raw['type'])
-        if raw['type'] == 'tema' and raw['layers'] == []:
-          # CSS-only themes intentionally have no raster media package.
-          self.assertIsNone(package)
-          continue
         self.assertIsNotNone(package)
         self.assertTrue(any(package[slot] for slot in ('banner', 'ornament', 'avatar')))
 
@@ -87,13 +83,13 @@ class CosmeticPackageTests(SimpleTestCase):
   def test_rank_delivery_uses_small_derivatives_with_original_fallback(self):
     total = 0
     for rank in ('obsidiana', 'ametista', 'topazio', 'esmeralda', 'ambar', 'rubi', 'diamante'):
-      source = PACKAGE_ROOT / f'rank-{rank}-open-base-v1.webp'
+      source = PACKAGE_ROOT / f'rank-{rank}-v3.webp'
       total += source.stat().st_size
       self.assertEqual(source.read_bytes()[8:12], b'WEBP')
       for form in ('aberta', 'fechada'):
         raw = json.loads((PACKAGE_ROOT / f'moldura-elo-{rank}-{form}.json').read_text())
         self.assertEqual(raw['layers'][0]['file'], source.name)
-        self.assertEqual(raw['layers'][0]['fallback'], f'rank-{rank}-open-base-v1.png')
+        self.assertEqual(raw['layers'][0]['fallback'], f'rank-{rank}-v3.png')
     self.assertLess(total, 1_500_000)
 
   def test_live_preview_media_excludes_locked_options(self):
@@ -118,7 +114,7 @@ class CosmeticPackageTests(SimpleTestCase):
     self.assertIsNone(get_package(object(), 'moldura', 'ember-ring'))
     allowed.return_value = True
     package = get_package(object(), 'moldura', 'ember-ring')
-    self.assertEqual(package['avatar'][0]['url'], '/static/cosmetics/community-frame-ember-ring-v1.webp')
+    self.assertEqual(package['avatar'][0]['url'], '/static/cosmetics/ember-ring.svg')
     self.assertIsNone(get_package(object(), 'moldura', '../ember-ring'))
     self.assertIsNone(get_package(object(), 'moldura', 'missing'))
 
@@ -131,7 +127,7 @@ class CosmeticPackageTests(SimpleTestCase):
     )
     html = template.render(Context({'user': object()}))
     self.assertIn('cosmetic-layers--avatar', html)
-    self.assertIn('community-frame-arcane-pulse-v1.webp', html)
+    self.assertIn('arcane-ring.svg', html)
     self.assertIn('aria-hidden="true"', html)
 
   def test_profile_pages_and_shared_preview_compile(self):
@@ -150,10 +146,10 @@ class CosmeticPackageTests(SimpleTestCase):
     owner = object()
     closed = get_package(owner,'moldura','elo-esmeralda-fechada','ficha')
     opened = get_package(owner,'moldura','elo-esmeralda-aberta','ficha')
-    self.assertEqual(closed['avatar'][0],opened['avatar'][0])
-    self.assertEqual(opened['avatar'][0]['sprite'],'full')
+    self.assertEqual(closed['avatar'][0]['motion'],'helmet')
+    self.assertEqual(opened['avatar'][0]['sprite'],'open')
     template = Template("{% include 'home/partials/_cosmetic_preview.html' with layers=layers slot='avatar' %}")
     html = template.render(Context({'layers':closed['avatar']}))
-    self.assertEqual(html.count('cosmetic-layer--retract'),3)
-    self.assertNotIn('cosmetic-helmet-brow',html)
-    self.assertEqual(html.count('<img '),4)
+    for part in ('open','brow','left','right','chin'):
+      self.assertIn('cosmetic-helmet-'+part,html)
+    self.assertEqual(html.count('<img '),5)

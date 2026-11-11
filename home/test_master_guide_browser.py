@@ -12,14 +12,11 @@ from django.contrib.auth import get_user_model
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.db import connection
 from django.urls import reverse
-from django.test import override_settings
 
 from .models import TbPerfilMestre
-from .master_application_testdata import application_data
 
 
 class MasterGuideBrowserTests(StaticLiveServerTestCase):
-    @override_settings(MASTER_APPLICATIONS_OPEN=True)
     def test_guide_navigation_and_request_flow(self):
         if connection.vendor != 'postgresql' or not connection.settings_dict['NAME'].startswith('test_'):
             self.skipTest('Requires isolated PostgreSQL test database.')
@@ -41,8 +38,8 @@ class MasterGuideBrowserTests(StaticLiveServerTestCase):
         profile = self.client.get(profile_url)
         self.assertEqual(profile.status_code, 200)
         self.assertContains(profile, 'Solicitar participação')
-        self.assertContains(profile, f'href="{reverse("master_request")}"')
-        response = self.client.post(reverse('master_request'), application_data())
+        self.assertContains(profile, f'action="{reverse("master_request")}"')
+        response = self.client.post(reverse('master_request'))
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response['Location'], profile_url + '#perfil-mestre')
         self.assertEqual(TbPerfilMestre.objects.get(user=user).status_mestre, 'pendente')

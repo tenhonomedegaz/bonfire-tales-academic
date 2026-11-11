@@ -29,7 +29,7 @@ def character_rank(character):
     name = 'Diamante' if legend else current
     from django.utils.text import slugify
     from django.templatetags.static import static
-    return {'nome': name, 'icone_url': rank_icone_url(current), 'is_lenda': legend,
+    return {'nome': name, 'icone_url': rank_icone_url(name), 'is_lenda': legend,
             'key': slugify(name),
             'art_url': rank_art_url(slugify(name)),
             'open_frame_key': 'elo-' + slugify(name) + '-aberta',

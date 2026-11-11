@@ -1,31 +1,17 @@
-from django.urls import include, path
+from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
 from . import hunter_views
 from . import master_participation
 from . import master_tables
 from . import master_portfolio
-from .gestao import story_views
-from . import master_roster
 from . import theme_studio
 from . import master_commercial
 from . import subscription_views
 from . import slot_views
 from . import legend_views
-from . import cosmetic_picker
-from . import profile_comments
-from . import vtt_lab
 
 urlpatterns = [
-    path('jogador/historias/', story_views.inbox, name='character_stories_inbox'),
-    path('jogador/personagens/<int:pk>/historia/', story_views.edit, name='character_story'),
-    path('gestao/', include('home.gestao.urls')),
-    path('vtt/laboratorio/', vtt_lab.laboratory, name='vtt_lab'),
-    path('vtt/laboratorio/api/sessoes/', vtt_lab.sessions, name='vtt_lab_sessions'),
-    path('vtt/laboratorio/api/sessoes/<uuid:session_id>/', vtt_lab.session_snapshot, name='vtt_lab_session'),
-    path('vtt/laboratorio/api/sessoes/<uuid:session_id>/medir/', vtt_lab.measure, name='vtt_lab_measure'),
-    path('vtt/laboratorio/api/sessoes/<uuid:session_id>/caminho/', vtt_lab.movement_preview, name='vtt_lab_movement_preview'),
-    path('vtt/laboratorio/api/sessoes/<uuid:session_id>/comandos/', vtt_lab.commands, name='vtt_lab_commands'),
     path('atelie/', theme_studio.theme_studio, name='theme_studio'),
     path('atelie/adquirir-mm/', theme_studio.buy_theme_with_mm, name='buy_theme_with_mm'),
     path('colaborador/assinatura/', subscription_views.subscription_management,
@@ -38,7 +24,6 @@ urlpatterns = [
     path('mestre/portfolio/<int:pk>/revisar/', master_portfolio.work_review, name='master_work_review'),
     path('mestre/portfolio/<int:pk>/', master_portfolio.work_detail, name='master_work_detail'),
     path('mestre/central/', master_participation.master_dashboard, name='master_dashboard'),
-    path('mestre/fogueiras/<int:number>/', master_roster.portfolio, name='master_roster_portfolio'),
     path('mestre/mesas-verificadas/<int:pk>/', master_commercial.verify_table, name='master_verify_table'),
     path('mestre/vitrine-comercial/<int:pk>/', master_commercial.authorize_listing, name='master_authorize_listing'),
     path('mestre/solicitar/', master_participation.master_request, name='master_request'),
@@ -75,8 +60,6 @@ urlpatterns = [
         template_name='home/password_reset_complete.html'
     ), name='password_reset_complete'),
     path('perfil/', views.profile_view, name='profile'),
-    path('perfil/cosmeticos/previa/', cosmetic_picker.cosmetic_picker_preview,
-         name='cosmetic_picker_preview'),
     path('perfil/conquistas/notificacoes/', views.conquista_notificacoes_view,
          name='conquista_notificacoes'),
     path('perfil/conquistas/notificacoes/<int:notificacao_id>/ler/',
@@ -98,9 +81,6 @@ urlpatterns = [
     # clareza — o padrão de 2 segmentos não colide com 'perfil/<username>/'.
     path('perfil/<str:username>/curtir/', views.perfil_curtir_view, name='perfil_curtir'),
     path('perfil/<str:username>/seguir/', views.perfil_seguir_view, name='perfil_seguir'),
-    path('perfil/<str:username>/comentarios/', profile_comments.comment_create, name='perfil_comentar'),
-    path('perfil/comentarios/<int:comment_id>/curtir/', profile_comments.comment_like, name='perfil_comentario_curtir'),
-    path('perfil/comentarios/<int:comment_id>/remover/', profile_comments.comment_remove, name='perfil_comentario_remover'),
     path('perfil/<str:username>/', views.public_profile_view, name='public_profile'),
     path('verificar-email/<str:token>/', views.verify_email, name='verify_email'),
     path('wiki/talentos/<int:talent_id>/editar/', views.wiki_update_talent, name='wiki_update_talent'),
@@ -229,8 +209,8 @@ urlpatterns = [
     path('mestre/condicoes/<int:pk>/excluir/', views.condicao_excluir, name='condicao_excluir'),
     path('mestre/mercado-de-mestre/', views.mercado_mestre_view, name='mestre_mercado'),
     path('mestre/mercado-de-mestre/registrar-aventura/', views.mestre_registrar_aventura, name='mestre_registrar_aventura'),
-    path('mestre/mercado-de-mestre/resgatar/', views.mercado_mestre_resgatar, name='mestre_resgatar'),
-    path('mestre/mercado-de-mestre/resgatar-braseiros/', views.mercado_mestre_resgatar_braseiros, name='mestre_resgatar_braseiros'),
+    path('mestre/mercado-de-mestre/resgatar/', views.mestre_resgatar, name='mestre_resgatar'),
+    path('mestre/mercado-de-mestre/resgatar-braseiros/', views.mestre_resgatar_braseiros, name='mestre_resgatar_braseiros'),
 
     path('mercado/itens-mundanos/', views.itens_mundanos_view, name='mercado_itens_mundanos'),
     path('mercado/itens-magicos/', views.itens_magicos_view, name='mercado_itens_magicos'),
