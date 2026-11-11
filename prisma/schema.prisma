@@ -1,0 +1,168 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_URL")
+}
+
+model Quest {
+  id                      String    @id @default(cuid())
+  guildId                 String
+  channelId               String?
+  name                    String
+  description             String
+  questDate               DateTime
+  playersAmount           Int
+  rules                   String
+  tags                    String[]
+  type                    String
+  tableUrl                String
+  questMaster             String
+  allowedRanks            String[]
+  mandatoryPlayers        String[]
+  highPriorityPlayers     String[]
+  subscribedPlayers       Json      @default("[]")
+  questPlayers            Json      @default("[]")
+  removedPlayers          String[]
+  participationRequests   Json      @default("[]")
+  createdBy               String
+  isPublished             Boolean   @default(false)
+  status                  String    @default("idle")
+  timeEvents              Json      @default("[]")
+  startDate               DateTime?
+  endDate                 DateTime?
+  rewardAventurasOverride Int?
+  dedicatedRankId         String?
+
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  @@map("rpg_quests")
+}
+
+model Item {
+  id               String   @id @default(cuid())
+  shopType         String
+  name             String   @unique
+  translatedName   String
+  rarity           String
+  tier             String
+  rollChance       Float
+  consumable       Boolean
+  sintonization    String
+  type             String
+  description      String
+  baseBook         String
+  alwaysOnTheStore Boolean  @default(false)
+  price            String
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("rpg_items")
+}
+
+model Member {
+  id              String   @id @default(cuid())
+  discordUserId   String   @unique
+  discordUserTag  String
+  email           String   @unique
+  tokenSuperboost Int      @default(0)
+  tokenXpBoost    Int      @default(0)
+  tokenMission    Int      @default(0)
+  isModerator     Boolean  @default(false)
+  isAdmin         Boolean  @default(false)
+  skipValidation  Boolean  @default(false)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("discord_subscribers")
+}
+
+model Transaction {
+  id                    String    @id @default(cuid())
+  transactionCode       String    @unique
+  transactionSource     String?
+  paymentDate           DateTime
+  expirationDate        DateTime
+  subscriptionPlan      String
+  subscriptionPeriod    String
+  subscriptionReference String?   @default("-")
+  status                Int
+  grossAmount           Float
+  netAmount             Float
+  name                  String?
+  email                 String
+  comments              String?
+  claimed               Boolean   @default(false)
+  claimedAt             DateTime?
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@map("transactions")
+}
+
+model SchedulerJob {
+  id        String    @id @default(cuid())
+  name      String
+  data      Json
+  nextRunAt DateTime
+
+  @@map("discord_jobs")
+}
+
+model DedicatedRank {
+  id               String   @id @default(cuid())
+  guildId          String
+  rankings         Json
+  validFrom        DateTime
+  validUntil       DateTime
+  isActive         Boolean  @default(true)
+  isPriorityLocked Boolean  @default(false)
+  priorityRankName String?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("dedicated-ranks")
+}
+
+model CharacterLog {
+  id                     String   @id @default(cuid())
+  discordUserId          String
+  discordUserTag         String
+  sheetUrl               String
+  spreadsheetId          String   @unique
+  characterName          String
+  rankName               String
+  className              String
+  level                  Int      @default(0)
+  adventuresPlayed       Int      @default(0)
+  validStarterAdventures Int      @default(0)
+  isNovice               Boolean  @default(false)
+  registeredBy           String
+
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  @@unique([discordUserId, characterName])
+  @@index([discordUserId])
+  @@index([discordUserId, rankName])
+
+  @@map("rpg_character_logs")
+}
+
+model KeyValueStore {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("store_keyvalue")
+}

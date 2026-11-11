@@ -1,0 +1,13 @@
+node_modules/
+.git-incomplete-backup/
+dist/
+backups/
+log/
+scratch/
+.env
+.env.*
+!.env.example
+*.sqlite
+*.sqlite3
+*.db
+*.log
